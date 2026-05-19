@@ -336,12 +336,20 @@ export class IndexedDBStore {
         'autoSync', 'syncInterval', 'theme', 'language',
         'notificationEnabled', 'quarantineAutoClean', 'quarantineRetentionDays'
       ], (result) => {
+        // ✅ 添加详细日志
+        console.log('[IndexedDBStore] getSettings result:', {
+          webdavUrl: (result.webdavUrl as string) ? `${(result.webdavUrl as string).substring(0, 20)}...` : '(empty)',
+          webdavUsername: (result.webdavUsername as string) || '(empty)',
+          webdavPassword: (result.webdavPassword as string) ? '***' : '(empty)',
+          neodbToken: (result.neodbToken as string) ? '***' : '(empty)'
+        })
+        
         resolve({
           webdavUrl: result.webdavUrl || '',
           webdavUsername: result.webdavUsername || '',
           webdavPassword: result.webdavPassword || '',
           neodbToken: result.neodbToken || '',
-          autoSync: result.autoSync ?? true,
+          autoSync: result.autoSync ?? false,  // ✅ 默认禁用自动同步
           syncInterval: result.syncInterval || 30,
           theme: result.theme || 'auto',
           language: result.language || 'zh-CN',
@@ -357,23 +365,40 @@ export class IndexedDBStore {
    * 更新设置（写入 chrome.storage.local）
    */
   async updateSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
+    console.log('[IndexedDBStore] updateSettings called with:', {
+      webdavUrl: partial.webdavUrl ? 'provided' : 'not provided',
+      webdavUsername: partial.webdavUsername ? 'provided' : 'not provided',
+      webdavPassword: partial.webdavPassword ? 'provided' : 'not provided',
+    })
+    
     const current = await this.getSettings()
     const updated = { ...current, ...partial }
     
+    // ✅ 确保密码字段不为 undefined 或 null
+    const settingsToSave = {
+      webdavUrl: updated.webdavUrl || '',
+      webdavUsername: updated.webdavUsername || '',
+      webdavPassword: updated.webdavPassword || '',  // Ensure empty string, not undefined
+      neodbToken: updated.neodbToken || '',
+      autoSync: updated.autoSync ?? false,
+      syncInterval: updated.syncInterval || 30,
+      theme: updated.theme || 'auto',
+      language: updated.language || 'zh-CN',
+      notificationEnabled: updated.notificationEnabled ?? true,
+      quarantineAutoClean: updated.quarantineAutoClean ?? true,
+      quarantineRetentionDays: updated.quarantineRetentionDays || 7,
+    }
+    
+    console.log('[IndexedDBStore] Saving settings (password field):', 
+      settingsToSave.webdavPassword ? 'present' : 'empty')
+    
     return new Promise((resolve) => {
-      chrome.storage.local.set({
-        webdavUrl: updated.webdavUrl,
-        webdavUsername: updated.webdavUsername,
-        webdavPassword: updated.webdavPassword,
-        neodbToken: updated.neodbToken,
-        autoSync: updated.autoSync,
-        syncInterval: updated.syncInterval,
-        theme: updated.theme,
-        language: updated.language,
-        notificationEnabled: updated.notificationEnabled,
-        quarantineAutoClean: updated.quarantineAutoClean,
-        quarantineRetentionDays: updated.quarantineRetentionDays,
-      }, () => {
+      chrome.storage.local.set(settingsToSave, () => {
+        if (chrome.runtime.lastError) {
+          console.error('[IndexedDBStore] Storage set error:', chrome.runtime.lastError)
+        } else {
+          console.log('[IndexedDBStore] Settings saved successfully')
+        }
         resolve(updated)
       })
     })
@@ -384,6 +409,22 @@ export class IndexedDBStore {
    */
   async setSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
     return this.updateSettings(partial)
+  }
+  
+  // ==================== NeoDB 关联查询 ====================
+  
+  /**
+   * 通过 NeoDB UUID 查询记录
+   */
+  async getRecordByNeoDBUuid(neodbUuid: string): Promise<MediaRecord | undefined> {
+    return await mediaDB.getRecordByNeoDBUuid(neodbUuid)
+  }
+  
+  /**
+   * 查找关联记录
+   */
+  async findLinkedRecords(record: MediaRecord): Promise<MediaRecord[]> {
+    return await mediaDB.findLinkedRecords(record)
   }
   
   // ==================== 导入导出 ====================
@@ -595,4 +636,126 @@ if (typeof window !== 'undefined') {
   }
   
   console.log('[UMM Debug] 调试工具已加载，可使用 window.UMM_DEBUG')
+}
+
+// ==================== ZIP 导出导入支持 ====================
+
+import { objectToZipBlob, zipBlobToObject, validateZipStructure } from '../utils/zip-utils'
+
+/**
+ * 导出为 ZIP Blob（包含元数据）
+ */
+export async function exportAsZipBlob(): Promise<Blob> {
+  const store = new IndexedDBStore()
+  const data = await store.exportStructuredData()
+  
+  // 生成元数据
+  const metadata = {
+    format: 'v1.0',
+    exportedAt: data.exportedAt,
+    recordCount: Object.values(data.datasets).reduce((total, providers) => {
+      return total + Object.values(providers).reduce((sum, records) => sum + records.length, 0)
+    }, 0),
+    version: '1.0.0' // 可以从 manifest.json 读取
+  }
+  
+  return await objectToZipBlob(data, metadata)
+}
+
+/**
+ * 从 ZIP Blob 导入（验证版本后）
+ */
+export async function importFromZipBlob(blob: Blob): Promise<{ success: boolean; message?: string }> {
+  try {
+    // 验证 ZIP 结构
+    const isValid = await validateZipStructure(blob)
+    if (!isValid) {
+      return {
+        success: false,
+        message: 'ZIP 文件格式无效或已损坏'
+      }
+    }
+    
+    // 解压并提取数据
+    const { data, metadata } = await zipBlobToObject(blob)
+    
+    // 验证版本兼容性
+    const compatibility = await checkFormatCompatibility(metadata)
+    if (!compatibility.compatible) {
+      return {
+        success: false,
+        message: compatibility.message || '数据格式版本不兼容'
+      }
+    }
+    
+    // 如果需要迁移，执行迁移（预留接口）
+    if (compatibility.needsMigration) {
+      console.log(`[IndexedDBStore] Migrating from format ${metadata.format} to v1.0`)
+      // TODO: 实现迁移逻辑
+      // data = await migrateData(data, metadata.format)
+    }
+    
+    // 导入数据
+    const store = new IndexedDBStore()
+    await store.importStructuredData(data)
+    
+    return {
+      success: true,
+      message: `成功导入 ${metadata.recordCount || '未知数量'} 条记录`
+    }
+  } catch (error) {
+    console.error('[IndexedDBStore] Failed to import from ZIP:', error)
+    return {
+      success: false,
+      message: `导入失败: ${String(error)}`
+    }
+  }
+}
+
+/**
+ * 检查数据格式兼容性
+ */
+export async function checkFormatCompatibility(metadata: any): Promise<{
+  compatible: boolean
+  needsMigration: boolean
+  message?: string
+}> {
+  // 支持的格式版本列表
+  const SUPPORTED_FORMATS = ['v1.0']
+  const CURRENT_FORMAT = 'v1.0'
+  
+  if (!metadata || !metadata.format) {
+    return {
+      compatible: false,
+      needsMigration: false,
+      message: '缺少格式版本信息'
+    }
+  }
+  
+  const cloudFormat = metadata.format
+  
+  // 检查是否为支持的格式
+  if (!SUPPORTED_FORMATS.includes(cloudFormat)) {
+    // 云端版本高于本地支持的最高版本
+    return {
+      compatible: false,
+      needsMigration: false,
+      message: `云端数据格式版本 ${cloudFormat} 高于本地支持的最高版本，请更新扩展`
+    }
+  }
+  
+  // 检查是否需要迁移（云端版本低于当前版本）
+  if (cloudFormat !== CURRENT_FORMAT) {
+    return {
+      compatible: true,
+      needsMigration: true,
+      message: `数据格式版本 ${cloudFormat} 需要迁移到 ${CURRENT_FORMAT}`
+    }
+  }
+  
+  // 版本完全匹配
+  return {
+    compatible: true,
+    needsMigration: false
+  }
 }

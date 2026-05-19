@@ -15,13 +15,66 @@ import * as NeoDB from '@/shared/api/neodb'
 import { mediaDB } from './database'
 import { migrator } from './migration'
 
+// ✅ Startup health check
+console.log('[UMM Background] Starting up...')
+console.log('[UMM Background] Extension ID:', chrome.runtime.id)
+console.log('[UMM Background] Manifest version:', chrome.runtime.getManifest().version)
+
+// Verify critical APIs are available
+const requiredAPIs = ['storage', 'runtime', 'notifications', 'alarms']
+for (const api of requiredAPIs) {
+  if (!(chrome as any)[api]) {
+    console.error(`[UMM Background] ❌ Required API missing: ${api}`)
+  } else {
+    console.log(`[UMM Background] ✅ API available: ${api}`)
+  }
+}
+
+// ✅ 迁移旧版嵌套结构到新版扁平结构
+chrome.storage.local.get(['settings'], async (result) => {
+  if (result.settings && typeof result.settings === 'object') {
+    console.log('[UMM Background] Migrating legacy nested settings to flat structure...')
+    const legacySettings = result.settings as any
+    
+    // 转换为扁平结构
+    const flatSettings = {
+      webdavUrl: legacySettings.webdavUrl || '',
+      webdavUsername: legacySettings.webdavUsername || '',
+      webdavPassword: legacySettings.webdavPassword || '',
+      neodbToken: legacySettings.neodbToken || '',
+      autoSync: legacySettings.autoSync ?? false,
+      syncInterval: legacySettings.syncInterval || 30,
+      theme: legacySettings.theme || 'auto',
+      language: legacySettings.language || 'zh-CN',
+      notificationEnabled: legacySettings.notificationEnabled ?? true,
+      quarantineAutoClean: legacySettings.quarantineAutoClean ?? true,
+      quarantineRetentionDays: legacySettings.quarantineRetentionDays || 7,
+    }
+    
+    // 保存为扁平结构
+    chrome.storage.local.set(flatSettings, () => {
+      if (chrome.runtime.lastError) {
+        console.error('[UMM Background] Migration failed:', chrome.runtime.lastError)
+      } else {
+        console.log('[UMM Background] ✅ Settings migrated to flat structure')
+        // 删除旧的嵌套结构
+        chrome.storage.local.remove(['settings'])
+      }
+    })
+  } else {
+    console.log('[UMM Background] No legacy settings to migrate')
+  }
+})
+
+// Initialize database immediately
+mediaDB.init().then(() => {
+  console.log('[UMM Background] ✅ Database initialized')
+}).catch(err => {
+  console.error('[UMM Background] ❌ Database initialization failed:', err)
+})
+
 // ✅ 临时兼容：为 Background 提供 Store 接口(直接调用 mediaDB)
 const Store = {
-  async initialize() {
-    // Background 中不需要初始化,mediaDB 会自动初始化
-    return Promise.resolve()
-  },
-  
   async getDatasetMap(domain: string, provider: string) {
     const records = await mediaDB.getRecordsByProviderType(provider, domain)
     return new Map(records.map(r => [r.providerId, r]))
@@ -85,27 +138,28 @@ const Store = {
   },
   
   async clearQuarantine() {
-    // TODO: 实现隔离区清理
+    await mediaDB.clearQuarantine()
   },
   
   async getSettings(): Promise<AppSettings> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['settings'], (result) => {
-        const settings = (result.settings || {}) as Partial<AppSettings>
-        // 提供默认值
+      chrome.storage.local.get([
+        'webdavUrl', 'webdavUsername', 'webdavPassword', 'neodbToken',
+        'autoSync', 'syncInterval', 'theme', 'language',
+        'notificationEnabled', 'quarantineAutoClean', 'quarantineRetentionDays'
+      ], (result) => {
         resolve({
-          autoSync: false,
-          syncInterval: 30,
-          theme: 'auto',
-          language: 'zh-CN',
-          notificationEnabled: true,
-          quarantineAutoClean: true,
-          quarantineRetentionDays: 7,
-          webdavUrl: '',
-          webdavUsername: '',
-          webdavPassword: '',
-          neodbToken: '',
-          ...settings
+          webdavUrl: result.webdavUrl || '',
+          webdavUsername: result.webdavUsername || '',
+          webdavPassword: result.webdavPassword || '',
+          neodbToken: result.neodbToken || '',
+          autoSync: result.autoSync ?? false,
+          syncInterval: result.syncInterval || 30,
+          theme: result.theme || 'auto',
+          language: result.language || 'zh-CN',
+          notificationEnabled: result.notificationEnabled ?? true,
+          quarantineAutoClean: result.quarantineAutoClean ?? true,
+          quarantineRetentionDays: result.quarantineRetentionDays || 7,
         } as AppSettings)
       })
     })
@@ -113,10 +167,49 @@ const Store = {
   
   async updateSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['settings'], (result) => {
-        const current = result.settings || {}
-        const updated = { ...current, ...partial } as AppSettings
-        chrome.storage.local.set({ settings: updated }, () => {
+      // 先读取当前配置
+      chrome.storage.local.get([
+        'webdavUrl', 'webdavUsername', 'webdavPassword', 'neodbToken',
+        'autoSync', 'syncInterval', 'theme', 'language',
+        'notificationEnabled', 'quarantineAutoClean', 'quarantineRetentionDays'
+      ], (result) => {
+        const current = {
+          webdavUrl: result.webdavUrl || '',
+          webdavUsername: result.webdavUsername || '',
+          webdavPassword: result.webdavPassword || '',
+          neodbToken: result.neodbToken || '',
+          autoSync: result.autoSync ?? false,
+          syncInterval: result.syncInterval || 30,
+          theme: result.theme || 'auto',
+          language: result.language || 'zh-CN',
+          notificationEnabled: result.notificationEnabled ?? true,
+          quarantineAutoClean: result.quarantineAutoClean ?? true,
+          quarantineRetentionDays: result.quarantineRetentionDays || 7,
+        } as AppSettings
+        
+        const updated = { ...current, ...partial }
+        
+        // ✅ 确保密码字段不为 undefined
+        const settingsToSave = {
+          webdavUrl: updated.webdavUrl || '',
+          webdavUsername: updated.webdavUsername || '',
+          webdavPassword: updated.webdavPassword || '',
+          neodbToken: updated.neodbToken || '',
+          autoSync: updated.autoSync ?? false,
+          syncInterval: updated.syncInterval || 30,
+          theme: updated.theme || 'auto',
+          language: updated.language || 'zh-CN',
+          notificationEnabled: updated.notificationEnabled ?? true,
+          quarantineAutoClean: updated.quarantineAutoClean ?? true,
+          quarantineRetentionDays: updated.quarantineRetentionDays || 7,
+        }
+        
+        chrome.storage.local.set(settingsToSave, () => {
+          if (chrome.runtime.lastError) {
+            console.error('[Background] Failed to save settings:', chrome.runtime.lastError)
+          } else {
+            console.log('[Background] Settings saved successfully')
+          }
           resolve(updated)
         })
       })
@@ -311,6 +404,15 @@ async function handleMessage(
   _sender: chrome.runtime.MessageSender,
   sendResponse: (response?: any) => void
 ) {
+  console.log('[UMM Background] 📨 Received message:', message.type, 'at', new Date().toISOString())
+  
+  // ✅ 验证扩展上下文是否有效
+  if (!chrome.runtime?.id) {
+    console.error('[UMM Background] Extension context invalid')
+    sendResponse({ success: false, error: 'Extension context invalidated' })
+    return
+  }
+  
   // 验证消息结构
   if (!message || !message.type) {
     sendResponse({ success: false, error: 'Invalid message format' })
@@ -394,7 +496,9 @@ async function handleMessage(
         break
       
       case 'GET_ALL_RECORDS':
+        console.log('[UMM Background] 🔄 Processing GET_ALL_RECORDS...')
         await handleGetAllRecords(sendResponse)
+        console.log('[UMM Background] ✅ GET_ALL_RECORDS completed')
         break
       
       case 'BULK_UPSERT_RECORDS':
@@ -449,7 +553,7 @@ async function handleMessage(
         sendResponse({ success: false, error: 'Unknown message type' })
     }
   } catch (error) {
-    console.error('[UMM Background] Message handling error:', error)
+    console.error('[UMM Background] ❌ Message handling error:', error)
     sendResponse({ success: false, error: String(error) })
   } finally {
     clearTimeout(globalTimeout)  // ✅ 确保清除超时
@@ -606,6 +710,15 @@ async function handleClearQuarantine(sendResponse: (response: any) => void) {
  */
 async function handleWebDAVSync(sendResponse: (response: any) => void) {
   try {
+    // ✅ 验证扩展上下文是否有效
+    if (!chrome.runtime?.id) {
+      console.error('[UMM Background] Extension context invalid')
+      sendResponse({ success: false, error: 'Extension context invalidated' })
+      return
+    }
+    
+    console.log('[UMM Background] WebDAV sync operation starting, config will be loaded via Store.getSettings()')
+    
     const result = await WebDAV.syncWithWebDAV()
     
     // ✅ 记录同步日志
@@ -666,6 +779,15 @@ async function handleWebDAVTest(
  */
 async function handleWebDAVDownload(sendResponse: (response: any) => void) {
   try {
+    // ✅ 验证扩展上下文是否有效
+    if (!chrome.runtime?.id) {
+      console.error('[UMM Background] Extension context invalid')
+      sendResponse({ success: false, error: 'Extension context invalidated' })
+      return
+    }
+    
+    console.log('[UMM Background] WebDAV download operation starting, config will be loaded via Store.getSettings()')
+    
     const result = await WebDAV.downloadAndOverwrite()
     
     // ✅ 记录同步日志
@@ -697,6 +819,15 @@ async function handleWebDAVDownload(sendResponse: (response: any) => void) {
  */
 async function handleWebDAVUpload(sendResponse: (response: any) => void) {
   try {
+    // ✅ 验证扩展上下文是否有效
+    if (!chrome.runtime?.id) {
+      console.error('[UMM Background] Extension context invalid')
+      sendResponse({ success: false, error: 'Extension context invalidated' })
+      return
+    }
+    
+    console.log('[UMM Background] WebDAV upload operation starting, config will be loaded via Store.getSettings()')
+    
     const result = await WebDAV.uploadAndOverwrite()
     
     // ✅ 记录同步日志
@@ -1023,21 +1154,33 @@ async function handleDeleteRecord(
  * 获取所有记录
  */
 async function handleGetAllRecords(sendResponse: (response: any) => void) {
-  // ✅ 修复：添加 keep-alive 机制防止 SW 过早休眠
-  const keepAlive = setInterval(() => {
-    console.log('[UMM Background] Keep-alive ping during GET_ALL_RECORDS')
-  }, 20000)
+  // ✅ 修复：使用更可靠的 keep-alive 机制
+  // Chrome 会在 Service Worker 空闲时终止它，即使有 open message channel
+  // 定期调用多个轻量级 API 可以防止被判定为 idle
+  const keepAlive = setInterval(async () => {
+    try {
+      // 多个轻量级 API 调用确保 worker 保持活跃
+      await Promise.all([
+        chrome.runtime.getPlatformInfo(),
+        chrome.storage.local.get(['_keepalive'])
+      ])
+      console.log('[UMM Background] 🔋 Keep-alive active')
+    } catch (e) {
+      // 忽略错误，继续尝试
+    }
+  }, 3000)  // 缩短至 3 秒，更频繁地 ping
   
   try {
-    console.log('[Background] 📦 Handling GET_ALL_RECORDS request...')
+    console.log('[Background] 📦 Starting getAllRecords query... (this may take a moment)')
+    const startTime = Date.now()
     
     // ✅ 修复：确保 mediaDB 已初始化
     console.log('[Background] Checking mediaDB initialization...')
     await mediaDB.init()
-    console.log('[Background] ✅ mediaDB initialized')
+    console.log('[Background] ✅ mediaDB initialized in', Date.now() - startTime, 'ms')
     
     const records = await Store.getAllRecords()
-    console.log('[Background] ✅ Retrieved', records.length, 'records')
+    console.log('[Background] ✅ Retrieved', records.length, 'records in', Date.now() - startTime, 'ms')
     
     // ✅ 调试：输出前 3 条记录的详细信息
     if (records.length > 0) {
@@ -1057,6 +1200,7 @@ async function handleGetAllRecords(sendResponse: (response: any) => void) {
     sendResponse({ success: false, error: String(error), records: [] })
   } finally {
     clearInterval(keepAlive)
+    console.log('[Background] 🛑 Keep-alive stopped')
   }
 }
 
@@ -1129,8 +1273,8 @@ async function handleGetStatistics(sendResponse: (response: any) => void) {
 async function handleFirstInstall() {
   console.log('[UMM Background] First install detected')
   
-  // 初始化存储
-  await Store.initialize()
+  // ✅ 修复：mediaDB 会自动初始化，无需手动调用
+  // await Store.initialize()
   
   // 设置默认配置（✅ 所有同步均为手动触发）
   await Store.setSettings({
@@ -1155,7 +1299,8 @@ async function handleFirstInstall() {
 async function handleUpdate(previousVersion?: string) {
   console.log('[UMM Background] Update detected from version:', previousVersion)
   
-  await Store.initialize()
+  // ✅ 修复：mediaDB 会自动初始化，无需手动调用
+  // await Store.initialize()
   
   // 版本迁移逻辑
   if (previousVersion) {
@@ -1247,18 +1392,12 @@ async function showNotification(title: string, message: string) {
     return
   }
   
-  try {
-    // ✅ 修复：Chrome Notifications API 不支持 SVG 图标，使用 manifest 中的默认图标
-    await chrome.notifications.create({
-      type: 'basic',
-      iconUrl: chrome.runtime.getURL('icons/icon-48.png'),  // 使用 PNG 格式
-      title,
-      message,
-      priority: 2,
-    })
-  } catch (error) {
-    console.error('[UMM Background] Failed to show notification:', error)
-  }
+  // ✅ 统一使用 handleShowToast 发送到活动页面
+  await handleShowToast({
+    type: 'info',
+    title,
+    message
+  }, () => {})
 }
 
 // ==================== 数据迁移 ====================
@@ -1288,7 +1427,8 @@ async function migrateData(fromVersion: string) {
  */
 async function updateContextMenuStats() {
   try {
-    await Store.initialize()
+    // ✅ 修复：mediaDB 会自动初始化，无需手动调用
+    // await Store.initialize()
     
     const stats = {
       movie: 0,
@@ -1337,59 +1477,87 @@ self.addEventListener('beforeunload', async () => {
 // ==================== Toast 通知处理器 ====================
 
 /**
- * 显示 Toast 通知（注入到当前活动浏览器页面）
+ * 显示 Toast 通知(注入到当前活动浏览器页面)
  */
 async function handleShowToast(
-  payload: { type: 'success' | 'error' | 'info'; title: string; message?: string },
+  payload: { type: 'success' | 'error' | 'info' | 'loading'; title: string; message?: string },
   sendResponse: (response: any) => void
 ) {
   try {
     let toastSent = false
     
-    // ✅ 获取当前活动标签页（非 Popup）
+    // ✅ 1. 优先发送到当前活动标签页(排除 Popup 和 Chrome 内部页面)
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
     
     if (activeTab && activeTab.id && !activeTab.url?.includes('popup.html')) {
-      try {
-        await chrome.tabs.sendMessage(activeTab.id, {
-          type: 'SHOW_TOAST',
-          payload
-        })
-        toastSent = true
-        console.log('[UMM Background] Toast sent to active tab:', activeTab.id)
-      } catch (e) {
-        console.warn('[UMM Background] Failed to send toast to active tab:', e)
-      }
-    }
-    
-    // ✅ 如果无法发送到活动标签页，使用 Chrome Notifications API
-    if (!toastSent) {
-      if (chrome.notifications) {
+      // ✅ 修复：检查是否是 Chrome 内部页面或受限页面
+      const isRestrictedPage = activeTab.url?.startsWith('chrome://') || 
+                               activeTab.url?.startsWith('chrome-extension://') ||
+                               activeTab.url?.startsWith('edge://') ||
+                               activeTab.url?.startsWith('about:')
+      
+      if (!isRestrictedPage) {
         try {
-          const iconMap = {
-            success: chrome.runtime.getURL('icons/icon-48.png'),
-            error: chrome.runtime.getURL('icons/icon-48.png'),
-            info: chrome.runtime.getURL('icons/icon-48.png')
-          }
-          
-          await chrome.notifications.create({
-            type: 'basic',
-            iconUrl: iconMap[payload.type],
-            title: payload.title,
-            message: payload.message || ''
+          await chrome.tabs.sendMessage(activeTab.id, {
+            type: 'SHOW_TOAST',
+            payload
           })
-          console.log('[UMM Background] Toast shown via Chrome Notifications API')
-        } catch (notifError) {
-          console.error('[UMM Background] Chrome Notifications API failed:', notifError)
+          toastSent = true
+          console.log('[UMM Background] ✅ Toast sent to active tab:', activeTab.id)
+        } catch (e) {
+          // ✅ 修复：静默处理连接错误，不显示 warn 日志(这是正常情况)
+          console.log('[UMM Background] ⏭️ Active tab has no content script, will try fallback')
         }
       } else {
-        console.warn('[UMM Background] No active tab found and notifications API not available')
+        console.log('[UMM Background] ⏭️ Restricted page detected, skipping active tab')
       }
     }
     
-    sendResponse({ success: true })
+    // ✅ 2. 如果活动标签页失败，尝试发送到其他已注入 Content Script 的标签页
+    if (!toastSent) {
+      const tabs = await chrome.tabs.query({ url: ['*://*.douban.com/*', '*://*.imdb.com/*', '*://neodb.social/*', '*://*.themoviedb.org/*', '*://*.m-team.cc/*', '*://ourbits.club/*', '*://hdhome.org/*'] })
+      
+      for (const tab of tabs) {
+        if (tab.id && !tab.url?.includes('popup.html')) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              type: 'SHOW_TOAST',
+              payload
+            })
+            toastSent = true
+            console.log('[UMM Background] ✅ Toast sent to tab:', tab.id, tab.url)
+            break
+          } catch (e) {
+            // 继续尝试下一个标签页
+          }
+        }
+      }
+    }
+    
+    // ✅ 3. 如果所有标签页都失败，使用 Chrome Notifications API
+    if (!toastSent && chrome.notifications) {
+      try {
+        await chrome.notifications.create({
+          type: 'basic',
+          iconUrl: chrome.runtime.getURL('icons/icon-48.png'),
+          title: payload.title,
+          message: payload.message || ''
+        })
+        toastSent = true
+        console.log('[UMM Background] ✅ Toast shown via Chrome Notifications API')
+      } catch (notifError) {
+        console.error('[UMM Background] ❌ Chrome Notifications API failed:', notifError)
+      }
+    }
+    
+    // ✅ 4. 如果所有方式都失败，记录日志但不报错
+    if (!toastSent) {
+      console.warn('[UMM Background] ⚠️ All toast delivery methods failed')
+    }
+    
+    sendResponse({ success: toastSent })
   } catch (error) {
-    console.error('[UMM Background] Failed to show toast:', error)
+    console.error('[UMM Background] ❌ Failed to show toast:', error)
     sendResponse({ success: false, error: String(error) })
   }
 }

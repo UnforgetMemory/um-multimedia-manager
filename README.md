@@ -4,28 +4,11 @@
 
 ## 功能特性
 
-### 🎯 核心功能
-- **多平台支持**: 支持豆瓣电影/音乐、IMDB、NeoDB、TMDB
-- **快速标记**: 在浏览页面时快速标记状态(已完成/想看/未标记)
-- **评分管理**: 为每个项目添加 0-10 的评分
-- **悬浮面板**: 优雅的悬浮 UI,可拖拽、最小化
-- **数据同步**: 使用 Chrome Storage 自动保存数据
-- **智能识别**: 自动识别当前页面的媒体信息
-
-### 📊 数据管理
-- **本地存储**: 所有数据保存在本地,保护隐私
-- **云端同步**: 支持 WebDAV 自动备份和同步
-- **元数据增强**: 集成 NeoDB API 自动获取评分和详情
-- **导入导出**: 支持数据的导入和导出
-- **隔离区机制**: 自动处理无效或待验证的记录
-- **智能合并**: 更新记录时自动保留最新数据
-
-### 🎨 用户体验
-- **响应式设计**: 适配不同屏幕尺寸
-- **完整主题系统**: 支持亮色/暗色/跟随系统三种模式，零闪烁切换
-- **Bioluminescent Glow**: 暗色模式下独特的生物发光效果
-- **流畅动画**: 平滑的过渡效果
-- **友好提示**: 清晰的状态反馈和通知
+- **多平台支持**: 豆瓣、IMDB、NeoDB、TMDB
+- **快速标记**: 悬浮面板一键标记状态和评分
+- **数据同步**: WebDAV 云端备份与 ZIP 格式导入导出
+- **元数据增强**: NeoDB API 自动获取评分
+- **主题系统**: 亮色/暗色/跟随系统模式
 
 ## 技术栈
 
@@ -79,39 +62,7 @@
 
 所有数据自动保存在 Chrome Storage 中,无需手动保存。
 
-## 主题系统
 
-UMM 现已升级为**完整的三层令牌架构主题系统**，基于 Radix UI Colors + Material Design 3。
-
-### ✨ 核心特性
-
-- ✅ **三种主题模式**: 亮色 / 暗色 / 跟随系统
-- ✅ **FOWT 防护**: Flash of Wrong Theme - 零闪烁主题切换
-- ✅ **WCAG 2.1 AA/AAA 合规**: 文字对比度 ≥ 4.5:1
-- ✅ **Bioluminescent Glow**: 暗色模式下的生物发光效果
-- ✅ **Tonal Elevation**: 暗色模式使用 lighter surface 替代阴影
-- ✅ **Atmospheric Colors**: 海洋/天空/生物发光配色
-
-### 📚 文档
-
-- **完整技术文档**: [THEME_SYSTEM.md](./THEME_SYSTEM.md) - 架构设计、颜色系统、最佳实践
-- **快速参考指南**: [THEME_QUICK_REFERENCE.md](./THEME_QUICK_REFERENCE.md) - CSS 变量速查表、代码片段
-
-### 🎯 使用方法
-
-在设置页面中可以切换主题：
-
-1. 点击浏览器工具栏的 UMM 图标打开 Popup
-2. 进入「⚙️ 设置」标签页
-3. 在「主题外观」区域选择：
-   - 🌗 **自动**: 跟随系统主题
-   - ☀️ **亮色**: 强制亮色模式
-   - 🌙 **暗色**: 强制暗色模式
-4. 点击「应用主题」按钮保存
-
-主题切换会立即生效，无需刷新页面！
-
----
 
 ## 开发指南
 
@@ -196,23 +147,7 @@ um-multimedia-manager/
 - ✅ 现代化 UI (shadcn/ui + Tailwind)
 - ✅ 更好的性能和用户体验
 
-## 开发进度
 
-### ✅ 已完成
-- [x] Step 1: 项目初始化 - Vue 3 + TypeScript + Vite + CRX
-- [x] Step 2: 核心数据层 - Config, Types, Identity, RecordModel, Store
-- [x] Step 3: UI 组件库 - shadcn/ui 集成,基础组件
-- [x] Step 4: Popup 界面 - 数据展示、搜索过滤
-- [x] Step 5: Content Script - 悬浮面板、快速标记
-- [x] Step 6: Background Service Worker - 消息处理、定时任务
-- [x] Step 7.1: WebDAV 同步 - 云端备份和同步
-- [x] Step 7.2: NeoDB API 集成 - 元数据增强
-
-### 🚧 进行中
-- [ ] Step 8.2: 单元测试编写
-- [ ] Step 8.3: 性能优化
-
-详细进度请查看 [PROGRESS.md](./PROGRESS.md)
 
 ## 许可证
 
@@ -221,7 +156,3 @@ GNU GPLv3
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request!
-
-## 致谢
-
-原始灵感来自 [UMM Tampermonkey Script](https://github.com/UnforgetMemory/Tampermonkey-Scripts)

@@ -264,9 +264,14 @@ export class MediaDatabase {
     
     // 创建新的初始化 Promise
     this.initializing = (async () => {
-      console.log('[MediaDB] Opening database connection...')
-      this.db = await openDatabase()
-      console.log('[MediaDB] Database connection established, version:', this.db!.version)
+      try {
+        console.log('[MediaDB] Opening database connection...')
+        this.db = await openDatabase()
+        console.log('[MediaDB] Database connection established, version:', this.db!.version)
+      } catch (error) {
+        console.error('[MediaDB] Failed to initialize database:', error)
+        throw error  // Re-throw to allow caller to handle
+      }
     })()
     
     try {
@@ -482,10 +487,10 @@ export class MediaDatabase {
    * 获取所有记录（用于评分功能）
    */
   async getAllRecords(): Promise<MediaRecord[]> {
-    // ✅ 优化：缩短缓存时间至 5 秒，减少不一致窗口
+    // ✅ 修复：延长缓存时间至 60 秒(Popup 打开期间不需要频繁刷新)
     const now = Date.now()
-    if (this.recordsCache && (now - this.cacheTimestamp) < 5000) {
-      console.log('[MediaDB] Using cached records')
+    if (this.recordsCache && (now - this.cacheTimestamp) < 60000) {
+      console.log('[MediaDB] Using cached records (age:', Math.round((now - this.cacheTimestamp) / 1000), 's)')
       return this.recordsCache
     }
     
@@ -500,6 +505,7 @@ export class MediaDatabase {
         // ✅ 优化：更新缓存
         this.recordsCache = request.result || []
         this.cacheTimestamp = Date.now()
+        console.log('[MediaDB] Cached', this.recordsCache.length, 'records')
         resolve(this.recordsCache)
       }
       request.onerror = () => reject(request.error)

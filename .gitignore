@@ -33,7 +33,30 @@ extension
 
 .agents
 
+# AI Assistant directories
+.claude/
+.cursor/
+.windsurf/
+.kiro/
+.roo/
+.augment/
+.codex/
+.lingma/
+.github/copilot-instructions.md
+
+# Temporary review files
+review_diff*.txt
+
 # AI-generated documentation and test artifacts
 test-results/
 docs/
 
+# Data export/import temporary directories
+data-exports/
+data-imports/
+releases/
+
+# Editor and IDE files
+*.swp
+*~
+.DS_Store

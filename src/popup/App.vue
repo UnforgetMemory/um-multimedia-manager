@@ -2,7 +2,6 @@
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { Store } from '@/shared'
 import type { Domain, Provider, MediaRecord } from '@/shared'
-import { CACHE_CONFIG } from '@/shared/config'
 import { safeSendMessage } from '@/shared/utils/context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,11 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Toaster } from '@/components/ui/sonner'
-import { toast } from 'vue-sonner'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { 
   Moon, Sun, Settings, Database, RefreshCw,
-  CheckCircle2, XCircle, Star, Download, Upload
+  CheckCircle2, XCircle, Star, Download, Upload, AlertCircle
 } from '@lucide/vue'
 
 // ✅ 辅助函数：通过 Background 向当前活动页面发送 Toast
@@ -30,19 +28,13 @@ async function showPageToast(type: 'success' | 'error' | 'info', title: string, 
       {
         timeout: 3000,
         fallback: () => {
-          // 如果 Background 通信失败，回退到 Popup 内的 Toast
-          if (type === 'success') toast.success(title, { description: message })
-          else if (type === 'error') toast.error(title, { description: message })
-          else toast.info(title, { description: message })
+          // ✅ 不再回退到 Popup Toast，仅记录日志
+          console.warn('[Popup] Failed to send page toast:', type, title, message)
         }
       }
     )
   } catch (error) {
-    console.warn('[Popup] Failed to send page toast, using popup toast instead:', error)
-    // 回退到 Popup 内的 Toast
-    if (type === 'success') toast.success(title, { description: message })
-    else if (type === 'error') toast.error(title, { description: message })
-    else toast.info(title, { description: message })
+    console.warn('[Popup] Failed to send page toast:', error)
   }
 }
 
@@ -68,21 +60,17 @@ const stats = ref({
   music: 0,
 })
 
-// ✅ 优化：添加缓存，避免重复加载
-let cachedRecords: MediaRecord[] | null = null
+// ✅ 优化：简化缓存策略，只依赖 Background 的缓存
 let lastLoadTime = 0
-const CACHE_TTL = CACHE_CONFIG.POPUP_TTL // 30秒缓存有效期
+const MIN_REFRESH_INTERVAL = 5000  // 最小刷新间隔 5 秒
 
 // 加载数据
 async function loadData(forceRefresh = false) {
   const now = Date.now()
   
-  // ✅ 优化：使用缓存，避免不必要的网络请求
-  if (!forceRefresh && cachedRecords && (now - lastLoadTime) < CACHE_TTL) {
-    console.log('[Popup] Using cached data')
-    records.value = cachedRecords
-    updateStats()
-    loading.value = false
+  // ✅ 修复：只在短时间内阻止重复请求,不使用缓存数据
+  if (!forceRefresh && (now - lastLoadTime) < MIN_REFRESH_INTERVAL) {
+    console.log('[Popup] Skipping duplicate request (last load:', Math.round((now - lastLoadTime) / 1000), 's ago)')
     return
   }
   
@@ -90,36 +78,45 @@ async function loadData(forceRefresh = false) {
   try {
     console.log('[Popup] Fetching all records from Background...')
     
-    // ✅ 修复：增加超时时间至 15 秒，使用 safeSendMessage 统一管理
     const response = await safeSendMessage(
       { type: 'GET_ALL_RECORDS' },
       {
-        timeout: 15000,  // 增加到 15 秒
-        retries: 2,
+        timeout: 60000,  // ✅ 增加至 60 秒，适应大数据集冷启动
+        retries: 2,      // ✅ 增加至 2 次重试
         fallback: () => {
-          toast.error('无法连接到后台服务，请刷新页面')
+          console.error('[Popup] ⚠️ Connection failed after retries')
         }
       }
     )
     
     if (!response?.success) {
-      throw new Error(response?.error || '获取数据失败')
+      const errorMsg = response?.error || '获取数据失败'
+      console.error('[Popup] ❌ Failed:', errorMsg)
+      throw new Error(errorMsg)
     }
     
-    console.log('[Popup] Records loaded:', response.records.length)
+    console.log('[Popup] ✅ Records loaded:', response.records.length)
     records.value = response.records
     
-    // ✅ 优化：更新缓存
-    cachedRecords = response.records
+    // ✅ 修复：更新最后加载时间,但不缓存数据
     lastLoadTime = now
     
     updateStats()
   } catch (error) {
     console.error('[Popup] Failed to load data:', error)
-    toast.error(`加载数据失败: ${error instanceof Error ? error.message : '未知错误'}`)
     // ✅ 修复：确保即使失败也清除 loading 状态
     records.value = []
     updateStats()
+    
+    // ✅ 改进：提供更详细的错误提示
+    const errorMessage = (error as Error).message
+    if (errorMessage.includes('timeout') || errorMessage.includes('Message timeout')) {
+      console.warn('[Popup] ⏱️ Request timed out. This may happen when:')
+      console.warn('  1. Service Worker was terminated by Chrome')
+      console.warn('  2. Database query is too slow (', records.value.length, 'records)')
+      console.warn('  3. System is under heavy load')
+      console.warn('[Popup] 💡 Try closing and reopening the Popup')
+    }
   } finally {
     loading.value = false
   }
@@ -449,19 +446,19 @@ watch(selectedDomain, () => {
 // 保存评分
 async function saveRating() {
   if (!ratingInput.value.trim()) {
-    toast.error('请输入平台 ID/URL')
+    await showPageToast('error', '请输入平台 ID/URL')
     return
   }
   
   // 验证评分值
   if (!ratingValue.value || ratingValue.value < 1 || ratingValue.value > 10) {
-    toast.error('请选择有效的评分(1-10)')
+    await showPageToast('error', '请选择有效的评分(1-10)')
     return
   }
   
   const parsed = parseRatingInput()
   if (!parsed) {
-    toast.error('无法解析输入的 ID 或 URL')
+    await showPageToast('error', '无法解析输入的 ID 或 URL')
     return
   }
   
@@ -477,7 +474,7 @@ async function saveRating() {
     )
     
     console.log('[Rating] ✅ Saved')
-    toast.success(`评分已保存(${parsed.provider}/${parsed.providerId})`)
+    await showPageToast('success', `评分已保存(${parsed.provider}/${parsed.providerId})`)
     
     // 清空输入
     ratingInput.value = ''
@@ -485,21 +482,32 @@ async function saveRating() {
     ratingQueryResult.value = null
   } catch (error) {
     console.error('[Rating] ❌ Failed:', error)
-    toast.error('保存评分失败: ' + (error as Error).message)
+    await showPageToast('error', '保存评分失败', (error as Error).message)
   }
 }
 
 
 
 // ==================== 主题配置 ====================
-// 使用手动管理方式，避免 useColorMode 的配置问题
-const currentTheme = ref<'light' | 'dark' | 'auto'>('dark')
+// ✅ 修复：初始值设为 'auto',避免不必要的切换
+const currentTheme = ref<'light' | 'dark' | 'auto'>('auto')
 console.log('[Theme] Component initialized, currentTheme:', currentTheme.value)
 
 // 应用主题到 DOM
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
   console.log('[Theme] applyTheme called with:', theme)
-  if (theme === 'dark') {
+  
+  // ✅ 修复：检测系统偏好
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    if (prefersDark) {
+      document.documentElement.classList.add('dark')
+      console.log('[Theme] Auto mode: system prefers dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      console.log('[Theme] Auto mode: system prefers light')
+    }
+  } else if (theme === 'dark') {
     document.documentElement.classList.add('dark')
     console.log('[Theme] Added dark class to html')
   } else {
@@ -554,10 +562,87 @@ const webdavConfig = ref({
 
 const neodbToken = ref('')
 
+// ✅ 配置保存状态指示器
+const isConfigSaved = ref(false)
+
+// ==================== WebDAV 操作 Loading 状态 ====================
+const webdavLoading = ref({
+  sync: false,        // 智能合并同步
+  download: false,    // 云端覆盖本地
+  upload: false,      // 本地覆盖云端
+  import: false,      // 导入数据
+})
+
+// 计算属性：是否有任何 WebDAV 操作正在进行
+const isAnyWebDAVOperationRunning = computed(() => {
+  return Object.values(webdavLoading.value).some(loading => loading)
+})
+
+// ==================== 确认对话框状态 ====================
+interface ConfirmDialogState {
+  open: boolean
+  title: string
+  description: string
+  warning?: string
+  details?: string
+  icon: any
+  confirmText?: string
+  action: () => Promise<void>
+  loading: boolean
+}
+
+const confirmDialog = ref<ConfirmDialogState>({
+  open: false,
+  title: '',
+  description: '',
+  warning: undefined,
+  details: undefined,
+  icon: AlertCircle,
+  confirmText: '确认',
+  action: async () => {},
+  loading: false,
+})
+
+/**
+ * 显示确认对话框
+ */
+function showConfirmDialog(config: Omit<ConfirmDialogState, 'open' | 'loading'>) {
+  confirmDialog.value = {
+    ...config,
+    open: true,
+    loading: false,
+  }
+}
+
+/**
+ * 处理确认操作
+ */
+async function handleConfirmAction() {
+  confirmDialog.value.loading = true
+  
+  try {
+    await confirmDialog.value.action()
+    confirmDialog.value.open = false
+  } catch (error) {
+    console.error('[Popup] Confirm action failed:', error)
+    // 错误已由具体操作处理，这里只关闭 loading
+  } finally {
+    confirmDialog.value.loading = false
+  }
+}
+
 async function loadSettings() {
+  console.log('[Popup] Loading settings from storage...')
   try {
     // ✅ 从持久化存储读取 Token
     const settings = await Store.getSettings()
+    console.log('[Popup] Raw settings loaded:', {
+      hasUrl: !!settings.webdavUrl,
+      hasUsername: !!settings.webdavUsername,
+      hasPassword: !!settings.webdavPassword,
+      urlLength: settings.webdavUrl?.length || 0,
+    })
+    
     neodbToken.value = settings.neodbToken || ''
     
     // 加载其他设置
@@ -566,12 +651,28 @@ async function loadSettings() {
       username: settings.webdavUsername || '',
       password: settings.webdavPassword || '',
     }
+    
+    // ✅ 更新保存状态
+    isConfigSaved.value = !!(settings.webdavUrl && settings.webdavUsername && settings.webdavPassword)
+    
+    console.log('[Popup] Settings loaded successfully, isConfigSaved:', isConfigSaved.value)
   } catch (error) {
-    console.error('Failed to load settings:', error)
+    console.error('[Popup] Failed to load settings:', error)
   }
 }
 
+// ✅ 组件挂载时自动加载配置
+onMounted(() => {
+  loadSettings()
+})
+
 async function saveWebDAVConfig() {
+  console.log('[Popup] Saving WebDAV config:', {
+    url: webdavConfig.value.url ? `${webdavConfig.value.url.substring(0, 20)}...` : '(empty)',
+    username: webdavConfig.value.username || '(empty)',
+    password: webdavConfig.value.password ? '***' : '(empty)',
+  })
+  
   // 验证 WebDAV URL
   if (webdavConfig.value.url && !webdavConfig.value.url.startsWith('https://')) {
     await showPageToast('error', 'URL 必须使用 HTTPS', '为保证安全，WebDAV URL 必须使用 HTTPS 协议')
@@ -584,9 +685,26 @@ async function saveWebDAVConfig() {
       webdavUsername: webdavConfig.value.username,
       webdavPassword: webdavConfig.value.password,
     })
+    
+    // ✅ 立即验证配置已保存
+    const verifySettings = await Store.getSettings()
+    console.log('[Popup] Config verification:', {
+      url: verifySettings.webdavUrl ? '✓' : '✗',
+      username: verifySettings.webdavUsername ? '✓' : '✗',
+      password: verifySettings.webdavPassword ? '✓' : '✗'
+    })
+    
+    if (!verifySettings.webdavUrl || !verifySettings.webdavUsername || !verifySettings.webdavPassword) {
+      throw new Error('配置保存验证失败，请重试')
+    }
+    
+    // ✅ 更新保存状态
+    isConfigSaved.value = true
+    
     await showPageToast('success', '配置已保存', 'WebDAV 云同步功能现已可用')
   } catch (error) {
     console.error('Failed to save WebDAV config:', error)
+    isConfigSaved.value = false
     await showPageToast('error', '保存失败', String(error))
   }
 }
@@ -645,26 +763,24 @@ async function saveNeoDBToken() {
 async function exportData() {
   try {
     // ✅ 立即显示“正在准备...”提示
-    const toastId = toast.loading('正在准备导出数据...')
+    await showPageToast('info', '正在准备导出数据...')
     
     const response = await safeSendMessage(
       { type: 'EXPORT_DATA' },
       {
         timeout: 30000,
         fallback: () => {
-          toast.dismiss(toastId)
-          toast.error('扩展上下文已失效，请重新打开 Popup')
+          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
         }
       }
     )
     
     if (!response?.success) {
-      toast.dismiss(toastId)
       throw new Error(response?.error || '导出失败')
     }
     
     // 更新提示为"正在生成文件..."
-    toast.loading('正在生成文件...', { id: toastId })
+    await showPageToast('info', '正在生成文件...')
     
     const jsonString = JSON.stringify(response.data, null, 2)
     const blob = new Blob([jsonString], { type: 'application/json' })
@@ -679,10 +795,10 @@ async function exportData() {
     URL.revokeObjectURL(url)
     
     // ✅ 更新为成功提示
-    toast.success('导出成功！', { id: toastId })
+    await showPageToast('success', '导出成功！')
   } catch (error) {
     console.error('[Popup] Export failed:', error)
-    toast.error('导出失败：' + String(error))
+    await showPageToast('error', '导出失败', String(error))
   }
 }
 
@@ -694,75 +810,108 @@ function triggerImport() {
     const file = (e.target as HTMLInputElement).files?.[0]
     if (!file) return
     
-    // ✅ 立即显示"正在读取文件..."
-    const toastId = toast.loading(`正在读取文件: ${file.name}...`)
-    
+    // 解析文件获取记录数
     const reader = new FileReader()
     reader.onload = async (event) => {
       try {
-        // 更新为"正在解析数据..."
-        toast.loading('正在解析数据...', { id: toastId })
-        
         const payload = JSON.parse(event.target?.result as string)
         
-        // 更新为"正在导入到数据库..."，并显示记录数
         let recordCount = 0
         for (const provider in payload.datasets || {}) {
           for (const type in payload.datasets[provider]) {
             recordCount += payload.datasets[provider][type].length
           }
         }
-        toast.loading(`正在导入 ${recordCount.toLocaleString()} 条记录...`, { id: toastId })
         
-        await safeSendMessage(
-          {
-            type: 'IMPORT_DATA',
-            payload,
-          },
-          {
-            timeout: 60000,
-            fallback: () => {
-              toast.error('扩展上下文已失效，请重新打开 Popup', { id: toastId })
-            }
-          }
-        )
-        
-        // ✅ 显示成功提示和记录数
-        toast.success('导入成功', {
-          id: toastId,
-          description: `共导入 ${recordCount.toLocaleString()} 条记录`
+        // 显示确认对话框
+        showConfirmDialog({
+          title: '导入数据',
+          description: `即将导入 ${recordCount.toLocaleString()} 条记录。`,
+          warning: '导入的数据将与现有数据合并，相同 ID 的记录将被覆盖。',
+          details: `文件名: ${file.name}`,
+          icon: Upload,
+          confirmText: '开始导入',
+          action: () => executeImport(file, payload),
         })
-        loadData() // 刷新数据
       } catch (error) {
-        toast.error('导入失败', {
-          id: toastId,
-          description: String(error)
-        })
+        await showPageToast('error', '文件解析失败', String(error))
       }
     }
     reader.onerror = () => {
-      toast.error('文件读取失败', {
-        id: toastId,
-        description: '请检查文件格式是否正确'
-      })
+      showPageToast('error', '文件读取失败', '请检查文件格式是否正确')
     }
     reader.readAsText(file)
   }
   input.click()
 }
 
-async function syncWithCloud() {
-  // ✅ 立即显示“正在同步...”
-  const toastId = toast.loading('正在连接 WebDAV 服务器...')
+async function executeImport(file: File, payload: any) {
+  webdavLoading.value.import = true
   
   try {
+    await showPageToast('info', `正在读取文件: ${file.name}...`)
+    await showPageToast('info', '正在解析数据...')
+    
+    let recordCount = 0
+    for (const provider in payload.datasets || {}) {
+      for (const type in payload.datasets[provider]) {
+        recordCount += payload.datasets[provider][type].length
+      }
+    }
+    await showPageToast('info', `正在导入 ${recordCount.toLocaleString()} 条记录...`)
+    
+    await safeSendMessage(
+      {
+        type: 'IMPORT_DATA',
+        payload,
+      },
+      {
+        timeout: 60000,
+        fallback: () => {
+          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
+        }
+      }
+    )
+    
+    await showPageToast('success', '导入成功', `共导入 ${recordCount.toLocaleString()} 条记录`)
+    loadData()
+  } catch (error) {
+    await showPageToast('error', '导入失败', String(error))
+  } finally {
+    webdavLoading.value.import = false
+  }
+}
+
+async function syncWithCloud() {
+  // 前置检查
+  if (!isConfigSaved.value) {
+    await showPageToast('error', '配置未保存', '请先在设置中保存 WebDAV 配置')
+    return
+  }
+  
+  // 显示确认对话框
+  showConfirmDialog({
+    title: '智能合并同步',
+    description: '将对比本地和云端数据，自动同步有变化的部分。',
+    details: '此操作会比较各数据集的哈希值，仅传输有变化的数据。',
+    icon: RefreshCw,
+    confirmText: '开始同步',
+    action: executeSyncWithCloud,
+  })
+}
+
+async function executeSyncWithCloud() {
+  webdavLoading.value.sync = true
+  
+  try {
+    await showPageToast('info', '正在连接 WebDAV 服务器...')
+    
     const result = await safeSendMessage(
       { type: 'WEBDAV_SYNC' },
       {
         timeout: 30000,
         fallback: () => {
-          toast.dismiss(toastId)
-          toast.error('扩展上下文已失效，请重新打开 Popup')
+          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
         }
       }
     )
@@ -770,36 +919,47 @@ async function syncWithCloud() {
     if (!result) return
     
     if (result.success) {
-      // ✅ 根据同步方向显示不同提示
       const directionMap: Record<string, string> = {
         upload: '上传',
         download: '下载',
         merge: '合并'
       }
       const direction = directionMap[result.direction] || '同步'
-      toast.success('同步成功', {
-        id: toastId,
-        description: result.message || `已${direction}数据`
-      })
-      loadData() // 刷新数据
+      await showPageToast('success', '同步成功', result.message || `已${direction}数据`)
+      loadData()
     } else {
-      toast.error('同步失败', {
-        id: toastId,
-        description: result.message
-      })
+      await showPageToast('error', '同步失败', result.message)
     }
   } catch (error) {
-    toast.error('同步失败', {
-      id: toastId,
-      description: String(error)
-    })
+    await showPageToast('error', '同步失败', String(error))
+  } finally {
+    webdavLoading.value.sync = false
   }
 }
 
 async function downloadFromCloud() {
-  const toastId = toast.loading('正在从云端下载数据...')
+  if (!isConfigSaved.value) {
+    await showPageToast('error', '配置未保存', '请先在设置中保存 WebDAV 配置')
+    return
+  }
+  
+  showConfirmDialog({
+    title: '云端覆盖本地',
+    description: '将用云端数据完全覆盖本地数据。',
+    warning: '此操作不可逆！本地的所有修改将丢失。',
+    details: '建议先导出本地数据作为备份。',
+    icon: Download,
+    confirmText: '确认覆盖',
+    action: executeDownloadFromCloud,
+  })
+}
+
+async function executeDownloadFromCloud() {
+  webdavLoading.value.download = true
   
   try {
+    await showPageToast('info', '正在从云端下载数据...')
+    
     const result = await safeSendMessage(
       { type: 'WEBDAV_DOWNLOAD' },
       { timeout: 30000 }
@@ -808,39 +968,41 @@ async function downloadFromCloud() {
     if (!result) return
     
     if (result.success) {
-      toast.success('下载成功', {
-        id: toastId,
-        description: result.message
-      })
-      loadData() // 刷新数据
+      await showPageToast('success', '下载成功', result.message)
+      loadData()
     } else {
-      toast.error('下载失败', {
-        id: toastId,
-        description: result.message
-      })
+      await showPageToast('error', '下载失败', result.message)
     }
   } catch (error) {
-    toast.error('下载失败', {
-      id: toastId,
-      description: String(error)
-    })
+    await showPageToast('error', '下载失败', String(error))
+  } finally {
+    webdavLoading.value.download = false
   }
 }
 
 async function uploadToCloud() {
-  // 二次确认
-  const confirmed = confirm(
-    '⚠️ 此操作将用本地数据覆盖云端数据,云端的所有修改将丢失!\n\n确定要继续吗?'
-  )
-  
-  if (!confirmed) {
-    toast.info('已取消操作')
+  if (!isConfigSaved.value) {
+    await showPageToast('error', '配置未保存', '请先在设置中保存 WebDAV 配置')
     return
   }
   
-  const toastId = toast.loading('正在上传数据到云端...')
+  showConfirmDialog({
+    title: '本地覆盖云端',
+    description: '将用本地数据完全覆盖云端数据。',
+    warning: '此操作不可逆！云端的所有修改将丢失。',
+    details: '请确认这是您想要的操作。',
+    icon: Upload,
+    confirmText: '确认覆盖',
+    action: executeUploadToCloud,
+  })
+}
+
+async function executeUploadToCloud() {
+  webdavLoading.value.upload = true
   
   try {
+    await showPageToast('info', '正在上传数据到云端...')
+    
     const result = await safeSendMessage(
       { type: 'WEBDAV_UPLOAD' },
       { timeout: 30000 }
@@ -849,21 +1011,15 @@ async function uploadToCloud() {
     if (!result) return
     
     if (result.success) {
-      toast.success('上传成功', {
-        id: toastId,
-        description: result.message
-      })
+      await showPageToast('success', '上传成功', result.message)
+      loadData()
     } else {
-      toast.error('上传失败', {
-        id: toastId,
-        description: result.message
-      })
+      await showPageToast('error', '上传失败', result.message)
     }
   } catch (error) {
-    toast.error('上传失败', {
-      id: toastId,
-      description: String(error)
-    })
+    await showPageToast('error', '上传失败', String(error))
+  } finally {
+    webdavLoading.value.upload = false
   }
 }
 
@@ -889,11 +1045,12 @@ onMounted(() => {
       if (result.settings?.appearance) {
         applyTheme(result.settings.appearance)
       } else {
-        applyTheme('dark')
+        // ✅ 修复：默认使用 auto,而不是 dark
+        applyTheme('auto')
       }
     })
   } else {
-    applyTheme('dark')
+    applyTheme('auto')
   }
   
   // 2. 加载数据
@@ -926,28 +1083,8 @@ onMounted(() => {
     chrome.storage.onChanged.addListener(storageListener)
   }
   
-  // 4. 监听来自 Content Script 的 toast 通知
-  const messageListener = (message: any) => {
-    if (message.type === 'TOAST_NOTIFICATION' && message.payload) {
-      const { type, title, message: msg } = message.payload
-      switch (type) {
-        case 'success':
-          toast.success(msg || title)
-          break
-        case 'error':
-          toast.error(msg || title)
-          break
-        case 'info':
-          toast.info(msg || title)
-          break
-        case 'loading':
-          toast.loading(msg || title)
-          break
-      }
-    }
-  }
-  
-  chrome.runtime.onMessage.addListener(messageListener)
+  // ✅ 注意：不再监听来自 Content Script 的 toast 通知
+  // 所有 Toast 现在都直接显示在浏览器页面中，而非 Popup 内部
   
   // 5. 统一的清理逻辑
   onUnmounted(() => {
@@ -955,8 +1092,7 @@ onMounted(() => {
       chrome.storage.onChanged.removeListener(storageListener)
     }
     
-    // 移除消息监听器
-    chrome.runtime.onMessage.removeListener(messageListener)
+    // ✅ 注意：不再需要移除消息监听器（已删除）
     
     // 清理刷新定时器
     if (refreshTimer) {
@@ -1259,7 +1395,16 @@ onMounted(() => {
           <div class="space-y-6">
             <!-- WebDAV 配置 -->
             <div class="space-y-4">
-              <h3 class="text-sm font-semibold">WebDAV 配置</h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold">WebDAV 配置</h3>
+                <!-- ✅ 新增：配置状态指示 -->
+                <Badge v-if="isConfigSaved" variant="default" class="bg-green-500">
+                  已保存
+                </Badge>
+                <Badge v-else variant="outline" class="text-orange-500 border-orange-500">
+                  未保存
+                </Badge>
+              </div>
               
               <div>
                 <Label for="webdav-url" class="font-medium">服务器地址</Label>
@@ -1307,29 +1452,55 @@ onMounted(() => {
               <h3 class="text-sm font-semibold">数据管理</h3>
               
               <div class="grid grid-cols-2 gap-3">
-                <Button @click="exportData" variant="outline">
+                <Button 
+                  @click="exportData" 
+                  variant="outline"
+                  :disabled="isAnyWebDAVOperationRunning"
+                >
                   <Download class="mr-2 h-4 w-4" />
                   导出数据
                 </Button>
-                <Button @click="triggerImport" variant="outline">
-                  <Upload class="mr-2 h-4 w-4" />
-                  导入数据
+                <Button 
+                  @click="triggerImport" 
+                  variant="outline"
+                  :disabled="isAnyWebDAVOperationRunning"
+                >
+                  <RefreshCw v-if="webdavLoading.import" class="mr-2 h-4 w-4 animate-spin" />
+                  <Upload v-else class="mr-2 h-4 w-4" />
+                  {{ webdavLoading.import ? '导入中...' : '导入数据' }}
                 </Button>
               </div>
               
               <!-- ✅ 三种同步方式 -->
               <div class="space-y-2">
-                <Button @click="downloadFromCloud" variant="outline" class="w-full">
-                  <Download class="mr-2 h-4 w-4" />
-                  云端覆盖本地
+                <Button 
+                  @click="downloadFromCloud" 
+                  variant="outline" 
+                  class="w-full"
+                  :disabled="!isConfigSaved || isAnyWebDAVOperationRunning"
+                >
+                  <RefreshCw v-if="webdavLoading.download" class="mr-2 h-4 w-4 animate-spin" />
+                  <Download v-else class="mr-2 h-4 w-4" />
+                  {{ webdavLoading.download ? '下载中...' : '云端覆盖本地' }}
                 </Button>
-                <Button @click="uploadToCloud" variant="outline" class="w-full">
-                  <Upload class="mr-2 h-4 w-4" />
-                  本地覆盖云端
+                <Button 
+                  @click="uploadToCloud" 
+                  variant="outline" 
+                  class="w-full"
+                  :disabled="!isConfigSaved || isAnyWebDAVOperationRunning"
+                >
+                  <RefreshCw v-if="webdavLoading.upload" class="mr-2 h-4 w-4 animate-spin" />
+                  <Upload v-else class="mr-2 h-4 w-4" />
+                  {{ webdavLoading.upload ? '上传中...' : '本地覆盖云端' }}
                 </Button>
-                <Button @click="syncWithCloud" class="w-full">
-                  <RefreshCw class="mr-2 h-4 w-4" />
-                  智能合并同步
+                <Button 
+                  @click="syncWithCloud" 
+                  class="w-full"
+                  :disabled="!isConfigSaved || isAnyWebDAVOperationRunning"
+                >
+                  <RefreshCw v-if="webdavLoading.sync" class="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCw v-else class="mr-2 h-4 w-4" />
+                  {{ webdavLoading.sync ? '同步中...' : '智能合并同步' }}
                 </Button>
               </div>
             </div>
@@ -1371,7 +1542,49 @@ onMounted(() => {
       </div>
     </footer>
 
-    <Toaster position="top-center" :duration="4000" rich-colors expand />
+    <!-- ==================== WebDAV 确认对话框 ==================== -->
+    <Dialog v-model:open="confirmDialog.open">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <component :is="confirmDialog.icon" class="h-5 w-5" />
+            {{ confirmDialog.title }}
+          </DialogTitle>
+          <DialogDescription>
+            {{ confirmDialog.description }}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div class="py-4">
+          <Alert v-if="confirmDialog.warning" variant="destructive">
+            <XCircle class="h-4 w-4" />
+            <AlertTitle>警告</AlertTitle>
+            <AlertDescription>{{ confirmDialog.warning }}</AlertDescription>
+          </Alert>
+          
+          <p v-if="confirmDialog.details" class="text-sm text-muted-foreground mt-3">
+            {{ confirmDialog.details }}
+          </p>
+        </div>
+        
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            @click="confirmDialog.open = false"
+            :disabled="confirmDialog.loading"
+          >
+            取消
+          </Button>
+          <Button 
+            @click="handleConfirmAction"
+            :disabled="confirmDialog.loading"
+          >
+            <RefreshCw v-if="confirmDialog.loading" class="mr-2 h-4 w-4 animate-spin" />
+            {{ confirmDialog.confirmText || '确认' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 

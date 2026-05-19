@@ -73,7 +73,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   webdavUsername: '',
   webdavPassword: '',
   neodbToken: '',
-  autoSync: true,
+  autoSync: false,  // ✅ 默认禁用自动同步，所有同步操作由用户手动触发
   syncInterval: 30,
   theme: 'auto',
   language: 'zh-CN',

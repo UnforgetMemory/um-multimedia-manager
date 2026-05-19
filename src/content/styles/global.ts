@@ -94,9 +94,13 @@ const STATUS_CHIP_STYLES = `
 }
 
 .umm-status-chip .umm-note {
-  opacity: 0.75;
+  opacity: 0.9;
   font-size: 12px;
-  font-style: italic;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 `
 

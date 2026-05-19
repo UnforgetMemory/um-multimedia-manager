@@ -19,6 +19,18 @@ export interface MediaRecord {
   status: number         // 0=未看/听, 1=在看/听, 2=已看/已听
   rating: number         // 评分 0-10
   updatedAt?: string     // ISO 8601 更新时间
+  
+  // ✅ 新增：NeoDB 关联字段
+  neodbUuid?: string      // NeoDB 作品的 UUID（catalog item uuid）
+  neodbShelfUuid?: string // NeoDB 书架项的 UUID（shelf item uuid）
+  
+  // ✅ 增强：关联 ID 映射
+  linkedIds?: {
+    doubanId?: string
+    imdbId?: string
+    tmdbId?: string
+    neodbId?: string      // NeoDB 作品 UUID（与 neodbUuid 相同，保持兼容）
+  }
 }
 
 // 隔离区记录接口
@@ -124,4 +136,20 @@ export type StorageValue = string | number | boolean | object | null | undefined
 export interface CacheItem<T = unknown> {
   value: T;
   expiry: number; // 过期时间戳
+}
+
+// WebDAV Meta 数据结构
+export interface DatasetMeta {
+  key: string              // "movie:douban", "tv:neodb" 等
+  version: number          // 数据格式版本
+  timestamp: string        // ISO 8601 最后更新时间
+  recordCount: number      // 记录数量
+  hash: string             // SHA-256 哈希值
+}
+
+export interface WebDAVMeta {
+  schema: 'umm-webdav-meta'
+  version: 1
+  generatedAt: string
+  datasets: DatasetMeta[]
 }

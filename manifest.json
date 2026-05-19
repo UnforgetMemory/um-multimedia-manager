@@ -67,7 +67,8 @@
     "*://hdhome.org/*",
     "*://hdarea.club/*",
     "*://pterclub.net/*",
-    "*://web5.mukaku.com/*"
+    "*://web5.mukaku.com/*",
+    "<all_urls>"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';",

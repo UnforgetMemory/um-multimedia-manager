@@ -17,19 +17,40 @@ const outputDir = join(__dirname, '..', 'icons')
 async function resizeIcons() {
   console.log('📐 开始调整图标尺寸...\n')
   
+  const fs = await import('fs')
+  const path = await import('path')
+  
+  // 验证输入文件存在
+  if (!fs.existsSync(inputFile)) {
+    throw new Error(`输入文件不存在: ${inputFile}\n请确保 icons/icon-original.png 存在`)
+  }
+  
+  // 确保输出目录存在
+  if (!fs.existsSync(outputDir)) {
+    console.log(`创建输出目录: ${outputDir}`)
+    fs.mkdirSync(outputDir, { recursive: true })
+  }
+  
   for (const size of sizes) {
     const outputFile = join(outputDir, `icon-${size}.png`)
     
-    await sharp(inputFile)
-      .resize(size, size, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 } // 透明背景
-      })
-      .png()
-      .toFile(outputFile)
-    
-    const stats = await sharp(outputFile).metadata()
-    console.log(`✅ icon-${size}.png: ${stats.width}x${stats.height}`)
+    try {
+      await sharp(inputFile)
+        .resize(size, size, {
+          fit: 'cover',  // 使用 cover 模式，裁剪多余部分以填满目标尺寸
+          position: 'center'  // 从中心裁剪
+        })
+        .png()
+        .toFile(outputFile)
+      
+      const stats = await sharp(outputFile).metadata()
+      console.log(`✅ icon-${size}.png: ${stats.width}x${stats.height}`)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`❌ 生成 icon-${size}.png 失败: ${errorMessage}`)
+      console.error('提示：检查文件权限和磁盘空间')
+      throw error
+    }
   }
   
   console.log('\n✨ 所有图标生成完成！')

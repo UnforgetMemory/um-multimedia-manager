@@ -7,6 +7,7 @@
 import { Identity, Store, Utils, MediaRecord } from '@/shared'
 import { initRouter } from './router'
 import { injectGlobalStyles } from './styles/global'
+import { FloatingToast } from './utils/toast'
 
 // 健康检查日志
 console.log('[UMM Content] Script loaded on:', window.location.href)
@@ -711,14 +712,14 @@ function bindNeoDBPushEvents() {
  */
 async function pushToNeoDB(ratingAdjust: number) {
   if (!currentIdentity) {
-    showNotification('❌ 无法识别当前页面')
+    showToast('❌ 无法识别当前页面', 'error')
     return
   }
   
   // 验证必要的字段
   const providerId = currentRecord?.providerId || currentIdentity.providerId
   if (!providerId) {
-    showNotification('❌ 无法获取作品ID')
+    showToast('❌ 无法获取作品ID', 'error')
     return
   }
   
@@ -738,10 +739,10 @@ async function pushToNeoDB(ratingAdjust: number) {
         }).catch(err => {
           console.warn('[UMM] Failed to send toast message:', err)
           // 降级方案
-          showNotification('❌ 请先在设置中配置 NeoDB Token')
+          showToast('❌ 请先在设置中配置 NeoDB Token', 'error')
         })
       } else {
-        showNotification('❌ 请先在设置中配置 NeoDB Token')
+        showToast('❌ 请先在设置中配置 NeoDB Token', 'error')
       }
       return
     }
@@ -771,23 +772,23 @@ async function pushToNeoDB(ratingAdjust: number) {
       })
     } catch (commError) {
       console.error('[UMM] Communication with background failed:', commError)
-      showNotification('❌ 与后台服务通信失败，请重试')
+      showToast('❌ 与后台服务通信失败，请重试', 'error')
       return
     }
     
     if (!response) {
-      showNotification('❌ 后台服务未响应，请刷新页面')
+      showToast('❌ 后台服务未响应，请刷新页面', 'error')
       return
     }
     
     if (response.success) {
-      showNotification(`✅ 已推送到 NeoDB (${adjustedRating}/10)`)
+      showToast(`✅ 已推送到 NeoDB (${adjustedRating}/10)`, 'success')
     } else {
-      showNotification(`❌ 推送失败: ${response.message || '未知错误'}`)
+      showToast(`❌ 推送失败: ${response.message || '未知错误'}`, 'error')
     }
   } catch (error) {
     console.error('[UMM] Push to NeoDB failed:', error)
-    showNotification('❌ 推送失败')
+    showToast('❌ 推送失败', 'error')
   }
 }
 
@@ -1011,7 +1012,7 @@ async function saveRecord() {
     
     // 验证输入是否为有效数字
     if (isNaN(rawValue) || !isFinite(rawValue)) {
-      showNotification('❌ 请输入有效的评分（0-10）')
+      showToast('❌ 请输入有效的评分（0-10）', 'error')
       return
     }
     
@@ -1022,7 +1023,7 @@ async function saveRecord() {
     const success = await Store.upsertRecord(currentRecord)
     
     if (success) {
-      showNotification('✅ 保存成功!')
+      showToast('✅ 保存成功!', 'success')
       
       // 重新加载
       await loadCurrentRecord()
@@ -1059,6 +1060,19 @@ function getStatusColor(status?: number): string {
     1: '#3b82f6',  // 蓝色 - 在看
   }
   return colors[status ?? 0] || '#6b7280'
+}
+
+/**
+ * ✅ 统一的 Toast 通知函数（使用 FloatingToast）
+ */
+function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
+  if (type === 'success') {
+    FloatingToast.success('UMM', message)
+  } else if (type === 'error') {
+    FloatingToast.error('UMM', message)
+  } else {
+    FloatingToast.info('UMM', message)
+  }
 }
 
 function showNotification(message: string) {
@@ -1294,19 +1308,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const { type, title, message: msg } = message.payload
     
     // ✅ 使用 FloatingToast 显示通知
-    import('./utils/toast').then(({ FloatingToast }) => {
-      if (type === 'success') {
-        FloatingToast.success(title, msg)
-      } else if (type === 'error') {
-        FloatingToast.error(title, msg)
-      } else {
-        FloatingToast.info(title, msg)
-      }
-    }).catch(error => {
-      console.error('[UMM Content] Failed to load FloatingToast:', error)
-    })
+    if (type === 'success') {
+      FloatingToast.success(title, msg)
+    } else if (type === 'error') {
+      FloatingToast.error(title, msg)
+    } else if (type === 'loading') {
+      FloatingToast.loading(title, msg)
+    } else {
+      FloatingToast.info(title, msg)
+    }
     
     sendResponse({ success: true })
     return true  // 保持消息通道开放以支持异步响应
   }
 })
+
+// ✅ CRXJS requires this export for Content Script initialization
+export function onExecute(options?: { perf?: any }) {
+  console.log('[UMM Content] Content Script executed', options?.perf)
+  // Content Script auto-initializes via top-level code
+  // This export is only for CRXJS loader compatibility
+}

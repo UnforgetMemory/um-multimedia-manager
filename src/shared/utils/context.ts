@@ -23,21 +23,15 @@ export async function safeSendMessage<T = any>(
     fallback?: () => void
   }
 ): Promise<T | null> {
-  const { timeout = 10000, retries = 2, fallback } = options || {}
-  
-  // 检查上下文有效性
-  if (!isContextValid()) {
-    console.warn('[UMM] Extension context invalidated, skipping message')
-    fallback?.()
-    return null
-  }
+  // ✅ 修复：增加默认超时和重试次数
+  const { timeout = 30000, retries = 3, fallback } = options || {}
   
   let lastError: Error | null = null
   
-  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      // 再次检查（可能在等待期间失效）
-      if (!isContextValid()) {
+      // 检查上下文有效性（每次重试前都检查）
+      if (!chrome.runtime?.id) {
         throw new Error('Extension context invalidated')
       }
       
@@ -55,16 +49,18 @@ export async function safeSendMessage<T = any>(
         break
       }
       
-      // 如果不是最后一次尝试，等待后重试
-      if (attempt <= retries) {
-        console.warn(`[UMM] Message send failed (attempt ${attempt}), retrying...`)
-        await new Promise(resolve => setTimeout(resolve, 500 * attempt))
+      // 如果不是最后一次尝试，等待后重试（指数退避）
+      if (attempt < retries) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        console.warn(`[UMM] Retry ${attempt}/${retries} after error:`, errorMsg)
+        // 指数退避：1s, 2s, 4s...
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)))
       }
     }
   }
   
   // 所有尝试都失败
-  console.error('[UMM] Failed to send message after retries:', lastError)
+  console.error('[UMM] All retries exhausted:', lastError)
   fallback?.()
   return null
 }

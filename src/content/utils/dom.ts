@@ -58,7 +58,9 @@ export function createStatusChip(
   chip.dataset.status = status === 2 ? 'done' : 'none'
   
   const label = status === 2
-    ? (type === 'music' ? '✅ 已听' : '✅ 已看')
+    ? (note 
+        ? (type === 'music' ? '📦 已听(本地)' : '📦 已看(本地)')
+        : (type === 'music' ? '✅ 已听' : '✅ 已看'))
     : (type === 'music' ? '⏳ 未听' : '⏳ 未看')
   
   const ratingText = rating > 0 ? `${Utils.formatRating10(rating)}/10` : ''
@@ -66,7 +68,9 @@ export function createStatusChip(
   // XSS 防护：转义所有用户输入
   const escapedLabel = escapeHtml(label)
   const escapedRatingText = ratingText ? escapeHtml(ratingText) : ''
-  const escapedNote = note ? escapeHtml(note) : ''
+  // ✅ 修复：当 label 已包含"(本地)"标识时，不再显示 note，避免语义重复
+  const shouldShowNote = note && !label.includes('(本地)')
+  const escapedNote = shouldShowNote ? escapeHtml(note) : ''
   
   chip.innerHTML = `
     <span class="umm-label">${escapedLabel}</span>
@@ -77,7 +81,7 @@ export function createStatusChip(
   // 添加 ARIA 属性
   chip.setAttribute('role', 'status')
   chip.setAttribute('aria-live', 'polite')
-  chip.setAttribute('aria-label', `${label}${ratingText ? `, 评分${ratingText}` : ''}${note ? `, ${note}` : ''}`)
+  chip.setAttribute('aria-label', `${label}${ratingText ? `, 评分${ratingText}` : ''}${shouldShowNote && note ? `, ${note}` : ''}`)
   
   return chip
 }

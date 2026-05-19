@@ -1,7 +1,7 @@
 /**
  * FloatingToast 浮动通知组件
  * 
- * 在页面右上角显示滑入式通知，支持成功、错误、信息三种类型
+ * 在页面右下角显示滑入式通知，支持成功、错误、信息三种类型
  * 使用油猴脚本的渐变色方案
  */
 
@@ -36,21 +36,29 @@ export class FloatingToast {
   }
   
   /**
+   * 显示加载通知
+   */
+  static loading(title: string, message?: string): void {
+    this.show('loading', title, message)
+  }
+  
+  /**
    * 内部显示方法
    */
-  private static show(type: 'success' | 'error' | 'info', title: string, message?: string): void {
+  private static show(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string): void {
     // 1. 创建容器（如果不存在）
     if (!this.container) {
       this.container = document.createElement('div')
       this.container.id = 'umm-toast-container'
       this.container.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
+        bottom: 24px;
+        right: 24px;
         z-index: 999999;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
+        align-items: flex-end;
       `
       
       // 防御性检查：确保 document.body 存在
@@ -109,15 +117,16 @@ export class FloatingToast {
     style.id = 'umm-toast-styles'
     style.textContent = `
       .umm-toast {
-        padding: 12px 16px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 14px 18px;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
         font-size: 14px;
-        min-width: 280px;
-        max-width: 400px;
+        min-width: 300px;
+        max-width: 420px;
         transform: translateX(120%);
         opacity: 0;
-        transition: all 0.3s ease;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(8px);
       }
       
       .umm-toast.show {
@@ -142,6 +151,11 @@ export class FloatingToast {
       
       .umm-toast--info {
         background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
+        color: white;
+      }
+      
+      .umm-toast--loading {
+        background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
         color: white;
       }
       
