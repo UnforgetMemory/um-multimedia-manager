@@ -15,7 +15,7 @@
  */
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 3
+export const DB_VERSION = 5  // ✅ 从 4 升级到 5,添加同步日志表
 
 /**
  * IndexedDB 记录结构
@@ -45,9 +45,14 @@ export interface MediaRecord {
     doubanId?: string
     imdbId?: string
     tmdbId?: string
+    neodbId?: string      // ✅ 新增：NeoDB 作品 UUID
   }
   source?: 'legacy' | 'manual' | 'sync' | 'api'  // 数据来源标记
   updatedAt?: string      // ISO 8601 更新时间（自动维护）
+  
+  // ✅ 新增：NeoDB 关联字段
+  neodbUuid?: string      // NeoDB 作品的 UUID（catalog item uuid）
+  neodbShelfUuid?: string // NeoDB 书架项的 UUID（shelf item uuid）
 }
 
 /**
@@ -62,6 +67,26 @@ export interface QuarantineEntry {
   rating: number         // 评分 0-10
   updatedAt?: string     // ISO 8601 更新时间
   quarantineReason: string
+}
+
+/**
+ * 同步日志记录
+ */
+export interface SyncLog {
+  id: string              // 自动生成: sync-${timestamp}
+  type: 'upload' | 'download' | 'merge'
+  direction: 'local-to-cloud' | 'cloud-to-local' | 'bidirectional'
+  timestamp: string       // ISO 8601
+  success: boolean
+  message?: string
+  stats?: {
+    totalRecords: number
+    uploadedCount?: number
+    downloadedCount?: number
+    conflictCount?: number
+    mergedCount?: number
+  }
+  error?: string          // 如果失败,记录错误信息
 }
 
 export async function openDatabase(): Promise<IDBDatabase> {
@@ -94,6 +119,11 @@ export async function openDatabase(): Promise<IDBDatabase> {
         store.createIndex('linked_douban', 'linkedIds.doubanId', { unique: false })
         store.createIndex('linked_imdb', 'linkedIds.imdbId', { unique: false })
         store.createIndex('linked_tmdb', 'linkedIds.tmdbId', { unique: false })
+        store.createIndex('linked_neodb', 'linkedIds.neodbId', { unique: false })  // ✅ 新增
+        
+        // ✅ 新增：NeoDB UUID 索引
+        store.createIndex('neodb_uuid', 'neodbUuid', { unique: false })
+        store.createIndex('neodb_shelf_uuid', 'neodbShelfUuid', { unique: false })
         
         console.log('[Database] Created records store with all indexes')
       } else {
@@ -118,6 +148,11 @@ export async function openDatabase(): Promise<IDBDatabase> {
         store.createIndex('linked_douban', 'linkedIds.doubanId', { unique: false })
         store.createIndex('linked_imdb', 'linkedIds.imdbId', { unique: false })
         store.createIndex('linked_tmdb', 'linkedIds.tmdbId', { unique: false })
+        store.createIndex('linked_neodb', 'linkedIds.neodbId', { unique: false })  // ✅ 新增
+        
+        // ✅ 新增：NeoDB UUID 索引
+        store.createIndex('neodb_uuid', 'neodbUuid', { unique: false })
+        store.createIndex('neodb_shelf_uuid', 'neodbShelfUuid', { unique: false })
         
         console.log('[Database] Rebuilt all indexes for records store')
       }
@@ -145,6 +180,14 @@ export async function openDatabase(): Promise<IDBDatabase> {
         store.createIndex('source', 'source', { unique: false })
       }
       
+      // ==================== 同步日志表 ====================
+      if (!db.objectStoreNames.contains('sync-log')) {
+        const store = db.createObjectStore('sync-log', { keyPath: 'id' })
+        store.createIndex('timestamp', 'timestamp', { unique: false })
+        store.createIndex('type', 'type', { unique: false })
+        store.createIndex('success', 'success', { unique: false })
+      }
+      
       console.log('[Database] Schema initialized')
     }
     
@@ -155,11 +198,11 @@ export async function openDatabase(): Promise<IDBDatabase> {
 
 export class MediaDatabase {
   private db: IDBDatabase | null = null
+  private initializing: Promise<void> | null = null  // ✅ 新增：初始化锁
   
   // ✅ 优化：添加内存缓存，减少 IndexedDB 查询
   private recordsCache: MediaRecord[] | null = null
   private cacheTimestamp: number = 0
-  private readonly CACHE_TTL = 10 * 1000 // 10秒缓存有效期
   
   /**
    * 生成复合主键
@@ -202,23 +245,34 @@ export class MediaDatabase {
   }
   
   async init(): Promise<void> {
-    // ✅ 修复：检查数据库连接是否有效
-    if (!this.db || this.db.version === 0) {
-      console.log('[MediaDB] Opening database connection...')
-      this.db = await openDatabase()
-      console.log('[MediaDB] Database connection established, version:', this.db.version)
-    } else {
-      // 检查连接是否仍然有效
+    // ✅ 修复：如果正在初始化，等待现有初始化完成
+    if (this.initializing) {
+      return this.initializing
+    }
+    
+    // 检查数据库连接是否有效
+    if (this.db && this.db.version > 0) {
       try {
-        // 尝试创建一个简单的事务来验证连接
         const tx = this.db.transaction('records', 'readonly')
         tx.objectStore('records').count()
-        // 如果成功，说明连接有效
+        return  // 连接有效，直接返回
       } catch (error) {
         console.warn('[MediaDB] Database connection invalid, reopening...', error)
-        this.db = await openDatabase()
-        console.log('[MediaDB] Database connection re-established')
+        this.db = null  // 重置连接
       }
+    }
+    
+    // 创建新的初始化 Promise
+    this.initializing = (async () => {
+      console.log('[MediaDB] Opening database connection...')
+      this.db = await openDatabase()
+      console.log('[MediaDB] Database connection established, version:', this.db!.version)
+    })()
+    
+    try {
+      await this.initializing
+    } finally {
+      this.initializing = null  // 清除锁
     }
   }
   
@@ -227,7 +281,7 @@ export class MediaDatabase {
   /**
    * 保存或更新单条记录
    */
-  async saveRecord(record: MediaRecord): Promise<void> {
+  async saveRecord(record: MediaRecord): Promise<{ success: boolean; hasChange: boolean }> {
     console.log('[MediaDB] saveRecord called:', { provider: record.provider, type: record.type, providerId: record.providerId })
     
     await this.init()
@@ -237,6 +291,15 @@ export class MediaDatabase {
       record.id = MediaDatabase.generateId(record.provider, record.type, record.providerId)
       console.log('[MediaDB] Generated ID:', record.id)
     }
+    
+    // ✅ 修复：先查询现有记录，判断是否有实质性变化
+    const existingRecord = await this.getRecord(record.id)
+    const isNewRecord = !existingRecord
+    const isStatusChanged = existingRecord ? existingRecord.status !== record.status : false
+    const isRatingChanged = existingRecord ? Math.abs(existingRecord.rating - record.rating) > 0.01 : false
+    const hasChange = isNewRecord || isStatusChanged || isRatingChanged
+    
+    console.log('[MediaDB] Change detection:', { isNewRecord, isStatusChanged, isRatingChanged, hasChange })
     
     // 自动维护更新时间
     record.updatedAt = new Date().toISOString()
@@ -252,7 +315,7 @@ export class MediaDatabase {
         // ✅ 优化：清除缓存
         this.recordsCache = null
         this.cacheTimestamp = 0
-        resolve()
+        resolve({ success: true, hasChange })
       }
       tx.onerror = () => {
         console.error('[MediaDB] Transaction failed:', tx.error)
@@ -419,9 +482,9 @@ export class MediaDatabase {
    * 获取所有记录（用于评分功能）
    */
   async getAllRecords(): Promise<MediaRecord[]> {
-    // ✅ 优化：检查缓存
+    // ✅ 优化：缩短缓存时间至 5 秒，减少不一致窗口
     const now = Date.now()
-    if (this.recordsCache && (now - this.cacheTimestamp) < this.CACHE_TTL) {
+    if (this.recordsCache && (now - this.cacheTimestamp) < 5000) {
       console.log('[MediaDB] Using cached records')
       return this.recordsCache
     }
@@ -639,6 +702,191 @@ export class MediaDatabase {
       const request = store.count()
       
       request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+  
+  // ==================== NeoDB 关联查询 ====================
+  
+  /**
+   * 通过 NeoDB 作品 UUID 查询记录
+   */
+  async getRecordByNeoDBUuid(neodbUuid: string): Promise<MediaRecord | undefined> {
+    await this.init()
+    
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction('records', 'readonly')
+      const store = tx.objectStore('records')
+      const index = store.index('neodb_uuid')
+      const request = index.get(neodbUuid)
+      
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+  
+  /**
+   * 通过 NeoDB 书架项 UUID 查询记录
+   */
+  async getRecordByNeoDBShelfUuid(shelfUuid: string): Promise<MediaRecord | undefined> {
+    await this.init()
+    
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction('records', 'readonly')
+      const store = tx.objectStore('records')
+      const index = store.index('neodb_shelf_uuid')
+      const request = index.get(shelfUuid)
+      
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+  
+  /**
+   * 查找与指定记录关联的所有其他平台记录
+   * @param record - 源记录
+   * @returns 关联记录列表（排除源记录本身）
+   */
+  async findLinkedRecords(record: MediaRecord): Promise<MediaRecord[]> {
+    await this.init()
+    
+    if (!record.linkedIds) {
+      return []
+    }
+    
+    const linkedRecords: MediaRecord[] = []
+    
+    // 通过 doubanId 查找
+    if (record.linkedIds.doubanId) {
+      const doubanRecord = await this.getRecordByLinkedDoubanId(record.linkedIds.doubanId)
+      if (doubanRecord && doubanRecord.id !== record.id) {
+        linkedRecords.push(doubanRecord)
+      }
+    }
+    
+    // 通过 imdbId 查找
+    if (record.linkedIds.imdbId) {
+      const tx = this.db!.transaction('records', 'readonly')
+      const store = tx.objectStore('records')
+      const index = store.index('linked_imdb')
+      const imdbId = record.linkedIds.imdbId
+      
+      const imdbRecord = await new Promise<MediaRecord | undefined>((resolve, reject) => {
+        const request = index.get(imdbId)
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      
+      if (imdbRecord && imdbRecord.id !== record.id) {
+        linkedRecords.push(imdbRecord)
+      }
+    }
+    
+    // 通过 tmdbId 查找
+    if (record.linkedIds.tmdbId) {
+      const tx = this.db!.transaction('records', 'readonly')
+      const store = tx.objectStore('records')
+      const index = store.index('linked_tmdb')
+      const tmdbId = record.linkedIds.tmdbId
+      
+      const tmdbRecord = await new Promise<MediaRecord | undefined>((resolve, reject) => {
+        const request = index.get(tmdbId)
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      
+      if (tmdbRecord && tmdbRecord.id !== record.id) {
+        linkedRecords.push(tmdbRecord)
+      }
+    }
+    
+    // 通过 neodbId 查找
+    if (record.linkedIds.neodbId) {
+      const neodbRecord = await this.getRecordByNeoDBUuid(record.linkedIds.neodbId)
+      if (neodbRecord && neodbRecord.id !== record.id) {
+        linkedRecords.push(neodbRecord)
+      }
+    }
+    
+    return linkedRecords
+  }
+  
+  // ==================== 同步日志操作 ====================
+  
+  /**
+   * 记录同步日志
+   */
+  async saveSyncLog(log: Omit<SyncLog, 'id'>): Promise<void> {
+    await this.init()
+    
+    const syncLog: SyncLog = {
+      ...log,
+      id: `sync-${Date.now()}`
+    }
+    
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction('sync-log', 'readwrite')
+      const store = tx.objectStore('sync-log')
+      store.put(syncLog)
+      
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  }
+  
+  /**
+   * 获取最近的同步日志
+   */
+  async getRecentSyncLogs(limit: number = 10): Promise<SyncLog[]> {
+    await this.init()
+    
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction('sync-log', 'readonly')
+      const store = tx.objectStore('sync-log')
+      const index = store.index('timestamp')
+      const request = index.openCursor(null, 'prev') // 倒序
+      
+      const logs: SyncLog[] = []
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result
+        if (cursor && logs.length < limit) {
+          logs.push(cursor.value)
+          cursor.continue()
+        } else {
+          resolve(logs)
+        }
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+  
+  /**
+   * 清理旧日志(保留最近 N 天)
+   */
+  async cleanupOldLogs(retentionDays: number = 30): Promise<number> {
+    await this.init()
+    
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays)
+    const cutoffTimestamp = cutoffDate.toISOString()
+    
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction('sync-log', 'readwrite')
+      const store = tx.objectStore('sync-log')
+      const index = store.index('timestamp')
+      const request = index.openCursor(IDBKeyRange.upperBound(cutoffTimestamp))
+      
+      let deletedCount = 0
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result
+        if (cursor) {
+          cursor.delete()
+          deletedCount++
+          cursor.continue()
+        } else {
+          resolve(deletedCount)
+        }
+      }
       request.onerror = () => reject(request.error)
     })
   }

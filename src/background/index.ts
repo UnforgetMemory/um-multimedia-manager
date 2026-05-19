@@ -28,8 +28,8 @@ const Store = {
   },
   
   async upsertRecord(record: MediaRecord) {
-    await mediaDB.saveRecord(record)
-    return true
+    const result = await mediaDB.saveRecord(record)
+    return result
   },
   
   async getAllRecords() {
@@ -42,7 +42,7 @@ const Store = {
   
   async bulkUpsertRecords(records: MediaRecord[]) {
     for (const record of records) {
-      await mediaDB.saveRecord(record)
+      await mediaDB.saveRecord(record) // 批量操作，忽略返回值
     }
   },
   
@@ -78,7 +78,7 @@ const Store = {
       for (const type in data.datasets[provider]) {
         const records = data.datasets[provider][type]
         for (const record of records) {
-          await mediaDB.saveRecord(record)
+          await mediaDB.saveRecord(record) // 批量导入，忽略返回值
         }
       }
     }
@@ -317,6 +317,15 @@ async function handleMessage(
     return
   }
   
+  // ✅ 添加全局超时保护（25 秒，接近 Chrome 上限）
+  const globalTimeout = setTimeout(() => {
+    console.error('[UMM Background] ⚠️ Message handler timeout for:', message.type)
+    sendResponse({ 
+      success: false, 
+      error: `Operation timed out after 25s (${message.type})` 
+    })
+  }, 25000)
+  
   try {
     switch (message.type) {
       case 'GET_RECORD':
@@ -375,6 +384,11 @@ async function handleMessage(
         await handleGetRecordsByProviderType(message.payload, sendResponse)
         break
       
+      // ✅ 新增：根据 provider/type/providerId 查询单条记录
+      case 'GET_RECORD_BY_KEY':
+        await handleGetRecordByKey(message.payload, sendResponse)
+        break
+      
       case 'DELETE_RECORD':
         await handleDeleteRecord(message.payload, sendResponse)
         break
@@ -412,6 +426,24 @@ async function handleMessage(
         await handleShowToast(message.payload, sendResponse)
         break
       
+      // ✅ 新增：关联库查询
+      case 'FIND_LINKED_RECORDS':
+        await handleFindLinkedRecords(message.payload, sendResponse)
+        break
+      
+      case 'GET_RECORD_BY_NEODB_UUID':
+        await handleGetRecordByNeoDBUuid(message.payload, sendResponse)
+        break
+      
+      // ✅ 新增：同步日志查询
+      case 'GET_SYNC_LOGS':
+        await handleGetSyncLogs(message.payload, sendResponse)
+        break
+      
+      case 'CLEAR_SYNC_LOGS':
+        await handleClearSyncLogs(sendResponse)
+        break
+      
       default:
         console.warn('[UMM Background] Unknown message type:', message.type)
         sendResponse({ success: false, error: 'Unknown message type' })
@@ -419,6 +451,8 @@ async function handleMessage(
   } catch (error) {
     console.error('[UMM Background] Message handling error:', error)
     sendResponse({ success: false, error: String(error) })
+  } finally {
+    clearTimeout(globalTimeout)  // ✅ 确保清除超时
   }
 }
 
@@ -451,17 +485,21 @@ async function handleSaveRecord(
   payload: MediaRecord,
   sendResponse: (response: any) => void
 ) {
-  const success = await Store.upsertRecord(payload)
+  const result = await Store.upsertRecord(payload)
   
-  if (success) {
+  if (result.success) {
     // ✅ 优化：通知所有 Popup 数据已变化
     notifyDataChanged()
     
-    // 发送通知
-    await showNotification('记录已保存', `✅ ${payload.providerId}`)
+    // ✅ 修复：只在数据有实质性变化时才发送通知
+    if (result.hasChange) {
+      await showNotification('记录已保存', `✅ ${payload.providerId}`)
+    } else {
+      console.log('[UMM Background] ⏭️ Data unchanged, skipped notification')
+    }
   }
   
-  sendResponse({ success })
+  sendResponse({ success: result.success })
 }
 
 /**
@@ -570,6 +608,17 @@ async function handleWebDAVSync(sendResponse: (response: any) => void) {
   try {
     const result = await WebDAV.syncWithWebDAV()
     
+    // ✅ 记录同步日志
+    await mediaDB.saveSyncLog({
+      type: result.direction === 'merge' ? 'merge' : (result.direction as 'upload' | 'download'),
+      direction: 'bidirectional',
+      timestamp: new Date().toISOString(),
+      success: result.success,
+      message: result.message,
+      stats: result.stats,
+      error: result.success ? undefined : result.message
+    })
+    
     if (result.success) {
       await showNotification('同步成功', result.message || '数据已同步')
     } else {
@@ -619,6 +668,17 @@ async function handleWebDAVDownload(sendResponse: (response: any) => void) {
   try {
     const result = await WebDAV.downloadAndOverwrite()
     
+    // ✅ 记录同步日志
+    await mediaDB.saveSyncLog({
+      type: 'download',
+      direction: 'cloud-to-local',
+      timestamp: new Date().toISOString(),
+      success: result.success,
+      message: result.message,
+      stats: result.stats,
+      error: result.success ? undefined : result.message
+    })
+    
     if (result.success) {
       await showNotification('下载成功', result.message || '已从云端覆盖本地数据')
     } else {
@@ -638,6 +698,17 @@ async function handleWebDAVDownload(sendResponse: (response: any) => void) {
 async function handleWebDAVUpload(sendResponse: (response: any) => void) {
   try {
     const result = await WebDAV.uploadAndOverwrite()
+    
+    // ✅ 记录同步日志
+    await mediaDB.saveSyncLog({
+      type: 'upload',
+      direction: 'local-to-cloud',
+      timestamp: new Date().toISOString(),
+      success: result.success,
+      message: result.message,
+      stats: result.stats,
+      error: result.success ? undefined : result.message
+    })
     
     if (result.success) {
       await showNotification('上传成功', result.message || '已将本地数据覆盖到云端')
@@ -712,45 +783,180 @@ async function handleNeoDBPushRating(
     record: { 
       providerId: string
       rating: number
-      status: string
-      domain: string
+      status: number  // 0=未看, 1=在看, 2=已看
+      type: string    // movie/tv/music/book
       provider: string
+      url: string     // ✅ 新增：作品 URL
     }
   },
   sendResponse: (response: any) => void
 ) {
+  // ✅ 修复：将 keepAlive 移到 try 块之前，确保所有路径都能访问
+  const keepAlive = setInterval(() => {
+    console.log('[UMM Background] Keep-alive ping during NeoDB push')
+  }, 20000)
+  
+  // ✅ 统一的清理和响应函数
+  const cleanupAndRespond = (response: any) => {
+    clearInterval(keepAlive)
+    sendResponse(response)
+  }
+  
   try {
     const { record } = payload
     
     console.log('[UMM Background] Pushing rating to NeoDB:', record)
     
-    // 从存储中获取 NeoDB Token（不通过消息传递）
+    // 从存储中获取 NeoDB Token
     const settings = await Store.getSettings()
     if (!settings.neodbToken) {
-      sendResponse({ 
+      cleanupAndRespond({ 
         success: false, 
         message: '请先在设置中配置 NeoDB Token' 
       })
       return
     }
     
-    // TODO: 调用 NeoDB API 更新评分
-    // 注意：目前 NeoDB API 只支持查询，不支持写入操作
-    // 如果未来 API 支持写入，需要实现以下逻辑：
-    // 1. 搜索作品获取 workId
-    // 2. 调用 NeoDB 的更新接口（如果存在）
+    // 验证状态：只有已看/已听（status=2）才允许推送
+    if (record.status !== 2) {
+      cleanupAndRespond({ 
+        success: false, 
+        message: '请先在豆瓣标记为“已看/已听”后再同步到 NeoDB' 
+      })
+      return
+    }
     
-    // 当前返回提示信息，告知用户 API 限制
-    sendResponse({ 
-      success: false, 
-      message: 'NeoDB API 暂不支持评分写入，请手动在 NeoDB 网站更新评分' 
+    // ✅ 步骤 1: 通过 URL 抓取 NeoDB 作品信息（正确方式）
+    console.log('[UMM Background] Fetching NeoDB catalog by URL:', record.url)
+    const catalogData = await NeoDB.fetchCatalogByUrl(
+      record.url,
+      settings.neodbToken
+    )
+    
+    console.log('[UMM Background] Catalog fetch result:', catalogData ? 'Success' : 'Failed')
+    if (catalogData) {
+      console.log('[UMM Background] Catalog UUID:', catalogData.uuid)
+    }
+    
+    if (!catalogData || !catalogData.uuid) {
+      cleanupAndRespond({ 
+        success: false, 
+        message: '未在 NeoDB 找到对应作品，请手动搜索并标记' 
+      })
+      return
+    }
+    
+    const neodbWorkId = catalogData.uuid
+    console.log('[UMM Background] Found NeoDB work:', neodbWorkId)
+    
+    // ✅ 步骤 2: 检查是否已存在于书架
+    let existingShelfUuid = await NeoDB.getShelfItemUuid(
+      neodbWorkId,
+      settings.neodbToken
+    )
+    
+    let shelfItemResponse: NeoDB.ShelfItemResponse | null = null
+    
+    if (existingShelfUuid) {
+      // 已存在，更新评分
+      shelfItemResponse = await NeoDB.updateShelfItem(
+        existingShelfUuid,
+        { rating: record.rating },
+        settings.neodbToken
+      )
+      
+      if (!shelfItemResponse) {
+        cleanupAndRespond({ 
+          success: false, 
+          message: '更新 NeoDB 评分失败' 
+        })
+        return
+      }
+    } else {
+      // 不存在，创建新标记（✅ 正确方式：POST /me/shelf/item/{item_uuid}）
+      shelfItemResponse = await NeoDB.markItem(
+        neodbWorkId,
+        'complete',  // 标记为“已完成”
+        record.rating,
+        settings.neodbToken
+      )
+      
+      if (!shelfItemResponse) {
+        cleanupAndRespond({ 
+          success: false, 
+          message: '同步到 NeoDB 失败' 
+        })
+        return
+      }
+      
+      existingShelfUuid = shelfItemResponse.uuid
+    }
+    
+    // ✅ 步骤 3: 更新本地记录，保存 NeoDB UUID
+    const localRecord = await mediaDB.getRecordByKey(
+      record.provider,
+      record.type,
+      record.providerId
+    )
+    
+    if (localRecord) {
+      // ✅ 调试：输出更新前的记录
+      console.log('[UMM Background] Before update - localRecord:', {
+        id: localRecord.id,
+        neodbUuid: localRecord.neodbUuid,
+        neodbShelfUuid: localRecord.neodbShelfUuid
+      })
+      
+      // 更新 linkedIds 和 NeoDB UUID
+      const updatedRecord = {
+        ...localRecord,
+        neodbUuid: neodbWorkId,
+        neodbShelfUuid: existingShelfUuid,
+        linkedIds: {
+          ...localRecord.linkedIds,
+          neodbId: neodbWorkId,
+        },
+        updatedAt: new Date().toISOString(),
+      }
+      
+      // ✅ 调试：输出更新后的记录
+      console.log('[UMM Background] After update - updatedRecord:', {
+        id: updatedRecord.id,
+        neodbUuid: updatedRecord.neodbUuid,
+        neodbShelfUuid: updatedRecord.neodbShelfUuid
+      })
+      
+      await Store.upsertRecord(updatedRecord)
+      console.log('[UMM Background] Saved NeoDB UUID to local record:', neodbWorkId)
+      
+      // ✅ 验证：重新读取记录确认保存成功
+      const verifyRecord = await mediaDB.getRecordByKey(
+        record.provider,
+        record.type,
+        record.providerId
+      )
+      console.log('[UMM Background] Verify after save:', verifyRecord ? {
+        neodbUuid: verifyRecord.neodbUuid,
+        neodbShelfUuid: verifyRecord.neodbShelfUuid
+      } : 'null')
+    } else {
+      console.warn('[UMM Background] Local record not found, cannot save NeoDB UUID')
+    }
+    
+    cleanupAndRespond({ 
+      success: true, 
+      message: `已同步到 NeoDB (${record.rating}/10)`,
+      neodbUuid: neodbWorkId,
+      neodbShelfUuid: existingShelfUuid,
     })
   } catch (error) {
     console.error('[UMM Background] NeoDB push failed:', error)
-    sendResponse({ 
+    cleanupAndRespond({ 
       success: false, 
-      message: String(error) 
+      message: `同步失败: ${String(error)}` 
     })
+  } finally {
+    clearInterval(keepAlive)
   }
 }
 
@@ -766,6 +972,38 @@ async function handleGetRecordsByProviderType(
     payload.type as any
   )
   sendResponse({ success: true, records })
+}
+
+/**
+ * ✅ 新增：根据 provider/type/providerId 查询单条记录
+ */
+async function handleGetRecordByKey(
+  payload: { provider: string; type: string; providerId: string },
+  sendResponse: (response: any) => void
+) {
+  try {
+    console.log('[UMM Background] GET_RECORD_BY_KEY:', payload)
+    
+    const record = await mediaDB.getRecordByKey(
+      payload.provider,
+      payload.type,
+      payload.providerId
+    )
+    
+    console.log('[UMM Background] Record found:', record ? 'Yes' : 'No')
+    if (record) {
+      console.log('[UMM Background] Record details:', {
+        id: record.id,
+        neodbUuid: record.neodbUuid,
+        neodbShelfUuid: record.neodbShelfUuid
+      })
+    }
+    
+    sendResponse({ success: true, record })
+  } catch (error) {
+    console.error('[UMM Background] GET_RECORD_BY_KEY failed:', error)
+    sendResponse({ success: false, error: String(error) })
+  }
 }
 
 /**
@@ -785,6 +1023,11 @@ async function handleDeleteRecord(
  * 获取所有记录
  */
 async function handleGetAllRecords(sendResponse: (response: any) => void) {
+  // ✅ 修复：添加 keep-alive 机制防止 SW 过早休眠
+  const keepAlive = setInterval(() => {
+    console.log('[UMM Background] Keep-alive ping during GET_ALL_RECORDS')
+  }, 20000)
+  
   try {
     console.log('[Background] 📦 Handling GET_ALL_RECORDS request...')
     
@@ -812,6 +1055,8 @@ async function handleGetAllRecords(sendResponse: (response: any) => void) {
   } catch (error) {
     console.error('[Background] ❌ Failed to get all records:', error)
     sendResponse({ success: false, error: String(error), records: [] })
+  } finally {
+    clearInterval(keepAlive)
   }
 }
 
@@ -887,9 +1132,9 @@ async function handleFirstInstall() {
   // 初始化存储
   await Store.initialize()
   
-  // 设置默认配置
+  // 设置默认配置（✅ 所有同步均为手动触发）
   await Store.setSettings({
-    autoSync: true,
+    autoSync: false,
     syncInterval: 30,
     notificationEnabled: true,
   })
@@ -900,8 +1145,8 @@ async function handleFirstInstall() {
     '🎉 扩展已成功安装,开始管理您的收藏吧!'
   )
   
-  // 设置定时同步任务
-  await setupSyncAlarm()
+  // ✅ 移除：不再设置自动同步闹钟，所有同步操作由用户手动触发
+  // await setupSyncAlarm()
 }
 
 /**
@@ -1092,27 +1337,54 @@ self.addEventListener('beforeunload', async () => {
 // ==================== Toast 通知处理器 ====================
 
 /**
- * 显示 Toast 通知
+ * 显示 Toast 通知（注入到当前活动浏览器页面）
  */
 async function handleShowToast(
   payload: { type: 'success' | 'error' | 'info'; title: string; message?: string },
   sendResponse: (response: any) => void
 ) {
   try {
-    // ✅ 使用 Chrome Notifications API 显示通知
-    if (chrome.notifications) {
-      const iconMap = {
-        success: 'icons/icon-48.svg',
-        error: 'icons/icon-48.svg',
-        info: 'icons/icon-48.svg'
+    let toastSent = false
+    
+    // ✅ 获取当前活动标签页（非 Popup）
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    
+    if (activeTab && activeTab.id && !activeTab.url?.includes('popup.html')) {
+      try {
+        await chrome.tabs.sendMessage(activeTab.id, {
+          type: 'SHOW_TOAST',
+          payload
+        })
+        toastSent = true
+        console.log('[UMM Background] Toast sent to active tab:', activeTab.id)
+      } catch (e) {
+        console.warn('[UMM Background] Failed to send toast to active tab:', e)
       }
-      
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: iconMap[payload.type],
-        title: payload.title,
-        message: payload.message || ''
-      })
+    }
+    
+    // ✅ 如果无法发送到活动标签页，使用 Chrome Notifications API
+    if (!toastSent) {
+      if (chrome.notifications) {
+        try {
+          const iconMap = {
+            success: chrome.runtime.getURL('icons/icon-48.png'),
+            error: chrome.runtime.getURL('icons/icon-48.png'),
+            info: chrome.runtime.getURL('icons/icon-48.png')
+          }
+          
+          await chrome.notifications.create({
+            type: 'basic',
+            iconUrl: iconMap[payload.type],
+            title: payload.title,
+            message: payload.message || ''
+          })
+          console.log('[UMM Background] Toast shown via Chrome Notifications API')
+        } catch (notifError) {
+          console.error('[UMM Background] Chrome Notifications API failed:', notifError)
+        }
+      } else {
+        console.warn('[UMM Background] No active tab found and notifications API not available')
+      }
     }
     
     sendResponse({ success: true })
@@ -1122,7 +1394,72 @@ async function handleShowToast(
   }
 }
 
+// ==================== 关联库查询处理器 ====================
+
+/**
+ * 查找关联记录
+ */
+async function handleFindLinkedRecords(
+  payload: { record: MediaRecord },
+  sendResponse: (response: any) => void
+) {
+  try {
+    const linkedRecords = await mediaDB.findLinkedRecords(payload.record)
+    sendResponse({ success: true, records: linkedRecords })
+  } catch (error) {
+    console.error('[UMM Background] Find linked records failed:', error)
+    sendResponse({ success: false, error: String(error) })
+  }
+}
+
+/**
+ * 通过 NeoDB UUID 查询记录
+ */
+async function handleGetRecordByNeoDBUuid(
+  payload: { neodbUuid: string },
+  sendResponse: (response: any) => void
+) {
+  try {
+    const record = await mediaDB.getRecordByNeoDBUuid(payload.neodbUuid)
+    sendResponse({ success: true, record: record || null })
+  } catch (error) {
+    console.error('[UMM Background] Get record by NeoDB UUID failed:', error)
+    sendResponse({ success: false, error: String(error) })
+  }
+}
+
+// ==================== 同步日志处理器 ====================
+
+async function handleGetSyncLogs(
+  payload: { limit?: number },
+  sendResponse: (response: any) => void
+) {
+  try {
+    const logs = await mediaDB.getRecentSyncLogs(payload.limit || 10)
+    sendResponse({ success: true, logs })
+  } catch (error) {
+    console.error('[UMM Background] Get sync logs failed:', error)
+    sendResponse({ success: false, error: String(error) })
+  }
+}
+
+async function handleClearSyncLogs(sendResponse: (response: any) => void) {
+  try {
+    const deletedCount = await mediaDB.cleanupOldLogs(0) // 清除所有
+    sendResponse({ success: true, deletedCount })
+  } catch (error) {
+    console.error('[UMM Background] Clear sync logs failed:', error)
+    sendResponse({ success: false, error: String(error) })
+  }
+}
+
 console.log('[UMM Background] Service worker ready')
+
+// ✅ P0: 定期清理 NeoDB 书架缓存（每10分钟）
+setInterval(() => {
+  NeoDB.cleanupShelfCache()
+  console.log('[UMM Background] Shelf cache cleaned')
+}, 10 * 60 * 1000)
 
 // ✅ 修复：CRXJS 需要显式导出，否则 Service Worker 不会正确加载
 export default {}

@@ -70,31 +70,37 @@ async function init() {
     injectGlobalStyles()
     console.log('[UMM Content] Global styles injected')
     
-    // 检测当前页面是否为支持的媒体页面
-    if (!currentIdentity) {
-      console.log('[UMM Content] Not a supported media page')
-      return
-    }
-    
-    console.log('[UMM Content] Detected identity:', currentIdentity)
-    
-    // 加载当前记录
-    await loadCurrentRecord()
-    console.log('[UMM Content] Current record loaded')
-    
     // 使用路由器统一分发（处理豆瓣、IMDb、NeoDB、搜索页等）
+    // 注意：路由器内部会根据 URL 自动识别页面类型并调用相应处理器
+    // 对于搜索页等特殊页面，不需要依赖全局 currentIdentity
     initRouter()
     console.log('[UMM Content] Router initialized')
     
-    // 非豆瓣页面：创建悬浮面板
-    if (!isDoubanDetailPage()) {
-      createFloatingPanel()
-      console.log('[UMM Content] Floating panel created')
+    // 检测当前页面是否为支持的媒体详情页（非搜索页）
+    // 只有详情页才需要创建悬浮面板和加载记录
+    if (!currentIdentity) {
+      console.log('[UMM Content] Not a media detail page (may be search page or unsupported)')
+      // 不要 return，让路由器继续处理
+    } else {
+      console.log('[UMM Content] Detected identity:', currentIdentity)
+      
+      // 加载当前记录
+      await loadCurrentRecord()
+      console.log('[UMM Content] Current record loaded')
+      
+      // 非豆瓣页面：创建悬浮面板
+      if (!isDoubanDetailPage()) {
+        createFloatingPanel()
+        console.log('[UMM Content] Floating panel created')
+      }
+      
+      // 监听系统主题变化
+      observeThemeChanges()
+      console.log('[UMM Content] Theme observer started')
+      
+      // ✅ 设置扩展上下文失效监听
+      setupContextInvalidationListener()
     }
-    
-    // 监听系统主题变化
-    observeThemeChanges()
-    console.log('[UMM Content] Theme observer started')
     
     console.log('[UMM Content] ✅ Initialization complete')
   } catch (error) {
@@ -720,7 +726,23 @@ async function pushToNeoDB(ratingAdjust: number) {
     // 获取 NeoDB Token
     const settings = await Store.getSettings()
     if (!settings.neodbToken) {
-      showNotification('❌ 请先在设置中配置 NeoDB Token')
+      // 通过 Background 发送 toast 通知
+      if (chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: 'SHOW_TOAST',
+          payload: { 
+            type: 'error', 
+            title: '配置缺失', 
+            message: '请先在设置中配置 NeoDB API Token' 
+          }
+        }).catch(err => {
+          console.warn('[UMM] Failed to send toast message:', err)
+          // 降级方案
+          showNotification('❌ 请先在设置中配置 NeoDB Token')
+        })
+      } else {
+        showNotification('❌ 请先在设置中配置 NeoDB Token')
+      }
       return
     }
     
@@ -1148,6 +1170,92 @@ function observeThemeChanges() {
 
 // ==================== 启动 ====================
 
+/**
+ * ✅ 设置扩展上下文失效监听
+ * 定期检查上下文状态，失效时清理资源并提示用户
+ */
+function setupContextInvalidationListener() {
+  // 定期检查上下文状态
+  const checkInterval = setInterval(() => {
+    if (!chrome.runtime?.id) {
+      console.warn('[UMM] Extension context lost, cleaning up...')
+      clearInterval(checkInterval)
+      
+      // 清理所有定时器和缓存
+      cleanupAllResources()
+      
+      // 显示一次性提示
+      showContextInvalidationNotice()
+    }
+  }, 30000) // 每 30 秒检查一次
+  
+  // 页面卸载时清理
+  window.addEventListener('beforeunload', () => {
+    clearInterval(checkInterval)
+  })
+}
+
+/**
+ * 清理所有资源
+ */
+function cleanupAllResources() {
+  // 清理 URL 观察器
+  if (urlObserver) {
+    urlObserver.disconnect()
+    urlObserver = null
+  }
+  
+  // 清理状态标签
+  if (statusChipElement) {
+    statusChipElement.remove()
+    statusChipElement = null
+  }
+  
+  // 清理主题监听器
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  if (themeChangeListener) {
+    if (mediaQuery.removeEventListener) {
+      mediaQuery.removeEventListener('change', themeChangeListener)
+    } else if (mediaQuery.removeListener) {
+      mediaQuery.removeListener(themeChangeListener)
+    }
+    themeChangeListener = null
+  }
+}
+
+/**
+ * 显示上下文失效提示
+ */
+function showContextInvalidationNotice() {
+  // 只在页面上显示一次
+  if (document.getElementById('umm-context-warning')) return
+  
+  const warning = document.createElement('div')
+  warning.id = 'umm-context-warning'
+  warning.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #ff6b6b;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 999999;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: opacity 0.3s ease;
+  `
+  warning.textContent = '⚠️ UMM 扩展已更新，请刷新页面以使用最新版本'
+  
+  document.body.appendChild(warning)
+  
+  // 5 秒后自动消失
+  setTimeout(() => {
+    warning.style.opacity = '0'
+    setTimeout(() => warning.remove(), 300)
+  }, 5000)
+}
+
 // Run when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init)
@@ -1176,5 +1284,29 @@ window.addEventListener('beforeunload', () => {
       mediaQuery.removeListener(themeChangeListener)
     }
     themeChangeListener = null
+  }
+})
+
+// ==================== 消息监听器（接收来自 Popup/Background 的 Toast 请求）====================
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'SHOW_TOAST') {
+    const { type, title, message: msg } = message.payload
+    
+    // ✅ 使用 FloatingToast 显示通知
+    import('./utils/toast').then(({ FloatingToast }) => {
+      if (type === 'success') {
+        FloatingToast.success(title, msg)
+      } else if (type === 'error') {
+        FloatingToast.error(title, msg)
+      } else {
+        FloatingToast.info(title, msg)
+      }
+    }).catch(error => {
+      console.error('[UMM Content] Failed to load FloatingToast:', error)
+    })
+    
+    sendResponse({ success: true })
+    return true  // 保持消息通道开放以支持异步响应
   }
 })
