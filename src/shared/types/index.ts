@@ -96,9 +96,32 @@ export interface ExportData {
 }
 
 // 消息类型(Content Script ↔ Background ↔ Popup)
-export interface MessagePayload {
-  type: string;
-  payload?: any;
+export type MessageType = 
+  | 'SHOW_TOAST'
+  | 'UPDATE_RECORD'
+  | 'GET_ALL_RECORDS'
+  | 'SYNC_DATA'
+  | 'EXPORT_DATA'
+  | 'IMPORT_DATA'
+  | 'DELETE_RECORD'
+  | 'GET_STATS'
+  | 'TOGGLE_THEME';
+
+export interface MessagePayloadMap {
+  SHOW_TOAST: { type: ToastType; title: string; message?: string };
+  UPDATE_RECORD: Omit<MediaRecord, 'id' | 'updatedAt'>;
+  GET_ALL_RECORDS: void;
+  SYNC_DATA: { direction: 'upload' | 'download' };
+  EXPORT_DATA: ExportData;
+  IMPORT_DATA: ExportData;
+  DELETE_RECORD: { provider: Provider; type: string; providerId: string };
+  GET_STATS: void;
+  TOGGLE_THEME: { theme: 'light' | 'dark' | 'auto' };
+}
+
+export interface MessagePayload<T extends MessageType = MessageType> {
+  type: T;
+  payload?: MessagePayloadMap[T];
 }
 
 // Toast 通知类型

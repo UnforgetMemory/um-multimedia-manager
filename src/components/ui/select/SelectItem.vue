@@ -2,7 +2,7 @@
 import type { SelectItemProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
-import { Check } from "@lucide/vue"
+import { Check } from "lucide-vue-next"
 import {
   SelectItem,
   SelectItemIndicator,

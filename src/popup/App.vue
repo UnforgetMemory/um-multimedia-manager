@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { 
   Moon, Sun, Settings, Database, RefreshCw,
   CheckCircle2, XCircle, Star, Download, Upload, AlertCircle
-} from '@lucide/vue'
+} from 'lucide-vue-next'
 
 // ✅ 辅助函数：通过 Background 向当前活动页面发送 Toast
 async function showPageToast(type: 'success' | 'error' | 'info', title: string, message?: string) {
