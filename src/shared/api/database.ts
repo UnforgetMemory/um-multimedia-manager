@@ -6,60 +6,6 @@
  */
 
 import { MediaRecord, AppSettings, ExportData } from '../types'
-import { CACHE_CONFIG } from '../config'
-
-// ✅ 优化：添加请求缓存，避免短时间内重复请求
-interface CacheEntry<T> {
-  data: T
-  timestamp: number
-}
-
-const requestCache = new Map<string, CacheEntry<any>>()
-const CACHE_TTL = CACHE_CONFIG.API_REQUEST_TTL // 5秒缓存有效期
-
-/**
- * ✅ 优化：带缓存的消息发送函数
- */
-function sendMessageWithCache<T>(
-  message: any,
-  cacheKey?: string,
-  forceRefresh = false
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    // 检查缓存
-    if (cacheKey && !forceRefresh) {
-      const cached = requestCache.get(cacheKey)
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        console.log(`[Database API] Using cached response for: ${cacheKey}`)
-        resolve(cached.data)
-        return
-      }
-    }
-    
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('[Database API] sendMessage failed:', chrome.runtime.lastError)
-        reject(chrome.runtime.lastError)
-      } else {
-        // 更新缓存
-        if (cacheKey) {
-          requestCache.set(cacheKey, {
-            data: response,
-            timestamp: Date.now()
-          })
-        }
-        resolve(response)
-      }
-    })
-  })
-}
-
-/**
- * ✅ 优化：清除所有缓存
- */
-export function clearAllCache(): void {
-  requestCache.clear()
-}
 
 /**
  * 通过 Background 获取单条记录
@@ -85,8 +31,6 @@ export async function upsertRecord(record: MediaRecord): Promise<boolean> {
           console.error('[Database API] sendMessage failed:', chrome.runtime.lastError)
           reject(chrome.runtime.lastError)
         } else {
-          // ✅ 修复：保存成功后清除缓存，确保下次获取最新数据
-          clearAllCache()
           resolve(response?.success || false)
         }
       }
@@ -139,11 +83,19 @@ export async function deleteRecord(id: string): Promise<void> {
  * 通过 Background 获取所有记录
  */
 export async function getAllRecords(): Promise<MediaRecord[]> {
-  const response = await sendMessageWithCache(
-    { type: 'GET_ALL_RECORDS' },
-    'getAllRecords'
-  ) as any
-  return response?.records || []
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'GET_ALL_RECORDS' },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Database API] sendMessage failed:', chrome.runtime.lastError)
+          reject(chrome.runtime.lastError)
+        } else {
+          resolve(response?.records || [])
+        }
+      }
+    )
+  })
 }
 
 /**
@@ -188,16 +140,19 @@ export async function getSettings(): Promise<AppSettings> {
  * 通过 Background 更新设置
  */
 export async function updateSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
-  const response = await sendMessageWithCache(
-    { type: 'UPDATE_SETTINGS', payload: partial },
-    undefined,
-    true // ✅ 优化：强制刷新，不使用缓存
-  ) as any
-  
-  // ✅ 优化：清除所有缓存，因为数据可能已变化
-  clearAllCache()
-  
-  return response?.settings || {}
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'UPDATE_SETTINGS', payload: partial },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Database API] sendMessage failed:', chrome.runtime.lastError)
+          reject(chrome.runtime.lastError)
+        } else {
+          resolve(response?.settings || {})
+        }
+      }
+    )
+  })
 }
 
 /**

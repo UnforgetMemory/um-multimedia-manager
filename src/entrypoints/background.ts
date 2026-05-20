@@ -253,14 +253,14 @@ export default defineBackground({
         return
       }
       
-      // ✅ 添加全局超时保护（25 秒，接近 Chrome 上限）
+      // ✅ 修复：降低全局超时至 20 秒，更快反馈错误
       const globalTimeout = setTimeout(() => {
         errorLog('⚠️ Message handler timeout for:', message.type)
         sendResponse({ 
           success: false, 
-          error: `Operation timed out after 25s (${message.type})` 
+          error: `Operation timed out after 20s (${message.type})` 
         })
-      }, 25000)
+      }, 20000)
       
       try {
         switch (message.type) {
@@ -1115,54 +1115,24 @@ export default defineBackground({
      * 获取所有记录
      */
     async function handleGetAllRecords(sendResponse: (response: any) => void) {
-      // ✅ 修复：使用更可靠的 keep-alive 机制
-      // Chrome 会在 Service Worker 空闲时终止它，即使有 open message channel
-      // 定期调用多个轻量级 API 可以防止被判定为 idle
-      const keepAlive = setInterval(async () => {
-        try {
-          // 多个轻量级 API 调用确保 worker 保持活跃
-          await Promise.all([
-            chrome.runtime.getPlatformInfo(),
-            chrome.storage.local.get(['_keepalive'])
-          ])
-          debugLog('Keep-alive active')
-        } catch (e) {
-          // 忽略错误，继续尝试
-        }
-      }, 3000)  // 缩短至 3 秒，更频繁地 ping
+      // ✅ 修复：移除 keep-alive interval，改用单次长连接
+      // Chrome 会在 sendResponse 调用前保持 channel 开启（通过 return true）
       
       try {
-        debugLog('Starting getAllRecords query... (this may take a moment)')
+        debugLog('Starting getAllRecords query...')
         const startTime = Date.now()
         
-        // ✅ 修复：确保 mediaDB 已初始化
-        debugLog('Checking mediaDB initialization...')
         await mediaDB.init()
-        debugLog('mediaDB initialized in', Date.now() - startTime, 'ms')
-        
         const records = await mediaDB.getAllRecords()
-        debugLog('Retrieved', records.length, 'records in', Date.now() - startTime, 'ms')
         
-        // ✅ 调试：输出前 3 条记录的详细信息
-        if (records.length > 0) {
-          debugLog('Sample records:', records.slice(0, 3).map(r => ({
-            id: r.id,
-            provider: r.provider,
-            type: r.type,
-            providerId: r.providerId,
-            status: r.status,
-            updatedAt: r.updatedAt
-          })))
-        }
+        debugLog('Retrieved', records.length, 'records in', Date.now() - startTime, 'ms')
         
         sendResponse({ success: true, records })
       } catch (error) {
         errorLog('Failed to get all records:', error)
         sendResponse({ success: false, error: String(error), records: [] })
-      } finally {
-        clearInterval(keepAlive)
-        debugLog('Keep-alive stopped')
       }
+      // ✅ 修复：不需要 clearInterval，sendResponse 后 channel 自动关闭
     }
     
     /**

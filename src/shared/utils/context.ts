@@ -23,8 +23,8 @@ export async function safeSendMessage<T = any>(
     fallback?: () => void
   }
 ): Promise<T | null> {
-  // ✅ 修复：增加默认超时和重试次数
-  const { timeout = 30000, retries = 3, fallback } = options || {}
+  // ✅ 修复：降低默认超时和重试次数，更快反馈错误
+  const { timeout = 15000, retries = 2, fallback } = options || {}
   
   let lastError: Error | null = null
   

@@ -60,50 +60,68 @@ const stats = ref({
   music: 0,
 })
 
-// ✅ 优化：简化缓存策略，只依赖 Background 的缓存
-let lastLoadTime = 0
-const MIN_REFRESH_INTERVAL = 5000  // 最小刷新间隔 5 秒
+// ✅ 修复：添加加载超时保护，防止 loading 永远卡住
+let loadTimeout: ReturnType<typeof setTimeout> | null = null
 
 // 加载数据
-async function loadData(forceRefresh = false) {
-  const now = Date.now()
+async function loadData() {
+  console.log('[Popup] ===== loadData START =====')
+  console.log('[Popup] current loading:', loading.value)
   
-  // ✅ 修复：只在短时间内阻止重复请求,不使用缓存数据
-  if (!forceRefresh && (now - lastLoadTime) < MIN_REFRESH_INTERVAL) {
-    console.log('[Popup] Skipping duplicate request (last load:', Math.round((now - lastLoadTime) / 1000), 's ago)')
+  // ✅ 修复：如果正在加载，直接返回（防止竞态）
+  if (loading.value) {
+    console.log('[Popup] ⚠️ Already loading, SKIP duplicate request')
     return
   }
   
+  // 清除之前的超时保护
+  if (loadTimeout) clearTimeout(loadTimeout)
+  
   loading.value = true
+  console.log('[Popup] loading set to TRUE')
+  
+  // ✅ 新增：10 秒超时保护
+  loadTimeout = setTimeout(() => {
+    if (loading.value) {
+      console.warn('[Popup] ⏱️ Load timeout after 10s, resetting loading state')
+      loading.value = false
+    }
+  }, 10000)
+  
   try {
-    console.log('[Popup] Fetching all records from Background...')
+    console.log('[Popup] Sending GET_ALL_RECORDS message...')
     
     const response = await safeSendMessage(
       { type: 'GET_ALL_RECORDS' },
       {
-        timeout: 60000,  // ✅ 增加至 60 秒，适应大数据集冷启动
-        retries: 2,      // ✅ 增加至 2 次重试
+        timeout: 20000,  // ✅ 降低至 20 秒
+        retries: 2,      // ✅ 降低至 2 次重试
         fallback: () => {
           console.error('[Popup] ⚠️ Connection failed after retries')
         }
       }
     )
     
+    console.log('[Popup] Response received:', {
+      success: response?.success,
+      recordCount: response?.records?.length,
+      error: response?.error
+    })
+    
     if (!response?.success) {
       const errorMsg = response?.error || '获取数据失败'
-      console.error('[Popup] ❌ Failed:', errorMsg)
+      console.error('[Popup] ❌ Response not successful:', errorMsg)
       throw new Error(errorMsg)
     }
     
     console.log('[Popup] ✅ Records loaded:', response.records.length)
     records.value = response.records
-    
-    // ✅ 修复：更新最后加载时间,但不缓存数据
-    lastLoadTime = now
+    console.log('[Popup] Records updated:', records.value.length)
     
     updateStats()
+    console.log('[Popup] Stats updated:', stats.value)
   } catch (error) {
-    console.error('[Popup] Failed to load data:', error)
+    console.error('[Popup] ❌ Failed to load data:', error)
     // ✅ 修复：确保即使失败也清除 loading 状态
     records.value = []
     updateStats()
@@ -118,7 +136,13 @@ async function loadData(forceRefresh = false) {
       console.warn('[Popup] 💡 Try closing and reopening the Popup')
     }
   } finally {
+    // ✅ 修复：确保 always 清除 loading 和超时
+    if (loadTimeout) {
+      clearTimeout(loadTimeout)
+      loadTimeout = null
+    }
     loading.value = false
+    console.log('[Popup] ===== loadData END (loading=false) =====')
   }
 }
 
@@ -394,6 +418,7 @@ async function queryRecordFromDB() {
   const parsed = parseRatingInput()
   if (!parsed) {
     ratingQueryResult.value = null
+    isQuerying.value = false  // ✅ 修复：确保重置
     return
   }
   
@@ -406,6 +431,7 @@ async function queryRecordFromDB() {
     console.error('[Query] Failed:', error)
     ratingQueryResult.value = null
   } finally {
+    // ✅ 修复：无论成功失败都重置
     isQuerying.value = false
   }
 }
@@ -1032,7 +1058,7 @@ function handleRefresh() {
   }
   
   refreshTimer = setTimeout(() => {
-    loadData(true) // 强制刷新
+    loadData() // ✅ 移除 forceRefresh 参数
     refreshTimer = null
   }, 300)
 }
@@ -1058,16 +1084,31 @@ onMounted(() => {
   loadSettings()
   
   // 3. 注册统一的 Storage 监听器
+  // ✅ 修复：添加标志位防止循环触发
+  let isHandlingStorageChange = false
+  
   const storageListener = (changes: any, namespace: string) => {
+    // 防止循环触发
+    if (isHandlingStorageChange) {
+      console.log('[Popup] Ignoring nested storage change')
+      return
+    }
+    
     // 监听数据版本变化
     if (namespace === 'local' && changes.umm_data_version) {
       console.log('[Popup] Data version changed, reloading...')
-      loadData()
+      isHandlingStorageChange = true
+      loadData().finally(() => {
+        isHandlingStorageChange = false
+      })
     }
     // 监听数据变化通知
     if (namespace === 'local' && changes.umm_data_changed) {
       console.log('[Popup] Data changed detected, refreshing...')
-      loadData(true) // 强制刷新
+      isHandlingStorageChange = true
+      loadData().finally(() => {
+        isHandlingStorageChange = false
+      })
     }
     // ✅ 监听设置变化，实现多 Popup 实例同步
     if (namespace === 'local' && changes.settings) {
@@ -1104,6 +1145,12 @@ onMounted(() => {
     if (queryDebounceTimer) {
       clearTimeout(queryDebounceTimer)
       queryDebounceTimer = null
+    }
+    
+    // ✅ 修复：清理加载超时保护
+    if (loadTimeout) {
+      clearTimeout(loadTimeout)
+      loadTimeout = null
     }
   })
 })
