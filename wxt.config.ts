@@ -41,8 +41,16 @@ export default defineConfig({
   outDir: 'dist',
   srcDir: 'src',
   vite: () => ({
+    base: '',
     build: {
       target: 'es2020',
+      rollupOptions: {
+        output: {
+          assetFileNames: 'assets/[name]-[hash][extname]',
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          entryFileNames: '[name].js',
+        },
+      },
     },
   }),
 })

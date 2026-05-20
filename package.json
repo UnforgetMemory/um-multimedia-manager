@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wxt",
-    "build": "wxt build",
+    "build": "wxt build && node scripts/fix-paths.js",
     "zip": "wxt zip",
     "preview": "wxt preview",
     "type-check": "vue-tsc --noEmit",
