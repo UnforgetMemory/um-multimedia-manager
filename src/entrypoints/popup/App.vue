@@ -892,7 +892,7 @@ async function executeImport(file: File, payload: any) {
         payload,
       },
       {
-        timeout: 60000,
+        timeout: 30000, // ✅ 降低至 30 秒，导入大量数据时更合理
         fallback: () => {
           showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
         }

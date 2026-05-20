@@ -34,19 +34,35 @@ export default defineBackground({
   
   main() {
     // ✅ Startup health check
-    infoLog('Starting up...')
+    infoLog('=== Service Worker Starting ===')
     infoLog('Extension ID:', chrome.runtime.id)
     infoLog('Manifest version:', chrome.runtime.getManifest().version)
     
-    // Verify critical APIs are available
+    // ✅ 关键 API 可用性检查
     const requiredAPIs = ['storage', 'runtime', 'notifications', 'alarms']
     for (const api of requiredAPIs) {
       if (!(chrome as any)[api]) {
-        errorLog(`Required API missing: ${api}`)
+        errorLog(`❌ Required API missing: ${api}`)
       } else {
-        debugLog(`API available: ${api}`)
+        debugLog(`✅ API available: ${api}`)
       }
     }
+    
+    // ✅ 数据库初始化（带超时保护）
+    const dbInitPromise = mediaDB.init()
+    const dbTimeout = setTimeout(() => {
+      errorLog('⚠️ Database init timeout after 10s')
+    }, 10000)
+    
+    dbInitPromise.then(() => {
+      clearTimeout(dbTimeout)
+      debugLog('✅ Database initialized')
+    }).catch(err => {
+      clearTimeout(dbTimeout)
+      errorLog('❌ Database initialization failed:', err)
+    })
+    
+    infoLog('=== Service Worker Ready ===')
     
     // ✅ 迁移旧版嵌套结构到新版扁平结构
     chrome.storage.local.get(['settings'], async (result) => {
@@ -84,16 +100,7 @@ export default defineBackground({
       }
     })
     
-    // Initialize database immediately
-    mediaDB.init().then(() => {
-      debugLog('Database initialized')
-    }).catch(err => {
-      errorLog('Database initialization failed:', err)
-    })
-    
     // ==================== 初始化 ====================
-    
-    infoLog('Service worker started')
     
     // 扩展安装/更新时触发
     chrome.runtime.onInstalled.addListener(async (details) => {
@@ -1453,7 +1460,19 @@ export default defineBackground({
             toastSent = true
             debugLog('Toast shown via Chrome Notifications API')
           } catch (notifError) {
-            errorLog('Chrome Notifications API failed:', notifError)
+            // ✅ 图标加载失败时重试不带图标（使用透明 1x1 PNG）
+            try {
+              await chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                title: payload.title,
+                message: payload.message || ''
+              })
+              toastSent = true
+              debugLog('Toast shown via Chrome Notifications API (fallback icon)')
+            } catch (retryError) {
+              errorLog('Chrome Notifications API failed completely:', retryError)
+            }
           }
         }
         

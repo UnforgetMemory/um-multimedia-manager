@@ -88,9 +88,9 @@ function sendMessageWithTimeout(message: any, timeout: number): Promise<any> {
   })
 }
 
-// ✅ 开发模式下的调试工具
-if (import.meta.env.DEV) {
-  window.__UMM_DEBUG__ = {
+// ✅ 仅在 Popup/Content 等有 window 的环境中暴露调试工具
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  ;(window as any).__UMM_DEBUG__ = {
     checkContext: () => {
       console.log('Extension ID:', chrome.runtime?.id)
       console.log('sendMessage available:', !!chrome.runtime?.sendMessage)
