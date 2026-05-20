@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
@@ -41,6 +42,7 @@ export default defineConfig({
   outDir: 'dist',
   srcDir: 'src',
   vite: () => ({
+    plugins: [tailwindcss()],
     base: '',
     build: {
       target: 'es2020',
