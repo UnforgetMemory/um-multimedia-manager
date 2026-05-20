@@ -8,7 +8,7 @@
  * - Settings: 应用设置（保留在 chrome.storage.local）
  */
 
-import { mediaDB, MediaDatabase, type MediaRecord, type QuarantineEntry } from '@/background/database'
+import { mediaDB, MediaDatabase, type MediaRecord, type QuarantineEntry } from '@/shared/models/database'
 import type { Domain, Provider } from '../config'
 import type { AppSettings, ExportData } from '../types'
 

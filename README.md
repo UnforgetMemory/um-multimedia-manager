@@ -90,41 +90,44 @@ npm run dev
 npm run build
 ```
 
-构建产物将输出到 `dist` 目录。
-
-**注意**: 构建过程中会自动执行 postbuild 脚本，该脚本会：
-- ✅ 复制图标文件到 `dist/icons/` 目录
-- ✅ 修复 popup.html 中的资源路径
-- ✅ 修正 Background Service Worker loader
+构建产物将输出到 `dist/chrome-mv3` 目录。
 
 ### 加载到 Chrome
 
 1. 打开 Chrome 浏览器,访问 `chrome://extensions/`
 2. 开启右上角的"开发者模式"
 3. 点击"加载已解压的扩展程序"
-4. 选择 `dist` 目录
+4. 选择 `dist/chrome-mv3` 目录
 
 ## 项目结构
 
 ```
 um-multimedia-manager/
-├── manifest.json              # 扩展配置
+├── wxt.config.ts              # WXT 配置（替代 manifest.json）
 ├── components.json            # shadcn/ui 配置
 ├── src/
-│   ├── background/            # Service Worker
-│   │   └── index.ts
-│   ├── content/               # Content Scripts
-│   │   └── index.ts           # 悬浮面板主逻辑
-│   ├── popup/                 # Popup 界面
-│   │   ├── App.vue            # 主应用组件
-│   │   └── main.ts
+│   ├── entrypoints/           # WXT 入口点
+│   │   ├── background.ts      # Service Worker
+│   │   ├── content.ts         # Content Script
+│   │   └── popup/             # Popup UI
+│   │       ├── main.ts
+│   │       └── App.vue
+│   ├── content/               # Content Script 业务逻辑
+│   │   ├── router.ts          # URL 路由器
+│   │   ├── handlers/          # 页面处理器
+│   │   ├── styles/            # 样式注入
+│   │   └── utils/             # 工具函数
 │   ├── shared/                # 共享模块
 │   │   ├── config.ts          # 配置常量
 │   │   ├── types/             # TypeScript 类型定义
 │   │   ├── models/            # 数据模型
 │   │   │   ├── identity.ts    # URL 身份识别
 │   │   │   ├── record.ts      # 记录处理
-│   │   │   └── store.ts       # 存储管理
+│   │   │   ├── database.ts    # IndexedDB 数据库
+│   │   │   └── migration.ts   # 数据迁移
+│   │   ├── api/               # API 客户端
+│   │   │   ├── webdav.ts      # WebDAV 同步
+│   │   │   └── neodb.ts       # NeoDB API
 │   │   └── utils/             # 工具函数
 │   ├── lib/
 │   │   └── utils.ts           # UI 工具函数

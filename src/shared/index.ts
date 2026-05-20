@@ -32,7 +32,14 @@ export type {
   ToastOptions,
   QueueTask,
   QueueState,
-} from './types';
+} from './types'
+
+// 消息通信类型
+export type {
+  RuntimeMessage,
+  MessageResponse,
+  SendResponseFn,
+} from './types/messages';
 
 // 模型
 export { Identity } from './models/identity';

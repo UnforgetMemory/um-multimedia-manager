@@ -13,6 +13,31 @@ import { CONFIG } from '../config'
 import { objectToZipBlob, zipBlobToObject, validateZipStructure } from '../utils/zip-utils'
 import { buildWebDAVMeta } from '../utils/hash-utils'
 import type { WebDAVMeta } from '../types'
+import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger'
+
+// ==================== 超时配置 ====================
+
+const WEBDAV_TIMEOUT = 30000 // 30秒超时
+
+/**
+ * 带超时的 fetch 请求
+ */
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), WEBDAV_TIMEOUT)
+  
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`WebDAV request timeout after ${WEBDAV_TIMEOUT}ms`)
+    }
+    throw error
+  }
+}
 
 // ==================== 类型定义 ====================
 
@@ -125,7 +150,7 @@ export async function checkConnection(config: WebDAVConfig): Promise<boolean> {
     validateWebDAVUrl(config.url)
     
     const normalizedUrl = normalizeWebDAVUrl(config.url)
-    const response = await fetch(normalizedUrl, {
+    const response = await fetchWithTimeout(normalizedUrl, {
       method: 'PROPFIND',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -135,7 +160,7 @@ export async function checkConnection(config: WebDAVConfig): Promise<boolean> {
 
     return response.ok || response.status === 207 // 207 Multi-Status is also OK for PROPFIND
   } catch (error) {
-    console.error('[WebDAV] Connection check failed:', error)
+    errorLog('Connection check failed:', error)
     return false
   }
 }
@@ -146,7 +171,7 @@ export async function checkConnection(config: WebDAVConfig): Promise<boolean> {
 async function ensureRemoteDirectory(config: WebDAVConfig, path: string): Promise<void> {
   try {
     const normalizedUrl = normalizeWebDAVUrl(config.url)
-    const response = await fetch(`${normalizedUrl}${path}`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}${path}`, {
       method: 'MKCOL',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -158,7 +183,7 @@ async function ensureRemoteDirectory(config: WebDAVConfig, path: string): Promis
       throw new Error(`Failed to create directory: ${response.statusText}`)
     }
   } catch (error) {
-    console.error('[WebDAV] Failed to ensure directory:', error)
+    errorLog('Failed to ensure directory:', error)
     throw error
   }
 }
@@ -190,7 +215,7 @@ export async function uploadToWebDAV(data: ExportData): Promise<SyncResult> {
     }
 
     // ✅ 在上传前先测试连接
-    console.log('[WebDAV] Testing connection before upload...')
+    infoLog('Testing connection before upload...')
     const isConnected = await checkConnection(config)
     if (!isConnected) {
       return {
@@ -200,7 +225,7 @@ export async function uploadToWebDAV(data: ExportData): Promise<SyncResult> {
         timestamp: new Date().toISOString(),
       }
     }
-    console.log('[WebDAV] Connection test passed')
+    infoLog('Connection test passed')
 
     // 确保目录存在
     await ensureRemoteDirectory(config, '/umm-data/')
@@ -215,7 +240,7 @@ export async function uploadToWebDAV(data: ExportData): Promise<SyncResult> {
     const filePath = `/umm-data/${filename}`
 
     const normalizedUrl = normalizeWebDAVUrl(config.url)
-    const response = await fetch(`${normalizedUrl}${filePath}`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}${filePath}`, {
       method: 'PUT',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -228,7 +253,7 @@ export async function uploadToWebDAV(data: ExportData): Promise<SyncResult> {
       throw new Error(`Upload failed: ${response.statusText}`)
     }
 
-    console.log('[WebDAV] Upload successful:', filePath)
+    infoLog('Upload successful:', filePath)
 
     return {
       success: true,
@@ -237,7 +262,7 @@ export async function uploadToWebDAV(data: ExportData): Promise<SyncResult> {
       timestamp: new Date().toISOString(),
     }
   } catch (error) {
-    console.error('[WebDAV] Upload failed:', error)
+    errorLog('Upload failed:', error)
     return {
       success: false,
       direction: 'upload',
@@ -272,7 +297,7 @@ export async function downloadFromWebDAV(): Promise<SyncResult & { data?: Export
     }
 
     // ✅ 在下载前先测试连接
-    console.log('[WebDAV] Testing connection before download...')
+    infoLog('Testing connection before download...')
     const isConnected = await checkConnection(config)
     if (!isConnected) {
       return {
@@ -282,11 +307,11 @@ export async function downloadFromWebDAV(): Promise<SyncResult & { data?: Export
         timestamp: new Date().toISOString(),
       }
     }
-    console.log('[WebDAV] Connection test passed')
+    infoLog('Connection test passed')
 
     // 列出远程文件
     const normalizedUrl = normalizeWebDAVUrl(config.url)
-    const listResponse = await fetch(`${normalizedUrl}/umm-data/`, {
+    const listResponse = await fetchWithTimeout(`${normalizedUrl}/umm-data/`, {
       method: 'PROPFIND',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -321,7 +346,7 @@ export async function downloadFromWebDAV(): Promise<SyncResult & { data?: Export
     }
 
     // 下载最新文件
-    const downloadResponse = await fetch(`${normalizedUrl}/umm-data/${latestFile}`, {
+    const downloadResponse = await fetchWithTimeout(`${normalizedUrl}/umm-data/${latestFile}`, {
       method: 'GET',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -335,7 +360,7 @@ export async function downloadFromWebDAV(): Promise<SyncResult & { data?: Export
     const jsonData = await downloadResponse.text()
     const data = JSON.parse(jsonData) as ExportData
 
-    console.log('[WebDAV] Download successful:', latestFile)
+    infoLog('Download successful:', latestFile)
 
     return {
       success: true,
@@ -345,7 +370,7 @@ export async function downloadFromWebDAV(): Promise<SyncResult & { data?: Export
       data,
     }
   } catch (error) {
-    console.error('[WebDAV] Download failed:', error)
+    errorLog('Download failed:', error)
     return {
       success: false,
       direction: 'download',
@@ -379,7 +404,7 @@ export async function syncWithWebDAV(): Promise<SyncResult> {
     }
 
     // 测试连接
-    console.log('[WebDAV] Testing connection...')
+    infoLog('Testing connection...')
     const isConnected = await checkConnection(config)
     if (!isConnected) {
       return {
@@ -391,24 +416,24 @@ export async function syncWithWebDAV(): Promise<SyncResult> {
     }
 
     // 第一阶段：下载或创建 Meta
-    console.log('[WebDAV] Downloading meta.json...')
+    infoLog('Downloading meta.json...')
     const remoteMeta = await downloadMeta(config)
     
     // 构建本地 Meta
-    console.log('[WebDAV] Building local meta...')
+    infoLog('Building local meta...')
     const localMeta = await buildWebDAVMeta()
 
     // 如果云端没有 Meta，直接全量上传
     if (!remoteMeta) {
-      console.log('[WebDAV] No remote meta found, performing full upload')
+      infoLog('No remote meta found, performing full upload')
       return await uploadAndOverwrite()
     }
 
     // 第二阶段：对比 Meta，确定同步策略
-    console.log('[WebDAV] Comparing meta...')
+    infoLog('Comparing meta...')
     const comparison = compareMeta(localMeta, remoteMeta)
     
-    console.log(`[WebDAV] Sync plan: upload=${comparison.needUpload.length}, download=${comparison.needDownload.length}, unchanged=${comparison.unchanged.length}`)
+    infoLog(`Sync plan: upload=${comparison.needUpload.length}, download=${comparison.needDownload.length}, unchanged=${comparison.unchanged.length}`)
 
     // 如果没有任何变化
     if (comparison.needUpload.length === 0 && comparison.needDownload.length === 0) {
@@ -432,7 +457,7 @@ export async function syncWithWebDAV(): Promise<SyncResult> {
     // 上传本地变更的数据集
     for (const key of comparison.needUpload) {
       const [domain, provider] = key.split(':')
-      console.log(`[WebDAV] Uploading ${key}...`)
+      infoLog(`Uploading ${key}...`)
       
       const records = await Store.getRecordsByProviderType(provider as any, domain)
       await uploadDataset(domain, provider, records, config)
@@ -444,7 +469,7 @@ export async function syncWithWebDAV(): Promise<SyncResult> {
     // 下载云端变更的数据集
     for (const key of comparison.needDownload) {
       const [domain, provider] = key.split(':')
-      console.log(`[WebDAV] Downloading ${key}...`)
+      infoLog(`Downloading ${key}...`)
       
       const remoteRecords = await downloadDataset(domain, provider, config)
       
@@ -468,7 +493,7 @@ export async function syncWithWebDAV(): Promise<SyncResult> {
     }
 
     // 第四阶段：更新云端 Meta
-    console.log('[WebDAV] Updating remote meta...')
+    infoLog('Updating remote meta...')
     const updatedLocalMeta = await buildWebDAVMeta()
     await uploadMeta(updatedLocalMeta, config)
 
@@ -487,7 +512,7 @@ export async function syncWithWebDAV(): Promise<SyncResult> {
       }
     }
   } catch (error) {
-    console.error('[WebDAV] Incremental sync failed:', error)
+    errorLog('Incremental sync failed:', error)
     return {
       success: false,
       direction: 'conflict',
@@ -511,7 +536,7 @@ function parseLatestFile(xmlText: string): string | null {
     // 检查解析错误
     const parseError = xmlDoc.querySelector('parsererror')
     if (parseError) {
-      console.error('[WebDAV] XML parse error:', parseError.textContent)
+      errorLog('XML parse error:', parseError.textContent)
       return null
     }
     
@@ -546,7 +571,7 @@ function parseLatestFile(xmlText: string): string | null {
     jsonFiles.sort()
     return jsonFiles[jsonFiles.length - 1]
   } catch (error) {
-    console.error('[WebDAV] Failed to parse PROPFIND response:', error)
+    errorLog('Failed to parse PROPFIND response:', error)
     return null
   }
 }
@@ -566,7 +591,7 @@ async function downloadDataset(
     const zipFileName = `${domain}-${provider}.zip`
     const zipFilePath = `/umm-data/${zipFileName}`
     
-    const response = await fetch(`${normalizedUrl}${zipFilePath}`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}${zipFilePath}`, {
       method: 'GET',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -576,7 +601,7 @@ async function downloadDataset(
     if (!response.ok) {
       if (response.status === 404) {
         // ZIP 不存在，回退到 JSON 格式（向后兼容）
-        console.log(`[WebDAV] ZIP not found for ${domain}:${provider}, trying legacy JSON format`)
+        infoLog(`ZIP not found for ${domain}:${provider}, trying legacy JSON format`)
         return await downloadDatasetLegacy(domain, provider, config)
       }
       throw new Error(`Download failed with status ${response.status}: ${response.statusText}`)
@@ -604,13 +629,13 @@ async function downloadDataset(
     
     // 如果需要迁移，执行迁移（预留接口）
     if (compatibility.needsMigration) {
-      console.log(`[WebDAV] Migrating from format ${metadata.format} to v1.0`)
+      infoLog(`Migrating from format ${metadata.format} to v1.0`)
       // TODO: 实现迁移逻辑
     }
     
     return data.records
   } catch (error) {
-    console.error(`[WebDAV] Failed to download dataset ${domain}:${provider}:`, error)
+    errorLog(`Failed to download dataset ${domain}:${provider}:`, error)
     throw error  // 抛出错误而非返回空数组
   }
 }
@@ -627,7 +652,7 @@ async function downloadDatasetLegacy(
     const normalizedUrl = normalizeWebDAVUrl(config.url)
     const filePath = `/umm-data/${domain}-${provider}.json`
     
-    const response = await fetch(`${normalizedUrl}${filePath}`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}${filePath}`, {
       method: 'GET',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -636,7 +661,7 @@ async function downloadDatasetLegacy(
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.log(`[WebDAV] Dataset ${domain}:${provider} not found on server`)
+        infoLog(`Dataset ${domain}:${provider} not found on server`)
         return []
       }
       throw new Error(`Download failed with status ${response.status}: ${response.statusText}`)
@@ -645,7 +670,7 @@ async function downloadDatasetLegacy(
     const jsonData = await response.text()
     return JSON.parse(jsonData)
   } catch (error) {
-    console.error(`[WebDAV] Failed to download legacy dataset ${domain}:${provider}:`, error)
+    errorLog(`Failed to download legacy dataset ${domain}:${provider}:`, error)
     throw error
   }
 }
@@ -677,7 +702,7 @@ async function uploadDataset(
     const fileName = `${domain}-${provider}.zip`
     const filePath = `/umm-data/${fileName}`
     
-    const response = await fetch(`${normalizedUrl}${filePath}`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}${filePath}`, {
       method: 'PUT',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -690,9 +715,9 @@ async function uploadDataset(
       throw new Error(`Upload failed with status ${response.status}: ${response.statusText}`)
     }
 
-    console.log(`[WebDAV] Uploaded dataset ${domain}:${provider} successfully (${records.length} records)`)
+    infoLog(`Uploaded dataset ${domain}:${provider} successfully (${records.length} records)`)
   } catch (error) {
-    console.error(`[WebDAV] Failed to upload dataset ${domain}:${provider}:`, error)
+    errorLog(`Failed to upload dataset ${domain}:${provider}:`, error)
     throw error
   }
 }
@@ -750,7 +775,7 @@ export async function downloadAndOverwrite(): Promise<SyncResult> {
     }
 
     // ✅ 在下载前先测试连接
-    console.log('[WebDAV] Testing connection before download...')
+    infoLog('Testing connection before download...')
     const isConnected = await checkConnection(config)
     if (!isConnected) {
       return {
@@ -760,10 +785,10 @@ export async function downloadAndOverwrite(): Promise<SyncResult> {
         timestamp: new Date().toISOString(),
       }
     }
-    console.log('[WebDAV] Connection test passed')
+    infoLog('Connection test passed')
 
     // ✅ 新增：先下载 metadata 检查版本
-    console.log('[WebDAV] Checking cloud data version...')
+    infoLog('Checking cloud data version...')
     const metadataCheck = await checkCloudMetadata(config)
     
     if (!metadataCheck.compatible) {
@@ -776,11 +801,11 @@ export async function downloadAndOverwrite(): Promise<SyncResult> {
     }
 
     // 第一阶段：下载所有数据集到临时变量
-    console.log('[WebDAV] Starting download phase...')
+    infoLog('Starting download phase...')
     const tempRecords: MediaRecord[] = []
     
     for (const [domain, provider] of CONFIG.DATASET_ORDER) {
-      console.log(`[WebDAV] Downloading ${domain}:${provider}...`)
+      infoLog(`Downloading ${domain}:${provider}...`)
       const remote = await downloadDataset(domain, provider, config)
       
       // 转换为 MediaRecord 格式
@@ -798,15 +823,15 @@ export async function downloadAndOverwrite(): Promise<SyncResult> {
       }
     }
     
-    console.log(`[WebDAV] Download phase complete, got ${tempRecords.length} records`)
+    infoLog(`Download phase complete, got ${tempRecords.length} records`)
     
     // 第二阶段：全部成功后才写入存储（原子操作）
-    console.log('[WebDAV] Starting write phase...')
+    infoLog('Starting write phase...')
     await Store.bulkUpsertRecords(tempRecords)
-    console.log('[WebDAV] Write phase complete')
+    infoLog('Write phase complete')
 
     // ✅ 新增：下载成功后更新本地 meta 并上传到云端
-    console.log('[WebDAV] Updating meta.json after download...')
+    infoLog('Updating meta.json after download...')
     const updatedMeta = await buildWebDAVMeta()
     await uploadMeta(updatedMeta, config)
 
@@ -821,7 +846,7 @@ export async function downloadAndOverwrite(): Promise<SyncResult> {
       }
     }
   } catch (error) {
-    console.error('[WebDAV] Download and overwrite failed:', error)
+    errorLog('Download and overwrite failed:', error)
     return {
       success: false,
       direction: 'download',
@@ -856,7 +881,7 @@ export async function uploadAndOverwrite(): Promise<SyncResult> {
     }
 
     // ✅ 在上传前先测试连接
-    console.log('[WebDAV] Testing connection before upload...')
+    infoLog('Testing connection before upload...')
     const isConnected = await checkConnection(config)
     if (!isConnected) {
       return {
@@ -866,13 +891,13 @@ export async function uploadAndOverwrite(): Promise<SyncResult> {
         timestamp: new Date().toISOString(),
       }
     }
-    console.log('[WebDAV] Connection test passed')
+    infoLog('Connection test passed')
 
     // 确保目录存在
     await ensureRemoteDirectory(config, '/umm-data/')
 
     // 第一阶段：收集所有本地数据
-    console.log('[WebDAV] Starting upload phase...')
+    infoLog('Starting upload phase...')
     const allRecords = new Map<string, MediaRecord[]>()
     let totalRecords = 0
     
@@ -880,10 +905,10 @@ export async function uploadAndOverwrite(): Promise<SyncResult> {
       const records = await Store.getRecordsByProviderType(provider as any, domain)
       allRecords.set(`${domain}:${provider}`, records)
       totalRecords += records.length
-      console.log(`[WebDAV] Collected ${records.length} records for ${domain}:${provider}`)
+      infoLog(`Collected ${records.length} records for ${domain}:${provider}`)
     }
     
-    console.log(`[WebDAV] Upload phase complete, total ${totalRecords} records`)
+    infoLog(`Upload phase complete, total ${totalRecords} records`)
     
     // 第二阶段：全部上传（如果失败会抛出异常，不会部分更新）
     for (const [domain, provider] of CONFIG.DATASET_ORDER) {
@@ -893,7 +918,7 @@ export async function uploadAndOverwrite(): Promise<SyncResult> {
     }
 
     // ✅ 新增：上传成功后更新 meta.json
-    console.log('[WebDAV] Updating meta.json after upload...')
+    infoLog('Updating meta.json after upload...')
     const updatedMeta = await buildWebDAVMeta()
     await uploadMeta(updatedMeta, config)
 
@@ -908,7 +933,7 @@ export async function uploadAndOverwrite(): Promise<SyncResult> {
       }
     }
   } catch (error) {
-    console.error('[WebDAV] Upload and overwrite failed:', error)
+    errorLog('Upload and overwrite failed:', error)
     return {
       success: false,
       direction: 'upload',
@@ -926,7 +951,7 @@ export async function uploadAndOverwrite(): Promise<SyncResult> {
 export async function downloadMeta(config: WebDAVConfig): Promise<WebDAVMeta | null> {
   try {
     const normalizedUrl = normalizeWebDAVUrl(config.url)
-    const response = await fetch(`${normalizedUrl}/umm-data/meta.json`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}/umm-data/meta.json`, {
       method: 'GET',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -935,7 +960,7 @@ export async function downloadMeta(config: WebDAVConfig): Promise<WebDAVMeta | n
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.log('[WebDAV] meta.json not found, will create new one')
+        infoLog('meta.json not found, will create new one')
         return null
       }
       throw new Error(`Failed to download meta: ${response.statusText}`)
@@ -944,7 +969,7 @@ export async function downloadMeta(config: WebDAVConfig): Promise<WebDAVMeta | n
     const jsonData = await response.text()
     return JSON.parse(jsonData) as WebDAVMeta
   } catch (error) {
-    console.error('[WebDAV] Failed to download meta:', error)
+    errorLog('Failed to download meta:', error)
     return null
   }
 }
@@ -958,7 +983,7 @@ export async function uploadMeta(meta: WebDAVMeta, config: WebDAVConfig): Promis
     const jsonData = JSON.stringify(meta, null, 2)
     const blob = new Blob([jsonData], { type: 'application/json' })
 
-    const response = await fetch(`${normalizedUrl}/umm-data/meta.json`, {
+    const response = await fetchWithTimeout(`${normalizedUrl}/umm-data/meta.json`, {
       method: 'PUT',
       headers: {
         Authorization: buildAuthHeader(config.username, config.password),
@@ -971,9 +996,9 @@ export async function uploadMeta(meta: WebDAVMeta, config: WebDAVConfig): Promis
       throw new Error(`Failed to upload meta: ${response.statusText}`)
     }
 
-    console.log('[WebDAV] meta.json uploaded successfully')
+    infoLog('meta.json uploaded successfully')
   } catch (error) {
-    console.error('[WebDAV] Failed to upload meta:', error)
+    errorLog('Failed to upload meta:', error)
     throw error
   }
 }
@@ -1014,7 +1039,7 @@ export function compareMeta(
         needDownload.push(local.key)
       } else {
         // 时间戳相同但哈希不同，标记为冲突（保守策略：跳过）
-        console.warn(`[WebDAV] Conflict detected for ${local.key}, skipping`)
+        warnLog(`Conflict detected for ${local.key}, skipping`)
         unchanged.push(local.key)
       }
     } else {
@@ -1045,7 +1070,7 @@ async function checkCloudMetadata(config: WebDAVConfig): Promise<{ compatible: b
   const url = `${normalizedUrl}/umm-data/${fileName}`
   
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: { Authorization: buildAuthHeader(config.username, config.password) }
     })
     
@@ -1068,7 +1093,7 @@ async function checkCloudMetadata(config: WebDAVConfig): Promise<{ compatible: b
     
     return { compatible: true }
   } catch (error) {
-    console.error('[WebDAV] Failed to check cloud metadata:', error)
+    errorLog('Failed to check cloud metadata:', error)
     return { compatible: true, message: 'Could not verify cloud version, proceeding with caution' }
   }
 }

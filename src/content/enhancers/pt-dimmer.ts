@@ -33,6 +33,7 @@ export class PTDimmer {
     }
     if (this.scrollHandler && this.scrollTarget) {
       this.scrollTarget.removeEventListener('scroll', this.scrollHandler, true)
+      window.removeEventListener('resize', this.scrollHandler)
       this.scrollHandler = null
       this.scrollTarget = null
     }

@@ -10,6 +10,7 @@
 
 import type { MediaRecord } from '../types'
 import Store from '../adapters/indexeddb-store'
+import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger'
 
 // ==================== 类型定义 ====================
 
@@ -54,6 +55,33 @@ export interface ShelfItemResponse {
 
 const NEOBASE_URL = 'https://neodb.social/api'
 
+// ==================== 重试配置 ====================
+
+const NEO_DB_MAX_RETRIES = 3
+const NEO_DB_RETRY_DELAY = 1000
+
+/**
+ * 带重试的 fetch 请求（针对 5xx 服务器错误）
+ */
+async function fetchWithRetry(url: string, options: RequestInit, retries = NEO_DB_MAX_RETRIES): Promise<Response> {
+  try {
+    const response = await fetch(url, options)
+    if (!response.ok && retries > 0 && response.status >= 500) {
+      debugLog(`NeoDB request failed with ${response.status}, retrying... (${retries} attempts left)`)
+      await new Promise(resolve => setTimeout(resolve, NEO_DB_RETRY_DELAY))
+      return fetchWithRetry(url, options, retries - 1)
+    }
+    return response
+  } catch (error) {
+    if (retries > 0) {
+      debugLog(`NeoDB request error, retrying... (${retries} attempts left)`, error)
+      await new Promise(resolve => setTimeout(resolve, NEO_DB_RETRY_DELAY))
+      return fetchWithRetry(url, options, retries - 1)
+    }
+    throw error
+  }
+}
+
 // ==================== 辅助函数 ====================
 
 /**
@@ -69,16 +97,16 @@ function buildHeaders(token?: string): HeadersInit {
     // \x00-\x1F: 控制字符, \x7F: DEL 字符
     const cleanToken = token.trim().replace(/[\x00-\x1F\x7F]/g, '')
     
-    console.log('[NeoDB] Token length:', token.length, 'Cleaned length:', cleanToken.length)
-    console.log('[NeoDB] Token preview:', cleanToken.substring(0, 10) + '...')
+    infoLog('Token length:', token.length, 'Cleaned length:', cleanToken.length)
+    infoLog('Token preview:', cleanToken.substring(0, 10) + '...')
     
     if (cleanToken) {
       headers['Authorization'] = `Bearer ${cleanToken}`
     } else {
-      console.warn('[NeoDB] Token is empty after cleaning, skipping Authorization header')
+      warnLog('Token is empty after cleaning, skipping Authorization header')
     }
   } else {
-    console.warn('[NeoDB] No token provided')
+    warnLog('No token provided')
   }
 
   return headers
@@ -88,7 +116,7 @@ function buildHeaders(token?: string): HeadersInit {
  * 发送 GET 请求
  */
 async function getRequest<T>(url: string, token?: string): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'GET',
     headers: buildHeaders(token),
   })
@@ -135,7 +163,7 @@ export async function searchWorks(
       type: item.category || 'movie',
     }))
   } catch (error) {
-    console.error('[NeoDB] Search failed:', error)
+    errorLog('Search failed:', error)
     return []
   }
 }
@@ -168,7 +196,7 @@ export async function getWorkDetail(
       type: data.category || 'movie',
     }
   } catch (error) {
-    console.error('[NeoDB] Get detail failed:', error)
+    errorLog('Get detail failed:', error)
     return null
   }
 }
@@ -190,7 +218,7 @@ export async function getWorkByUrl(
     const workId = match[1]
     return await getWorkDetail(workId, token)
   } catch (error) {
-    console.error('[NeoDB] Get work by URL failed:', error)
+    errorLog('Get work by URL failed:', error)
     return null
   }
 }
@@ -228,13 +256,13 @@ export async function enrichRecordMetadata(
       // 保存到存储
       await Store.upsertRecord(updatedRecord)
 
-      console.log('[NeoDB] Enriched rating for:', record.providerId)
+      infoLog('Enriched rating for:', record.providerId)
       return updatedRecord
     }
 
     return record
   } catch (error) {
-    console.error('[NeoDB] Enrich metadata failed:', error)
+    errorLog('Enrich metadata failed:', error)
     return record
   }
 }
@@ -256,7 +284,7 @@ export async function enrichBatchMetadata(
       // 添加延迟以避免速率限制
       await new Promise(resolve => setTimeout(resolve, 500))
     } catch (error) {
-      console.error('[NeoDB] Failed to enrich record:', record.providerId, error)
+      errorLog('Failed to enrich record:', record.providerId, error)
       enrichedRecords.push(record)
     }
   }
@@ -273,7 +301,7 @@ export async function validateToken(token: string): Promise<boolean> {
     await getRequest<any>(url, token)
     return true
   } catch (error) {
-    console.error('[NeoDB] Token validation failed:', error)
+    errorLog('Token validation failed:', error)
     return false
   }
 }
@@ -292,30 +320,30 @@ export async function fetchCatalogByUrl(
     const params = new URLSearchParams({ url })
     const apiUrl = `${NEOBASE_URL}/catalog/fetch?${params.toString()}`
     
-    console.log('[NeoDB] Fetching catalog:', apiUrl)
+    infoLog('Fetching catalog:', apiUrl)
     
-    const response = await fetch(apiUrl, {
+    const response = await fetchWithRetry(apiUrl, {
       method: 'GET',
       headers: buildHeaders(token),
     })
 
-    console.log('[NeoDB] Catalog fetch response status:', response.status)
+    infoLog('Catalog fetch response status:', response.status)
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[NeoDB] Catalog fetch failed:', response.status, errorText)
+      errorLog('Catalog fetch failed:', response.status, errorText)
       throw new Error(`NeoDB catalog fetch error: ${response.status} ${response.statusText}`)
     }
 
     const data = await response.json()
-    console.log('[NeoDB] Catalog fetch success, UUID:', data.uuid)
+    infoLog('Catalog fetch success, UUID:', data.uuid)
     
     return {
       uuid: data.uuid || '',
       ...data,
     }
   } catch (error) {
-    console.error('[NeoDB] Fetch catalog by URL failed:', error)
+    errorLog('Fetch catalog by URL failed:', error)
     return null
   }
 }
@@ -348,7 +376,7 @@ export async function markItem(
       payload.rating_grade = rating
     }
     
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: buildHeaders(token),
       body: JSON.stringify(payload),
@@ -368,7 +396,7 @@ export async function markItem(
       updated_time: data.updated_time,
     }
   } catch (error) {
-    console.error('[NeoDB] Mark item failed:', error)
+    errorLog('Mark item failed:', error)
     return null
   }
 }
@@ -396,7 +424,7 @@ export async function updateShelfItem(
       payload.shelf_type = updates.shelf_type
     }
     
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PATCH',
       headers: buildHeaders(token),
       body: JSON.stringify(payload),
@@ -416,7 +444,7 @@ export async function updateShelfItem(
       updated_time: data.updated_time,
     }
   } catch (error) {
-    console.error('[NeoDB] Update shelf item failed:', error)
+    errorLog('Update shelf item failed:', error)
     return null
   }
 }
@@ -431,7 +459,7 @@ export async function getShelfItemUuid(
   // ✅ P0: 检查缓存
   const cached = shelfCache.get(itemUuid)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log(`[NeoDB] Using cached shelf item uuid for ${itemUuid}`)
+    infoLog(`Using cached shelf item uuid for ${itemUuid}`)
     return cached.uuid
   }
   
@@ -448,7 +476,7 @@ export async function getShelfItemUuid(
     }
     
     // 降级方案：获取完整书架并搜索
-    console.warn('[NeoDB] Direct query failed, falling back to full shelf scan')
+    warnLog('Direct query failed, falling back to full shelf scan')
     const url = `${NEOBASE_URL}/me/shelf/complete/?page=1&page_size=100`
     const data = await getRequest<any>(url, token)
     
@@ -462,7 +490,7 @@ export async function getShelfItemUuid(
     
     return result
   } catch (error) {
-    console.error('[NeoDB] Get shelf item uuid failed:', error)
+    errorLog('Get shelf item uuid failed:', error)
     return null
   }
 }

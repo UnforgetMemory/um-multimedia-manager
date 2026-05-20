@@ -260,7 +260,18 @@ export async function clearQuarantine(): Promise<void> {
 /**
  * 通过 Background 获取统计数据
  */
-export async function getStatistics(): Promise<any> {
+export interface Statistics {
+  total: number
+  movie: number
+  tv: number
+  music: number
+  book: number
+  douban: number
+  imdb: number
+  neodb: number
+}
+
+export async function getStatistics(): Promise<Statistics> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
       { type: 'GET_STATISTICS' },
@@ -269,7 +280,16 @@ export async function getStatistics(): Promise<any> {
           console.error('[Database API] sendMessage failed:', chrome.runtime.lastError)
           reject(chrome.runtime.lastError)
         } else {
-          resolve(response?.stats || {})
+          resolve(response?.stats || {
+            total: 0,
+            movie: 0,
+            tv: 0,
+            music: 0,
+            book: 0,
+            douban: 0,
+            imdb: 0,
+            neodb: 0,
+          })
         }
       }
     )

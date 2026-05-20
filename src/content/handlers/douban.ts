@@ -55,6 +55,12 @@ function cleanupNotificationCache() {
 // 启动定期清理
 const cacheCleanupTimer = setInterval(cleanupNotificationCache, CACHE_CLEANUP_INTERVAL)
 
+// ✅ 添加最大超时保护（防止无限运行）
+setTimeout(() => {
+  clearInterval(cacheCleanupTimer)
+  console.log('[UMM Douban] Cache cleanup timer timeout cleared')
+}, 600000) // 10分钟最大超时
+
 // 在页面卸载时清理定时器
 window.addEventListener('beforeunload', () => {
   clearInterval(cacheCleanupTimer)
