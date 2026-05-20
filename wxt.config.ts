@@ -5,6 +5,7 @@ export default defineConfig({
   alias: {
     '@': './src',
   },
+  publicDir: 'icons',
   manifest: {
     name: 'UMM - 多媒体管理器',
     version: '1.0.0',
