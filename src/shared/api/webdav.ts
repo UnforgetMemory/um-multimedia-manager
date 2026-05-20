@@ -13,7 +13,7 @@ import { CONFIG } from '../config'
 import { objectToZipBlob, zipBlobToObject, validateZipStructure } from '../utils/zip-utils'
 import { buildWebDAVMeta } from '../utils/hash-utils'
 import type { WebDAVMeta } from '../types'
-import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger'
+import { infoLog, warnLog, errorLog } from '../utils/logger'
 
 // ==================== 超时配置 ====================
 
