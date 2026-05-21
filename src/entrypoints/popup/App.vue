@@ -4,6 +4,13 @@ import { Store } from '@/shared'
 import type { Domain, Provider } from '@/shared'
 import type { StoreRecord } from '@/shared/types'
 import { safeSendMessage } from '@/shared/utils/context'
+
+/** StoreRecord enriched by GET_ALL_RECORDS with key-derived fields */
+interface DisplayRecord extends StoreRecord {
+  type: string
+  provider: string
+  providerId: string
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,7 +65,7 @@ const pages = [
 // ==================== 记录列表页面 ====================
 const loading = ref(false)
 const loadError = ref<string | null>(null)
-const records = ref<StoreRecord[]>([])
+const records = ref<DisplayRecord[]>([])
 const stats = ref({
   total: 0,
   movie: 0,
@@ -705,7 +712,7 @@ function parseLinkedInput(): {
 
   // 豆瓣: 纯数字
   if (/^\d+$/.test(providerId)) {
-    const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : linkedSelectedDomain.value === 'book' ? 'book' : 'movie'
+    const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : 'movie'
     return {
       type: linkedSelectedDomain.value,
       provider: 'douban',
