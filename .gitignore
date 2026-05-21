@@ -63,3 +63,6 @@ releases/
 *.swp
 *~
 .DS_Store
+
+# Sisyphus agent sessions
+.sisyphus/
