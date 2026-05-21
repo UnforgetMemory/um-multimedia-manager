@@ -39,6 +39,9 @@ async function showPageToast(type: 'success' | 'error' | 'info', title: string, 
   }
 }
 
+// ==================== 应用版本 ====================
+const appVersion = chrome.runtime.getManifest().version
+
 // ==================== 页面状态管理 ====================
 type Page = 'records' | 'platforms' | 'ratings' | 'linked' | 'settings'
 const currentPage = ref<Page>('records')
@@ -2272,7 +2275,7 @@ onMounted(() => {
     <!-- 底部状态栏 -->
     <footer class="border-t border-border px-4 py-2 text-xs font-medium text-muted-foreground">
       <div class="flex items-center justify-between">
-        <span>v2.0.0</span>
+        <span>v{{ appVersion }}</span>
         <span>{{ records.length }} 条记录</span>
       </div>
     </footer>
