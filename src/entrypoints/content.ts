@@ -12,45 +12,10 @@ import { injectGlobalStyles } from '../content/styles/global'
 import { FloatingToast } from '../content/utils/toast'
 import { debugLog, infoLog, warnLog, errorLog } from '@/shared/utils/logger'
 
-// ==================== 配色常量（WCAG 2.1 AA/AAA 标准）====================
-
-/**
- * 悬浮面板配色常量
- * - 所有文本对比度 ≥ 4.5:1 (AA) 或 ≥ 7:1 (AAA)
- * - UI 组件边界对比度 ≥ 3:1
- */
-const PANEL_COLORS = {
-  // 文字颜色
-  textPrimary: '#111827',      // Gray 900 - 主要文字（对比度 16.1:1）
-  textSecondary: '#4b5563',    // Gray 600 - 次要文字/标签（对比度 7.0:1）
-  textTertiary: '#6b7280',     // Gray 500 - 辅助文字（对比度 5.9:1）
-  textOnDark: '#ffffff',       // 深色背景上的白色文字
-  
-  // 边框颜色
-  borderDefault: '#d1d5db',    // Gray 300 - 默认边框（对比度 3.2:1）
-  borderFocus: '#1757d6',      // Blue 700 - 焦点边框（对比度 4.8:1）
-  borderMuted: '#9ca3af',      // Gray 400 - blur 状态边框（对比度 4.6:1）
-  
-  // 背景颜色
-  bgCard: '#f9fafb',           // Gray 50 - 卡片背景
-  bgButtonHover: 'rgba(255, 255, 255, 0.25)',  // 按钮悬停背景
-  bgButtonNormal: 'rgba(255, 255, 255, 0.15)', // 按钮正常背景
-  
-  // 状态颜色
-  statusDone: '#10b981',       // Green 500 - 已完成
-  statusWish: '#3b82f6',       // Blue 500 - 想看
-  statusNone: '#374151',       // Gray 700 - 清除按钮选中态（对比度 7.5:1）
-  statusNoneUnselected: '#6b7280', // Gray 500 - 清除按钮未选中边框
-  
-  // 评分颜色
-  ratingStar: '#f59e0b',       // Amber 500 - 星级评分
-} as const
-
 // ==================== 全局状态 ====================
 
 let currentIdentity: ReturnType<typeof Identity.fromUrl> = null
 let currentRecord: StoreRecord | null = null
-let panelElement: HTMLElement | null = null
 let statusChipElement: HTMLElement | null = null
 let urlObserver: MutationObserver | null = null
 let themeChangeListener: ((e: MediaQueryListEvent) => void) | null = null
@@ -131,12 +96,8 @@ export default defineContentScript({
       initRouter()
       infoLog('Router initialized')
       
-      // 非豆瓣详情页：创建悬浮面板
+      // 非豆瓣详情页无需悬浮面板 — 路由器已注入轻量状态标签
       // 豆瓣页面由路由处理器（handleDoubanDetailPage）注入状态标签到页面 DOM 中
-      if (currentIdentity && !isDoubanDetailPage()) {
-        createFloatingPanel()
-        infoLog('Floating panel created')
-      }
       
       // 监听系统主题变化
       observeThemeChanges()
@@ -555,112 +516,6 @@ function _createDoubanStatusChip(status: number, rating: number, note: string = 
 }
 
 /**
- * 创建悬浮面板（用于非豆瓣页面）
- */
-function createFloatingPanel() {
-  // 创建容器
-  const container = document.createElement('div')
-  container.id = 'umm-floating-panel'
-  container.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 999999;
-    width: 320px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  `
-  
-  // 创建头部
-  const header = document.createElement('div')
-  header.style.cssText = `
-    padding: 12px 16px;
-    background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: move;
-  `
-  
-  header.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 18px;">🎬</span>
-      <span style="font-weight: 600; font-size: 14px; color: white;">UMM</span>
-    </div>
-    <div style="display: flex; gap: 8px;">
-      <button id="umm-minimize" style="
-        appearance: none;
-        border: none;
-        border-radius: 8px;
-        width: 34px;
-        height: 34px;
-        font-size: 18px;
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.15);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-      ">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-      </button>
-      <button id="umm-close" style="
-        appearance: none;
-        border: none;
-        border-radius: 8px;
-        width: 34px;
-        height: 34px;
-        font-size: 18px;
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.15);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-      ">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </div>
-  `
-  
-  // 创建内容区
-  const content = document.createElement('div')
-  content.id = 'umm-panel-content'
-  content.style.cssText = `
-    padding: 16px;
-    max-height: 400px;
-    overflow-y: auto;
-  `
-  
-  // 渲染内容
-  renderPanelContent(content)
-  
-  // 组装面板
-  container.appendChild(header)
-  container.appendChild(content)
-  document.body.appendChild(container)
-  
-  panelElement = container
-  
-  // 绑定事件
-  bindPanelEvents(container, header)
-  
-  infoLog('Floating panel created')
-}
-
-/**
  * 在 #interest_sect_level 上方注入 NeoDB 推送按钮
  */
 function injectNeoDBPushButtons() {
@@ -685,23 +540,33 @@ function injectNeoDBPushButtons() {
     style.id = styleId
     style.textContent = `
       .umm-neodb-btn {
-        padding: 6px 12px;
+        padding: 8px 16px;
         color: white;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 13px;
-        font-weight: 600;
-        transition: all 0.2s;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        position: relative;
+        z-index: 1;
       }
       .umm-neodb-btn:hover {
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        opacity: 0.9;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
       }
-      .umm-neodb-btn--minus { background: #a55a06; }
-      .umm-neodb-btn--plus { background: #0f7a43; }
-      .umm-neodb-btn--original { background: #1757d6; }
+      .umm-neodb-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      .umm-neodb-btn--minus { background: linear-gradient(135deg, #a55a06, #8a4700); }
+      .umm-neodb-btn--plus { background: linear-gradient(135deg, #0f7a43, #0b6536); }
+      .umm-neodb-btn--original { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+      .umm-neodb-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
     `
     document.head.appendChild(style)
   }
@@ -710,13 +575,56 @@ function injectNeoDBPushButtons() {
   const container = document.createElement('div')
   container.id = 'umm-neodb-push-buttons'
   container.style.cssText = `
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(15, 122, 67, 0.1), rgba(23, 87, 214, 0.1));
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(15, 122, 67, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     display: flex;
-    gap: 8px;
+    gap: 10px;
     justify-content: flex-start;
     align-items: center;
+    position: relative;
+    overflow: hidden;
   `
+  
+  // 判断是否已关联 NeoDB
+  const hasNeoDBLink = !!(currentRecord?.linkedIds?.neodb)
+  
+  // 创建 NEODB 水印
+  const watermark = document.createElement('div')
+  watermark.className = 'umm-neodb-watermark'
+  watermark.setAttribute('aria-hidden', 'true')
+  watermark.textContent = 'NEODB'
+  watermark.style.cssText = `
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 72px;
+    font-weight: 900;
+    font-family: "Arial Black", "Helvetica Neue", sans-serif;
+    color: ${hasNeoDBLink ? 'rgba(15, 100, 55, 0.35)' : 'rgba(15, 122, 67, 0.12)'};
+    letter-spacing: 4px;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    text-shadow: rgba(15, 122, 67, 0.06) 2px 2px 0px, rgba(23, 87, 214, 0.04) 4px 4px 0px;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+  `
+  
+  // 已关联时添加发光动画
+  if (hasNeoDBLink) {
+    watermark.style.textShadow = 'rgba(15, 100, 55, 0.2) 2px 2px 0px, rgba(15, 100, 55, 0.15) 4px 4px 0px, rgba(15, 100, 55, 0.1) 6px 6px 0px'
+  }
+  
+  container.appendChild(watermark)
   
   // 获取当前评分（如果没有记录则为 0）
   const currentRating = currentRecord?.rating || 0
@@ -728,16 +636,19 @@ function injectNeoDBPushButtons() {
   pushMinusBtn.id = 'umm-push-minus'
   pushMinusBtn.className = 'umm-neodb-btn umm-neodb-btn--minus'
   pushMinusBtn.textContent = `-1分 (${ratingMinus})`
+  pushMinusBtn.title = '降低 1 分后推送到 NeoDB'
   
   const pushPlusBtn = document.createElement('button')
   pushPlusBtn.id = 'umm-push-plus'
   pushPlusBtn.className = 'umm-neodb-btn umm-neodb-btn--plus'
   pushPlusBtn.textContent = `+1分 (${ratingPlus})`
+  pushPlusBtn.title = '提高 1 分后推送到 NeoDB'
   
   const pushOriginalBtn = document.createElement('button')
   pushOriginalBtn.id = 'umm-push-original'
   pushOriginalBtn.className = 'umm-neodb-btn umm-neodb-btn--original'
   pushOriginalBtn.textContent = `原分推送 (${currentRating})`
+  pushOriginalBtn.title = '使用当前评分推送到 NeoDB'
   
   container.appendChild(pushMinusBtn)
   container.appendChild(pushPlusBtn)
@@ -856,6 +767,57 @@ async function pushToNeoDB(ratingAdjust: number) {
     
     if (response.success) {
       showToast(`✅ 已推送到 NeoDB (${adjustedRating}/10)`, 'success')
+      
+      // 更新 linkedIds.neodb（full key 格式）
+      if (response.catalogUuid && currentIdentity) {
+        const neodbFullKey = `${currentIdentity.type}::${response.catalogUuid}`
+        const doubanFullKey = `${currentIdentity.type}::${currentIdentity.providerId}`
+
+        // 1. 更新 Douban 记录的 linkedIds.neodb
+        const storeName = `${currentIdentity.provider}_records`
+        const key = `${currentIdentity.type}::${currentIdentity.providerId}`
+        const existing = await Store.dbGet(storeName, key)
+        if (existing) {
+          existing.linkedIds = existing.linkedIds || {}
+          existing.linkedIds.neodb = neodbFullKey
+          await Store.dbPut(storeName, key, existing)
+          currentRecord = existing
+          console.log('[UMM] ✅ Updated record with NeoDB linked ID:', neodbFullKey)
+        }
+
+        // 2. 创建或更新 NeoDB 本地记录（双向链接）
+        const neodbStoreName = 'neodb_records'
+        const existingNeoDB = await Store.dbGet(neodbStoreName, neodbFullKey)
+        if (existingNeoDB) {
+          // 已存在 → 确保 linkedIds.douban 正确设置
+          if (!existingNeoDB.linkedIds?.douban) {
+            existingNeoDB.linkedIds = existingNeoDB.linkedIds || {}
+            existingNeoDB.linkedIds.douban = doubanFullKey
+            await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
+            console.log('[UMM] ✅ Updated existing NeoDB record linkedIds:', neodbFullKey)
+          }
+        } else {
+          // 不存在 → 创建新记录
+          const neodbRecord: StoreRecord = {
+            url: `https://neodb.social/${currentIdentity.type === 'music' ? 'album' : currentIdentity.type}/${response.catalogUuid}/`,
+            status: 2,
+            rating: adjustedRating,
+            updatedAt: new Date().toISOString(),
+            linkedIds: { douban: doubanFullKey },
+          }
+          await Store.dbPut(neodbStoreName, neodbFullKey, neodbRecord)
+          console.log('[UMM] ✅ Created NeoDB local record:', neodbFullKey)
+        }
+      } else {
+        console.warn('[UMM] ⚠️ No catalogUuid in response or no currentIdentity')
+      }
+      
+      // 更新水印颜色为暗绿色（表示已关联）
+      const watermark = document.querySelector('.umm-neodb-watermark') as HTMLElement
+      if (watermark) {
+        watermark.style.color = 'rgba(15, 100, 55, 0.35)'
+        watermark.style.textShadow = 'rgba(15, 100, 55, 0.2) 2px 2px 0px, rgba(15, 100, 55, 0.15) 4px 4px 0px, rgba(15, 100, 55, 0.1) 6px 6px 0px'
+      }
     } else {
       showToast(`❌ 推送失败: ${response.message || '未知错误'}`, 'error')
     }
@@ -863,272 +825,6 @@ async function pushToNeoDB(ratingAdjust: number) {
     errorLog('Push to NeoDB failed:', error)
     showToast('❌ 推送失败', 'error')
   }
-}
-
-function renderPanelContent(content: HTMLElement) {
-  if (!currentIdentity) {
-    content.innerHTML = `<div style="text-align: center; color: ${PANEL_COLORS.textTertiary}; padding: 20px;">${escapeHtml('无法识别当前页面')}</div>`
-    return
-  }
-  
-  // 处理 null 状态边界情况 - 默认选中"清除"状态 (0=未看, 1=在看, 2=已看)
-  const currentStatus = currentRecord?.status ?? 0
-  
-  const statusLabel = escapeHtml(getStatusText(currentRecord?.status))
-  const statusColor = getStatusColor(currentRecord?.status)
-  const rating = currentRecord?.rating || 0
-  const updateTime = escapeHtml(currentRecord?.updatedAt ? Utils.formatRelativeTime(currentRecord.updatedAt) : '未标记')
-  
-  // 使用转义后的值防止 XSS
-  const escapedProviderId = escapeHtml(currentIdentity.providerId)
-  const escapedType = escapeHtml(currentIdentity.type)
-  const escapedProvider = escapeHtml(currentIdentity.provider)
-  
-  content.innerHTML = `
-    <div style="margin-bottom: 16px;">
-      <div style="font-size: 12px; color: ${PANEL_COLORS.textSecondary}; margin-bottom: 4px; text-transform: uppercase;">
-        ${escapedType} / ${escapedProvider}
-      </div>
-      <div style="font-size: 14px; font-weight: 500; color: ${PANEL_COLORS.textPrimary}; word-break: break-all;">
-        ${escapedProviderId}
-      </div>
-    </div>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-      <div style="background: ${PANEL_COLORS.bgCard}; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid ${PANEL_COLORS.borderDefault}; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
-        <div style="font-size: 12px; color: ${PANEL_COLORS.textSecondary}; margin-bottom: 4px;">状态</div>
-        <div style="font-size: 16px; font-weight: 600; color: ${statusColor};">${statusLabel}</div>
-      </div>
-      <div style="background: ${PANEL_COLORS.bgCard}; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid ${PANEL_COLORS.borderDefault}; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
-        <div style="font-size: 12px; color: ${PANEL_COLORS.textSecondary}; margin-bottom: 4px;">评分</div>
-        <div style="font-size: 16px; font-weight: 600; color: ${PANEL_COLORS.ratingStar};">
-          ${rating > 0 ? `⭐ ${rating}/10` : '-'}
-        </div>
-      </div>
-    </div>
-    
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; font-size: 12px; color: ${PANEL_COLORS.textSecondary}; margin-bottom: 8px;">更新状态</label>
-      <div style="display: flex; gap: 8px;">
-        <button id="umm-status-done" style="flex: 1; padding: 8px; border: 2px solid ${currentStatus === 2 ? PANEL_COLORS.statusDone : PANEL_COLORS.statusNoneUnselected}; background: ${currentStatus === 2 ? PANEL_COLORS.statusDone : 'white'}; color: ${currentStatus === 2 ? PANEL_COLORS.textOnDark : PANEL_COLORS.textPrimary}; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s;">
-          ✓ 已完成
-        </button>
-        <button id="umm-status-wish" style="flex: 1; padding: 8px; border: 2px solid ${currentStatus === 1 ? PANEL_COLORS.statusWish : PANEL_COLORS.statusNoneUnselected}; background: ${currentStatus === 1 ? PANEL_COLORS.statusWish : 'white'}; color: ${currentStatus === 1 ? PANEL_COLORS.textOnDark : PANEL_COLORS.textPrimary}; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s;">
-          ♥ 想看
-        </button>
-        <button id="umm-status-none" style="flex: 1; padding: 8px; border: 2px solid ${currentStatus === 0 ? PANEL_COLORS.statusNoneUnselected : PANEL_COLORS.statusNoneUnselected}; background: ${currentStatus === 0 ? PANEL_COLORS.statusNone : 'white'}; color: ${currentStatus === 0 ? PANEL_COLORS.textOnDark : PANEL_COLORS.textPrimary}; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s;">
-          ○ 清除
-        </button>
-      </div>
-    </div>
-    
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; font-size: 12px; color: ${PANEL_COLORS.textSecondary}; margin-bottom: 8px;">评分 (0-10)</label>
-      <input id="umm-rating" type="number" min="0" max="10" step="0.5" value="${rating}" 
-        style="width: 100%; padding: 8px 12px; border: 1px solid ${PANEL_COLORS.borderDefault}; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s;">
-    </div>
-    
-    <button id="umm-save" style="width: 100%; padding: 10px; background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity 0.2s;">
-      💾 保存
-    </button>
-    
-    <div style="margin-top: 12px; font-size: 11px; color: ${PANEL_COLORS.textSecondary}; text-align: center;">
-      最后更新: ${updateTime}
-    </div>
-  `
-  
-  // 绑定按钮事件
-  bindStatusButtons()
-  bindSaveButton()
-  bindRatingInputEvents()
-}
-
-function bindRatingInputEvents() {
-  const ratingInput = document.getElementById('umm-rating') as HTMLInputElement
-  if (ratingInput) {
-    ratingInput.addEventListener('focus', () => {
-      ratingInput.style.borderColor = PANEL_COLORS.borderFocus
-      ratingInput.style.boxShadow = '0 0 0 3px rgba(23, 87, 214, 0.4)'
-    })
-    ratingInput.addEventListener('blur', () => {
-      ratingInput.style.borderColor = PANEL_COLORS.borderMuted
-      ratingInput.style.boxShadow = 'none'
-    })
-  }
-}
-
-function bindStatusButtons() {
-  const doneBtn = document.getElementById('umm-status-done')
-  const wishBtn = document.getElementById('umm-status-wish')
-  const noneBtn = document.getElementById('umm-status-none')
-  
-  doneBtn?.addEventListener('click', () => updateStatus(2))  // 2 = 已看
-  wishBtn?.addEventListener('click', () => updateStatus(1))  // 1 = 在看
-  noneBtn?.addEventListener('click', () => updateStatus(0))  // 0 = 未看
-}
-
-function bindSaveButton() {
-  const saveBtn = document.getElementById('umm-save')
-  saveBtn?.addEventListener('click', async () => {
-    await saveRecord()
-  })
-}
-
-function bindPanelEvents(container: HTMLElement, header: HTMLElement) {
-  // 最小化
-  const minimizeBtn = document.getElementById('umm-minimize')
-  minimizeBtn?.addEventListener('click', () => {
-    const content = document.getElementById('umm-panel-content')
-    if (content) {
-      content.style.display = content.style.display === 'none' ? 'block' : 'none'
-    }
-  })
-  
-  // 添加 hover 效果
-  if (minimizeBtn) {
-    minimizeBtn.addEventListener('mouseenter', () => {
-      minimizeBtn.style.background = 'rgba(255, 255, 255, 0.25)'
-    })
-    minimizeBtn.addEventListener('mouseleave', () => {
-      minimizeBtn.style.background = 'rgba(255, 255, 255, 0.15)'
-    })
-  }
-  
-  // 关闭
-  const closeBtn = document.getElementById('umm-close')
-  closeBtn?.addEventListener('click', () => {
-    container.remove()
-    panelElement = null
-    
-    // 断开观察者以防止内存泄漏
-    if (urlObserver) {
-      urlObserver.disconnect()
-      urlObserver = null
-    }
-  })
-  
-  // 添加 hover 效果
-  if (closeBtn) {
-    closeBtn.addEventListener('mouseenter', () => {
-      closeBtn.style.background = 'rgba(255, 255, 255, 0.25)'
-    })
-    closeBtn.addEventListener('mouseleave', () => {
-      closeBtn.style.background = 'rgba(255, 255, 255, 0.15)'
-    })
-  }
-  
-  // 拖拽功能
-  let isDragging = false
-  let startX = 0
-  let startY = 0
-  let initialX = 0
-  let initialY = 0
-  
-  header.addEventListener('mousedown', (e) => {
-    isDragging = true
-    startX = e.clientX
-    startY = e.clientY
-    initialX = container.offsetLeft
-    initialY = container.offsetTop
-    header.style.cursor = 'grabbing'
-  })
-  
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return
-    
-    const deltaX = e.clientX - startX
-    const deltaY = e.clientY - startY
-    
-    container.style.left = `${initialX + deltaX}px`
-    container.style.top = `${initialY + deltaY}px`
-    container.style.right = 'auto'
-  })
-  
-  document.addEventListener('mouseup', () => {
-    isDragging = false
-    header.style.cursor = 'move'
-  })
-}
-
-// ==================== 业务逻辑 ====================
-
-function updateStatus(status: number) {
-  if (!currentRecord) {
-    currentRecord = {
-      url: currentIdentity!.url,
-      status,
-      rating: 0,
-      updatedAt: Utils.nowISO(),
-      linkedIds: {},
-    }
-  } else {
-    currentRecord.status = status
-    currentRecord.updatedAt = Utils.nowISO()
-  }
-  
-  // 重新渲染
-  const content = document.getElementById('umm-panel-content')
-  if (content) {
-    renderPanelContent(content)
-  }
-}
-
-async function saveRecord() {
-  if (!currentRecord || !currentIdentity) return
-  
-  // 获取评分
-  const ratingInput = document.getElementById('umm-rating') as HTMLInputElement
-  if (ratingInput) {
-    const rawValue = parseFloat(ratingInput.value)
-    
-    // 验证输入是否为有效数字
-    if (isNaN(rawValue) || !isFinite(rawValue)) {
-      showToast('❌ 请输入有效的评分（0-10）', 'error')
-      return
-    }
-    
-    currentRecord.rating = Utils.clampRating10(rawValue)
-  }
-  
-  try {
-    const storeName = `${currentIdentity!.provider}_records`
-    const key = `${currentIdentity!.type}::${currentIdentity!.providerId}`
-    await Store.dbPut(storeName, key, currentRecord)
-    
-    showToast('✅ 保存成功!', 'success')
-    
-    // 重新加载
-    await loadCurrentRecord()
-    
-    // 重新渲染
-    const content = document.getElementById('umm-panel-content')
-    if (content) {
-      renderPanelContent(content)
-    }
-  } catch (error) {
-    errorLog('Save failed:', error)
-    showNotification('❌ 保存失败')
-  }
-}
-
-// ==================== 工具函数 ====================
-
-function getStatusText(status?: number): string {
-  const labels: Record<number, string> = {
-    2: '已完成',
-    0: '未标记',
-    1: '想看/想听',
-  }
-  return labels[status ?? 0] || '未标记'
-}
-
-function getStatusColor(status?: number): string {
-  const colors: Record<number, string> = {
-    2: '#10b981',  // 绿色 - 已看
-    0: '#6b7280',  // 灰色 - 未看
-    1: '#3b82f6',  // 蓝色 - 在看
-  }
-  return colors[status ?? 0] || '#6b7280'
 }
 
 /**
@@ -1142,31 +838,6 @@ function showToast(message: string, type: 'success' | 'error' | 'info' = 'info')
   } else {
     FloatingToast.info('UMM', message)
   }
-}
-
-function showNotification(message: string) {
-  const notification = document.createElement('div')
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    z-index: 9999999;
-    animation: slideDown 0.3s ease;
-  `
-  notification.textContent = message
-  
-  document.body.appendChild(notification)
-  
-  setTimeout(() => {
-    notification.style.animation = 'slideUp 0.3s ease'
-    setTimeout(() => notification.remove(), 300)
-  }, 2000)
 }
 
 /**
@@ -1195,26 +866,16 @@ function observeUrlChanges() {
       currentIdentity = Identity.fromUrl(lastUrl)
       
       if (currentIdentity) {
-        // 移除旧的面板和状态标签
-        if (panelElement) {
-          panelElement.remove()
-          panelElement = null
-        }
+        // 移除旧的状态标签
         if (statusChipElement) {
           statusChipElement.remove()
           statusChipElement = null
         }
         
-        // 重新初始化
+        // 重新初始化 — 路由器将重新注入状态标签
         loadCurrentRecord().then(() => {
-          // 重新创建观察者
           observeUrlChanges()
-          
-          if (isDoubanDetailPage()) {
-            injectNeoDBPushButtons()
-          } else {
-            createFloatingPanel()
-          }
+          injectNeoDBPushButtons()
         })
       }
     }
