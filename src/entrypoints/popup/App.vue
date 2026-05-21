@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { Store } from '@/shared'
-import type { Domain, Provider, MediaRecord } from '@/shared'
+import type { Domain, Provider } from '@/shared'
+import type { StoreRecord } from '@/shared/types'
 import { safeSendMessage } from '@/shared/utils/context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -51,8 +52,9 @@ const pages = [
 ] as const
 
 // ==================== 记录列表页面 ====================
-const loading = ref(true)
-const records = ref<MediaRecord[]>([])
+const loading = ref(false)
+const loadError = ref<string | null>(null)
+const records = ref<StoreRecord[]>([])
 const stats = ref({
   total: 0,
   movie: 0,
@@ -78,6 +80,7 @@ async function loadData() {
   if (loadTimeout) clearTimeout(loadTimeout)
   
   loading.value = true
+  loadError.value = null
   console.log('[Popup] loading set to TRUE')
   
   // ✅ 新增：10 秒超时保护
@@ -94,10 +97,15 @@ async function loadData() {
     const response = await safeSendMessage(
       { type: 'GET_ALL_RECORDS' },
       {
-        timeout: 20000,  // ✅ 降低至 20 秒
+        timeout: 10000,  // ✅ 统一为 10 秒
         retries: 2,      // ✅ 降低至 2 次重试
         fallback: () => {
           console.error('[Popup] ⚠️ Connection failed after retries')
+          // ✅ 修复：fallback 中也重置加载状态和错误提示
+          loading.value = false
+          loadError.value = '数据加载失败，请重试'
+          records.value = []
+          updateStats()
         }
       }
     )
@@ -116,6 +124,7 @@ async function loadData() {
     
     console.log('[Popup] ✅ Records loaded:', response.records.length)
     records.value = response.records
+    loadError.value = null
     console.log('[Popup] Records updated:', records.value.length)
     
     updateStats()
@@ -125,6 +134,7 @@ async function loadData() {
     // ✅ 修复：确保即使失败也清除 loading 状态
     records.value = []
     updateStats()
+    loadError.value = '数据加载失败，请重试'
     
     // ✅ 改进：提供更详细的错误提示
     const errorMessage = (error as Error).message
@@ -212,8 +222,15 @@ const selectedPlatform = ref<string>('douban')
 // 当前选择的媒体类型
 const selectedDomain = ref<Domain>('movie')
 
+// Wrapper: StoreRecord + metadata from parsed input (needed by template)
+interface RatingQueryRecord extends StoreRecord {
+  type: string
+  provider: Provider
+  providerId: string
+}
+
 // 评分查询状态
-const ratingQueryResult = ref<MediaRecord | null>(null)
+const ratingQueryResult = ref<RatingQueryRecord | null>(null)
 const isQuerying = ref(false)
 let queryDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -418,45 +435,80 @@ async function queryRecordFromDB() {
   const parsed = parseRatingInput()
   if (!parsed) {
     ratingQueryResult.value = null
-    isQuerying.value = false  // ✅ 修复：确保重置
+    isQuerying.value = false
     return
   }
-  
+
   isQuerying.value = true
   try {
-    const map = await Store.getDatasetMap(parsed.type as Domain, parsed.provider)
-    const record = map.get(parsed.providerId) || null
-    ratingQueryResult.value = record
+    const storeName = `${parsed.provider}_records`
+    const key = `${parsed.type}::${parsed.providerId}`
+    const record = await Store.dbGet(storeName, key)
+
+    if (record) {
+      // Merge record with parsed metadata so template can access .type/.provider/.providerId
+      ratingQueryResult.value = {
+        ...record,
+        type: parsed.type,
+        provider: parsed.provider,
+        providerId: parsed.providerId,
+      }
+    } else {
+      ratingQueryResult.value = null
+    }
   } catch (error) {
     console.error('[Query] Failed:', error)
     ratingQueryResult.value = null
   } finally {
-    // ✅ 修复：无论成功失败都重置
     isQuerying.value = false
   }
 }
 
-// 监听输入变化 - 防抖查询 + 自动识别平台
+// 监听输入变化 - 防抖查询 + 自动识别平台和类型
 watch(ratingInput, (newValue: string) => {
   const input = newValue.trim()
-  
+
   // 清空时重置
   if (!input) {
     ratingQueryResult.value = null
     return
   }
-  
-  // 自动识别平台
+
+  // 自动识别平台和类型
+  // Douban
   if (input.includes('douban.com')) {
     selectedPlatform.value = 'douban'
+    if (input.includes('music.douban.com')) {
+      selectedDomain.value = 'music'
+    } else if (input.includes('book.douban.com')) {
+      selectedDomain.value = 'movie' // book 归类到 movie 域
+    } else {
+      selectedDomain.value = 'movie'
+    }
+  // IMDb
   } else if (input.includes('imdb.com') || /^tt\d+$/i.test(input)) {
     selectedPlatform.value = 'imdb'
+    selectedDomain.value = 'movie'
+  // NeoDB
   } else if (input.includes('neodb.social')) {
     selectedPlatform.value = 'neodb'
+    if (input.includes('/tv/')) {
+      selectedDomain.value = 'tv'
+    } else if (input.includes('/album/')) {
+      selectedDomain.value = 'music'
+    } else {
+      selectedDomain.value = 'movie'
+    }
+  // TMDB
   } else if (input.includes('themoviedb.org')) {
     selectedPlatform.value = 'tmdb'
+    if (input.includes('/tv/')) {
+      selectedDomain.value = 'tv'
+    } else {
+      selectedDomain.value = 'movie'
+    }
   }
-  
+
   // 防抖查询(500ms)
   if (queryDebounceTimer) clearTimeout(queryDebounceTimer)
   queryDebounceTimer = setTimeout(() => queryRecordFromDB(), 500)
@@ -491,13 +543,16 @@ async function saveRating() {
   try {
     console.log('[Rating] Saving rating:', parsed)
     
-    // 直接调用 updateRecordRating,内部会自动创建记录如果不存在
-    await Store.updateRecordRating(
-      parsed.type,
-      parsed.provider,
-      parsed.providerId,
-      ratingValue.value
-    )
+    const storeName = `${parsed.provider}_records`
+    const key = `${parsed.type}::${parsed.providerId}`
+    const existing = await Store.dbGet(storeName, key)
+    await Store.dbPut(storeName, key, {
+      url: parsed.url,
+      status: existing?.status ?? 1,  // keep existing or wish(1)
+      rating: ratingValue.value,
+      updatedAt: new Date().toISOString(),
+      linkedIds: existing?.linkedIds ?? {},
+    })
     
     console.log('[Rating] ✅ Saved')
     await showPageToast('success', `评分已保存(${parsed.provider}/${parsed.providerId})`)
@@ -706,7 +761,7 @@ async function saveWebDAVConfig() {
   }
   
   try {
-    await Store.setSettings({
+    await Store.updateSettings({
       webdavUrl: webdavConfig.value.url,
       webdavUsername: webdavConfig.value.username,
       webdavPassword: webdavConfig.value.password,
@@ -778,7 +833,7 @@ async function saveNeoDBToken() {
     const token = neodbToken.value.trim()
     
     // ✅ 使用持久化存储（local storage），方便用户长期使用
-    await Store.setSettings({ neodbToken: token })
+    await Store.updateSettings({ neodbToken: token })
     await showPageToast('success', 'NeoDB Token 已保存', '评分同步功能现已激活')
   } catch (error) {
     console.error('Failed to save NeoDB token:', error)
@@ -842,10 +897,19 @@ function triggerImport() {
       try {
         const payload = JSON.parse(event.target?.result as string)
         
+        // Support both new (stores[storeName][key]) and old (datasets[provider][type]) formats
         let recordCount = 0
-        for (const provider in payload.datasets || {}) {
-          for (const type in payload.datasets[provider]) {
-            recordCount += payload.datasets[provider][type].length
+        if (payload.stores) {
+          // New format: stores.{store_name}.{key} = StoreRecord
+          for (const storeName in payload.stores) {
+            recordCount += Object.keys(payload.stores[storeName]).length
+          }
+        } else if (payload.datasets) {
+          // Old format: datasets.{provider}.{type} = MediaRecord[]
+          for (const provider in payload.datasets) {
+            for (const type in payload.datasets[provider]) {
+              recordCount += payload.datasets[provider][type].length
+            }
           }
         }
         
@@ -878,21 +942,46 @@ async function executeImport(file: File, payload: any) {
     await showPageToast('info', `正在读取文件: ${file.name}...`)
     await showPageToast('info', '正在解析数据...')
     
-    let recordCount = 0
-    for (const provider in payload.datasets || {}) {
-      for (const type in payload.datasets[provider]) {
-        recordCount += payload.datasets[provider][type].length
+    // Convert old format to new format if needed
+    let importPayload = payload
+    if (payload.datasets && !payload.stores) {
+      // Convert old { datasets: { provider: { type: MediaRecord[] } } } to
+      // new { stores: { provider_records: { "type::providerId": StoreRecord } } }
+      const stores: Record<string, Record<string, any>> = {}
+      for (const provider of ['douban', 'imdb', 'neodb', 'tmdb']) {
+        const storeName = `${provider}_records`
+        if (payload.datasets[provider]) {
+          stores[storeName] = {}
+          for (const type of Object.keys(payload.datasets[provider])) {
+            for (const record of payload.datasets[provider][type]) {
+              const key = `${type}::${record.providerId || record.id}`
+              stores[storeName][key] = {
+                url: record.url || '',
+                status: record.status ?? 1,
+                rating: record.rating ?? null,
+                updatedAt: record.updatedAt || record.updatedAt || new Date().toISOString(),
+                linkedIds: record.linkedIds || {},
+              }
+            }
+          }
+        }
       }
+      importPayload = { stores }
+    }
+    
+    let recordCount = 0
+    for (const storeName in importPayload.stores || {}) {
+      recordCount += Object.keys(importPayload.stores[storeName]).length
     }
     await showPageToast('info', `正在导入 ${recordCount.toLocaleString()} 条记录...`)
     
     await safeSendMessage(
       {
         type: 'IMPORT_DATA',
-        payload,
+        payload: importPayload,
       },
       {
-        timeout: 30000, // ✅ 降低至 30 秒，导入大量数据时更合理
+        timeout: 30000,
         fallback: () => {
           showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
         }
@@ -1216,7 +1305,20 @@ onMounted(() => {
           <div v-if="loading" class="py-8 text-center text-muted-foreground">
             加载中...
           </div>
-          
+
+          <!-- ✅ 修复：加载失败时显示错误提示和重试按钮 -->
+          <div v-else-if="loadError" class="py-8 text-center">
+            <Alert variant="destructive" class="mb-4">
+              <AlertCircle class="h-4 w-4" />
+              <AlertTitle>加载失败</AlertTitle>
+              <AlertDescription>{{ loadError }}</AlertDescription>
+            </Alert>
+            <Button @click="loadData" variant="outline">
+              <RefreshCw class="mr-2 h-4 w-4" />
+              重试
+            </Button>
+          </div>
+
           <div v-else>
             <!-- 统计卡片 -->
             <div class="grid grid-cols-2 gap-4 mb-6">
@@ -1241,7 +1343,20 @@ onMounted(() => {
           <div v-if="loading" class="py-8 text-center text-muted-foreground">
             加载中...
           </div>
-          
+
+          <!-- ✅ 修复：加载失败时显示错误提示和重试按钮 -->
+          <div v-else-if="loadError" class="py-8 text-center">
+            <Alert variant="destructive" class="mb-4">
+              <AlertCircle class="h-4 w-4" />
+              <AlertTitle>加载失败</AlertTitle>
+              <AlertDescription>{{ loadError }}</AlertDescription>
+            </Alert>
+            <Button @click="loadData" variant="outline">
+              <RefreshCw class="mr-2 h-4 w-4" />
+              重试
+            </Button>
+          </div>
+
           <div v-else class="space-y-3">
             <div
               v-for="[platform, count] in Object.entries(platformStats)"

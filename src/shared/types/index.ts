@@ -1,178 +1,167 @@
 /**
- * 核心数据类型定义
+ * Core Type Definitions
+ *
+ * v6 — Per-platform store architecture:
+ * Each platform (douban, imdb, neodb, tmdb) gets its own IndexedDB object store.
+ * Records are stored with composite keys like "movie::37332784".
+ * Cross-platform links stored in `linkedIds` map.
  */
 
-import type { Provider } from '../config';
+import type { Provider } from '../config'
 
-// 媒体记录接口
-export interface MediaRecord {
-  // 联合主键字段
-  provider: Provider      // douban/imdb/neodb/tmdb
-  type: string           // movie/tv/music/book
-  providerId: string     // 平台唯一 ID
-  
-  // 复合主键（自动生成）
-  id?: string            // `${provider}:${type}:${providerId}`
-  
-  // 业务数据
-  url: string             // 规范化 URL
-  status: number         // 0=未看/听, 1=在看/听, 2=已看/已听
-  rating: number         // 评分 0-10
-  updatedAt?: string     // ISO 8601 更新时间
-  
-  // ✅ 新增：NeoDB 关联字段
-  neodbUuid?: string      // NeoDB 作品的 UUID（catalog item uuid）
-  neodbShelfUuid?: string // NeoDB 书架项的 UUID（shelf item uuid）
-  
-  // ✅ 增强：关联 ID 映射
-  linkedIds?: {
-    doubanId?: string
-    imdbId?: string
-    tmdbId?: string
-    neodbId?: string      // NeoDB 作品 UUID（与 neodbUuid 相同，保持兼容）
-  }
+// ==================== Store Record ====================
+
+/** Per-platform store record (one entry per object store) */
+export interface StoreRecord {
+  url: string                             // Canonical URL for this platform
+  status: number                          // 0=未看/未听, 1=在看/在听, 2=已看/已听
+  rating: number                          // Rating 0-10 (integer)
+  updatedAt: string                       // ISO 8601 update timestamp
+  linkedIds: Record<string, string>       // Cross-platform links: { "imdb": "movie::tt1375666", "neodb": "movie::xxx" }
 }
 
-// 隔离区记录接口
-export interface QuarantineEntry {
-  provider: Provider      // douban/imdb/neodb/tmdb
-  type: string           // movie/tv/music/book
-  providerId: string     // 主键（与 records 一致）
-  url: string
-  status: number         // 0=未看/听, 1=在看/听, 2=已看/已听
-  rating: number         // 评分 0-10
-  updatedAt?: string     // ISO 8601 更新时间
-  quarantineReason: string // 隔离原因
+/** Build a composite store key from type and provider ID */
+export function makeRecordKey(type: string, providerId: string): string {
+  return `${type}::${providerId}`
 }
 
-// URL 身份信息
+/** Valid record store names */
+export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records'
+
+// ==================== URL Identity ====================
+
 export interface UrlIdentity {
-  provider: Provider      // douban/imdb/neodb/tmdb
-  type: string           // movie/tv/music/book
-  providerId: string     // 平台唯一 ID
-  url: string             // 标准 URL
+  provider: Provider
+  type: string           // movie / tv / music / book
+  providerId: string     // Platform-specific ID
+  url: string            // Canonical URL
 }
 
-// WebDAV 设置
+// ==================== Settings ====================
+
 export interface WebDAVSettings {
-  webdavUrl: string;
-  webdavUsername: string;
-  webdavPassword: string;
+  webdavUrl: string
+  webdavUsername: string
+  webdavPassword: string
 }
 
-// NeoDB 设置
 export interface NeoDBSettings {
-  neodbToken: string;
+  neodbToken: string
 }
 
-// 完整设置
 export interface AppSettings extends WebDAVSettings, NeoDBSettings {
-  autoSync?: boolean;
-  syncInterval?: number;
-  theme?: 'auto' | 'light' | 'dark';
-  language?: string;
-  notificationEnabled?: boolean;
-  quarantineAutoClean?: boolean;
-  quarantineRetentionDays?: number;
-  
-  // Radix UI 主题配置
-  appearance?: 'auto' | 'light' | 'dark';  // 外观模式（自动/亮色/暗色）
-  accentColor?: string;  // 强调色（默认 blue）
-  grayColor?: string;    // 灰色系（默认 slate）
+  autoSync?: boolean
+  syncInterval?: number
+  theme?: 'auto' | 'light' | 'dark'
+  language?: string
+  notificationEnabled?: boolean
+  appearance?: 'auto' | 'light' | 'dark'
+  accentColor?: string
+  grayColor?: string
 }
 
-// 导出数据结构
+// ==================== Export / Import ====================
+
 export interface ExportData {
-  schema: 'umm-export';
-  version: number;
-  exportedAt: string;
-  datasets: {
-    [provider: string]: {  // 按 provider 分组
-      [type: string]: MediaRecord[];  // 再按 type 分组
-    };
-  };
-  quarantine?: QuarantineEntry[];
-  settings?: Partial<AppSettings>;
+  schema: 'umm-export'
+  version: 2
+  exportedAt: string
+  stores: {
+    [storeName: string]: Record<string, StoreRecord>  // key → StoreRecord
+  }
+  settings?: Partial<AppSettings>
 }
 
-// 消息类型(Content Script ↔ Background ↔ Popup)
-export type MessageType = 
+// ==================== Messages ====================
+
+export type MessageType =
   | 'SHOW_TOAST'
-  | 'UPDATE_RECORD'
-  | 'GET_ALL_RECORDS'
-  | 'SYNC_DATA'
+  | 'DB_GET'
+  | 'DB_PUT'
+  | 'DB_DELETE'
+  | 'DB_GET_ALL'
+  | 'DB_QUERY'
+  | 'DB_COUNT'
+  | 'DB_SYNC_PAGE_RECORD'
+  | 'GET_SETTINGS'
+  | 'UPDATE_SETTINGS'
   | 'EXPORT_DATA'
   | 'IMPORT_DATA'
-  | 'DELETE_RECORD'
-  | 'GET_STATS'
-  | 'TOGGLE_THEME';
+  | 'GET_ALL_RECORDS'
+  | 'GET_STATISTICS'
+  | 'HEALTH_CHECK'
 
 export interface MessagePayloadMap {
-  SHOW_TOAST: { type: ToastType; title: string; message?: string };
-  UPDATE_RECORD: Omit<MediaRecord, 'id' | 'updatedAt'>;
-  GET_ALL_RECORDS: void;
-  SYNC_DATA: { direction: 'upload' | 'download' };
-  EXPORT_DATA: ExportData;
-  IMPORT_DATA: ExportData;
-  DELETE_RECORD: { provider: Provider; type: string; providerId: string };
-  GET_STATS: void;
-  TOGGLE_THEME: { theme: 'light' | 'dark' | 'auto' };
+  SHOW_TOAST: { type: ToastType; title: string; message?: string }
+  DB_GET: { storeName: string; key: string }
+  DB_PUT: { storeName: string; key: string; record: StoreRecord }
+  DB_DELETE: { storeName: string; key: string }
+  DB_GET_ALL: { storeName: string }
+  DB_QUERY: { storeName: string; indexName: string; value: any }
+  DB_COUNT: { storeName: string }
+  DB_SYNC_PAGE_RECORD: { platform: string; key: string; record: StoreRecord; linked?: Array<{ platform: string; key: string; url: string }> }
+  GET_SETTINGS: void
+  UPDATE_SETTINGS: Partial<AppSettings>
+  EXPORT_DATA: void
+  IMPORT_DATA: ExportData
+  GET_ALL_RECORDS: void
+  GET_STATISTICS: void
+  HEALTH_CHECK: void
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {
-  type: T;
-  payload?: MessagePayloadMap[T];
+  type: T
+  payload?: MessagePayloadMap[T]
 }
 
-// Toast 通知类型
-export type ToastType = 'loading' | 'success' | 'error' | 'info';
+// ==================== Toast ====================
+
+export type ToastType = 'loading' | 'success' | 'error' | 'info'
 
 export interface ToastOptions {
-  title: string;
-  body?: string;
-  type?: ToastType;
-  hideMs?: number; // 自动隐藏时间(ms),0 表示不自动隐藏
+  title: string
+  body?: string
+  type?: ToastType
+  hideMs?: number
 }
 
-// 请求队列任务
-export interface QueueTask<T = any> {
-  key: string;
-  task: () => Promise<T>;
-}
+// ==================== Cache ====================
 
-// 队列状态
-export interface QueueState {
-  queued: number;
-  active: number;
-  currentKey: string;
-}
-
-// 数据集映射（providerId -> MediaRecord）
-export interface DatasetMap {
-  [providerId: string]: MediaRecord;
-}
-
-// 存储值类型（用于 chrome.storage）
-export type StorageValue = string | number | boolean | object | null | undefined;
-
-// 缓存项接口
 export interface CacheItem<T = unknown> {
-  value: T;
-  expiry: number; // 过期时间戳
+  value: T
+  expiry: number
 }
 
-// WebDAV Meta 数据结构
+// ==================== Dataset Meta (WebDAV) ====================
+
 export interface DatasetMeta {
-  key: string              // "movie:douban", "tv:neodb" 等
-  version: number          // 数据格式版本
-  timestamp: string        // ISO 8601 最后更新时间
-  recordCount: number      // 记录数量
-  hash: string             // SHA-256 哈希值
+  key: string              // store name, e.g. "douban_records"
+  hash: string             // SHA-256 hex of sorted dataset content
+  updatedAt: string        // ISO 8601, latest record update time
+  recordCount: number      // number of records in this dataset
+  dataVersion: number      // schema version for this dataset
 }
 
-export interface WebDAVMeta {
-  schema: 'umm-webdav-meta'
+export interface RemoteMeta {
+  schema: 'umm-meta'
   version: 1
   generatedAt: string
   datasets: DatasetMeta[]
+}
+
+/** Per-dataset sync decision */
+export type SyncDecision = 'skip' | 'upload' | 'download' | 'conflict'
+
+// ==================== Statistics ====================
+
+export interface Statistics {
+  total: number
+  movie: number
+  tv: number
+  music: number
+  book: number
+  douban: number
+  imdb: number
+  neodb: number
+  tmdb: number
 }

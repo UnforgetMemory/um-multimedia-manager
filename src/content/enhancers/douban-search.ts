@@ -4,7 +4,7 @@
  */
 
 import { Store } from '../../shared'
-import type { MediaRecord } from '../../shared/types'
+import type { StoreRecord } from '../../shared/types'
 import { Utils } from '../../shared/utils'
 import { escapeHtml, waitForElement } from '../utils/dom'
 
@@ -129,7 +129,7 @@ function createSearchBadge(status: number, rating: number): HTMLElement {
 async function renderCardBadge(
   card: Element,
   config: SearchPageConfig,
-  watchedMap: Map<string, MediaRecord>
+  watchedMap: Map<string, StoreRecord>
 ): Promise<void> {
   // 检查是否已存在徽章
   const existingBadge = card.querySelector('.umm-search-badge')
@@ -173,7 +173,7 @@ async function renderCardBadge(
 async function renderAllBadgesWithMap(
   container: Element,
   config: SearchPageConfig,
-  recordMap: Map<string, MediaRecord>
+  recordMap: Map<string, StoreRecord>
 ): Promise<void> {
   // 查找所有卡片
   const cards = container.querySelectorAll(config.cardSelector)
@@ -200,8 +200,8 @@ async function renderAllBadgesWithMap(
  */
 function observeContainerChanges(container: Element, config: SearchPageConfig): () => void {
   // 初始化 Store 并获取数据（只执行一次）
-  let recordMap: Map<string, MediaRecord> | null = null
-  let initializationPromise: Promise<Map<string, MediaRecord>> | null = null
+  let recordMap: Map<string, StoreRecord> | null = null
+  let initializationPromise: Promise<Map<string, StoreRecord>> | null = null
   let isCleanupCalled = false
   
   console.log(`[UMM] Observer initialized for ${config.type} search page`)
@@ -220,8 +220,15 @@ function observeContainerChanges(container: Element, config: SearchPageConfig): 
       if (!initializationPromise) {
         console.log('[UMM] Initializing Store and fetching records...')
         initializationPromise = (async () => {
-          await Store.initialize()
-          return await Store.getDatasetMap(config.type, 'douban')
+          const entries = await Store.dbGetAll('douban_records')
+          const map = new Map<string, StoreRecord>()
+          const prefix = `${config.type}::`
+          for (const { key, record } of entries) {
+            if (key.startsWith(prefix)) {
+              map.set(key.slice(prefix.length), record)
+            }
+          }
+          return map
         })()
       }
       
@@ -239,7 +246,6 @@ function observeContainerChanges(container: Element, config: SearchPageConfig): 
           console.log(`[UMM] Found ${watchedRecords.length} watched records`)
           if (watchedRecords.length > 0) {
             console.log('[UMM] Sample watched records:', watchedRecords.slice(0, 3).map(r => ({
-              id: r.providerId,
               status: r.status,
               rating: r.rating
             })))

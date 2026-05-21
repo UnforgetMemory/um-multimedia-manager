@@ -5,7 +5,8 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Identity, Store, Utils, MediaRecord } from '@/shared'
+import { Identity, Store, Utils } from '@/shared'
+import type { StoreRecord } from '@/shared/types'
 import { initRouter } from '../content/router'
 import { injectGlobalStyles } from '../content/styles/global'
 import { FloatingToast } from '../content/utils/toast'
@@ -48,7 +49,7 @@ const PANEL_COLORS = {
 // ==================== 全局状态 ====================
 
 let currentIdentity: ReturnType<typeof Identity.fromUrl> = null
-let currentRecord: MediaRecord | null = null
+let currentRecord: StoreRecord | null = null
 let panelElement: HTMLElement | null = null
 let statusChipElement: HTMLElement | null = null
 let urlObserver: MutationObserver | null = null
@@ -85,72 +86,85 @@ export default defineContentScript({
     // 检测当前页面身份（在运行时执行）
     currentIdentity = Identity.fromUrl(window.location.href)
     
-        infoLog('Script loaded on:', window.location.href)
-        infoLog('Chrome runtime available:', !!chrome?.runtime?.id)
-        infoLog('Initializing...')
+    infoLog('Script loaded on:', window.location.href)
+    infoLog('Chrome runtime available:', !!chrome?.runtime?.id)
+    infoLog('Initializing...')
     
     if (!chrome?.runtime?.id) {
-            errorLog('Chrome runtime not available!')
+      errorLog('Chrome runtime not available!')
       return
     }
     
     try {
+      // ✅ 关键：先等待 Background Service Worker 和数据库就绪
+      // 这样后续的消息发送不会因为 DB_NOT_READY 而失败
+      infoLog('Waiting for background DB to be ready...')
+      // Wait for background DB readiness with retry
+      let attempts = 0
+      const MAX_ATTEMPTS = 8
+      while (attempts < MAX_ATTEMPTS) {
+        const ok = await Store.healthCheck()
+        if (ok) break
+        attempts++
+        await new Promise(r => setTimeout(r, Math.min(500 * Math.pow(2, attempts), 8000)))
+      }
+      infoLog('Background DB ready')
+      
       // 注入全局样式
       injectGlobalStyles()
-            infoLog('Global styles injected')
-      
-      // 使用路由器统一分发（处理豆瓣、IMDb、NeoDB、搜索页等）
-      // 注意：路由器内部会根据 URL 自动识别页面类型并调用相应处理器
-      // 对于搜索页等特殊页面，不需要依赖全局 currentIdentity
-      initRouter()
-            infoLog('Router initialized')
+      infoLog('Global styles injected')
       
       // 检测当前页面是否为支持的媒体详情页（非搜索页）
-      // 只有详情页才需要创建悬浮面板和加载记录
       if (!currentIdentity) {
-                infoLog('Not a media detail page (may be search page or unsupported)')
-        // 不要 return，让路由器继续处理
+        infoLog('Not a media detail page (may be search page or unsupported)')
       } else {
-                infoLog('Detected identity:', currentIdentity)
+        infoLog('Detected identity:', currentIdentity)
         
         // 加载当前记录
         await loadCurrentRecord()
-                infoLog('Current record loaded')
-        
-        // 非豆瓣页面：创建悬浮面板
-        if (!isDoubanDetailPage()) {
-          createFloatingPanel()
-                    infoLog('Floating panel created')
-        }
-        
-        // 监听系统主题变化
-        observeThemeChanges()
-                infoLog('Theme observer started')
-        
-        // ✅ 设置扩展上下文失效监听
-        setupContextInvalidationListener()
-        
-        // ✅ 注册页面卸载时的清理
-        window.addEventListener('beforeunload', () => {
-          if (urlObserver) {
-            urlObserver.disconnect()
-            urlObserver = null
-          }
-          if (themeChangeListener) {
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-            if (mediaQuery.removeEventListener) {
-              mediaQuery.removeEventListener('change', themeChangeListener)
-            } else if (mediaQuery.removeListener) {
-              mediaQuery.removeListener(themeChangeListener)
-            }
-          }
-          debugLog('Page cleanup completed')
-        })
+        infoLog('Current record loaded')
       }
       
-            infoLog('✅ Initialization complete')
+      // 使用路由器统一分发（处理豆瓣、IMDb、NeoDB、搜索页等）
+      // 路由器内部会根据 URL 自动识别页面类型并调用相应处理器
+      // 对于详情页，路由处理器会注入状态标签；对于搜索页，会注入增强器
+      initRouter()
+      infoLog('Router initialized')
+      
+      // 非豆瓣详情页：创建悬浮面板
+      // 豆瓣页面由路由处理器（handleDoubanDetailPage）注入状态标签到页面 DOM 中
+      if (currentIdentity && !isDoubanDetailPage()) {
+        createFloatingPanel()
+        infoLog('Floating panel created')
+      }
+      
+      // 监听系统主题变化
+      observeThemeChanges()
+      infoLog('Theme observer started')
+      
+      // ✅ 设置扩展上下文失效监听
+      setupContextInvalidationListener()
+      
+      // ✅ 注册页面卸载时的清理
+      window.addEventListener('beforeunload', () => {
+        if (urlObserver) {
+          urlObserver.disconnect()
+          urlObserver = null
+        }
+        if (themeChangeListener) {
+          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+          if (mediaQuery.removeEventListener) {
+            mediaQuery.removeEventListener('change', themeChangeListener)
+          } else if (mediaQuery.removeListener) {
+            mediaQuery.removeListener(themeChangeListener)
+          }
+        }
+        debugLog('Page cleanup completed')
+      })
+      
+      infoLog('✅ Initialization complete')
     } catch (error) {
-            errorLog('❌ Initialization failed:', error)
+      errorLog('❌ Initialization failed:', error)
     }
   },
 })
@@ -161,18 +175,23 @@ async function loadCurrentRecord() {
   if (!currentIdentity) return
   
   try {
-    await Store.initialize()
-    const map = await Store.getDatasetMap(currentIdentity.type, currentIdentity.provider)
-    currentRecord = map.get(currentIdentity.providerId) || null
+    // 使用 Store API 加载记录（通过 Background Service Worker）
+    // 添加超时保护，防止 Background 不响应时永远卡住
+    const key = `${currentIdentity!.type}::${currentIdentity!.providerId}`
+    const storeName = `${currentIdentity!.provider}_records`
+    const loadPromise = Store.dbGet(storeName, key)
     
-    // 确保记录有 id 字段
-    if (currentRecord && !currentRecord.id) {
-      currentRecord.id = `${currentRecord.provider}:${currentRecord.type}:${currentRecord.providerId}`
-    }
+    const timeoutPromise = new Promise<null>((_, reject) => 
+      setTimeout(() => reject(new Error('loadCurrentRecord timeout after 8s')), 8000)
+    )
     
-        infoLog('Current record:', currentRecord)
+    currentRecord = await Promise.race([loadPromise, timeoutPromise])
+    
+    infoLog('Current record:', currentRecord)
   } catch (error) {
-        errorLog('Failed to load record:', error)
+    warnLog('[Content] loadCurrentRecord failed:', error)
+    currentRecord = null
+    // 不要因为加载失败就阻止页面功能
   }
 }
 
@@ -245,7 +264,15 @@ async function handleDoubanDetailPage() {
       rating: recordToSave.rating,
     })
     
-    await Store.upsertRecord(recordToSave as any)
+    const storeName = `${currentIdentity.provider}_records`
+    const key = `${currentIdentity.type}::${currentIdentity.providerId}`
+    await Store.dbPut(storeName, key, {
+      url: currentIdentity.url,
+      status: 2,
+      rating: pageState.rating,
+      updatedAt: new Date().toISOString(),
+      linkedIds: {},
+    })
     
     infoLog('Updated local record from page state')
   }
@@ -763,7 +790,7 @@ async function pushToNeoDB(ratingAdjust: number) {
   }
   
   // 验证必要的字段
-  const providerId = currentRecord?.providerId || currentIdentity.providerId
+  const providerId = currentIdentity.providerId
   if (!providerId) {
     showToast('❌ 无法获取作品ID', 'error')
     return
@@ -1028,13 +1055,11 @@ function bindPanelEvents(container: HTMLElement, header: HTMLElement) {
 function updateStatus(status: number) {
   if (!currentRecord) {
     currentRecord = {
-      provider: currentIdentity!.provider,
-      type: currentIdentity!.type,
-      providerId: currentIdentity!.providerId,
       url: currentIdentity!.url,
       status,
       rating: 0,
       updatedAt: Utils.nowISO(),
+      linkedIds: {},
     }
   } else {
     currentRecord.status = status
@@ -1066,21 +1091,19 @@ async function saveRecord() {
   }
   
   try {
-    const success = await Store.upsertRecord(currentRecord)
+    const storeName = `${currentIdentity!.provider}_records`
+    const key = `${currentIdentity!.type}::${currentIdentity!.providerId}`
+    await Store.dbPut(storeName, key, currentRecord)
     
-    if (success) {
-      showToast('✅ 保存成功!', 'success')
-      
-      // 重新加载
-      await loadCurrentRecord()
-      
-      // 重新渲染
-      const content = document.getElementById('umm-panel-content')
-      if (content) {
-        renderPanelContent(content)
-      }
-    } else {
-      showNotification('❌ 保存失败')
+    showToast('✅ 保存成功!', 'success')
+    
+    // 重新加载
+    await loadCurrentRecord()
+    
+    // 重新渲染
+    const content = document.getElementById('umm-panel-content')
+    if (content) {
+      renderPanelContent(content)
     }
   } catch (error) {
     errorLog('Save failed:', error)

@@ -104,9 +104,9 @@ export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void>
   const pageState = await scanIMDbPageStatus()
 
   // 获取本地记录状态
-  await Store.initialize()
-  const map = await Store.getDatasetMap(identity.type, identity.provider)
-  const localRecord = map.get(identity.providerId) || null
+  const storeName = `${identity.provider}_records`
+  const key = `${identity.type}::${identity.providerId}`
+  const localRecord = await Store.dbGet(storeName, key)
   const isLocalDone = localRecord?.status === 2  // 2 = 已看
   const isPageDone = pageState.status === 'done'
 
@@ -124,17 +124,12 @@ export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void>
 
   // 如果页面显示已看，更新本地记录
   if (isPageDone) {
-    const id = `${identity.provider}:${identity.type}:${identity.providerId}`
-    
-    await Store.upsertRecord({
-      provider: identity.provider,
-      type: identity.type,
-      providerId: identity.providerId,
-      id,  // 添加复合主键
+    await Store.dbPut(storeName, key, {
       url: identity.url,
-      status: 2,  // 已看
+      status: 2,
       rating: pageState.rating,
       updatedAt: new Date().toISOString(),
+      linkedIds: {},
     })
 
     console.log('[UMM] Updated IMDb local record from page state')

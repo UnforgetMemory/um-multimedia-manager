@@ -13,6 +13,65 @@ import { FloatingToast } from '../utils/toast'
 import { createStatusChip } from '../utils/dom'
 import { Store } from '@/shared'
 
+/**
+ * TTL cache: serialize arbitrary data into ttl_cache store.
+ * The underlying IndexedDB accepts any value; we cast to bypass StoreRecord type.
+ */
+const TTL = 'ttl_cache'
+
+/** Store an array of strings as a set. */
+async function setAddItem(setKey: string, id: string): Promise<void> {
+  const raw: any = await Store.dbGet(TTL, setKey)
+  const arr: string[] = Array.isArray(raw) ? raw : []
+  if (!arr.includes(id)) arr.push(id)
+  await (Store as any).dbPut(TTL, setKey, arr)
+}
+
+/** Check if a set contains an id. */
+async function setHasItem(setKey: string, id: string): Promise<boolean> {
+  const raw: any = await Store.dbGet(TTL, setKey)
+  return Array.isArray(raw) && raw.includes(id)
+}
+
+/** Delete an item from a set. */
+async function setDeleteItem(setKey: string, id: string): Promise<void> {
+  const raw: any = await Store.dbGet(TTL, setKey)
+  const arr: string[] = Array.isArray(raw) ? raw : []
+  const idx = arr.indexOf(id)
+  if (idx !== -1) arr.splice(idx, 1)
+  await (Store as any).dbPut(TTL, setKey, arr)
+}
+
+/** Add an expiring id (stored as map of id → expiry timestamp). */
+async function expMapAdd(mapKey: string, id: string, ttlMs: number): Promise<void> {
+  const raw: any = await Store.dbGet(TTL, mapKey)
+  const map: Record<string, number> = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
+  map[id] = Date.now() + ttlMs
+  await (Store as any).dbPut(TTL, mapKey, map)
+}
+
+/** Check if an id exists in expiring map and hasn't expired. */
+async function expMapHas(mapKey: string, id: string): Promise<boolean> {
+  const raw: any = await Store.dbGet(TTL, mapKey)
+  const map: Record<string, number> = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
+  const expiry = map[id]
+  return expiry !== undefined && Date.now() < expiry
+}
+
+/** Get IDs with status ≥ 1 for a given type + provider. Replaces old Store.getIdSet. */
+async function getIdSet(type: string, provider: string): Promise<Set<string>> {
+  const storeName = `${provider}_records`
+  const entries = await Store.dbGetAll(storeName)
+  const ids = new Set<string>()
+  const prefix = `${type}::`
+  for (const { key, record } of entries) {
+    if (key.startsWith(prefix) && record.status >= 1) {
+      ids.add(key.slice(prefix.length))
+    }
+  }
+  return ids
+}
+
 // ==================== 常量配置 ====================
 
 const MUKAKU_CONFIG = {
@@ -180,8 +239,8 @@ class MukakuHandler {
    */
   private async markWatched(mvId: string): Promise<void> {
     if (!mvId) return
-    await Store.addIdToSet(MUKAKU_CONFIG.WATCHED_SET_KEY, mvId)
-    await Store.deleteExpiringId(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId)
+    await setAddItem(MUKAKU_CONFIG.WATCHED_SET_KEY, mvId)
+    await setDeleteItem(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId)
   }
 
   /**
@@ -189,27 +248,21 @@ class MukakuHandler {
    */
   private async markUnwatched(mvId: string): Promise<void> {
     if (!mvId) return
-    await Store.addExpiringId(
-      MUKAKU_CONFIG.UNWATCHED_TTL_KEY,
-      mvId,
-      MUKAKU_CONFIG.UNWATCHED_TTL_MS
-    )
+    await expMapAdd(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId, MUKAKU_CONFIG.UNWATCHED_TTL_MS)
   }
 
   /**
    * 检查是否在已看缓存中
    */
   private async isCachedWatched(mvId: string): Promise<boolean> {
-    const watchedSet = await Store.getIdSetByKey(MUKAKU_CONFIG.WATCHED_SET_KEY)
-    return watchedSet.has(mvId)
+    return setHasItem(MUKAKU_CONFIG.WATCHED_SET_KEY, mvId)
   }
 
   /**
    * 检查是否在未看缓存中
    */
   private async isCachedUnwatched(mvId: string): Promise<boolean> {
-    const unwatchedMap = await Store.getExpiringMap(MUKAKU_CONFIG.UNWATCHED_TTL_KEY)
-    return unwatchedMap.has(mvId)
+    return expMapHas(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId)
   }
 
   /**
@@ -301,8 +354,8 @@ class MukakuHandler {
 
     // 根据关联 ID 匹配本地记录
     if (linkedIds.doubanId || linkedIds.imdbId) {
-      const movieDoubanIds = await Store.getIdSet('movie', 'douban')
-      const imdbIds = await Store.getIdSet('movie', 'imdb')
+      const movieDoubanIds = await getIdSet('movie', 'douban')
+      const imdbIds = await getIdSet('movie', 'imdb')
 
       const matched =
         (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
@@ -380,8 +433,8 @@ class MukakuHandler {
 
         // 匹配本地记录
         if (linkedIds.doubanId || linkedIds.imdbId) {
-          const movieDoubanIds = await Store.getIdSet('movie', 'douban')
-          const imdbIds = await Store.getIdSet('movie', 'imdb')
+          const movieDoubanIds = await getIdSet('movie', 'douban')
+          const imdbIds = await getIdSet('movie', 'imdb')
 
           const matched =
             (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||

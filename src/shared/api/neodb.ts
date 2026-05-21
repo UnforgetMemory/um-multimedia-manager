@@ -8,9 +8,24 @@
  * - 用户认证
  */
 
-import type { MediaRecord } from '../types'
-import Store from '../adapters/indexeddb-store'
 import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger'
+
+// ==================== 错误类型 ====================
+
+/** Structured error with HTTP status + business message */
+export class NeoDBError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    public businessMsg?: string
+  ) {
+    const parts = [`[${status}]`]
+    if (businessMsg) parts.push(businessMsg)
+    else parts.push(statusText || 'Unknown error')
+    super(parts.join(' '))
+    this.name = 'NeoDBError'
+  }
+}
 
 // ==================== 类型定义 ====================
 
@@ -223,74 +238,7 @@ export async function getWorkByUrl(
   }
 }
 
-/**
- * 更新记录元数据
- */
-export async function enrichRecordMetadata(
-  record: MediaRecord,
-  token?: string
-): Promise<MediaRecord> {
-  try {
-    // 仅处理 NeoDB 平台的记录
-    if (record.provider !== 'neodb') {
-      return record
-    }
-
-    // 获取详细信息
-    const detail = await getWorkDetail(record.providerId, token)
-
-    if (!detail) {
-      return record
-    }
-
-    // 注意: MediaRecord 当前只包含基本字段
-    // 元数据可以存储在额外的字段中，或者通过其他方式管理
-    // 这里我们只更新评分（如果 NeoDB 有评分且本地没有）
-    if (detail.rating && record.rating === 0) {
-      const updatedRecord: MediaRecord = {
-        ...record,
-        rating: detail.rating,
-        updatedAt: new Date().toISOString(),
-      }
-
-      // 保存到存储
-      await Store.upsertRecord(updatedRecord)
-
-      infoLog('Enriched rating for:', record.providerId)
-      return updatedRecord
-    }
-
-    return record
-  } catch (error) {
-    errorLog('Enrich metadata failed:', error)
-    return record
-  }
-}
-
-/**
- * 批量更新记录元数据
- */
-export async function enrichBatchMetadata(
-  records: MediaRecord[],
-  token?: string
-): Promise<MediaRecord[]> {
-  const enrichedRecords: MediaRecord[] = []
-
-  for (const record of records) {
-    try {
-      const enriched = await enrichRecordMetadata(record, token)
-      enrichedRecords.push(enriched)
-
-      // 添加延迟以避免速率限制
-      await new Promise(resolve => setTimeout(resolve, 500))
-    } catch (error) {
-      errorLog('Failed to enrich record:', record.providerId, error)
-      enrichedRecords.push(record)
-    }
-  }
-
-  return enrichedRecords
-}
+// NOTE: enrichMetadata / enrichBatchMetadata removed — dead code, awaiting storage architecture adaptation
 
 /**
  * 验证 Token
@@ -315,36 +263,35 @@ export async function validateToken(token: string): Promise<boolean> {
 export async function fetchCatalogByUrl(
   url: string,
   token?: string
-): Promise<{ uuid: string; [key: string]: any } | null> {
-  try {
-    const params = new URLSearchParams({ url })
-    const apiUrl = `${NEOBASE_URL}/catalog/fetch?${params.toString()}`
-    
-    infoLog('Fetching catalog:', apiUrl)
-    
-    const response = await fetchWithRetry(apiUrl, {
-      method: 'GET',
-      headers: buildHeaders(token),
-    })
+): Promise<{ uuid: string; [key: string]: any }> {
+  const params = new URLSearchParams({ url })
+  const apiUrl = `${NEOBASE_URL}/catalog/fetch?${params.toString()}`
 
-    infoLog('Catalog fetch response status:', response.status)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      errorLog('Catalog fetch failed:', response.status, errorText)
-      throw new Error(`NeoDB catalog fetch error: ${response.status} ${response.statusText}`)
-    }
+  infoLog('Fetching catalog:', apiUrl)
 
-    const data = await response.json()
-    infoLog('Catalog fetch success, UUID:', data.uuid)
-    
-    return {
-      uuid: data.uuid || '',
-      ...data,
-    }
-  } catch (error) {
-    errorLog('Fetch catalog by URL failed:', error)
-    return null
+  const response = await fetchWithRetry(apiUrl, {
+    method: 'GET',
+    headers: buildHeaders(token),
+  })
+
+  infoLog('Catalog fetch response status:', response.status)
+
+  if (!response.ok) {
+    let businessMsg = ''
+    try {
+      const body = await response.json()
+      // NeoDB returns { detail: "..." } or { error: "..." } on failure
+      businessMsg = body.detail || body.error || body.message || ''
+    } catch { /* non-JSON error body */ }
+    throw new NeoDBError(response.status, response.statusText, businessMsg)
+  }
+
+  const data = await response.json()
+  infoLog('Catalog fetch success, UUID:', data.uuid)
+
+  return {
+    uuid: data.uuid || '',
+    ...data,
   }
 }
 
@@ -361,43 +308,41 @@ export async function markItem(
   shelfType: 'complete' | 'progress' | 'wishlist',
   rating?: number,
   token?: string
-): Promise<ShelfItemResponse | null> {
-  try {
-    // ✅ 正确：POST /me/shelf/item/{item_uuid}
-    const url = `${NEOBASE_URL}/me/shelf/item/${itemUuid}`
-    
-    const payload: any = {
-      shelf_type: shelfType,
-      visibility: 0,  // 0=公开
-    }
-    
-    // ✅ 正确：评分字段是 rating_grade，不是 rating
-    if (rating && rating > 0) {
-      payload.rating_grade = rating
-    }
-    
-    const response = await fetchWithRetry(url, {
-      method: 'POST',
-      headers: buildHeaders(token),
-      body: JSON.stringify(payload),
-    })
+): Promise<ShelfItemResponse> {
+  const url = `${NEOBASE_URL}/me/shelf/item/${itemUuid}`
 
-    if (!response.ok) {
-      throw new Error(`NeoDB API error: ${response.status} ${response.statusText}`)
-    }
+  const payload: any = {
+    shelf_type: shelfType,
+    visibility: 0,
+  }
 
-    const data = await response.json()
-    return {
-      uuid: data.uuid,
-      item: data.item,
-      shelf_type: data.shelf_type,
-      rating: data.rating,
-      created_time: data.created_time,
-      updated_time: data.updated_time,
-    }
-  } catch (error) {
-    errorLog('Mark item failed:', error)
-    return null
+  if (rating && rating > 0) {
+    payload.rating_grade = rating
+  }
+
+  const response = await fetchWithRetry(url, {
+    method: 'POST',
+    headers: buildHeaders(token),
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    let businessMsg = ''
+    try {
+      const body = await response.json()
+      businessMsg = body.detail || body.error || body.message || ''
+    } catch { /* non-JSON error body */ }
+    throw new NeoDBError(response.status, response.statusText, businessMsg)
+  }
+
+  const data = await response.json()
+  return {
+    uuid: data.uuid,
+    item: data.item,
+    shelf_type: data.shelf_type,
+    rating: data.rating,
+    created_time: data.created_time,
+    updated_time: data.updated_time,
   }
 }
 

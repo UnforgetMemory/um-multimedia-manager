@@ -13,6 +13,23 @@
 
 import { Store } from '@/shared'
 
+/**
+ * Get IDs with status >= 1 (wish/watched) for a given type + provider.
+ * Replaces old Store.getIdSet().
+ */
+async function getIdSet(type: string, provider: string): Promise<Set<string>> {
+  const storeName = `${provider}_records`
+  const entries = await Store.dbGetAll(storeName)
+  const ids = new Set<string>()
+  const prefix = `${type}::`
+  for (const { key, record } of entries) {
+    if (key.startsWith(prefix) && record.status >= 1) {
+      ids.add(key.slice(prefix.length))
+    }
+  }
+  return ids
+}
+
 export class PTDimmer {
   private observer: MutationObserver | null = null
   private pollTimer: number | null = null
@@ -67,8 +84,8 @@ export class PTDimmer {
    * 获取电影类已看 ID 集合（Douban + IMDb）
    */
   private async getMovieSets(): Promise<{ doubanIds: Set<string>; imdbIds: Set<string> }> {
-    const doubanIds = await Store.getIdSet('movie', 'douban')
-    const imdbIds = await Store.getIdSet('movie', 'imdb')
+    const doubanIds = await getIdSet('movie', 'douban')
+    const imdbIds = await getIdSet('movie', 'imdb')
     return { doubanIds, imdbIds }
   }
 
@@ -80,9 +97,9 @@ export class PTDimmer {
     musicDoubanIds: Set<string>
     imdbIds: Set<string>
   }> {
-    const movieDoubanIds = await Store.getIdSet('movie', 'douban')
-    const musicDoubanIds = await Store.getIdSet('music', 'douban')
-    const imdbIds = await Store.getIdSet('movie', 'imdb')
+    const movieDoubanIds = await getIdSet('movie', 'douban')
+    const musicDoubanIds = await getIdSet('music', 'douban')
+    const imdbIds = await getIdSet('movie', 'imdb')
     return { movieDoubanIds, musicDoubanIds, imdbIds }
   }
 

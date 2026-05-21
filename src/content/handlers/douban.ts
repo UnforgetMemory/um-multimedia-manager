@@ -4,7 +4,7 @@
  */
 
 import { Store, Utils } from '@/shared'
-import type { UrlIdentity, MediaRecord } from '@/shared/types'
+import type { UrlIdentity, StoreRecord } from '@/shared/types'
 import { escapeHtml, waitForElement } from '../utils/dom'
 import { safeSendMessage } from '@/shared/utils/context'
 import { FloatingToast } from '../utils/toast'
@@ -135,15 +135,15 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
 async function syncToLocalStorage(
   identity: UrlIdentity,
   pageRating: number,
-  cachedRecord?: MediaRecord | null // ✅ P1: 新增参数
+  cachedRecord?: StoreRecord | null // ✅ P1: 新增参数
 ): Promise<void> {
   console.log('[UMM Douban] Page shows watched status, saving to database...')
   
-  // 生成复合主键 id
-  const id = `${identity.provider}:${identity.type}:${identity.providerId}`
+  const storeName = `${identity.provider}_records`
+  const key = `${identity.type}::${identity.providerId}`
   
   // ✅ P1: 使用缓存的记录，避免重复查询
-  const existingRecord = cachedRecord || await Store.getRecord(id)
+  const existingRecord = cachedRecord || await Store.dbGet(storeName, key)
   
   // 重新计算变化标志（基于数据库真实数据）
   const isNewRecord = !existingRecord
@@ -153,22 +153,19 @@ async function syncToLocalStorage(
   // 判断是否有任何实质性变化
   const hasRealChange = isNewRecord || isStatusChanged || isRatingChanged
   
-  const recordToSave: MediaRecord = {
-    provider: identity.provider,
-    type: identity.type,
-    providerId: identity.providerId,
-    id,  // 添加复合主键
+  const recordToSave: StoreRecord = {
     url: identity.url,
     status: STATUS_DONE,  // 已看
     rating: pageRating,
     updatedAt: new Date().toISOString(),
+    linkedIds: existingRecord?.linkedIds || {},
   }
   
   console.log('[UMM Douban] Record to save:', recordToSave)
   console.log('[UMM Douban] Change detection:', { isNewRecord, isStatusChanged, isRatingChanged, hasRealChange })
   
   try {
-    await Store.upsertRecord(recordToSave)
+    await Store.dbPut(storeName, key, recordToSave)
     console.log('[UMM Douban] ✅ Record saved successfully')
     
     // ✅ P1: 添加防抖检查
@@ -259,36 +256,19 @@ async function getLocalRecord(identity: UrlIdentity) {
   try {
     console.log('[UMM] getLocalRecord called with:', identity)
     
-    // ✅ 修复：使用 Background 的 GET_RECORD_BY_KEY 消息，确保获取完整记录
-    const response = await new Promise<any>((resolve) => {
-      chrome.runtime.sendMessage(
-        {
-          type: 'GET_RECORD_BY_KEY',
-          payload: {
-            provider: identity.provider,
-            type: identity.type,
-            providerId: identity.providerId
-          }
-        },
-        (res) => {
-          console.log('[UMM] GET_RECORD_BY_KEY response:', res)
-          resolve(res)
-        }
-      )
-    })
+    const storeName = `${identity.provider}_records`
+    const key = `${identity.type}::${identity.providerId}`
+    const record = await Store.dbGet(storeName, key)
     
-    if (response && response.success && response.record) {
+    if (record) {
       console.log('[UMM] getLocalRecord success:', {
-        id: response.record.id,
-        neodbUuid: response.record.neodbUuid,
-        neodbShelfUuid: response.record.neodbShelfUuid
+        rating: record.rating,
+        status: record.status,
+        linkedIds: record.linkedIds
       })
-      return response.record
+      return record
     } else {
-      console.log('[UMM] getLocalRecord: record not found or failed', {
-        success: response?.success,
-        hasRecord: !!response?.record
-      })
+      console.log('[UMM] getLocalRecord: record not found')
       return null
     }
   } catch (error) {
@@ -413,15 +393,9 @@ function createDoubanStatusChip(
  */
 async function injectNeoDBPushButtons(
   identity: UrlIdentity,
-  cachedRecord?: MediaRecord | null // ✅ P1: 新增参数
+  record: StoreRecord | null
 ) {
-  const interestSect = document.querySelector('#interest_sect_level')
-  if (!interestSect) {
-    console.warn('[UMM] Could not find #interest_sect_level for NeoDB buttons')
-    return
-  }
-  
-  // ✅ 关键改进：检查页面状态，只有已看/已听才显示按钮
+  // 扫描页面状态（检测"我看过"或"我听过"）
   const pageState = scanDoubanPageStatus(identity)
   if (pageState.status !== 'done') {
     console.log('[UMM] Page not marked as done, skip NeoDB buttons')
@@ -502,16 +476,13 @@ async function injectNeoDBPushButtons(
   }
   
   // ✅ P1: 使用缓存的记录，避免重复查询
-  console.log('[UMM] injectNeoDBPushButtons called, cachedRecord:', !!cachedRecord)
-  const localRecord = cachedRecord || await getLocalRecord(identity)
+  console.log('[UMM] injectNeoDBPushButtons called, record:', !!record)
+  const localRecord = record || await getLocalRecord(identity)
   
   // ✅ 调试：输出完整的记录信息
   console.log('[UMM] Local record after query:', localRecord ? {
-    id: localRecord.id,
     rating: localRecord.rating,
     status: localRecord.status,
-    neodbUuid: localRecord.neodbUuid,
-    neodbShelfUuid: localRecord.neodbShelfUuid,
     linkedIds: localRecord.linkedIds
   } : 'null')
   
@@ -519,11 +490,10 @@ async function injectNeoDBPushButtons(
   const container = document.createElement('div')
   container.id = 'umm-neodb-push-buttons'
   
-  // ✅ 新增：检查是否已同步到 NeoDB
-  const isSynced = localRecord?.neodbUuid || localRecord?.neodbShelfUuid
+  // ✅ 检查是否已通过linkedIds同步到 NeoDB
+  const isSynced = !!(localRecord?.linkedIds?.neodb)
   console.log('[UMM] Checking synced state:', {
-    neodbUuid: localRecord?.neodbUuid,
-    neodbShelfUuid: localRecord?.neodbShelfUuid,
+    linkedIds: localRecord?.linkedIds,
     isSynced: !!isSynced
   })
   if (isSynced) {
@@ -615,7 +585,10 @@ async function injectNeoDBPushButtons(
   container.appendChild(pushOriginalBtn)
   
   // 插入到 #interest_sect_level 上方
-  interestSect.parentNode?.insertBefore(container, interestSect)
+  const interestSect = document.getElementById('interest_sect_level')
+  if (interestSect) {
+    interestSect.parentNode?.insertBefore(container, interestSect)
+  }
   
   // ✅ P0: 使用事件委托绑定事件（避免内存泄漏）
   bindNeoDBPushEvents(identity, localRecord, container)
@@ -628,7 +601,7 @@ async function injectNeoDBPushButtons(
  */
 function bindNeoDBPushEvents(
   identity: UrlIdentity, 
-  record: MediaRecord | null,
+  record: StoreRecord | null,
   container: HTMLElement
 ) {
   // ✅ P0: 使用事件委托：在容器上监听点击事件
@@ -659,11 +632,11 @@ function bindNeoDBPushEvents(
  */
 async function pushToNeoDB(
   identity: UrlIdentity, 
-  record: MediaRecord | null, 
+  record: StoreRecord | null, 
   ratingAdjust: number
 ) {
   // ✅ P0: 验证必要的字段
-  const providerId = record?.providerId || identity.providerId
+  const providerId = identity.providerId
   if (!providerId) {
     showPageToast('无法获取作品ID', 'error', 3000)
     return
@@ -764,12 +737,12 @@ async function pushToNeoDB(
  */
 async function performNeoDBPush(
   identity: UrlIdentity, 
-  record: MediaRecord | null,
+  record: StoreRecord | null,
   ratingAdjust: number
 ) {
   
   // ✅ P2: 验证必要的字段
-  const providerId = record?.providerId || identity.providerId
+  const providerId = identity.providerId
   if (!providerId) {
     throw new Error('无法获取作品ID')
   }
@@ -822,13 +795,13 @@ async function performNeoDBPush(
     const updatedRecord = await getLocalRecord(identity)
     console.log('[UMM] Updated record after sync:', updatedRecord ? 'Found' : 'Not found')
     if (updatedRecord) {
-      console.log('[UMM] neodbUuid:', updatedRecord.neodbUuid, 'neodbShelfUuid:', updatedRecord.neodbShelfUuid)
+      console.log('[UMM] Updated record after sync:', { linkedIds: updatedRecord.linkedIds })
     }
     
     // ✅ 更新按钮容器的荧光效果状态
     const container = document.getElementById('umm-neodb-push-buttons')
     if (container && updatedRecord) {
-      const isSynced = updatedRecord.neodbUuid || updatedRecord.neodbShelfUuid
+      const isSynced = !!(updatedRecord.linkedIds?.neodb)
       if (isSynced) {
         container.classList.add('umm-neodb-synced')
         console.log('[UMM] Applied synced glow effect to buttons')
