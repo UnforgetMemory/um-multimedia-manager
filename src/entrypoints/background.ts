@@ -15,7 +15,7 @@ import { mediaDB, RECORD_STORES, STORE_NAMES } from '../shared/models/database'
 import * as WebDAV from '@/shared/api/webdav'
 import { packageDataset, unpackageDataset } from '@/shared/utils/zip-utils'
 import { calculateStoreHash } from '@/shared/utils/hash-utils'
-import { debugLog, infoLog, errorLog } from '@/shared/utils/logger'
+import { debugLog, infoLog, warnLog, errorLog } from '@/shared/utils/logger'
 
 export default defineBackground({
   type: 'module',
@@ -876,20 +876,81 @@ export default defineBackground({
           return
         }
 
-        // 1. Fetch catalog UUID from Douban URL
         const doubanUrl = buildDoubanUrl(record.type, record.providerId)
-        const catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token)
+        infoLog('[NeoDB] Fetching catalog for:', doubanUrl)
 
-        // 2. Mark on shelf
+        // 1. Fetch catalog UUID with retry for 404 (NeoDB triggers background fetch on first request)
+        // 429 = NeoDB 无法抓取对应数据，无需重试
+        let catalog: { uuid: string } | null = null
+        const maxRetries = 3
+        const retryDelays = [2000, 3000, 5000] // 2s, 3s, 5s
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token)
+            infoLog('[NeoDB] Catalog result:', { uuid: catalog.uuid, hasUuid: !!catalog.uuid, attempt })
+            break // Success
+          } catch (fetchErr: any) {
+            if (fetchErr instanceof NeoDB.NeoDBError) {
+              // 429 = NeoDB 无法抓取，直接失败
+              if (fetchErr.status === 429) {
+                warnLog('[NeoDB] Rate limited (429) — NeoDB 无法抓取该作品数据')
+                sendResponse({ success: false, message: '[429] NeoDB 无法抓取该作品数据' })
+                return
+              }
+              // 404 = NeoDB 正在后台拉取，等待后重试
+              if (fetchErr.status === 404 && attempt < maxRetries) {
+                const delay = retryDelays[attempt]
+                warnLog(`[NeoDB] Catalog not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+              } else {
+                throw fetchErr
+              }
+            } else {
+              throw fetchErr
+            }
+          }
+        }
+
+        if (!catalog?.uuid) {
+          sendResponse({ success: false, message: 'NeoDB 未找到该作品（已重试多次）' })
+          return
+        }
+
+        // 2. Mark on shelf with retry for 404 only
         const shelfType = statusToShelfType(record.status ?? 0)
         const rating = record.rating ?? 0
-        const shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, token)
+        let shelfItem: any = null
 
-        sendResponse({ success: true, shelfItem })
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, token)
+            break // Success
+          } catch (markErr: any) {
+            if (markErr instanceof NeoDB.NeoDBError) {
+              if (markErr.status === 429) {
+                warnLog('[NeoDB] Rate limited (429) on markItem')
+                sendResponse({ success: false, message: '[429] NeoDB 请求过于频繁' })
+                return
+              }
+              if (markErr.status === 404 && attempt < maxRetries) {
+                const delay = retryDelays[attempt]
+                warnLog(`[NeoDB] Mark item failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+              } else {
+                throw markErr
+              }
+            } else {
+              throw markErr
+            }
+          }
+        }
+
+        infoLog('[NeoDB] Push success:', { catalogUuid: catalog.uuid, shelfItemUuid: shelfItem?.uuid })
+        sendResponse({ success: true, shelfItem, catalogUuid: catalog.uuid })
       } catch (err: any) {
-        // NeoDBError carries [status] + business message
         const msg = err instanceof NeoDB.NeoDBError
-          ? err.message  // e.g. "[404] Item not found"
+          ? err.message
           : err?.message || '推送失败'
         errorLog('NeoDB push failed:', msg)
         sendResponse({ success: false, message: msg })
