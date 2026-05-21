@@ -13,7 +13,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { 
+import {
   Moon, Sun, Settings, Database, RefreshCw,
   CheckCircle2, XCircle, Star, Download, Upload, AlertCircle
 } from 'lucide-vue-next'
@@ -642,6 +642,7 @@ const webdavConfig = ref({
 })
 
 const neodbToken = ref('')
+const autoSyncNeoDB = ref(false)
 
 // ✅ 配置保存状态指示器
 const isConfigSaved = ref(false)
@@ -725,7 +726,8 @@ async function loadSettings() {
     })
     
     neodbToken.value = settings.neodbToken || ''
-    
+    autoSyncNeoDB.value = settings.autoSyncNeoDB ?? false
+
     // 加载其他设置
     webdavConfig.value = {
       url: settings.webdavUrl || '',
@@ -831,7 +833,7 @@ async function testWebDAVConnection() {
 async function saveNeoDBToken() {
   try {
     const token = neodbToken.value.trim()
-    
+
     // ✅ 使用持久化存储（local storage），方便用户长期使用
     await Store.updateSettings({ neodbToken: token })
     await showPageToast('success', 'NeoDB Token 已保存', '评分同步功能现已激活')
@@ -840,6 +842,32 @@ async function saveNeoDBToken() {
     await showPageToast('error', '保存失败', String(error))
   }
 }
+
+// Watch autoSyncNeoDB changes and save to storage
+let autoSyncNeoDBSaving = false
+let autoSyncNeoDBInitialized = false
+watch(autoSyncNeoDB, async (newVal) => {
+  // Skip the first trigger (initial load from storage)
+  if (!autoSyncNeoDBInitialized) {
+    autoSyncNeoDBInitialized = true
+    return
+  }
+  if (autoSyncNeoDBSaving) return
+  autoSyncNeoDBSaving = true
+  try {
+    await Store.updateSettings({ autoSyncNeoDB: newVal })
+    if (newVal) {
+      await showPageToast('success', '已开启自动同步到 NeoDB', '豆瓣页面首次检测到已看/听时将自动推送评分')
+    } else {
+      await showPageToast('info', '已关闭自动同步到 NeoDB')
+    }
+  } catch (error) {
+    console.error('Failed to save autoSyncNeoDB:', error)
+    await showPageToast('error', '保存失败', String(error))
+  } finally {
+    autoSyncNeoDBSaving = false
+  }
+})
 
 async function exportData() {
   try {
@@ -1690,6 +1718,33 @@ onMounted(() => {
               <Button @click="saveNeoDBToken" class="w-full font-medium">
                 保存 Token
               </Button>
+
+              <!-- 自动同步开关（仅当 Token 已配置时显示） -->
+              <div v-if="neodbToken.trim()" class="flex items-center justify-between rounded-lg border p-3">
+                <div class="space-y-0.5">
+                  <Label class="font-medium">自动同步到 NeoDB</Label>
+                  <p class="text-xs text-muted-foreground">
+                    豆瓣页面首次写入时自动推送评分
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="autoSyncNeoDB"
+                  :class="[
+                    'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+                    autoSyncNeoDB ? 'bg-primary' : 'bg-input'
+                  ]"
+                  @click="autoSyncNeoDB = !autoSyncNeoDB"
+                >
+                  <span
+                    :class="[
+                      'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      autoSyncNeoDB ? 'translate-x-5' : 'translate-x-0'
+                    ]"
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </CardContent>

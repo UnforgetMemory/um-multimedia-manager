@@ -197,6 +197,32 @@ async function syncToLocalStorage(
     console.error('[UMM Douban] ❌ Failed to save record:', error)
     showNotification('❌ 同步状态失败')
   }
+
+  // ✅ Auto-sync to NeoDB on FIRST record only (independent of notification cooldown)
+  // "首次" = 本地数据库中不存在该豆瓣 key 的记录
+  if (isNewRecord) {
+    try {
+      const settings = await Store.getSettings()
+      if (settings.autoSyncNeoDB && settings.neodbToken) {
+        console.log('[UMM Douban] 🔄 Auto-syncing to NeoDB (first record)...')
+        await safeSendMessage({
+          type: 'NEODB_PUSH_RATING',
+          payload: {
+            record: {
+              providerId: identity.providerId,
+              rating: pageRating,
+              status: STATUS_DONE,
+              type: identity.type,
+              provider: identity.provider,
+            },
+          },
+        }, { timeout: 10000 })
+        console.log('[UMM Douban] ✅ Auto-synced to NeoDB')
+      }
+    } catch (syncErr) {
+      console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed:', syncErr)
+    }
+  }
 }
 
 /**

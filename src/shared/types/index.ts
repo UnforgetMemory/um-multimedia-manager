@@ -51,6 +51,7 @@ export interface NeoDBSettings {
 
 export interface AppSettings extends WebDAVSettings, NeoDBSettings {
   autoSync?: boolean
+  autoSyncNeoDB?: boolean
   syncInterval?: number
   theme?: 'auto' | 'light' | 'dark'
   language?: string
