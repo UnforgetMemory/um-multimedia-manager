@@ -49,7 +49,7 @@ jobs:
           if [ "${{ matrix.browser }}" = "chrome" ]; then
             zip -r ../umm-${{ steps.version.outputs.VERSION }}-chrome.zip chrome-mv3/
           else
-            zip -r ../umm-${{ steps.version.outputs.VERSION }}-firefox.zip firefox-mv3/
+            zip -r ../umm-${{ steps.version.outputs.VERSION }}-firefox.zip firefox-mv2/
           fi
       
       - name: Upload artifact
