@@ -64,5 +64,8 @@ releases/
 *~
 .DS_Store
 
+# Test artifacts
+tests/
+
 # Sisyphus agent sessions
 .sisyphus/
