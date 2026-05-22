@@ -9,9 +9,94 @@
  */
 
 import { RequestQueue } from '@/shared/utils/requestQueue'
-import { FloatingToast } from '../utils/toast'
+import { FloatingToast, PersistentToast } from '../utils/toast'
 import { createStatusChip } from '../utils/dom'
 import { Store } from '@/shared'
+
+// ─── 全局 Toast 单例控制器 ──────────────────────────────────
+/**
+ * 确保全局只有一个 Mukaku toast 实例
+ * 解决多个 toast 同时出现的问题
+ */
+class MukakuToastController {
+  private static instance: PersistentToast | null = null
+  private static closeTimer: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * 获取或创建 toast 实例
+   */
+  static getOrCreate(): PersistentToast {
+    // 如果已有实例且未关闭，直接复用
+    if (MukakuToastController.instance) {
+      // 清除待关闭的定时器（如果有新任务到来）
+      if (MukakuToastController.closeTimer) {
+        clearTimeout(MukakuToastController.closeTimer)
+        MukakuToastController.closeTimer = null
+      }
+      return MukakuToastController.instance
+    }
+
+    // 创建新实例
+    MukakuToastController.instance = FloatingToast.persistent('Mukaku 链路队列中', 'loading')
+    return MukakuToastController.instance
+  }
+
+  /**
+   * 更新 toast 内容
+   */
+  static update(message: string, progress: number): void {
+    const toast = MukakuToastController.getOrCreate()
+    toast.update({ message, progress })
+  }
+
+  /**
+   * 显示成功状态（保持显示，不自动关闭）
+   */
+  static success(message: string): void {
+    const toast = MukakuToastController.instance
+    if (!toast) return
+
+    // 使用 successKeep() 显示成功状态但不自动关闭
+    toast.successKeep(message)
+    
+    // toast 会保持显示，直到下次创建新 toast 或调用 close()
+  }
+
+  /**
+   * 显示错误状态并延迟关闭
+   */
+  static error(message: string): void {
+    const toast = MukakuToastController.instance
+    if (!toast) return
+
+    toast.error(message)
+    MukakuToastController.closeTimer = setTimeout(() => {
+      MukakuToastController.instance = null
+      MukakuToastController.closeTimer = null
+    }, 3000)
+  }
+
+  /**
+   * 立即关闭并清理
+   */
+  static close(): void {
+    if (MukakuToastController.closeTimer) {
+      clearTimeout(MukakuToastController.closeTimer)
+      MukakuToastController.closeTimer = null
+    }
+    if (MukakuToastController.instance) {
+      MukakuToastController.instance.close()
+      MukakuToastController.instance = null
+    }
+  }
+
+  /**
+   * 检查是否有活跃的 toast
+   */
+  static hasActive(): boolean {
+    return MukakuToastController.instance !== null
+  }
+}
 
 /**
  * TTL cache: serialize arbitrary data into ttl_cache store.
@@ -72,6 +157,26 @@ async function getIdSet(type: string, provider: string): Promise<Set<string>> {
   return ids
 }
 
+/** Probe cache entry structure. */
+interface ProbeCacheEntry {
+  doubanId: string | null
+  imdbId: string | null
+  ts: number
+}
+
+/** Save probe result to IndexedDB persistent cache. */
+async function probeCacheSet(mvId: string, entry: ProbeCacheEntry): Promise<void> {
+  await (Store as any).dbPut(TTL, `${MUKAKU_CONFIG.PROBE_CACHE_KEY}:${mvId}`, entry)
+}
+
+/** Get probe result from IndexedDB persistent cache (returns null if expired or missing). */
+async function probeCacheGet(mvId: string): Promise<ProbeCacheEntry | null> {
+  const raw: any = await Store.dbGet(TTL, `${MUKAKU_CONFIG.PROBE_CACHE_KEY}:${mvId}`)
+  if (!raw || typeof raw !== 'object' || typeof raw.ts !== 'number') return null
+  if (Date.now() - raw.ts > MUKAKU_CONFIG.PROBE_CACHE_TTL_MS) return null
+  return raw as ProbeCacheEntry
+}
+
 // ==================== 常量配置 ====================
 
 const MUKAKU_CONFIG = {
@@ -82,10 +187,12 @@ const MUKAKU_CONFIG = {
   WATCHED_SET_KEY: 'umm:cache:mukaku:watched',
   UNWATCHED_TTL_KEY: 'umm:cache:mukaku:unwatched',
   UNWATCHED_TTL_MS: 60 * 60 * 1000, // 1小时
+  PROBE_CACHE_KEY: 'umm:cache:mukaku:probe',
+  PROBE_CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7天
 }
 
 const NETWORK_CONFIG = {
-  MAX_CONCURRENT: 2,
+  MAX_CONCURRENT: 10,
   MIN_DELAY_MS: 420,
   MAX_DELAY_MS: 980,
   TIMEOUT_MS: 15000,
@@ -97,28 +204,82 @@ class MukakuHandler {
   private queue: RequestQueue | null = null
   private probeCache = new Map<string, { doubanId: string | null; imdbId: string | null }>()
   private listObserver: MutationObserver | null = null
+  private lastToastUpdate = 0
+  private toastUpdateTimer: ReturnType<typeof setTimeout> | null = null
+  private isProcessing = false  // 是否正在处理卡片批次
+  private processDebounceTimer: ReturnType<typeof setTimeout> | null = null
+  private latestToastState: { message: string; progress: number } | null = null
 
   /**
-   * 确保请求队列存在
+   * 确保请求队列存在（始终复用同一个队列实例）
    */
   private ensureQueue(): RequestQueue {
-    if (this.queue) return this.queue
+    // 已有队列则直接复用
+    if (this.queue) {
+      // 仅在非处理期间且队列空闲时重置 totalCount
+      if (!this.isProcessing && this.queue.isIdle()) {
+        this.queue.resetTotal()
+      }
+      return this.queue
+    }
 
+    // 首次创建队列
     this.queue = new RequestQueue({
       maxConcurrent: NETWORK_CONFIG.MAX_CONCURRENT,
       minDelayMs: NETWORK_CONFIG.MIN_DELAY_MS,
       maxDelayMs: NETWORK_CONFIG.MAX_DELAY_MS,
-      onStateChange: ({ queued, active, currentKey }) => {
-        if (!queued && !active) return
-        
+      onStateChange: ({ queued, active, currentKey, total }) => {
+        // 队列空闲时关闭 toast
+        if (!queued && !active) {
+          if (MukakuToastController.hasActive()) {
+            MukakuToastController.success(`队列处理完成 · 全部 ${total} 项`)
+          }
+          return
+        }
+
+        // 计算进度（已完成 = total - queued - active）
+        const completed = total - queued - active
+        const progress = total > 0 ? Math.round((completed / total) * 100) : 0
+
+        // 构建消息
         const parts: string[] = []
-        parts.push(`并发 ${active}/${NETWORK_CONFIG.MAX_CONCURRENT}`)
-        parts.push(`排队 ${queued}`)
+        parts.push(`已完成 ${completed} / 全部 ${total}`)
+        if (active > 0) {
+          parts.push(`并发 ${active}`)
+        }
         if (currentKey) {
           parts.push(`当前 ${currentKey}`)
         }
-        
-        FloatingToast.info('Mukaku 链路队列中', parts.join(' · '))
+
+        // 存储最新状态到类属性（供节流定时器使用）
+        this.latestToastState = { message: parts.join(' · '), progress }
+
+        const now = Date.now()
+        const updateFn = () => {
+          // 使用全局单例控制器更新 toast
+          if (this.latestToastState) {
+            MukakuToastController.update(
+              this.latestToastState.message,
+              this.latestToastState.progress
+            )
+          }
+          this.lastToastUpdate = Date.now()
+        }
+
+        // 节流：至少间隔 800ms 更新一次 DOM
+        if (now - this.lastToastUpdate >= 800) {
+          if (this.toastUpdateTimer) {
+            clearTimeout(this.toastUpdateTimer)
+            this.toastUpdateTimer = null
+          }
+          updateFn()
+        } else if (!this.toastUpdateTimer) {
+          this.toastUpdateTimer = setTimeout(() => {
+            this.toastUpdateTimer = null
+            // 使用最新的状态（this.latestToastState 已被更新）
+            updateFn()
+          }, 800 - (now - this.lastToastUpdate))
+        }
       },
     })
 
@@ -209,12 +370,20 @@ class MukakuHandler {
       return { doubanId: null, imdbId: null }
     }
 
-    // 检查缓存
+    // 1. 检查内存缓存（最快）
     if (this.probeCache.has(mvId)) {
       return this.probeCache.get(mvId)!
     }
 
-    // 通过队列执行请求
+    // 2. 检查 IndexedDB 持久化缓存
+    const cached = await probeCacheGet(mvId)
+    if (cached) {
+      const result = { doubanId: cached.doubanId, imdbId: cached.imdbId }
+      this.probeCache.set(mvId, result)
+      return result
+    }
+
+    // 3. 通过队列执行请求
     const linkedIds = await this.ensureQueue().enqueue(mvId, async () => {
       const response = await fetch(this.getApiUrl(mvId), {
         method: 'GET',
@@ -229,8 +398,9 @@ class MukakuHandler {
       return this.extractLinkedIdsFromPayload(payload)
     })
 
-    // 缓存结果
+    // 4. 缓存结果到内存和 IndexedDB
     this.probeCache.set(mvId, linkedIds)
+    await probeCacheSet(mvId, { ...linkedIds, ts: Date.now() })
     return linkedIds
   }
 
@@ -303,7 +473,11 @@ class MukakuHandler {
       await this.renderDetailState(infoRoot, mvId)
     } catch (error) {
       console.error('[Mukaku] Detail page rendering failed:', error)
-      FloatingToast.error('Mukaku 详情探测失败', String(error))
+      if (MukakuToastController.hasActive()) {
+        MukakuToastController.error(`详情探测失败: ${error}`)
+      } else {
+        FloatingToast.error('Mukaku 详情探测失败', String(error))
+      }
     }
   }
 
@@ -347,7 +521,11 @@ class MukakuHandler {
         linkedIds = await this.probeLinkedIds(mvId)
       } catch (error) {
         console.error('[Mukaku] API probe failed:', error)
-        FloatingToast.error('Mukaku API 探测失败', String(error))
+        if (MukakuToastController.hasActive()) {
+          MukakuToastController.error(`API 探测失败: ${error}`)
+        } else {
+          FloatingToast.error('Mukaku API 探测失败', String(error))
+        }
         return
       }
     }
@@ -384,9 +562,17 @@ class MukakuHandler {
    * 处理列表页
    */
   public async handleListPage(): Promise<void> {
-    // 监听新卡片出现
+    // 监听新卡片出现（防抖处理，等待 DOM 稳定后再处理）
     this.listObserver = new MutationObserver(() => {
-      this.processVisibleCards()
+      // 清除之前的防抖定时器
+      if (this.processDebounceTimer) {
+        clearTimeout(this.processDebounceTimer)
+      }
+      // 设置新的防抖定时器（300ms 后执行）
+      this.processDebounceTimer = setTimeout(() => {
+        this.processDebounceTimer = null
+        this.processVisibleCards()
+      }, 300)
     })
 
     this.listObserver.observe(document.body, {
@@ -402,56 +588,107 @@ class MukakuHandler {
    * 处理可见的视频卡片
    */
   private async processVisibleCards(): Promise<void> {
+    // 如果正在处理中，跳过本次调用（防抖会确保后续调用）
+    if (this.isProcessing) {
+      console.log('[Mukaku] Already processing, skipping...')
+      return
+    }
+
     const cards = document.querySelectorAll('.video-card')
     
+    // 收集未处理的卡片
+    const unprocessed: Array<{ cardEl: HTMLElement; mvId: string }> = []
     for (const card of Array.from(cards)) {
       const cardEl = card as HTMLElement
-      
-      // 跳过已处理的卡片
       if (cardEl.getAttribute('data-umm-mukaku-processed') === 'true') continue
-      
-      // 提取 mvId
       const mvId = this.extractMvId(cardEl)
       if (!mvId) continue
-
-      // 标记为已处理
       cardEl.setAttribute('data-umm-mukaku-processed', 'true')
+      unprocessed.push({ cardEl, mvId })
+    }
 
-      // 检查缓存
-      if (await this.isCachedWatched(mvId)) {
-        cardEl.classList.add('umm-dimmed')
-        continue
-      }
+    if (unprocessed.length === 0) return
 
-      if (await this.isCachedUnwatched(mvId)) {
-        continue
-      }
+    // 标记开始处理批次（防止队列重置和并发执行）
+    this.isProcessing = true
 
-      // 探测关联 ID
-      try {
-        const linkedIds = await this.probeLinkedIds(mvId)
+    try {
+      // 获取本地记录（只需获取一次）
+      const movieDoubanIds = await getIdSet('movie', 'douban')
+      const imdbIds = await getIdSet('movie', 'imdb')
 
-        // 匹配本地记录
-        if (linkedIds.doubanId || linkedIds.imdbId) {
-          const movieDoubanIds = await getIdSet('movie', 'douban')
-          const imdbIds = await getIdSet('movie', 'imdb')
+      // 并行检查所有卡片的缓存状态
+      const cacheResults = await Promise.all(
+        unprocessed.map(async ({ cardEl, mvId }) => {
+          // 检查已看/未看缓存
+          const [isWatched, isUnwatched] = await Promise.all([
+            this.isCachedWatched(mvId),
+            this.isCachedUnwatched(mvId)
+          ])
 
-          const matched =
-            (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
-            (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
-
-          if (matched) {
-            await this.markWatched(mvId)
+          if (isWatched) {
             cardEl.classList.add('umm-dimmed')
-          } else {
-            await this.markUnwatched(mvId)
+            return { cardEl, mvId, status: 'watched' as const }
           }
-        } else {
-          await this.markUnwatched(mvId)
-        }
-      } catch (error) {
-        console.error('[Mukaku] Card processing failed:', error)
+          if (isUnwatched) {
+            return { cardEl, mvId, status: 'unwatched' as const }
+          }
+
+          // 检查 IndexedDB 持久化缓存
+          const cached = await probeCacheGet(mvId)
+          if (cached) {
+            const result = { doubanId: cached.doubanId, imdbId: cached.imdbId }
+            this.probeCache.set(mvId, result)
+            const matched =
+              (result.doubanId && movieDoubanIds.has(result.doubanId)) ||
+              (result.imdbId && imdbIds.has(result.imdbId))
+            if (matched) {
+              await this.markWatched(mvId)
+              cardEl.classList.add('umm-dimmed')
+            } else {
+              await this.markUnwatched(mvId)
+            }
+            return { cardEl, mvId, status: 'cached' as const }
+          }
+
+          return { cardEl, mvId, status: 'need-probe' as const }
+        })
+      )
+
+      // 筛选需要 API 探测的卡片
+      const needProbe = cacheResults.filter(r => r.status === 'need-probe')
+
+      // 并行探测所有未命中缓存的卡片（队列会控制并发数）
+      if (needProbe.length > 0) {
+        await Promise.all(
+          needProbe.map(async ({ cardEl, mvId }) => {
+            try {
+              const linkedIds = await this.probeLinkedIds(mvId)
+
+              if (linkedIds.doubanId || linkedIds.imdbId) {
+                const matched =
+                  (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
+                  (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
+
+                if (matched) {
+                  await this.markWatched(mvId)
+                  cardEl.classList.add('umm-dimmed')
+                } else {
+                  await this.markUnwatched(mvId)
+                }
+              } else {
+                await this.markUnwatched(mvId)
+              }
+            } catch (error) {
+              console.error('[Mukaku] Card processing failed:', error)
+              // 单个卡片失败不影响其他卡片
+            }
+          })
+        )
       }
+    } finally {
+      // 标记批次处理完成
+      this.isProcessing = false
     }
   }
 
@@ -463,7 +700,17 @@ class MukakuHandler {
       this.listObserver.disconnect()
       this.listObserver = null
     }
+    if (this.processDebounceTimer) {
+      clearTimeout(this.processDebounceTimer)
+      this.processDebounceTimer = null
+    }
+    if (this.toastUpdateTimer) {
+      clearTimeout(this.toastUpdateTimer)
+      this.toastUpdateTimer = null
+    }
     this.queue = null
+    MukakuToastController.close()
+    this.latestToastState = null
     this.probeCache.clear()
   }
 }
