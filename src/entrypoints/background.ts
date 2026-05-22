@@ -16,6 +16,7 @@ import * as WebDAV from '@/shared/api/webdav'
 import { packageDataset, unpackageDataset } from '@/shared/utils/zip-utils'
 import { calculateStoreHash } from '@/shared/utils/hash-utils'
 import { debugLog, infoLog, warnLog, errorLog } from '@/shared/utils/logger'
+import { validateExportVersion, getMigrationInfo, MigrationError } from '@/shared/models/migrations'
 
 export default defineBackground({
   type: 'module',
@@ -160,6 +161,12 @@ export default defineBackground({
         return
       }
 
+      // ✅ SHOW_TOAST bypasses all DB gates — it's a pure UI message, no DB needed
+      if (message.type === 'SHOW_TOAST') {
+        await handleShowToast(message.payload, sendResponse)
+        return
+      }
+
       // Queue message if DB not ready
       if (!dbReady && !dbInitFailed) {
         pendingMessages.push({ message, sender: _sender, sendResponse })
@@ -214,6 +221,37 @@ export default defineBackground({
           case 'DB_COUNT': {
             const count = await mediaDB.count(message.payload.storeName)
             sendResponse({ success: true, count })
+            break
+          }
+          case 'DB_GET_WATCHED_IDS': {
+            const { storeNames } = message.payload
+            const results: Record<string, string[]> = {}
+            for (const storeName of storeNames) {
+              const ids = await mediaDB.getWatchedIds(storeName)
+              results[storeName] = Array.from(ids)
+            }
+            sendResponse({ success: true, results })
+            break
+          }
+          case 'PT_ID_CACHE_GET': {
+            const entry = await mediaDB.getCacheEntry(message.payload.ptUrl)
+            sendResponse({ success: true, entry })
+            break
+          }
+          case 'PT_ID_CACHE_PUT': {
+            const { entry } = message.payload
+            await mediaDB.putCacheEntry(entry)
+            sendResponse({ success: true })
+            break
+          }
+          case 'PT_ID_CACHE_GET_BULK': {
+            const { ptUrls } = message.payload
+            const entries: Record<string, any> = {}
+            for (const ptUrl of ptUrls) {
+              const entry = await mediaDB.getCacheEntry(ptUrl)
+              if (entry) entries[ptUrl] = entry
+            }
+            sendResponse({ success: true, entries })
             break
           }
           case 'DB_SYNC_PAGE_RECORD': {
@@ -281,9 +319,11 @@ export default defineBackground({
             sendResponse({ success: true, dbReady, uptime: Date.now() - startTime })
             break
 
-          case 'SHOW_TOAST':
-            await handleShowToast(message.payload, sendResponse)
+          case 'GET_MIGRATION_STATUS':
+            sendResponse({ success: true, migration: getMigrationInfo() })
             break
+
+          // SHOW_TOAST is handled above the dbReady gate (pure UI message)
 
           // ==================== WebDAV Sync ====================
           case 'WEBDAV_TEST':
@@ -387,10 +427,27 @@ export default defineBackground({
         return
       }
 
+      // Validate export data version compatibility
+      try {
+        validateExportVersion(payload.version ?? 1)
+      } catch (err) {
+        if (err instanceof MigrationError) {
+          warnLog(`Import rejected: ${err.message}`)
+          sendResponse({
+            success: false,
+            error: err.message,
+            errorCode: err.code,
+            errorDetails: err.details,
+          })
+          return
+        }
+        throw err
+      }
+
       // Clear all stores first
       await mediaDB.clearAll()
 
-      // Import each store
+      // Import each store — put() auto-stamps schemaVersion
       let totalImported = 0
       for (const [storeName, records] of Object.entries(payload.stores)) {
         // Only import recognized record stores
@@ -447,19 +504,163 @@ export default defineBackground({
 
     async function handleShowToast(payload: any, sendResponse: (r?: any) => void) {
       try {
-        // Forward toast to active tab's content script
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-        if (tab?.id) {
-          await chrome.tabs.sendMessage(tab.id, {
-            type: 'SHOW_TOAST',
-            payload: { type: payload?.type || 'info', title: payload?.title || '', message: payload?.message },
-          })
+        if (!tab?.id) {
+          sendResponse({ success: false, error: 'No active tab' })
+          return
         }
+
+        const toastPayload = { type: payload?.type || 'info', title: payload?.title || '', message: payload?.message }
+
+        // 1) 尝试发送到已加载的内容脚本
+        try {
+          await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', payload: toastPayload })
+          sendResponse({ success: true })
+          return
+        } catch {
+          // 内容脚本未加载 — 走动态注入
+        }
+
+        // 2) 动态注入轻量级 toast（适用于任何页面）
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: __showInlineToast,
+          args: [toastPayload.type, toastPayload.title, toastPayload.message || ''],
+        })
         sendResponse({ success: true })
       } catch (err) {
-        // Content script may not be on a matching page — not critical
-        sendResponse({ success: true })
+        sendResponse({ success: false })
       }
+    }
+
+    /** 轻量级内联 toast — 注入到任意页面，样式与 FloatingToast 完全一致 */
+    function __showInlineToast(type: string, title: string, message: string) {
+      const CONTAINER_ID = 'umm-toast-container'
+      const STYLES_ID = 'umm-toast-styles'
+      const MAX_TOASTS = 3
+      const AUTO_REMOVE_MS = 2800
+
+      // 注入样式（与 toast.ts 完全一致）
+      if (!document.getElementById(STYLES_ID)) {
+        const style = document.createElement('style')
+        style.id = STYLES_ID
+        style.textContent = `
+          .umm-toast {
+            padding: 14px 18px;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            min-width: 300px;
+            max-width: 420px;
+            transform: translateX(120%);
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          }
+          .umm-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          .umm-toast--success {
+            background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
+            color: white;
+          }
+          .umm-toast--error {
+            background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
+            color: white;
+          }
+          .umm-toast--info {
+            background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
+            color: white;
+          }
+          .umm-toast--loading {
+            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+          }
+          .umm-toast strong {
+            display: block;
+            margin-bottom: 4px;
+          }
+          .umm-toast p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+          }
+        `
+        document.documentElement.appendChild(style)
+      }
+
+      // 获取或创建容器
+      let ctr = document.getElementById(CONTAINER_ID)
+      if (!ctr) {
+        ctr = document.createElement('div')
+        ctr.id = CONTAINER_ID
+        ctr.style.cssText = `
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 999999;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          align-items: flex-end;
+          pointer-events: none;
+        `
+        ctr.setAttribute('role', 'region')
+        ctr.setAttribute('aria-label', '通知区域')
+        document.body.appendChild(ctr)
+      }
+
+      // 去重：同标题 2s 内替换
+      const now = Date.now()
+      for (const child of Array.from(ctr.children)) {
+        const el = child as HTMLElement
+        if (el.dataset.ummTitle === title && now - Number(el.dataset.ummTs || 0) < 2000) {
+          el.dataset.ummTs = String(now)
+          const pEl = el.querySelector('p')
+          if (pEl && message) pEl.textContent = message
+          return
+        }
+      }
+
+      // 限制数量
+      while (ctr.children.length >= MAX_TOASTS) {
+        const first = ctr.firstElementChild as HTMLElement | null
+        if (first) {
+          first.classList.remove('show')
+          setTimeout(() => first.remove(), 350)
+        }
+        ctr.firstChild?.remove()
+      }
+
+      // 创建 toast（与 createToastElement 结构一致）
+      const toast = document.createElement('div')
+      toast.className = `umm-toast umm-toast--${type}`
+      toast.dataset.ummTitle = title
+      toast.dataset.ummTs = String(now)
+      toast.setAttribute('role', 'alert')
+      toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite')
+      toast.setAttribute('aria-atomic', 'true')
+
+      const content = document.createElement('div')
+      content.className = 'umm-toast__content'
+      content.innerHTML = `<strong>${title}</strong>${message ? `<p>${message}</p>` : ''}`
+      toast.appendChild(content)
+
+      ctr.appendChild(toast)
+
+      // 入场动画
+      requestAnimationFrame(() => toast.classList.add('show'))
+
+      // 自动移除
+      setTimeout(() => {
+        toast.classList.remove('show')
+        setTimeout(() => toast.remove(), 350)
+      }, AUTO_REMOVE_MS)
     }
 
     // ==================== WebDAV Sync Handlers ====================

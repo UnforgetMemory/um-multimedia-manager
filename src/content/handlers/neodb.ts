@@ -191,6 +191,7 @@ export async function handleNeoDBDetailPage(identity: UrlIdentity): Promise<void
       updatedAt: new Date().toISOString(),
       linkedIds,
     })
+    FloatingToast.success('UMM', '✅ 已保存 NeoDB 观看状态')
     console.log('[UMM] ✅ Updated NeoDB local record with linkedIds:', linkedIds)
   } else if (!localRecord || JSON.stringify(localRecord.linkedIds || {}) !== JSON.stringify(linkedIds)) {
     // 即使页面未标记，也保存 linkedIds 确保关联不丢失
@@ -201,6 +202,7 @@ export async function handleNeoDBDetailPage(identity: UrlIdentity): Promise<void
       updatedAt: new Date().toISOString(),
       linkedIds,
     })
+    FloatingToast.success('UMM', '✅ 已更新 NeoDB 数据关联')
     console.log('[UMM] ✅ Saved NeoDB linkedIds (page not marked):', linkedIds)
   }
   

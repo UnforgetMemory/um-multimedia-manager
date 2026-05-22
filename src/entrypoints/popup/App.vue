@@ -25,24 +25,16 @@ import {
   CheckCircle2, XCircle, Star, Download, Upload, AlertCircle, Link
 } from 'lucide-vue-next'
 
-// ✅ 辅助函数：通过 Background 向当前活动页面发送 Toast
-async function showPageToast(type: 'success' | 'error' | 'info', title: string, message?: string) {
+// ✅ 辅助函数：通过 Background 向当前活动页面发送 Toast（fire-and-forget，不阻塞 UI）
+// 注意：content script 必须在当前活动标签页加载才能显示 toast
+function showPageToast(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) {
   try {
-    await safeSendMessage(
-      {
-        type: 'SHOW_TOAST',
-        payload: { type, title, message }
-      },
-      {
-        timeout: 3000,
-        fallback: () => {
-          // ✅ 不再回退到 Popup Toast，仅记录日志
-          console.warn('[Popup] Failed to send page toast:', type, title, message)
-        }
-      }
+    chrome.runtime.sendMessage(
+      { type: 'SHOW_TOAST', payload: { type, title, message } },
+      () => { /* fire-and-forget — 忽略响应 */ void chrome.runtime.lastError }
     )
   } catch (error) {
-    console.warn('[Popup] Failed to send page toast:', error)
+    // 静默失败 — toast 是非关键 UI 反馈
   }
 }
 
@@ -1392,7 +1384,7 @@ async function executeSyncWithCloud() {
       {
         timeout: 30000,
         fallback: () => {
-          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
+          showPageToast('error', '扩展上下文已失效', '请重新打开 Popup')
         }
       }
     )

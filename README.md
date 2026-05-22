@@ -1,82 +1,157 @@
-# UMM - 多媒体管理器 (Chrome Extension)
+# UMM — 多媒体管理器
 
-基于 Vue 3 + TypeScript + shadcn/ui 开发的现代 Chrome 浏览器扩展,用于管理多平台观影/收听记录。
+![Version](https://img.shields.io/badge/版本-1.4.0-blue)
+![Chrome](https://img.shields.io/badge/Chrome-88%2B-brightgreen)
+![Manifest](https://img.shields.io/badge/Manifest-V3-orange)
+![License](https://img.shields.io/badge/许可证-MIT-green)
+
+**UMM (Unified Multimedia Manager)** 是一款基于 Manifest V3 的 Chrome 浏览器扩展，帮你统一管理多平台的观影和收听记录。它不仅能跨平台标记"看过/听过"，还能在 PT 站点自动标注已看过的内容，省去反复对照的麻烦。
+
+---
 
 ## 功能特性
 
-- **多平台支持**: 豆瓣、IMDB、NeoDB、TMDB
-- **快速标记**: 悬浮面板一键标记状态和评分
-- **数据同步**: WebDAV 云端备份与 ZIP 格式导入导出
-- **元数据增强**: NeoDB API 自动获取评分
-- **主题系统**: 亮色/暗色/跟随系统模式
+- **🎯 跨平台标记** — 在豆瓣（电影/音乐）、IMDb、NeoDB、TMDB 页面上通过悬浮面板一键标记状态和评分
+- **🔗 ID 关联** — 自动建立豆瓣 ↔ IMDb ↔ NeoDB 的多平台 ID 映射，一份记录关联所有平台
+- **🌙 PT 站点自动变暗** — M-Team、Audiences、HDHome、HDArea、OurBits、PTerClub 等 PT 站点上，已标记的种子自动置灰淡化，一眼分辨是否看过
+- **📦 WebDAV 云端备份** — 支持 WebDAV 协议备份数据，同时提供 ZIP 格式的手动导出/导入
+- **🧩 NeoDB API 集成** — 自动从 NeoDB 拉取评分和元数据，丰富你的收藏记录
+- **🎨 主题切换** — 亮色、暗色、跟随系统，三种主题自由切换
+- **⚡ Service Worker 架构** — 后台 Service Worker 周期性同步、缓存清理，无需保持页面打开
+- **📊 统计看板** — 弹出面板中查看所有记录的统计、搜索和筛选
+
+## 支持的站点
+
+| 类型 | 站点 | 用途 |
+|------|------|------|
+| 影视平台 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` | 观影标记与元数据 |
+| 音乐平台 | `music.douban.com` `neodb.social/album` | 收听标记 |
+| PT 站点 | `m-team.cc` `audiences.me` `hdhome.org` `hdarea.club` `ourbits.club` `pterclub.net` | 已看种子自动淡化 |
+| 其他 | `search.douban.com` `mukaku.com` | 搜索增强与记录同步 |
 
 ## 技术栈
 
-- **框架**: Vue 3 (Composition API) + TypeScript
-- **构建工具**: Vite + @crxjs/vite-plugin
-- **UI 组件**: shadcn/ui + Tailwind CSS
-- **图标**: Lucide Icons
-- **架构**: Manifest V3 (Service Worker + Content Scripts + Popup)
+| 技术 | 用途 |
+|------|------|
+| **Vue 3 (Composition API)** | UI 框架 |
+| **TypeScript** | 类型安全 |
+| **WXT** | Chrome 扩展构建工具（替代 CRXJS） |
+| **Tailwind CSS v4** | 样式方案 |
+| **shadcn/vue (reka-ui)** | 组件库 |
+| **VueUse** | Composition API 工具库 |
+| **IndexedDB** | 本地持久化存储 |
+| **Lucide** | 图标库 |
+| **GSAP** | 动画引擎 |
+| **JSZip** | ZIP 打包与解包 |
+| **Playwright** | E2E 测试 |
 
-## 使用说明
+## 架构
 
-### 📥 安装扩展
+```
+┌────────────────────────────────────────────────┐
+│                Service Worker                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │
+│  │ Message  │  │ IndexedDB │  │ Alarm Tasks  │ │
+│  │ Router   │  │ (单例)    │  │ (缓存清理等) │ │
+│  └──────────┘  └──────────┘  └──────────────┘ │
+└────────────────────┬───────────────────────────┘
+                     │ Messaging API
+         ┌───────────┴───────────┐
+         ▼                       ▼
+┌─────────────────┐    ┌─────────────────────┐
+│   Content Script│    │    Popup UI         │
+│  ┌───────────┐  │    │  ┌───────────────┐  │
+│  │ Router    │  │    │  │ 统计 / 搜索   │  │
+│  │ → Handler │  │    │  │ 设置 / 导出   │  │
+│  │ → Enhancer│  │    │  └───────────────┘  │
+│  └───────────┘  │    └─────────────────────┘
+└─────────────────┘
+```
 
-1. **构建项目**
-   ```bash
-   npm run build
-   ```
+Content Script 按页面 URL 路由到对应的 Handler（豆瓣/IMDb/NeoDB），完成标记和 ID 关联；Enhancer 负责 PT 站点淡化等增强功能。Popup 提供全局数据看板与设置界面。
 
-2. **加载到 Chrome**
-   - 打开 Chrome 浏览器,访问 `chrome://extensions/`
-   - 开启右上角的"开发者模式"
-   - 点击"加载已解压的扩展程序"
-   - 选择 `dist` 目录
+## 安装
 
-### 🎬 使用悬浮面板
+### 从源码构建
 
-1. **访问支持的网站**
-   - 豆瓣电影: `movie.douban.com/subject/*`
-   - 豆瓣音乐: `music.douban.com/subject/*`
-   - IMDB: `imdb.com/title/*`
-   - NeoDB: `neodb.social/movie/*/`, `neodb.social/tv/*/`, `neodb.social/music/*/`
-   - TMDB: `themoviedb.org/movie/*`, `themoviedb.org/tv/*`
+```bash
+# 克隆仓库
+git clone <repo-url>
+cd um-multimedia-manager
 
-2. **操作面板**
-   - 面板会自动出现在页面右上角
-   - 可以拖拽面板到任意位置
-   - 点击最小化按钮隐藏内容
-   - 点击关闭按钮关闭面板
+# 安装依赖
+npm install
 
-3. **标记状态**
-   - 点击"已完成"、"想看"或"清除"按钮
-   - 调整评分(0-10,步长 0.5)
-   - 点击"保存"按钮
+# 构建生产版本
+npm run build
+```
 
-4. **查看统计**
-   - 点击浏览器工具栏的 UMM 图标
-   - 查看所有记录的统计信息
-   - 搜索和过滤记录
+构建产物位于 `dist/chrome-mv3` 目录。
 
-### 💾 数据管理
+### 加载到 Chrome
 
-所有数据自动保存在 Chrome Storage 中,无需手动保存。
+1. 打开 Chrome 浏览器，访问 `chrome://extensions/`
+2. 开启右上角的 **开发者模式**（Developer mode）
+3. 点击 **加载已解压的扩展程序**（Load unpacked）
+4. 选择项目的 `dist/chrome-mv3` 目录
 
+> **注意**：项目使用 WXT 框架，构建输出目录不同于传统 CRXJS 项目，请确认选中 `dist/chrome-mv3`。
 
+## 使用指南
 
-## 开发指南
+### 快速标记
+
+1. 访问支持的站点页面（如豆瓣电影 `movie.douban.com/subject/`）
+2. 页面右上角自动出现悬浮面板
+3. 点击 **已完成** / **想看** / **清除** 切换状态
+4. 调整评分（0–10 星，步长 0.5）
+5. 点击 **保存**
+
+面板可拖拽位置，支持最小化和关闭。
+
+### PT 站点淡化
+
+在支持的 PT 站（M-Team、Audiences、HDHome 等），已经标记为"看过"的种子条目会自动变灰，方便快速跳过。
+
+### 查看统计
+
+点击浏览器工具栏的 UMM 图标，打开弹出面板：
+
+- **统计概览** — 总记录数、各平台分布
+- **搜索过滤** — 按标题、平台、状态快速定位
+- **数据导出** — 一键导出 ZIP 备份文件
+
+### 数据管理
+
+所有记录存储在本地 IndexedDB 中，无需手动保存。可通过 WebDAV 备份到云端，或通过弹窗面板导出 ZIP 文件保存到本地。
+
+## 配置
+
+### WebDAV 备份
+
+在扩展设置页面配置 WebDAV 服务器地址、用户名和密码，即可启用自动备份：
+
+| 字段 | 说明 |
+|------|------|
+| 服务器 URL | 例如 `https://example.com/remote.php/dav/files/user/` |
+| 用户名 | WebDAV 登录用户名 |
+| 密码 | WebDAV 密码或应用专用密码 |
+
+### NeoDB API Token
+
+如需启用 NeoDB 元数据增强，需在设置中配置 NeoDB API Token：
+
+1. 登录 [NeoDB](https://neodb.social)
+2. 进入个人设置页面生成 API Token
+3. 填入扩展设置的对应字段
+
+## 开发
 
 ### 环境要求
 
-- Node.js >= 18
-- npm >= 9
+- Node.js >= 22
+- npm >= 10
 - Chrome >= 88
-
-### 安装依赖
-
-```bash
-npm install
-```
 
 ### 开发模式
 
@@ -84,78 +159,99 @@ npm install
 npm run dev
 ```
 
-### 构建生产版本
+开发模式下代码改动会自动热更新到浏览器中加载的扩展。
 
-```bash
-npm run build
-```
+### 常用命令
 
-构建产物将输出到 `dist/chrome-mv3` 目录。
-
-### 加载到 Chrome
-
-1. 打开 Chrome 浏览器,访问 `chrome://extensions/`
-2. 开启右上角的"开发者模式"
-3. 点击"加载已解压的扩展程序"
-4. 选择 `dist/chrome-mv3` 目录
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发模式 |
+| `npm run build` | 构建生产版本 |
+| `npm run zip` | 构建并打包为 `.zip` |
+| `npm run type-check` | TypeScript 类型检查 |
+| `npm test` | 运行 Playwright 测试 |
+| `npm run test:unit` | 运行单元测试 |
+| `npm run test:integration` | 运行集成测试 |
+| `npm run test:ui` | 启动 Playwright UI 测试模式 |
+| `npm run package:patch` | 发布补丁版本 |
+| `npm run package:minor` | 发布小版本 |
+| `npm run package:major` | 发布大版本 |
+| `npm run data:export` | 命令行导出数据 |
+| `npm run data:import` | 命令行导入数据 |
+| `npm run deps:audit` | 依赖安全审计 |
 
 ## 项目结构
 
 ```
 um-multimedia-manager/
-├── wxt.config.ts              # WXT 配置（替代 manifest.json）
-├── components.json            # shadcn/ui 配置
+├── wxt.config.ts              # WXT 扩展构建配置
+├── components.json            # shadcn/vue 组件配置
+├── tsconfig.json              # TypeScript 配置
+├── playwright.config.ts       # Playwright E2E 测试配置
+├── icons/                     # 扩展图标
+│   ├── icon-16.png
+│   ├── icon-48.png
+│   └── icon-128.png
 ├── src/
 │   ├── entrypoints/           # WXT 入口点
-│   │   ├── background.ts      # Service Worker
-│   │   ├── content.ts         # Content Script
-│   │   └── popup/             # Popup UI
+│   │   ├── background.ts      # Service Worker（消息路由 + DB + 告警任务）
+│   │   ├── content.ts         # Content Script 主入口
+│   │   └── popup/             # Popup 弹窗 UI
 │   │       ├── main.ts
-│   │       └── App.vue
+│   │       ├── App.vue
+│   │       └── index.html
 │   ├── content/               # Content Script 业务逻辑
-│   │   ├── router.ts          # URL 路由器
-│   │   ├── handlers/          # 页面处理器
-│   │   ├── styles/            # 样式注入
-│   │   └── utils/             # 工具函数
+│   │   ├── router.ts          # URL 路由分发
+│   │   ├── handlers/          # 各平台处理器
+│   │   │   ├── douban.ts      # 豆瓣电影/音乐
+│   │   │   ├── imdb.ts        # IMDb
+│   │   │   ├── neodb.ts       # NeoDB
+│   │   │   ├── mukaku.ts      # Mukaku 同步
+│   │   │   └── pt-detail.ts   # PT 详情页
+│   │   ├── enhancers/         # 页面增强功能
+│   │   │   ├── pt-dimmer.ts   # PT 站点已看淡出
+│   │   │   └── douban-search.ts  # 豆瓣搜索增强
+│   │   ├── styles/            # 注入样式
+│   │   └── utils/             # Content Script 工具
 │   ├── shared/                # 共享模块
-│   │   ├── config.ts          # 配置常量
-│   │   ├── types/             # TypeScript 类型定义
-│   │   ├── models/            # 数据模型
+│   │   ├── models/            # 数据模型与迁移
+│   │   │   ├── database.ts    # IndexedDB 封装
 │   │   │   ├── identity.ts    # URL 身份识别
-│   │   │   ├── record.ts      # 记录处理
-│   │   │   ├── database.ts    # IndexedDB 数据库
-│   │   │   └── migration.ts   # 数据迁移
-│   │   ├── api/               # API 客户端
-│   │   │   ├── webdav.ts      # WebDAV 同步
-│   │   │   └── neodb.ts       # NeoDB API
-│   │   └── utils/             # 工具函数
-│   ├── lib/
-│   │   └── utils.ts           # UI 工具函数
+│   │   │   └── migrations.ts  # 数据迁移
+│   │   ├── api/               # 外部 API 客户端
+│   │   │   ├── neodb.ts       # NeoDB API
+│   │   │   └── webdav.ts      # WebDAV 客户端
+│   │   ├── types/             # TypeScript 类型定义
+│   │   ├── utils/             # 通用工具
+│   │   │   ├── logger.ts      # 日志工具
+│   │   │   ├── theme.ts       # 主题管理
+│   │   │   ├── zip-utils.ts   # ZIP 打包
+│   │   │   ├── hash-utils.ts  # 哈希计算
+│   │   │   └── requestQueue.ts# 请求队列
+│   │   ├── config.ts          # 配置常量
+│   │   └── index.ts           # 导出入口
 │   ├── components/            # UI 组件
-│   │   └── ui/                # shadcn/ui 组件
-│   └── style.css              # 全局样式
-├── icons/                     # 图标资源
-├── vite.config.ts
-├── tailwind.config.js
-└── package.json
+│   │   └── ui/                # shadcn/vue 组件
+│   ├── lib/                   # 工具库
+│   └── styles/                # 全局样式
+├── tests/                     # Playwright 测试
+│   ├── unit/                  # 单元测试
+│   └── integration/           # 集成测试
+├── scripts/                   # 构建与维护脚本
+│   ├── package.js             # 版本管理与打包
+│   ├── unpack.js              # 解包扩展
+│   ├── fix-paths.js           # 构建后路径修正
+│   ├── resize-icons.ts        # 图标尺寸调整
+│   ├── data-export.js         # CLI 数据导出
+│   ├── data-import.js         # CLI 数据导入
+│   └── migrate-data.ts        # 数据迁移工具
+└── docs/                      # 文档
 ```
 
-## 从 Tampermonkey 迁移
+## 许可
 
-本扩展是 [um-multimedia-manager.js](https://github.com/UnforgetMemory/Tampermonkey-Scripts/blob/main/um-multimedia-manager.js) 的现代化重构版本,主要改进:
+[MIT](LICENSE)
 
-- ✅ Manifest V3 架构,符合 Chrome 最新规范
-- ✅ TypeScript 类型安全
-- ✅ 模块化设计,可维护性更强
-- ✅ 现代化 UI (shadcn/ui + Tailwind)
-- ✅ 更好的性能和用户体验
+---
 
-
-
-## 许可证
-
-GNU GPLv3
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request!
+*UMM — 把你的观影记录统一起来。*

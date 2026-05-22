@@ -11,6 +11,7 @@ import { handleDoubanDetailPage } from './handlers/douban'
 import { startSearchEnhancer } from './enhancers/douban-search'
 import { PTDimmer } from './enhancers/pt-dimmer'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
+import { handlePTDetailPage } from './handlers/pt-detail'
 
 /**
  * 路由规则接口
@@ -89,6 +90,18 @@ const ROUTES: RouteRule[] = [
       if (cleanup) {
         window.addEventListener('beforeunload', cleanup, { once: true })
       }
+    },
+  },
+
+  // PT 站点详情页（提取并缓存平台 ID）
+  {
+    match: (url) =>
+      (url.includes('m-team.cc/detail') && !url.includes('/browse')) ||
+      (['audiences.me', 'hdhome.org', 'hdarea.club', 'ourbits.club', 'pterclub.net'].some(
+        (host) => url.includes(host),
+      ) && url.includes('details.php')),
+    handler: async () => {
+      await handlePTDetailPage(location.href)
     },
   },
 

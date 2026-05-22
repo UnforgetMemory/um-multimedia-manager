@@ -372,13 +372,19 @@ async function syncToLocalStorage(
               }
             }
           }
+          // 全部 linkedIds 保存完后显示结果 Toast
+          FloatingToast.info('UMM', '✅ ID关联已保存并已自动同步到 NeoDB')
+          console.log('[UMM Douban] ✅ Auto-synced to NeoDB')
         } else if (syncResponse?.success) {
+          FloatingToast.info('UMM', '⚠️ NeoDB 推送成功但未返回作品 ID，无法建立关联')
           console.warn('[UMM Douban] ⚠️ NeoDB push succeeded but no catalogUuid returned')
+        } else {
+          FloatingToast.info('UMM', '⚠️ 自动同步到 NeoDB 失败')
+          console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed: invalid response')
         }
-
-        console.log('[UMM Douban] ✅ Auto-synced to NeoDB')
       }
     } catch (syncErr) {
+      FloatingToast.error('UMM', `❌ 自动同步到 NeoDB 失败`)
       console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed:', syncErr)
     }
   }
@@ -1072,6 +1078,9 @@ async function performNeoDBPush(
           }
         }
       }
+
+      // 在 linkedIds 全部保存后，通过 FloatingToast 确认 ID 关联已保存
+      FloatingToast.info('UMM', '🔗 跨平台 ID 关联已保存')
     }
 
     // 成功，返回消息供外层显示
@@ -1236,5 +1245,11 @@ function showPageToast(
  * ✅ 显示通知（统一使用 FloatingToast）
  */
 function showNotification(message: string) {
-  FloatingToast.info('UMM', message)
+  if (message.startsWith('✅')) {
+    FloatingToast.success('UMM', message)
+  } else if (message.startsWith('❌')) {
+    FloatingToast.error('UMM', message)
+  } else {
+    FloatingToast.info('UMM', message)
+  }
 }

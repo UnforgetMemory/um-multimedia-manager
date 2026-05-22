@@ -29,6 +29,7 @@ export type {
   ToastType,
   ToastOptions,
   CacheItem,
+  MigrationStatus,
 } from './types'
 export { makeRecordKey } from './types'
 export type { RecordStoreName } from './types'

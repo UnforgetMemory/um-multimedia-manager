@@ -18,6 +18,7 @@ export interface StoreRecord {
   rating: number                          // Rating 0-10 (integer)
   updatedAt: string                       // ISO 8601 update timestamp
   linkedIds: Record<string, string>       // Cross-platform links: { "imdb": "movie::tt1375666", "neodb": "movie::xxx" }
+  schemaVersion?: number                  // Record schema version (0 or undefined = legacy)
 }
 
 /** Build a composite store key from type and provider ID */
@@ -73,6 +74,17 @@ export interface ExportData {
   settings?: Partial<AppSettings>
 }
 
+// ==================== PT ID Cache ====================
+
+/** PT torrent → platform ID cache entry */
+export interface PtIdCacheEntry {
+  ptUrl: string           // PT torrent URL (normalized key)
+  doubanId?: string       // e.g., "movie::37332784"
+  imdbId?: string         // e.g., "movie::tt1375666"
+  updatedAt: string       // ISO 8601
+  schemaVersion?: number  // Cache entry schema version (0 or undefined = legacy)
+}
+
 // ==================== Messages ====================
 
 export type MessageType =
@@ -83,7 +95,11 @@ export type MessageType =
   | 'DB_GET_ALL'
   | 'DB_QUERY'
   | 'DB_COUNT'
+  | 'DB_GET_WATCHED_IDS'
   | 'DB_SYNC_PAGE_RECORD'
+  | 'PT_ID_CACHE_GET'
+  | 'PT_ID_CACHE_PUT'
+  | 'PT_ID_CACHE_GET_BULK'
   | 'GET_SETTINGS'
   | 'UPDATE_SETTINGS'
   | 'EXPORT_DATA'
@@ -91,6 +107,7 @@ export type MessageType =
   | 'GET_ALL_RECORDS'
   | 'GET_STATISTICS'
   | 'HEALTH_CHECK'
+  | 'GET_MIGRATION_STATUS'
 
 export interface MessagePayloadMap {
   SHOW_TOAST: { type: ToastType; title: string; message?: string }
@@ -100,7 +117,11 @@ export interface MessagePayloadMap {
   DB_GET_ALL: { storeName: string }
   DB_QUERY: { storeName: string; indexName: string; value: any }
   DB_COUNT: { storeName: string }
+  DB_GET_WATCHED_IDS: { storeNames: string[] }
   DB_SYNC_PAGE_RECORD: { platform: string; key: string; record: StoreRecord; linked?: Array<{ platform: string; key: string; url: string }> }
+  PT_ID_CACHE_GET: { ptUrl: string }
+  PT_ID_CACHE_PUT: { entry: PtIdCacheEntry }
+  PT_ID_CACHE_GET_BULK: { ptUrls: string[] }
   GET_SETTINGS: void
   UPDATE_SETTINGS: Partial<AppSettings>
   EXPORT_DATA: void
@@ -108,6 +129,7 @@ export interface MessagePayloadMap {
   GET_ALL_RECORDS: void
   GET_STATISTICS: void
   HEALTH_CHECK: void
+  GET_MIGRATION_STATUS: void
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {
@@ -131,6 +153,18 @@ export interface ToastOptions {
 export interface CacheItem<T = unknown> {
   value: T
   expiry: number
+}
+
+// ==================== Migration Status ====================
+
+export interface MigrationStatus {
+  currentRecordVersion: number
+  currentCacheVersion: number
+  currentExportVersion: number
+  minSupportedRecordVersion: number
+  minSupportedExportVersion: number
+  recordMigrationSteps: number
+  cacheMigrationSteps: number
 }
 
 // ==================== Dataset Meta (WebDAV) ====================

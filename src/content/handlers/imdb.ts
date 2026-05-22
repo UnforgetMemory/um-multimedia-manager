@@ -7,6 +7,7 @@ import type { UrlIdentity } from '../../shared/types'
 import { Store } from '../../shared'
 import { Utils } from '../../shared/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
+import { FloatingToast } from '../utils/toast'
 
 /**
  * 扫描 IMDb 页面状态
@@ -132,6 +133,7 @@ export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void>
       linkedIds: {},
     })
 
+    FloatingToast.success('UMM', '✅ 已保存 IMDb 观看状态')
     console.log('[UMM] Updated IMDb local record from page state')
   }
 }

@@ -7,7 +7,7 @@
  * retry/timeout handling if needed.
  */
 
-import type { StoreRecord, AppSettings, ExportData, Statistics } from '../types'
+import type { StoreRecord, AppSettings, ExportData, Statistics, PtIdCacheEntry, MigrationStatus } from '../types'
 
 /**
  * Send a runtime message with timeout.
@@ -80,6 +80,43 @@ export async function dbCount(storeName: string): Promise<number> {
   return res?.count ?? 0
 }
 
+/**
+ * Batch query: get watched IDs (status >= 1) from multiple stores in a single message.
+ * Returns { storeName: string[] } map.
+ */
+export async function dbGetWatchedIds(
+  storeNames: string[]
+): Promise<Record<string, string[]>> {
+  const res = await send<{ results?: Record<string, string[]> }>(
+    { type: 'DB_GET_WATCHED_IDS', payload: { storeNames } }
+  )
+  return res?.results || {}
+}
+
+// ==================== PT ID Cache ====================
+
+export async function ptIdCacheGet(ptUrl: string): Promise<PtIdCacheEntry | null> {
+  const res = await send<{ entry?: PtIdCacheEntry | null }>(
+    { type: 'PT_ID_CACHE_GET', payload: { ptUrl } }
+  )
+  return res?.entry ?? null
+}
+
+export async function ptIdCachePut(entry: PtIdCacheEntry): Promise<void> {
+  await send(
+    { type: 'PT_ID_CACHE_PUT', payload: { entry } }
+  )
+}
+
+export async function ptIdCacheGetBulk(
+  ptUrls: string[]
+): Promise<Record<string, PtIdCacheEntry>> {
+  const res = await send<{ entries?: Record<string, PtIdCacheEntry> }>(
+    { type: 'PT_ID_CACHE_GET_BULK', payload: { ptUrls } }
+  )
+  return res?.entries || {}
+}
+
 // ==================== Sync ====================
 
 export async function dbSyncPageRecord(
@@ -137,5 +174,20 @@ export async function healthCheck(): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+// ==================== Migration ====================
+
+export async function getMigrationStatus(): Promise<MigrationStatus> {
+  const res = await send<{ migration?: MigrationStatus }>({ type: 'GET_MIGRATION_STATUS' })
+  return res?.migration || {
+    currentRecordVersion: 0,
+    currentCacheVersion: 0,
+    currentExportVersion: 0,
+    minSupportedRecordVersion: 0,
+    minSupportedExportVersion: 0,
+    recordMigrationSteps: 0,
+    cacheMigrationSteps: 0,
   }
 }
