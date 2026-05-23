@@ -762,6 +762,7 @@ async function pushToNeoDB(ratingAdjust: number) {
       status: currentRecord?.status ?? 0,  // 默认为未看 (0)
       type: currentIdentity.type,
       provider: currentIdentity.provider,
+      comment: currentRecord?.comment ?? '',
     }
     
     // 调用 Background Service Worker 进行推送

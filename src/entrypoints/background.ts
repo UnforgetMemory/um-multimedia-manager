@@ -1121,11 +1121,12 @@ export default defineBackground({
         // 2. Mark on shelf with retry for 404 only
         const shelfType = statusToShelfType(record.status ?? 0)
         const rating = record.rating ?? 0
+        const comment = record.comment ?? ''
         let shelfItem: any = null
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
-            shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, token)
+            shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, comment, token)
             break // Success
           } catch (markErr: any) {
             if (markErr instanceof NeoDB.NeoDBError) {
