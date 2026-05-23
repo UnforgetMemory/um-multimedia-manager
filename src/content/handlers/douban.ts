@@ -162,6 +162,34 @@ function extractCrossPlatformLinks(
 }
 
 /**
+ * 从豆瓣页面提取用户的短评文字
+ * 在评分/状态区域查找用户填写的短评
+ */
+function extractCommentFromPage(): string {
+  const selectors = [
+    '#interest_sect_level .user_comment',
+    '#interest_sect_level .rating_text',
+    '#interest_sect_level .comment-item .comment',
+    '.user_comment_wrapper .user_comment',
+    /**
+     * 用户自己的短评：位于 #interest_sect_level 内部最后的 <span>
+     * 结构: #interest_sect_level > .j.a_stars > span:last-child
+     * 示例: <span>都怪我~都怪我~<span class="pl"></span></span>
+     */
+    '#interest_sect_level .j.a_stars > span:last-child',
+    // 仅当找不到自己的短评时才尝试其他用户的（兜底）
+    '#comments .comment-item:first-child .comment',
+  ]
+  for (const sel of selectors) {
+    const el = document.querySelector(sel) as HTMLElement | null
+    if (el?.textContent?.trim()) {
+      return el.textContent.trim()
+    }
+  }
+  return ''
+}
+
+/**
  * 同步页面状态到本地存储
  * @param cachedRecord 可选的缓存记录，避免重复查询
  */
@@ -189,10 +217,16 @@ async function syncToLocalStorage(
   // 提取页面中的跨平台链接（IMDB/TMDB）并合并到已有链接
   const mergedLinkedIds = extractCrossPlatformLinks(identity, existingRecord?.linkedIds)
 
+  const pageComment = extractCommentFromPage()
+  const isCommentChanged = existingRecord && existingRecord.comment !== pageComment
+
+  // 更新 hasRealChange 包含评语变化
+  const effectiveChange = hasRealChange || isCommentChanged
   const recordToSave: StoreRecord = {
     url: identity.url,
     status: STATUS_DONE,  // 已看
     rating: pageRating,
+    comment: pageComment,
     updatedAt: new Date().toISOString(),
     linkedIds: mergedLinkedIds,
   }
@@ -235,6 +269,7 @@ async function syncToLocalStorage(
       url: `${entry.provider === 'imdb' ? 'https://www.imdb.com/title/' : 'https://www.themoviedb.org/movie/'}${entry.providerId}/`,
       status: STATUS_DONE,
       rating: pageRating,
+      comment: pageComment,
       updatedAt: now,
       linkedIds: {
         ...(existingTarget?.linkedIds || {}),
@@ -251,7 +286,7 @@ async function syncToLocalStorage(
   }
   
   console.log('[UMM Douban] Record to save:', recordToSave)
-  console.log('[UMM Douban] Change detection:', { isNewRecord, isStatusChanged, isRatingChanged, hasRealChange })
+  console.log('[UMM Douban] Change detection:', { isNewRecord, isStatusChanged, isRatingChanged, isCommentChanged, hasRealChange })
   
   try {
     await Store.dbPut(storeName, key, recordToSave)
@@ -268,13 +303,15 @@ async function syncToLocalStorage(
     }
     
     // ✅ 修复：只在有实质性变化时才发送通知
-    if (hasRealChange) {
+    if (effectiveChange) {
       if (isNewRecord) {
         showNotification(`✅ 已自动同步${identity.type === 'music' ? '听过' : '看过'}状态`)
       } else if (isStatusChanged) {
         showNotification(`✅ 状态已更新为${identity.type === 'music' ? '已听' : '已看'}`)
       } else if (isRatingChanged) {
         showNotification(`✅ 评分已更新为 ${Utils.formatRating10(pageRating)}/10`)
+      } else if (isCommentChanged) {
+        showNotification(`✅ 评语已更新`)
       }
       
       // 记录通知时间
@@ -303,6 +340,7 @@ async function syncToLocalStorage(
               status: STATUS_DONE,
               type: identity.type,
               provider: identity.provider,
+              comment: pageComment,
             },
           },
         }, { timeout: 10000 })
@@ -956,6 +994,7 @@ async function performNeoDBPush(
     type: identity.type,
     provider: identity.provider,
     url: window.location.href,  // ✅ 修复：使用原始 URL，与旧脚本一致
+    comment: record?.comment ?? '',
   }
   
   // 调用 Background Service Worker 进行推送

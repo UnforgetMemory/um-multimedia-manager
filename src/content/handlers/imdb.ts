@@ -123,17 +123,25 @@ export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void>
   // 渲染状态标签
   await renderIMDbStatusChip(identity, finalStatus, finalRating, note)
 
-  // 如果页面显示已看，更新本地记录
+  // 如果页面显示已看，检测变化后更新本地记录
   if (isPageDone) {
-    await Store.dbPut(storeName, key, {
-      url: identity.url,
-      status: 2,
-      rating: pageState.rating,
-      updatedAt: new Date().toISOString(),
-      linkedIds: {},
-    })
+    const statusChanged = localRecord?.status !== 2
+    const ratingChanged = localRecord?.rating !== pageState.rating
 
-    FloatingToast.success('UMM', '✅ 已保存 IMDb 观看状态')
-    console.log('[UMM] Updated IMDb local record from page state')
+    if (statusChanged || ratingChanged || !localRecord) {
+      await Store.dbPut(storeName, key, {
+        url: identity.url,
+        status: 2,
+        rating: pageState.rating,
+        comment: localRecord?.comment ?? '',
+        updatedAt: new Date().toISOString(),
+        linkedIds: localRecord?.linkedIds ?? {},
+      })
+
+      FloatingToast.success('UMM', '✅ 已保存 IMDb 观看状态')
+      console.log('[UMM] Updated IMDb local record from page state')
+    } else {
+      console.log('[UMM] ⏭️ IMDb record unchanged, skipping save')
+    }
   }
 }

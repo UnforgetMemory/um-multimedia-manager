@@ -181,24 +181,35 @@ export async function handleNeoDBDetailPage(identity: UrlIdentity): Promise<void
     return acc
   }, {} as Record<string, string>)
   
-  // ===== 保存 NeoDB 本地记录（含 linkedIds） =====
-  
+  // ===== 保存 NeoDB 本地记录（含 linkedIds + comment） =====
+
   if (isPageDone) {
-    await Store.dbPut(storeName, key, {
-      url: identity.url,
-      status: 2,
-      rating: pageState.rating,
-      updatedAt: new Date().toISOString(),
-      linkedIds,
-    })
-    FloatingToast.success('UMM', '✅ 已保存 NeoDB 观看状态')
-    console.log('[UMM] ✅ Updated NeoDB local record with linkedIds:', linkedIds)
+    // 仅当数据真正变化时保存 + toast
+    const statusChanged = localRecord?.status !== 2
+    const ratingChanged = localRecord?.rating !== pageState.rating
+    const linkedChanged = JSON.stringify(localRecord?.linkedIds || {}) !== JSON.stringify(linkedIds)
+
+    if (statusChanged || ratingChanged || linkedChanged || !localRecord) {
+      await Store.dbPut(storeName, key, {
+        url: identity.url,
+        status: 2,
+        rating: pageState.rating,
+        comment: localRecord?.comment ?? '',
+        updatedAt: new Date().toISOString(),
+        linkedIds,
+      })
+      FloatingToast.success('UMM', '✅ 已保存 NeoDB 观看状态')
+      console.log('[UMM] ✅ Updated NeoDB local record with linkedIds:', linkedIds)
+    } else {
+      console.log('[UMM] ⏭️ NeoDB record unchanged, skipping save')
+    }
   } else if (!localRecord || JSON.stringify(localRecord.linkedIds || {}) !== JSON.stringify(linkedIds)) {
     // 即使页面未标记，也保存 linkedIds 确保关联不丢失
     await Store.dbPut(storeName, key, {
       url: identity.url,
       status: localRecord?.status ?? 0,
       rating: localRecord?.rating ?? 0,
+      comment: localRecord?.comment ?? '',
       updatedAt: new Date().toISOString(),
       linkedIds,
     })
@@ -237,6 +248,7 @@ export async function handleNeoDBDetailPage(identity: UrlIdentity): Promise<void
         url: Identity.buildUrl(targetId.type, targetId.provider, targetId.providerId),
         status: isPageDone ? 2 : 0,
         rating: pageState.rating,
+        comment: localRecord?.comment ?? '',
         updatedAt: now,
         linkedIds: targetLinkedIds,
       }
@@ -244,14 +256,23 @@ export async function handleNeoDBDetailPage(identity: UrlIdentity): Promise<void
       console.log(`[UMM] ✅ Created ${targetId.provider} record from NeoDB link:`, targetKey, targetRecord)
       FloatingToast.success('UMM', `✅ 已同步 ${platformLabel} 数据关联`)
     } else if (existingTarget.status !== 2) {
-      // 存在但未完成 → 更新状态/评分
-      existingTarget.status = isPageDone ? 2 : existingTarget.status
-      existingTarget.rating = existingTarget.rating || pageState.rating
-      existingTarget.updatedAt = now
-      existingTarget.linkedIds = targetLinkedIds
-      await Store.dbPut(targetStore, targetKey, existingTarget)
-      console.log(`[UMM] ✅ Updated ${targetId.provider} record (not done) from NeoDB:`, targetKey)
-      FloatingToast.success('UMM', `✅ ${platformLabel} 状态已同步`)
+      // 存在但未完成 → 检测变化后再更新
+      const statusChanged = isPageDone && existingTarget.status !== 2
+      const ratingChanged = pageState.rating && existingTarget.rating !== pageState.rating
+      const linkedChanged = JSON.stringify(existingTarget.linkedIds || {}) !== JSON.stringify(targetLinkedIds)
+
+      if (statusChanged || ratingChanged || linkedChanged) {
+        existingTarget.status = isPageDone ? 2 : existingTarget.status
+        existingTarget.rating = existingTarget.rating || pageState.rating
+        existingTarget.comment = localRecord?.comment ?? existingTarget.comment ?? ''
+        existingTarget.updatedAt = now
+        existingTarget.linkedIds = targetLinkedIds
+        await Store.dbPut(targetStore, targetKey, existingTarget)
+        console.log(`[UMM] ✅ Updated ${targetId.provider} record (not done) from NeoDB:`, targetKey)
+        FloatingToast.success('UMM', `✅ ${platformLabel} 状态已同步`)
+      } else {
+        console.log(`[UMM] ⏭️ ${targetId.provider} not-done record unchanged, skipping`)
+      }
     } else {
       // 存在且已完成 → 仅更新 linkedIds（低优先级，不覆盖状态/评分）
       const needsLinkUpdate = JSON.stringify(existingTarget.linkedIds || {}) !== JSON.stringify(targetLinkedIds)
