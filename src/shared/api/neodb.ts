@@ -62,6 +62,7 @@ export interface ShelfItemResponse {
   item: string          // 作品 UUID
   shelf_type: string    // complete/progress/wishlist
   rating: number        // 评分
+  comment_text?: string // 短评文字
   created_time: string  // 创建时间
   updated_time: string  // 更新时间
 }
@@ -307,6 +308,7 @@ export async function markItem(
   itemUuid: string,
   shelfType: 'complete' | 'progress' | 'wishlist',
   rating?: number,
+  comment_text?: string,
   token?: string
 ): Promise<ShelfItemResponse> {
   const url = `${NEOBASE_URL}/me/shelf/item/${itemUuid}`
@@ -318,6 +320,10 @@ export async function markItem(
 
   if (rating && rating > 0) {
     payload.rating_grade = rating
+  }
+
+  if (comment_text) {
+    payload.comment_text = comment_text
   }
 
   const response = await fetchWithRetry(url, {
@@ -354,6 +360,7 @@ export async function updateShelfItem(
   updates: {
     rating?: number
     shelf_type?: 'complete' | 'progress' | 'wishlist'
+    comment_text?: string
   },
   token?: string
 ): Promise<ShelfItemResponse | null> {
@@ -367,6 +374,9 @@ export async function updateShelfItem(
     }
     if (updates.shelf_type) {
       payload.shelf_type = updates.shelf_type
+    }
+    if (updates.comment_text) {
+      payload.comment_text = updates.comment_text
     }
     
     const response = await fetchWithRetry(url, {
