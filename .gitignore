@@ -69,3 +69,4 @@ tests/
 
 # Sisyphus agent sessions
 .sisyphus/
+.codegraph
