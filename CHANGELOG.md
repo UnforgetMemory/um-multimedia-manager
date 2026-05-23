@@ -2,6 +2,29 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [1.5.0] - 2026-05-23
+
+### Added
+
+- **评语(Comment)**: StoreRecord 新增 `comment` 字段，schema v1→v2 迁移
+- **评语提取**: 豆瓣详情页自动提取用户短评（`#interest_sect_level` DOM 选择器），同步 4 条路径
+- **NeoDB API**: `markItem`/`updateShelfItem` 支持 `comment_text` 参数
+- **Popup UI**: 评分管理页面新增评语输入框（textarea）和查询结果显示
+- **推送**: 后台 NeoDB push + 手动同步流程透传 comment
+
+### Fixed
+
+- **NeoDB/IMDb 页面处理器**: 无条件 toast 问题 — 仅在评分/状态/评语/关联真正变化时弹出通知
+- **NeoDB/IMDb 处理器**: 缺失 comment 传播（本地保存 + linked 平台同步）
+- **IMDb 处理器**: Hardcoded `linkedIds: {}` → 从 `localRecord` 继承
+- **豆瓣 syncToLocalStorage**: 缺少 `isCommentChanged` 变化检测，评语单独变化时无通知
+- **Release workflow**: `action-gh-release` 缺少 `GITHUB_TOKEN` 导致发布失败
+
+### Changed
+
+- `database.ts syncPageRecord` 新增 comment 变化检测并传播到 linked 平台
+- 豆瓣跨平台同步记录（IMDb/TMDB）携带评语
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
