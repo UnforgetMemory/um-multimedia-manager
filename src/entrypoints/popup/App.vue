@@ -210,6 +210,7 @@ const statsList = computed(() => [
 // ==================== 评分管理页面 ====================
 const ratingInput = ref('')
 const ratingValue = ref<number | null>(null)
+const ratingComment = ref('')
 
 // 支持的平台选项
 const PLATFORM_OPTIONS = [
@@ -553,6 +554,7 @@ async function saveRating() {
       url: parsed.url,
       status: existing?.status ?? 1,  // keep existing or wish(1)
       rating: ratingValue.value,
+      comment: ratingComment.value || undefined,
       updatedAt: new Date().toISOString(),
       linkedIds: existing?.linkedIds ?? {},
     })
@@ -563,6 +565,7 @@ async function saveRating() {
     // 清空输入
     ratingInput.value = ''
     ratingValue.value = null
+    ratingComment.value = ''
     ratingQueryResult.value = null
   } catch (error) {
     console.error('[Rating] ❌ Failed:', error)
@@ -1835,6 +1838,10 @@ onMounted(() => {
                         {{ ratingQueryResult.rating }}/10
                       </Badge>
                     </div>
+                    <div v-if="ratingQueryResult.comment" class="flex items-start gap-2">
+                      <strong class="font-medium shrink-0">评语:</strong>
+                      <span class="text-sm italic">"{{ ratingQueryResult.comment }}"</span>
+                    </div>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -1868,6 +1875,10 @@ onMounted(() => {
                         {{ ratingQueryResult.rating }}/10
                       </Badge>
                     </div>
+                    <div v-if="ratingQueryResult.comment" class="flex items-start gap-2">
+                      <strong class="font-medium shrink-0">评语:</strong>
+                      <span class="text-sm italic">"{{ ratingQueryResult.comment }}"</span>
+                    </div>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -1894,6 +1905,15 @@ onMounted(() => {
                     {{ i }}
                   </Button>
                 </div>
+              </div>
+
+              <div>
+                <Label>评语</Label>
+                <textarea
+                  v-model="ratingComment"
+                  placeholder="添加评论..."
+                  class="mt-2 w-full min-h-[60px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
               </div>
 
               <Button @click="saveRating" class="w-full">
