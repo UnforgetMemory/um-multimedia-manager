@@ -22,7 +22,7 @@ import type { StoreRecord, PtIdCacheEntry } from '../types'
 // ==================== Version Constants ====================
 
 /** Current schema version for StoreRecord */
-export const CURRENT_RECORD_VERSION = 1
+export const CURRENT_RECORD_VERSION = 2
 
 /** Current schema version for PtIdCacheEntry */
 export const CURRENT_CACHE_VERSION = 1
@@ -88,12 +88,17 @@ const recordMigrations: MigrationStep[] = [
       schemaVersion: 1,
     }),
   },
-  // Future: add more steps here
-  // {
-  //   from: 1,
-  //   to: 2,
-  //   migrate: (record) => ({ ...record, newField: default, schemaVersion: 2 }),
-  // },
+  {
+    from: 1,
+    to: 2,
+    migrate: (record: any) => ({
+      ...record,
+      // Ensure comment field exists
+      comment: record.comment ?? undefined,
+      // Stamp version
+      schemaVersion: 2,
+    }),
+  },
 ]
 
 /**

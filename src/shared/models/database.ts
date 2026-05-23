@@ -420,10 +420,11 @@ class MediaDatabase {
       changed = true
       syncedPlatforms.push(platform)
     } else {
-      // Has existing data → check if status or rating changed
+      // Has existing data → check if status, rating, or comment changed
       const statusChanged = existingPrimary.status !== record.status
       const ratingChanged = existingPrimary.rating !== record.rating
-      if (statusChanged || ratingChanged) {
+      const commentChanged = existingPrimary.comment !== record.comment
+      if (statusChanged || ratingChanged || commentChanged) {
         await this.put(primaryStore, key, {
           ...existingPrimary,
           ...record,
@@ -451,6 +452,7 @@ class MediaDatabase {
             url: link.url,
             status: record.status,
             rating: record.rating,
+            comment: record.comment,
             updatedAt: new Date().toISOString(),
             linkedIds: backwardLinkedIds,
           })
@@ -458,11 +460,12 @@ class MediaDatabase {
           syncedPlatforms.push(link.platform)
         } else if (linkedExisting.status !== 2) {
           // Has data but status != 2 (not watched) → sync status only
-          // Preserve the linked platform's URL and rating
+          // Preserve the linked platform's URL, rating, and comment
           await this.put(linkedStore, link.key, {
             ...linkedExisting,
             status: record.status,           // Sync status from primary
             rating: linkedExisting.rating,    // NEVER overwrite linked rating
+            comment: record.comment ?? linkedExisting.comment,  // Sync comment if provided
             updatedAt: new Date().toISOString(),
             linkedIds: { ...linkedExisting.linkedIds, ...backwardLinkedIds },
           })

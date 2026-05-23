@@ -16,6 +16,7 @@ export interface StoreRecord {
   url: string                             // Canonical URL for this platform
   status: number                          // 0=未看/未听, 1=在看/在听, 2=已看/已听
   rating: number                          // Rating 0-10 (integer)
+  comment?: string                        // User's short comment/review text
   updatedAt: string                       // ISO 8601 update timestamp
   linkedIds: Record<string, string>       // Cross-platform links: { "imdb": "movie::tt1375666", "neodb": "movie::xxx" }
   schemaVersion?: number                  // Record schema version (0 or undefined = legacy)
