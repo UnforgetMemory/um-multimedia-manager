@@ -263,7 +263,11 @@ function observeContainerChanges(container: Element, config: SearchPageConfig): 
       return
     }
     
-    await renderAllBadgesWithMap(container, config, recordMap)
+    try {
+      await renderAllBadgesWithMap(container, config, recordMap)
+    } catch (error) {
+      console.error('[UMM] Failed to render badges:', error)
+    }
   }, 280)
   
   const observer = new MutationObserver(throttledRender)
@@ -276,7 +280,7 @@ function observeContainerChanges(container: Element, config: SearchPageConfig): 
   console.log('[UMM] MutationObserver started')
   
   // 立即执行一次初始渲染
-  throttledRender().catch(console.error)
+  throttledRender()
   
   // 返回清理函数
   return () => {
