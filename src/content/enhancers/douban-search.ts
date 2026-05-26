@@ -6,6 +6,7 @@
 import { Store } from '../../shared'
 import type { StoreRecord } from '../../shared/types'
 import { Utils } from '../../shared/utils'
+import { debugLog } from '../../shared/utils/logger'
 import { escapeHtml, waitForElement } from '../utils/dom'
 
 /**
@@ -37,11 +38,11 @@ function getSearchPageConfig(): SearchPageConfig | null {
         const link = card.querySelector('.title-text')?.getAttribute('href')
           || card.querySelector('.title a')?.getAttribute('href') // 降级方案
         
-        if (!link) {
-          console.warn('[UMM] Failed to extract link from card:', card)
-        }
+        if (!link) return null
         
-        return link?.match(/\/subject\/(\d+)/)?.[1] || null
+        // 跳过非影视条目（如影人搜索结果）
+        const match = link.match(/\/subject\/(\d+)/)
+        return match?.[1] || null
       },
     }
   }
@@ -58,11 +59,11 @@ function getSearchPageConfig(): SearchPageConfig | null {
         const link = card.querySelector('.title-text')?.getAttribute('href')
           || card.querySelector('.title a')?.getAttribute('href') // 降级方案
         
-        if (!link) {
-          console.warn('[UMM] Failed to extract link from card:', card)
-        }
+        if (!link) return null
         
-        return link?.match(/\/subject\/(\d+)/)?.[1] || null
+        // 跳过非音乐条目（如音乐人搜索结果）
+        const match = link.match(/\/subject\/(\d+)/)
+        return match?.[1] || null
       },
     }
   }
@@ -140,7 +141,7 @@ async function renderCardBadge(
   // 提取豆瓣 ID
   const doubanId = config.idExtractor(card)
   if (!doubanId) {
-    console.warn('[UMM] Failed to extract douban ID from card:', card)
+    debugLog('Skipping non-subject card:', card)
     return
   }
   

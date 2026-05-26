@@ -940,7 +940,8 @@ function observeThemeChanges() {
  * 定期检查上下文状态，失效时清理资源并提示用户
  */
 function setupContextInvalidationListener() {
-  // 定期检查上下文状态
+  // 定期检查扩展上下文是否仍然有效
+  // 注意：Chrome MV3 没有原生事件通知上下文失效，因此使用轮询
   const checkInterval = setInterval(() => {
     if (!chrome.runtime?.id) {
       warnLog('Extension context lost, cleaning up...')
@@ -952,13 +953,7 @@ function setupContextInvalidationListener() {
       // 显示一次性提示
       showContextInvalidationNotice()
     }
-  }, 30000) // 每 30 秒检查一次
-  
-  // ✅ 添加最大超时保护（防止无限等待）
-  setTimeout(() => {
-    clearInterval(checkInterval)
-    debugLog('Context check interval timeout cleared')
-  }, 300000) // 5分钟最大超时
+  }, 60000) // 每 60 秒检查一次
   
   // 页面卸载时清理
   window.addEventListener('beforeunload', () => {
