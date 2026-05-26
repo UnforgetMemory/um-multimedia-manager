@@ -2,7 +2,7 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
-## [1.4.2] - 2026-05-26
+## [1.5.1] - 2026-05-26
 
 ### Fixed
 
