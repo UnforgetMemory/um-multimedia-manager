@@ -42,8 +42,10 @@ jobs:
         run: node scripts/fix-paths.js
       
       - name: Upload build artifact
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
           path: dist/
           retention-days: 7
+          overwrite: true
