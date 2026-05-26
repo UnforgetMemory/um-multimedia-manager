@@ -2,6 +2,18 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [1.4.2] - 2026-05-26
+
+### Fixed
+
+- **豆瓣搜索**: 影人（celebrity）卡片不再输出误导性 `console.warn`，替换为 `debugLog`，仅在开发者模式下可见
+- **豆瓣搜索**: `idExtractor` 中 link 为 null 时提前返回空，避免无效处理
+
+### Changed
+
+- **上下文监控**: 上下文失效轮询间隔从 30s 调整为 60s，减少页面无意义检查
+- **上下文监控**: 移除 5 分钟检查超时限制，页面存活期间持续保护（`beforeunload` 已提供清理保障）
+
 ## [1.5.0] - 2026-05-23
 
 ### Added
