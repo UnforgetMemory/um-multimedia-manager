@@ -2,6 +2,26 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [1.5.3] - 2026-05-27
+
+### Added
+
+- **调试面板**: Popup 设置页新增 Debug 控制面板，支持运行时开关日志和日志级别选择
+- **STORAGE_KEYS 常量系统**: 统一管理所有 chrome.storage.local 存储键，替代散落的字符串字面量
+- **模块化架构重构**: shared/ 拆解为 features/{database,neodb,webdav,identity,migration} 按领域模块组织
+
+### Fixed
+
+- **调试开关不持久化**: 修复 debugEnabled/logLevel 存储键读写不一致导致的开关复位问题
+- **初始化守卫时序**: 修复 autoSyncNeoDB 首次切换被初始化守卫吞掉的 bug；修复每次刷新 popup 弹出"日志已开启"toast 的问题
+
+### Changed
+
+- **config.ts**: 移除 DATASETS/SETTINGS_KEYS 等死代码；Domain 类型改为联合字面量
+- **存储键管理**: 所有 chrome.storage.local 访问改用 STORAGE_KEYS/STATS_KEYS/MISC_KEYS 常量
+- **目录结构**: content/ 移入 entrypoints/ 目录，符合 WXT 官方推荐
+- **版本更新**: 1.5.2 → 1.5.3
+
 ## [1.5.2] - 2026-05-26
 
 ### Added
