@@ -12,68 +12,35 @@ jobs:
   release:
     name: Build & Release
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        browser: [chrome, firefox]
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Type check
-        run: npm run type-check
-      
-      - name: Build for ${{ matrix.browser }}
-        run: npx wxt build -b ${{ matrix.browser }}
-      
-      - name: Fix paths (Chrome only)
-        if: matrix.browser == 'chrome'
-        run: node scripts/fix-paths.js
-      
+      - run: npm ci
+      - run: npm run type-check
+
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      
-      - name: Create zip package
+
+      - name: Build Chrome
+        run: npx wxt build -b chrome
+      - name: Fix paths (Chrome only)
+        run: node scripts/fix-paths.js
+      - name: Zip Chrome
         run: |
           cd dist
-          if [ "${{ matrix.browser }}" = "chrome" ]; then
-            zip -r ../umm-${{ steps.version.outputs.VERSION }}-chrome.zip chrome-mv3/
-          else
-            zip -r ../umm-${{ steps.version.outputs.VERSION }}-firefox.zip firefox-mv2/
-          fi
-      
-      - name: Upload artifact
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-${{ matrix.browser }}
-          path: umm-*.zip
-  
-  publish:
-    name: Create GitHub Release
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Chrome artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: extension-chrome
-      
-      - name: Download Firefox artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: extension-firefox
-      
+          zip -r ../umm-${{ steps.version.outputs.VERSION }}-chrome.zip chrome-mv3/
+
+      - name: Build Firefox
+        run: npx wxt build -b firefox
+      - name: Zip Firefox
+        run: |
+          cd dist
+          zip -r ../umm-${{ steps.version.outputs.VERSION }}-firefox.zip firefox-mv2/
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:

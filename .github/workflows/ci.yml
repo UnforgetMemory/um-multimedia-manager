@@ -3,49 +3,47 @@ name: CI Build
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'icons/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'icons/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run type-check
+
   build:
-    name: Build Extension
+    name: Build (${{ matrix.browser }})
+    needs: typecheck
     runs-on: ubuntu-latest
     strategy:
       matrix:
         browser: [chrome, firefox]
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Type check
-        run: npm run type-check
-      
-      - name: Build for ${{ matrix.browser }}
-        run: npx wxt build -b ${{ matrix.browser }}
-      
+      - run: npm ci
+      - run: npx wxt build -b ${{ matrix.browser }}
       - name: Fix paths (Chrome only)
         if: matrix.browser == 'chrome'
         run: node scripts/fix-paths.js
-      
-      - name: Upload build artifact
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-${{ matrix.browser }}
-          path: dist/
-          retention-days: 7
-          overwrite: true
