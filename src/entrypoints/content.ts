@@ -123,6 +123,10 @@ export default defineContentScript({
       observeThemeChanges()
       infoLog('Theme observer started')
       
+      // ✅ 监听豆瓣评分变化，动态更新 NeoDB 按钮（事件驱动）
+      startRatingObserver()
+      infoLog('Rating observer started')
+      
       // ✅ 设置扩展上下文失效监听
       setupContextInvalidationListener()
       
@@ -139,6 +143,10 @@ export default defineContentScript({
           } else if (mediaQuery.removeListener) {
             mediaQuery.removeListener(themeChangeListener)
           }
+        }
+        if (ratingObserver) {
+          ratingObserver.disconnect()
+          ratingObserver = null
         }
         debugLog('Page cleanup completed')
       })
@@ -587,6 +595,37 @@ function injectNeoDBPushButtons() {
         cursor: not-allowed;
         transform: none !important;
       }
+      
+      /* 已同步状态：NEODB 水印荧光效果 */
+      .umm-neodb-synced .umm-neodb-watermark {
+        animation: umm-neodb-glow 2s ease-in-out 3 alternate;
+        animation-fill-mode: forwards;
+        color: rgba(16, 185, 129, 0.35) !important;
+        text-shadow:
+          0 0 10px rgba(16, 185, 129, 0.4),
+          0 0 20px rgba(16, 185, 129, 0.25),
+          0 0 30px rgba(16, 185, 129, 0.15) !important;
+      }
+      
+      @keyframes umm-neodb-glow {
+        from {
+          color: rgba(16, 185, 129, 0.35);
+          text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+        to {
+          color: rgba(52, 211, 153, 0.45);
+          text-shadow:
+            0 0 15px rgba(52, 211, 153, 0.5),
+            0 0 30px rgba(52, 211, 153, 0.35),
+            0 0 45px rgba(52, 211, 153, 0.25);
+        }
+      }
+      
+      @media (prefers-reduced-motion: reduce) {
+        .umm-neodb-synced .umm-neodb-watermark {
+          animation: none;
+        }
+      }
     `
     document.head.appendChild(style)
   }
@@ -613,6 +652,11 @@ function injectNeoDBPushButtons() {
   
   // 判断是否已关联 NeoDB
   const hasNeoDBLink = !!(currentRecord?.linkedIds?.neodb)
+  
+  // 已关联时添加同步样式类
+  if (hasNeoDBLink) {
+    container.classList.add('umm-neodb-synced')
+  }
   
   // 创建 NEODB 水印
   const watermark = document.createElement('div')
@@ -646,8 +690,9 @@ function injectNeoDBPushButtons() {
   
   container.appendChild(watermark)
   
-  // 获取当前评分（如果没有记录则为 0）
-  const currentRating = currentRecord?.rating || 0
+  // 获取当前评分：优先从页面 DOM 实时读取，降级到本地记录
+  const livePageState = scanDoubanPageStatus()
+  const currentRating = livePageState.rating || currentRecord?.rating || 0
   const ratingMinus = Utils.clampRating10(currentRating - 1)
   const ratingPlus = Utils.clampRating10(currentRating + 1)
   
@@ -751,8 +796,9 @@ async function pushToNeoDB(ratingAdjust: number) {
       return
     }
     
-    // 计算调整后的评分（如果没有记录则为 0）
-    const baseRating = currentRecord?.rating || 0
+    // 计算调整后的评分：优先从页面 DOM 实时读取，降级到本地记录
+    const livePageState = scanDoubanPageStatus()
+    const baseRating = livePageState.rating || currentRecord?.rating || 0
     const adjustedRating = Utils.clampRating10(baseRating + ratingAdjust)
     
     // 构建推送数据
@@ -832,13 +878,10 @@ async function pushToNeoDB(ratingAdjust: number) {
       } else {
         console.warn('[UMM] ⚠️ No catalogUuid in response or no currentIdentity')
       }
-      
-      // 更新水印颜色为暗绿色（表示已关联）
-      const watermark = document.querySelector('.umm-neodb-watermark') as HTMLElement
-      if (watermark) {
-        watermark.style.color = 'rgba(15, 100, 55, 0.35)'
-        watermark.style.textShadow = 'rgba(15, 100, 55, 0.2) 2px 2px 0px, rgba(15, 100, 55, 0.15) 4px 4px 0px, rgba(15, 100, 55, 0.1) 6px 6px 0px'
-      }
+
+      // 事件驱动：重新渲染 NeoDB 按钮（将使用更新后的 linkedIds 和 DOM 实时评分）
+      injectNeoDBPushButtons()
+      infoLog('[UMM] NeoDB buttons re-rendered after push success')
     } else {
       showToast(`❌ 推送失败: ${response.message || '未知错误'}`, 'error')
     }
@@ -897,6 +940,7 @@ function observeUrlChanges() {
         loadCurrentRecord().then(() => {
           observeUrlChanges()
           injectNeoDBPushButtons()
+          startRatingObserver()
         })
       }
     }
@@ -931,6 +975,60 @@ function observeThemeChanges() {
     // 兼容旧版浏览器
     mediaQuery.addListener(themeChangeListener)
   }
+}
+
+/**
+ * 监听豆瓣评分变化（#n_rating），自动更新 NeoDB 推送按钮的评分
+ * 实现事件驱动：用户点击星级 → 按钮值同步更新
+ */
+let ratingObserver: MutationObserver | null = null
+let lastKnownRating = 0
+
+function startRatingObserver() {
+  // 只在豆瓣详情页启用
+  if (!isDoubanDetailPage()) return
+
+  const interestSect = document.getElementById('interest_sect_level')
+  if (!interestSect) {
+    // 元素可能还没加载，延迟重试
+    setTimeout(startRatingObserver, 1000)
+    return
+  }
+
+  // 初始化 lastKnownRating
+  const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
+  if (nRatingInput) {
+    lastKnownRating = Number.parseInt(nRatingInput.value, 10) || 0
+  }
+
+  // 断开旧的 observer
+  if (ratingObserver) {
+    ratingObserver.disconnect()
+  }
+
+  ratingObserver = new MutationObserver((() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const input = document.getElementById('n_rating') as HTMLInputElement | null
+        if (!input) return
+        const newRating = Number.parseInt(input.value, 10) || 0
+        if (newRating !== lastKnownRating) {
+          lastKnownRating = newRating
+          debugLog(`Rating changed from ${lastKnownRating} → ${newRating}, re-rendering NeoDB buttons`)
+          injectNeoDBPushButtons()
+        }
+      }, 200) // 200ms 防抖
+    }
+  })())
+
+  ratingObserver.observe(interestSect, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'value'],
+  })
 }
 
 // ==================== 启动 ====================
