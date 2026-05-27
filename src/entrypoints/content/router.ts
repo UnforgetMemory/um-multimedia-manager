@@ -163,6 +163,11 @@ export async function dispatchRoute(url: string): Promise<void> {
 
 /**
  * 监听 URL 变化（适用于 SPA 应用）
+ *
+ * 覆盖三种 URL 变化方式:
+ * 1. popstate — 浏览器前进/后退
+ * 2. history.pushState / replaceState — SPA 客户端路由
+ * 3. MutationObserver — 兜底（throttled）
  */
 export function watchUrlChanges(callback: (url: string) => void): () => void {
   let lastUrl = location.href
@@ -176,15 +181,30 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
   
   // 监听 popstate 事件（浏览器前进/后退）
   window.addEventListener('popstate', checkUrl)
-  
-  // 使用 MutationObserver 监听 DOM 变化（某些 SPA 会修改 history）
-  const observer = new MutationObserver(() => {
-    // 节流检查，避免频繁触发
-    if (Math.random() < 0.1) {
-      // 10% 概率检查，降低性能开销
+
+  // 拦截 pushState / replaceState（SPA 客户端路由）
+  const origPushState = history.pushState
+  const origReplaceState = history.replaceState
+  history.pushState = function (...args: Parameters<typeof origPushState>) {
+    origPushState.apply(this, args)
+    checkUrl()
+  }
+  history.replaceState = function (...args: Parameters<typeof origReplaceState>) {
+    origReplaceState.apply(this, args)
+    checkUrl()
+  }
+
+  // 节流：使用 MutationObserver 作为后备（部分 SPA 仅操作 DOM 不走 history）
+  let throttleTimer: ReturnType<typeof setTimeout> | null = null
+  const throttledCheck = () => {
+    if (throttleTimer) return
+    throttleTimer = setTimeout(() => {
+      throttleTimer = null
       checkUrl()
-    }
-  })
+    }, 300)
+  }
+  
+  const observer = new MutationObserver(throttledCheck)
   
   observer.observe(document.body, {
     childList: true,
@@ -194,7 +214,10 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
   // 返回清理函数
   return () => {
     window.removeEventListener('popstate', checkUrl)
+    history.pushState = origPushState
+    history.replaceState = origReplaceState
     observer.disconnect()
+    if (throttleTimer) clearTimeout(throttleTimer)
   }
 }
 

@@ -44,6 +44,8 @@ export class PTDimmer {
    * 清理所有监听器和定时器
    */
   private cleanup(): void {
+    this.processing = false
+    this.processQueued = false
     if (this.observer) {
       this.observer.disconnect()
       this.observer = null
@@ -279,7 +281,6 @@ export class PTDimmer {
       ids.musicDoubanId || '',
       ids.imdbId || '',
       scoreLinks,
-      (row.textContent || '').slice(0, 160),
     ].join('::')
   }
 
@@ -318,10 +319,7 @@ export class PTDimmer {
         '| →', matched ? 'DIMMED ✓' : 'no match'
       )
 
-      row.setAttribute(
-        'data-umm-mteam-resolved',
-        matched || movieDoubanId || musicDoubanId || imdbId ? 'true' : 'false'
-      )
+      row.setAttribute('data-umm-mteam-resolved', 'true')
       row.setAttribute('data-umm-mteam-matched', matched ? 'true' : 'false')
 
       if (matched) {
@@ -390,23 +388,51 @@ export class PTDimmer {
 
       this.debug('[CacheFallback] URL:', ptUrl.slice(0, 80), '| Cached:', JSON.stringify({ doubanId: cachedDouban, imdbId: cachedImdb }), '→', matched ? 'DIMMED ✓' : 'no match')
 
-      if (matched) {
-        for (const row of rowsForUrl) {
+      for (const row of rowsForUrl) {
+        if (matched) {
           this.dimElement(row as HTMLElement)
           hitDimmed++
         }
+        // Mark as resolved after cache lookup to prevent re-querying every cycle
+        row.setAttribute('data-umm-mteam-resolved', 'true')
       }
     }
     this.debug('[CacheFallback] Done — dimmed via cache:', hitDimmed)
+
+    // Mark rows with no cache entry as resolved to prevent re-querying
+    const resolvedUrls = new Set(Object.keys(cacheMap))
+    for (const [ptUrl, rowsForUrl] of urlMap) {
+      if (!resolvedUrls.has(ptUrl)) {
+        for (const row of rowsForUrl) {
+          row.setAttribute('data-umm-mteam-resolved', 'true')
+        }
+      }
+    }
   }
 
   /**
    * 设置响应式监听循环（用于 M-Team）
    */
+  private processing = false
+  private processQueued = false
+
   private safeProcess(process: () => Promise<void>): void {
-    void process().catch((err) => {
-      console.warn('[PT Dimmer] process error:', err)
-    })
+    if (this.processing) {
+      this.processQueued = true
+      return
+    }
+    this.processing = true
+    void process()
+      .catch((err) => {
+        console.warn('[PT Dimmer] process error:', err)
+      })
+      .finally(() => {
+        this.processing = false
+        if (this.processQueued) {
+          this.processQueued = false
+          this.safeProcess(process)
+        }
+      })
   }
 
   private setupReactiveLoop(
@@ -448,7 +474,7 @@ export class PTDimmer {
   private waitForElement(
     selector: string,
     callback: () => void,
-    timeout = 5000,
+    timeout = 15000,
     contentCheck?: (el: Element) => boolean,
   ): void {
     const match = (): Element | null => {
@@ -463,8 +489,10 @@ export class PTDimmer {
       return
     }
 
+    let fulfilled = false
     const observer = new MutationObserver(() => {
       if (match()) {
+        fulfilled = true
         observer.disconnect()
         callback()
       }
@@ -476,7 +504,18 @@ export class PTDimmer {
     })
 
     setTimeout(() => {
+      if (fulfilled) return
+      if (match()) {
+        // Element appeared just before timeout — still fire
+        observer.disconnect()
+        callback()
+        return
+      }
       observer.disconnect()
+      console.warn(
+        `[PT Dimmer] waitForElement timed out after ${timeout}ms — selector: "${selector}"`,
+        contentCheck ? '(with contentCheck)' : '',
+      )
     }, timeout)
   }
 
@@ -529,8 +568,13 @@ export class PTDimmer {
             )
           }
         },
-        setup: (target: HTMLElement, process: () => Promise<void>) =>
-          this.setupReactiveLoop(target, process),
+        setup: (_target: HTMLElement, process: () => Promise<void>) => {
+          // Prefer #root over body for observer target to reduce DOM observation scope
+          const root = document.getElementById('root')
+          const observerTarget = root && root.childElementCount > 0 ? root : _target
+          this.debug('[M-Team] Observer target:', observerTarget.tagName, '#', observerTarget.id || '(no id)')
+          this.setupReactiveLoop(observerTarget, process)
+        },
       },
       {
         match: () =>
