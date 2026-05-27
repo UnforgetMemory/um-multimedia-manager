@@ -2,6 +2,23 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [1.5.2] - 2026-05-26
+
+### Added
+
+- **事件驱动架构**: 豆瓣详情页新增评分变化实时监听（`#n_rating` MutationObserver），星级点击后推送按钮值自动同步
+- **推送成功后响应式更新**: NeoDB 推送成功后自动重渲染按钮容器，水印变绿并播放荧光动画
+- **按钮容器状态**: 已关联 NeoDB 时容器自动添加 `umm-neodb-synced` 类，触发绿色荧光 CSS 动画
+
+### Fixed
+
+- **豆瓣详情页**: 修复推送后 NeoDB 水印不更新的问题（取消硬编码 CSS，改为完整重渲染）
+- **豆瓣详情页**: 修复按钮评分与页面星级不同步的问题（使用实时 DOM 评分替代 `currentRecord.rating`）
+
+### Changed
+
+- **豆瓣详情页**: `pushToNeoDB` 推送基数改用页面实时评分（`scanDoubanPageStatus`），而非缓存数据
+
 ## [1.5.1] - 2026-05-26
 
 ### Fixed
