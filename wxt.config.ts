@@ -32,6 +32,7 @@ export default defineConfig({
       '*://hdhome.org/*',
       '*://hdarea.club/*',
       '*://pterclub.net/*',
+      '*://www.pthome.net/*',
       '*://web5.mukaku.com/*',
       '<all_urls>'
     ],

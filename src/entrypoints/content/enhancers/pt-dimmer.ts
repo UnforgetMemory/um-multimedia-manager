@@ -534,7 +534,7 @@ export class PTDimmer {
       },
       {
         match: () =>
-          ['audiences.me', 'hdhome.org', 'hdarea.club'].some(
+          ['audiences.me', 'hdhome.org', 'hdarea.club', 'pthome.net'].some(
             (host) => url.includes(host) && url.includes('torrents.php')
           ),
         selector: 'table.torrents, #torrenttable',

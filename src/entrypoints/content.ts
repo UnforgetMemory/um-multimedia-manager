@@ -67,6 +67,8 @@ export default defineContentScript({
     '*://*.pterclub.net/officialgroup.php*',
     '*://audiences.me/details.php*',
     '*://*.audiences.me/details.php*',
+    '*://www.pthome.net/torrents.php*',
+    '*://www.pthome.net/details.php*',
     '*://web5.mukaku.com/*'
   ],
   runAt: 'document_idle',
