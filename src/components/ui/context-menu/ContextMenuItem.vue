@@ -6,7 +6,7 @@ import {
   ContextMenuItem,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<ContextMenuItemProps & { class?: HTMLAttributes["class"], inset?: boolean }>()
 const emits = defineEmits<ContextMenuItemEmits>()
@@ -28,3 +28,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <slot />
   </ContextMenuItem>
 </template>
+

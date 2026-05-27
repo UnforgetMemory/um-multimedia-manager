@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 import TableCell from "./TableCell.vue"
 import TableRow from "./TableRow.vue"
 
@@ -32,3 +32,4 @@ const delegatedProps = reactiveOmit(props, "class")
     </TableCell>
   </TableRow>
 </template>
+

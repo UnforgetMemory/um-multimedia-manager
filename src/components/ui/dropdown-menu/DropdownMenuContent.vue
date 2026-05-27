@@ -7,7 +7,7 @@ import {
   DropdownMenuPortal,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = withDefaults(
   defineProps<DropdownMenuContentProps & { class?: HTMLAttributes["class"] }>(),
@@ -32,3 +32,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     </DropdownMenuContent>
   </DropdownMenuPortal>
 </template>
+

@@ -6,7 +6,7 @@ import {
   MenubarRoot,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<MenubarRootProps & { class?: HTMLAttributes["class"] }>()
 const emits = defineEmits<MenubarRootEmits>()
@@ -29,3 +29,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <slot />
   </MenubarRoot>
 </template>
+

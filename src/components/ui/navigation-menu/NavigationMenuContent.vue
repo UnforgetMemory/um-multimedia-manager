@@ -6,7 +6,7 @@ import {
   NavigationMenuContent,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<NavigationMenuContentProps & { class?: HTMLAttributes["class"] }>()
 
@@ -28,3 +28,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <slot />
   </NavigationMenuContent>
 </template>
+

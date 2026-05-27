@@ -3,7 +3,7 @@ import type { DialogTitleProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
 import { DialogTitle, useForwardProps } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<DialogTitleProps & { class?: HTMLAttributes["class"] }>()
 
@@ -25,3 +25,4 @@ const forwardedProps = useForwardProps(delegatedProps)
     <slot />
   </DialogTitle>
 </template>
+

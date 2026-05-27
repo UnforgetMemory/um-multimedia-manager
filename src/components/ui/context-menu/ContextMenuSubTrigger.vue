@@ -7,7 +7,7 @@ import {
   ContextMenuSubTrigger,
   useForwardProps,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<ContextMenuSubTriggerProps & { class?: HTMLAttributes["class"], inset?: boolean }>()
 
@@ -29,3 +29,4 @@ const forwardedProps = useForwardProps(delegatedProps)
     <ChevronRight class="ml-auto h-4 w-4" />
   </ContextMenuSubTrigger>
 </template>
+

@@ -7,7 +7,7 @@ import {
   SwitchThumb,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<SwitchRootProps & { class?: HTMLAttributes["class"] }>()
 
@@ -33,3 +33,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     </SwitchThumb>
   </SwitchRoot>
 </template>
+

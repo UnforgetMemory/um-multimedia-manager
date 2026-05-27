@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from "vue"
 import type { AvatarVariants } from "."
 import { AvatarRoot } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 import { avatarVariant } from "."
 
 const props = withDefaults(defineProps<{
@@ -20,3 +20,4 @@ const props = withDefaults(defineProps<{
     <slot />
   </AvatarRoot>
 </template>
+

@@ -7,7 +7,7 @@ import {
   MenubarSubContent,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<MenubarSubContentProps & { class?: HTMLAttributes["class"] }>()
 
@@ -33,3 +33,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     </MenubarSubContent>
   </MenubarPortal>
 </template>
+

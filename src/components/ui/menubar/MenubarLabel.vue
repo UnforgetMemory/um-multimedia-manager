@@ -2,7 +2,7 @@
 import type { MenubarLabelProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { MenubarLabel } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<MenubarLabelProps & { class?: HTMLAttributes["class"], inset?: boolean }>()
 </script>
@@ -12,3 +12,4 @@ const props = defineProps<MenubarLabelProps & { class?: HTMLAttributes["class"],
     <slot />
   </MenubarLabel>
 </template>
+

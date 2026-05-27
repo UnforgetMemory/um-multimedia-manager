@@ -6,7 +6,7 @@ import {
   ProgressIndicator,
   ProgressRoot,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = withDefaults(
   defineProps<ProgressRootProps & { class?: HTMLAttributes["class"] }>(),
@@ -34,3 +34,4 @@ const delegatedProps = reactiveOmit(props, "class")
     />
   </ProgressRoot>
 </template>
+

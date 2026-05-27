@@ -8,7 +8,7 @@ import {
   ContextMenuRadioItem,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<ContextMenuRadioItemProps & { class?: HTMLAttributes["class"] }>()
 const emits = defineEmits<ContextMenuRadioItemEmits>()
@@ -34,3 +34,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <slot />
   </ContextMenuRadioItem>
 </template>
+

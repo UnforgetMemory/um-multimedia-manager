@@ -6,7 +6,7 @@ import {
   DropdownMenuSubContent,
   useForwardPropsEmits,
 } from "reka-ui"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/cn"
 
 const props = defineProps<DropdownMenuSubContentProps & { class?: HTMLAttributes["class"] }>()
 const emits = defineEmits<DropdownMenuSubContentEmits>()
@@ -24,3 +24,4 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <slot />
   </DropdownMenuSubContent>
 </template>
+
