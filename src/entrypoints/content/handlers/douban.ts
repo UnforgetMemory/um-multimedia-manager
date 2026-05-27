@@ -3,10 +3,11 @@
  * 功能：检测页面状态并注入状态标签
  */
 
-import { Store, Utils } from '@/shared'
-import type { UrlIdentity, StoreRecord } from '@/shared/types'
+import { Store } from '@/features/database'
+import { Utils } from '@/utils'
+import type { UrlIdentity, StoreRecord } from '@/types'
 import { escapeHtml, waitForElement } from '../utils/dom'
-import { safeSendMessage } from '@/shared/utils/context'
+import { safeSendMessage } from '@/utils/context'
 import { FloatingToast } from '../utils/toast'
 
 // ✅ P2: 提取魔法数字为常量

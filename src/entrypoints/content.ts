@@ -5,12 +5,16 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Identity, Store, Utils } from '@/shared'
-import type { StoreRecord } from '@/shared/types'
-import { initRouter } from '../content/router'
-import { injectGlobalStyles } from '../content/styles/global'
-import { FloatingToast } from '../content/utils/toast'
-import { debugLog, infoLog, warnLog, errorLog } from '@/shared/utils/logger'
+import { Identity } from '@/features/identity'
+import { Store } from '@/features/database'
+import { Utils } from '@/utils'
+import type { StoreRecord } from '@/types'
+import { initRouter } from './content/router'
+import { injectGlobalStyles } from './content/styles/global'
+import { FloatingToast } from './content/utils/toast'
+import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
+import type { LogLevel } from '@/types'
+import { STORAGE_KEYS } from '@/config'
 
 // ==================== 全局状态 ====================
 
@@ -68,6 +72,31 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   async main() {
+    // ==================== Log Config Sync ====================
+    // Read debug settings from storage on startup
+    try {
+      const result = await chrome.storage.local.get([STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL])
+      configureLogging({
+        enabled: (result[STORAGE_KEYS.DEBUG_ENABLED] as boolean) ?? false,
+        level: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
+      })
+    } catch {
+      // Silent fallback — keep defaults
+    }
+
+    // React to settings changes from popup
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local') return
+      const enabledChange = changes[STORAGE_KEYS.DEBUG_ENABLED]
+      const levelChange = changes[STORAGE_KEYS.LOG_LEVEL]
+      if (enabledChange || levelChange) {
+        configureLogging({
+          enabled: enabledChange?.newValue as boolean | undefined,
+          level: levelChange?.newValue as LogLevel | undefined,
+        })
+      }
+    })
+
     // 检测当前页面身份（在运行时执行）
     currentIdentity = Identity.fromUrl(window.location.href)
     

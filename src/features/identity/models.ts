@@ -3,8 +3,8 @@
  * 负责从 URL 解析媒体信息(domain/provider/providerId)以及构建标准 URL
  */
 
-import type { Provider } from '../config';
-import type { UrlIdentity } from '../types';
+import type { Provider } from '@/config';
+import type { UrlIdentity } from '@/types';
 
 export const Identity = {
   /**

@@ -12,7 +12,7 @@
  * Orchestration happens in background.ts handlers.
  */
 
-import type { RemoteMeta } from '../types'
+import type { RemoteMeta } from '@/types'
 
 const WEBDAV_TIMEOUT = 30_000
 

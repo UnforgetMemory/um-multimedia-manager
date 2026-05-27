@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
-import { Store } from '@/shared'
-import type { Domain, Provider } from '@/shared'
-import type { StoreRecord } from '@/shared/types'
-import { safeSendMessage } from '@/shared/utils/context'
+import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
+import { Store } from '@/features/database'
+import type { Domain, Provider } from '@/config'
+import { MISC_KEYS } from '@/config'
+import type { AppSettings, StoreRecord } from '@/types'
+import { safeSendMessage } from '@/utils/context'
 
 /** StoreRecord enriched by GET_ALL_RECORDS with key-derived fields */
 interface DisplayRecord extends StoreRecord {
@@ -956,7 +957,7 @@ function toggleTheme() {
   // 持久化到 chrome.storage（如果可用）
   if (chrome.storage?.local) {
     chrome.storage.local.set({
-      settings: {
+      [MISC_KEYS.SETTINGS_NESTED]: {
         appearance: currentTheme.value
       }
     })
@@ -992,6 +993,17 @@ const webdavLoading = ref({
 const isAnyWebDAVOperationRunning = computed(() => {
   return Object.values(webdavLoading.value).some(loading => loading)
 })
+
+// ==================== 调试设置 ====================
+const debugEnabled = ref(false)
+const logLevel = ref<AppSettings['logLevel']>('info')
+
+const LOG_LEVEL_OPTIONS = [
+  { value: 'debug', label: 'Debug', description: '显示所有日志' },
+  { value: 'info', label: 'Info', description: '信息及以上' },
+  { value: 'warn', label: 'Warn', description: '警告及以上' },
+  { value: 'error', label: 'Error', description: '仅错误' },
+] as const
 
 // ==================== 确认对话框状态 ====================
 interface ConfirmDialogState {
@@ -1070,6 +1082,16 @@ async function loadSettings() {
     
     // ✅ 更新保存状态
     isConfigSaved.value = !!(settings.webdavUrl && settings.webdavUsername && settings.webdavPassword)
+    
+    // 加载调试设置
+    debugEnabled.value = settings.debugEnabled ?? false
+    logLevel.value = settings.logLevel ?? 'info'
+    
+    // 等待 Vue 处理所有 watcher 回调（初始值变更触发的回调已执行完毕）
+    // 然后再标记初始化完成，确保 watcher 的 first-trigger guard 能正确拦截初始化阶段的回调
+    await nextTick()
+    autoSyncNeoDBInitialized = true
+    debugInitialized = true
     
     console.log('[Popup] Settings loaded successfully, isConfigSaved:', isConfigSaved.value)
   } catch (error) {
@@ -1199,6 +1221,36 @@ watch(autoSyncNeoDB, async (newVal) => {
     await showPageToast('error', '保存失败', String(error))
   } finally {
     autoSyncNeoDBSaving = false
+  }
+})
+
+// ==================== 调试设置 ====================
+// Watch debug settings changes and save to storage
+let debugSaving = false
+let debugInitialized = false
+
+watch([debugEnabled, logLevel], async ([newEnabled, newLevel]) => {
+  if (!debugInitialized) {
+    debugInitialized = true
+    return
+  }
+  if (debugSaving) return
+  debugSaving = true
+  try {
+    await Store.updateSettings({
+      debugEnabled: newEnabled,
+      logLevel: newLevel,
+    })
+    if (newEnabled) {
+      await showPageToast('success', '日志已开启', `日志级别: ${newLevel}`)
+    } else {
+      await showPageToast('info', '日志已关闭')
+    }
+  } catch (error) {
+    console.error('Failed to save debug settings:', error)
+    await showPageToast('error', '保存失败', String(error))
+  } finally {
+    debugSaving = false
   }
 })
 
@@ -1517,8 +1569,8 @@ function handleRefresh() {
 onMounted(() => {
   // 1. 初始化主题
   if (chrome.storage?.local) {
-    chrome.storage.local.get(['settings'], (result: any) => {
-      if (result.settings?.appearance) {
+    chrome.storage.local.get([MISC_KEYS.SETTINGS_NESTED], (result: any) => {
+      if (result[MISC_KEYS.SETTINGS_NESTED]?.appearance) {
         applyTheme(result.settings.appearance)
       } else {
         // ✅ 修复：默认使用 auto,而不是 dark
@@ -1545,7 +1597,7 @@ onMounted(() => {
     }
     
     // 监听数据版本变化
-    if (namespace === 'local' && changes.umm_data_version) {
+    if (namespace === 'local' && changes[MISC_KEYS.DATA_VERSION]) {
       console.log('[Popup] Data version changed, reloading...')
       isHandlingStorageChange = true
       loadData().finally(() => {
@@ -2284,6 +2336,59 @@ onMounted(() => {
                     ]"
                   />
                 </button>
+              </div>
+            </div>
+
+            <Separator />
+
+            <!-- 调试设置 -->
+            <div class="space-y-4">
+              <h3 class="text-sm font-semibold">调试日志</h3>
+              
+              <!-- 开关 -->
+              <div class="flex items-center justify-between rounded-lg border p-3">
+                <div class="space-y-0.5">
+                  <Label class="font-medium">启用日志</Label>
+                  <p class="text-xs text-muted-foreground">
+                    开启后将在控制台输出调试信息
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="debugEnabled"
+                  :class="[
+                    'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+                    debugEnabled ? 'bg-primary' : 'bg-input'
+                  ]"
+                  @click="debugEnabled = !debugEnabled"
+                >
+                  <span
+                    :class="[
+                      'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      debugEnabled ? 'translate-x-5' : 'translate-x-0'
+                    ]"
+                  />
+                </button>
+              </div>
+
+              <!-- 日志级别选择器 -->
+              <div v-if="debugEnabled" class="space-y-2">
+                <Label class="font-medium">日志级别</Label>
+                <Select v-model="logLevel">
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="选择日志级别" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="opt in LOG_LEVEL_OPTIONS"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }} — {{ opt.description }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

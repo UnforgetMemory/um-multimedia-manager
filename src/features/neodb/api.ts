@@ -8,7 +8,7 @@
  * - 用户认证
  */
 
-import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger'
+import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
 
 // ==================== 错误类型 ====================
 

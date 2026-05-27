@@ -18,8 +18,8 @@
  * v6 migration drops all old stores and creates fresh per-platform stores.
  */
 
-import type { StoreRecord, PtIdCacheEntry } from '../types'
-import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from './migrations'
+import type { StoreRecord, PtIdCacheEntry } from '@/types'
+import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/features/migration/models'
 
 export const DB_NAME = 'umm-media-db'
 export const DB_VERSION = 7

@@ -7,7 +7,7 @@
  * Cross-platform links stored in `linkedIds` map.
  */
 
-import type { Provider } from '../config'
+import type { Provider } from '@/config'
 
 // ==================== Store Record ====================
 
@@ -51,7 +51,17 @@ export interface NeoDBSettings {
   neodbToken: string
 }
 
-export interface AppSettings extends WebDAVSettings, NeoDBSettings {
+// ==================== Debug / Logging ====================
+
+/** Log level hierarchy — higher number = more restrictive */
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+
+export interface DebugSettings {
+  debugEnabled?: boolean
+  logLevel?: LogLevel
+}
+
+export interface AppSettings extends WebDAVSettings, NeoDBSettings, DebugSettings {
   autoSync?: boolean
   autoSyncNeoDB?: boolean
   syncInterval?: number

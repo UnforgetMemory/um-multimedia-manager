@@ -3,9 +3,9 @@
  * 功能：检测 IMDb 页面的用户评分和观看状态，注入状态标签
  */
 
-import type { UrlIdentity } from '../../shared/types'
-import { Store } from '../../shared'
-import { Utils } from '../../shared/utils'
+import type { UrlIdentity } from '@/types'
+import { Store } from '@/features/database'
+import { Utils } from '@/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
 

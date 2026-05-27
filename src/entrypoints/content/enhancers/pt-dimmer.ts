@@ -11,7 +11,7 @@
  * - PTerClub (pterclub.net)
  */
 
-import { Store } from '@/shared'
+import { Store } from '@/features/database'
 
 /** Cached ID sets with TTL */
 interface CachedIdSets {

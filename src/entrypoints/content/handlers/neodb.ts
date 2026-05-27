@@ -3,9 +3,10 @@
  * 功能：检测 NeoDB 页面的标记状态和评分，注入状态标签和同步按钮
  */
 
-import type { UrlIdentity, StoreRecord } from '../../shared/types'
-import { Store, Identity } from '../../shared'
-import { Utils } from '../../shared/utils'
+import type { UrlIdentity, StoreRecord } from '@/types'
+import { Store } from '@/features/database'
+import { Identity } from '@/features/identity'
+import { Utils } from '@/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
 

@@ -7,7 +7,7 @@
  * retry/timeout handling if needed.
  */
 
-import type { StoreRecord, AppSettings, ExportData, Statistics, PtIdCacheEntry, MigrationStatus } from '../types'
+import type { StoreRecord, AppSettings, ExportData, Statistics, PtIdCacheEntry, MigrationStatus } from '@/types'
 
 /**
  * Send a runtime message with timeout.

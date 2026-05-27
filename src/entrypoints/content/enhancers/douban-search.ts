@@ -3,10 +3,10 @@
  * 功能：在豆瓣搜索结果列表和排行榜中批量显示状态徽章（已看/未看）
  */
 
-import { Store } from '../../shared'
-import type { StoreRecord } from '../../shared/types'
-import { Utils } from '../../shared/utils'
-import { debugLog } from '../../shared/utils/logger'
+import { Store } from '@/features/database'
+import type { StoreRecord } from '@/types'
+import { Utils } from '@/utils'
+import { debugLog } from '@/utils/logger'
 import { escapeHtml, waitForElement } from '../utils/dom'
 
 /**

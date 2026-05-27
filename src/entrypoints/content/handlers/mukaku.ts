@@ -8,10 +8,10 @@
  * - 本地缓存管理（已看/未看 TTL）
  */
 
-import { RequestQueue } from '@/shared/utils/requestQueue'
+import { RequestQueue } from '@/utils/requestQueue'
 import { FloatingToast, PersistentToast } from '../utils/toast'
 import { createStatusChip } from '../utils/dom'
-import { Store } from '@/shared'
+import { Store } from '@/features/database'
 
 // ─── 全局 Toast 单例控制器 ──────────────────────────────────
 /**

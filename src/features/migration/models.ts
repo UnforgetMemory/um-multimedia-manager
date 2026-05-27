@@ -17,7 +17,7 @@
  * 3. Done — all existing records auto-migrate on next read
  */
 
-import type { StoreRecord, PtIdCacheEntry } from '../types'
+import type { StoreRecord, PtIdCacheEntry } from '@/types'
 
 // ==================== Version Constants ====================
 

@@ -3,8 +3,8 @@
  * 功能：根据 URL 动态加载对应的页面处理器
  */
 
-import { Identity } from '@/shared'
-import type { UrlIdentity } from '@/shared/types'
+import { Identity } from '@/features/identity'
+import type { UrlIdentity } from '@/types'
 import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
 import { handleDoubanDetailPage } from './handlers/douban'

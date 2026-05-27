@@ -2,7 +2,7 @@
  * DOM 操作工具函数
  */
 
-import { Utils } from '../../shared/utils'
+import { Utils } from '@/utils'
 
 /**
  * HTML 转义函数 - 防止 XSS 攻击

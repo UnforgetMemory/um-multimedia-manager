@@ -9,14 +9,16 @@
  */
 
 import { defineBackground } from 'wxt/utils/define-background'
-import type { AppSettings, ExportData, Statistics, RecordStoreName, RemoteMeta, DatasetMeta } from '@/shared/types'
-import * as NeoDB from '@/shared/api/neodb'
-import { mediaDB, RECORD_STORES, STORE_NAMES } from '../shared/models/database'
-import * as WebDAV from '@/shared/api/webdav'
-import { packageDataset, unpackageDataset } from '@/shared/utils/zip-utils'
-import { calculateStoreHash } from '@/shared/utils/hash-utils'
-import { debugLog, infoLog, warnLog, errorLog } from '@/shared/utils/logger'
-import { validateExportVersion, getMigrationInfo, MigrationError } from '@/shared/models/migrations'
+import type { AppSettings, ExportData, Statistics, RecordStoreName, RemoteMeta, DatasetMeta } from '@/types'
+import * as NeoDB from '@/features/neodb/api'
+import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
+import * as WebDAV from '@/features/webdav/api'
+import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
+import { calculateStoreHash } from '@/utils/hash-utils'
+import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
+import type { LogLevel } from '@/types'
+import { STORAGE_KEYS } from '@/config'
+import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
 
 export default defineBackground({
   type: 'module',
@@ -53,6 +55,37 @@ export default defineBackground({
         NeoDB.cleanupShelfCache()
       }
     })
+
+    // ==================== Log Config Sync ====================
+
+    /** Read debug settings from storage and configure logger */
+    async function initLogConfig() {
+      try {
+        const result = await chrome.storage.local.get([STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL])
+        configureLogging({
+          enabled: (result[STORAGE_KEYS.DEBUG_ENABLED] as boolean) ?? false,
+          level: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
+        })
+      } catch {
+        // Silent fallback — keep defaults
+      }
+    }
+
+    // React to settings changes from popup or other contexts
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local') return
+      const enabledChange = changes[STORAGE_KEYS.DEBUG_ENABLED]
+      const levelChange = changes[STORAGE_KEYS.LOG_LEVEL]
+      if (enabledChange || levelChange) {
+        configureLogging({
+          enabled: enabledChange?.newValue as boolean | undefined,
+          level: levelChange?.newValue as LogLevel | undefined,
+        })
+      }
+    })
+
+    // Init log config before anything else logs
+    initLogConfig()
 
     initBackground()
 
@@ -362,19 +395,21 @@ export default defineBackground({
     async function handleGetSettings(sendResponse: (r?: any) => void) {
       const result = (await chrome.storage.local.get(null)) as Record<string, any>
       const settings: AppSettings = {
-        webdavUrl: result.webdavUrl || '',
-        webdavUsername: result.webdavUsername || '',
-        webdavPassword: result.webdavPassword || '',
-        neodbToken: result.neodbToken || '',
-        autoSync: result.autoSync ?? false,
-        autoSyncNeoDB: result.autoSyncNeoDB ?? false,
-        syncInterval: result.syncInterval ?? 30,
-        theme: result.theme || 'auto',
-        language: result.language || 'zh-CN',
-        notificationEnabled: result.notificationEnabled ?? true,
-        appearance: result.appearance || 'auto',
-        accentColor: result.accentColor || 'blue',
-        grayColor: result.grayColor || 'slate',
+        webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
+        webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
+        webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
+        neodbToken: result[STORAGE_KEYS.NEODB_TOKEN] || '',
+        autoSync: result[STORAGE_KEYS.AUTO_SYNC] ?? false,
+        autoSyncNeoDB: result[STORAGE_KEYS.AUTO_SYNC_NEO_DB] ?? false,
+        syncInterval: result[STORAGE_KEYS.SYNC_INTERVAL] ?? 30,
+        theme: result[STORAGE_KEYS.THEME] || 'auto',
+        language: result[STORAGE_KEYS.LANGUAGE] || 'zh-CN',
+        notificationEnabled: result[STORAGE_KEYS.NOTIFICATION_ENABLED] ?? true,
+        appearance: result[STORAGE_KEYS.APPEARANCE] || 'auto',
+        accentColor: result[STORAGE_KEYS.ACCENT_COLOR] || 'blue',
+        grayColor: result[STORAGE_KEYS.GRAY_COLOR] || 'slate',
+        debugEnabled: result[STORAGE_KEYS.DEBUG_ENABLED] ?? false,
+        logLevel: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
       }
       sendResponse({ success: true, settings })
     }
@@ -384,19 +419,21 @@ export default defineBackground({
       // Return updated settings
       const result = (await chrome.storage.local.get(null)) as Record<string, any>
       const settings: AppSettings = {
-        webdavUrl: result.webdavUrl || '',
-        webdavUsername: result.webdavUsername || '',
-        webdavPassword: result.webdavPassword || '',
-        neodbToken: result.neodbToken || '',
-        autoSync: result.autoSync ?? false,
-        autoSyncNeoDB: result.autoSyncNeoDB ?? false,
-        syncInterval: result.syncInterval ?? 30,
-        theme: result.theme || 'auto',
-        language: result.language || 'zh-CN',
-        notificationEnabled: result.notificationEnabled ?? true,
-        appearance: result.appearance || 'auto',
-        accentColor: result.accentColor || 'blue',
-        grayColor: result.grayColor || 'slate',
+        webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
+        webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
+        webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
+        neodbToken: result[STORAGE_KEYS.NEODB_TOKEN] || '',
+        autoSync: result[STORAGE_KEYS.AUTO_SYNC] ?? false,
+        autoSyncNeoDB: result[STORAGE_KEYS.AUTO_SYNC_NEO_DB] ?? false,
+        syncInterval: result[STORAGE_KEYS.SYNC_INTERVAL] ?? 30,
+        theme: result[STORAGE_KEYS.THEME] || 'auto',
+        language: result[STORAGE_KEYS.LANGUAGE] || 'zh-CN',
+        notificationEnabled: result[STORAGE_KEYS.NOTIFICATION_ENABLED] ?? true,
+        appearance: result[STORAGE_KEYS.APPEARANCE] || 'auto',
+        accentColor: result[STORAGE_KEYS.ACCENT_COLOR] || 'blue',
+        grayColor: result[STORAGE_KEYS.GRAY_COLOR] || 'slate',
+        debugEnabled: result[STORAGE_KEYS.DEBUG_ENABLED] ?? false,
+        logLevel: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
       }
       sendResponse({ success: true, settings })
     }
@@ -405,10 +442,10 @@ export default defineBackground({
       const stores = await mediaDB.getAllStores()
       const result = (await chrome.storage.local.get(null)) as Record<string, any>
       const settings: Partial<AppSettings> = {
-        autoSync: result.autoSync ?? false,
-        syncInterval: result.syncInterval ?? 30,
-        theme: result.theme || 'auto',
-        notificationEnabled: result.notificationEnabled ?? true,
+        autoSync: result[STORAGE_KEYS.AUTO_SYNC] ?? false,
+        syncInterval: result[STORAGE_KEYS.SYNC_INTERVAL] ?? 30,
+        theme: result[STORAGE_KEYS.THEME] || 'auto',
+        notificationEnabled: result[STORAGE_KEYS.NOTIFICATION_ENABLED] ?? true,
       }
 
       const data: ExportData = {
@@ -669,9 +706,9 @@ export default defineBackground({
     async function getWebDAVSettings() {
       const result = (await chrome.storage.local.get(null)) as Record<string, any>
       return {
-        webdavUrl: result.webdavUrl || '',
-        webdavUsername: result.webdavUsername || '',
-        webdavPassword: result.webdavPassword || '',
+        webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
+        webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
+        webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
       }
     }
 
@@ -1070,8 +1107,8 @@ export default defineBackground({
         }
 
         // Get NeoDB token
-        const result = (await chrome.storage.local.get('neodbToken')) as Record<string, any>
-        const token = result.neodbToken || ''
+        const result = (await chrome.storage.local.get(STORAGE_KEYS.NEODB_TOKEN)) as Record<string, any>
+        const token = result[STORAGE_KEYS.NEODB_TOKEN] || ''
         if (!token) {
           sendResponse({ success: false, message: 'NeoDB token not configured' })
           return
