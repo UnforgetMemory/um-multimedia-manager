@@ -9,7 +9,7 @@ import { Identity } from '@/features/identity'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
 import type { StoreRecord } from '@/types'
-import { initRouter } from './content/router'
+import { initRouter, hasMatchingRoute } from './content/router'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
@@ -41,12 +41,9 @@ export default defineContentScript({
     '*://neodb.social/album/*',
     '*://audiences.me/torrents.php*',
     '*://*.audiences.me/torrents.php*',
-    '*://next.m-team.cc/browse*',
-    '*://kp.m-team.cc/browse*',
-    '*://www.m-team.cc/browse*',
-    '*://kp.m-team.cc/detail*',
-    '*://next.m-team.cc/detail*',
-    '*://www.m-team.cc/detail*',
+    '*://kp.m-team.cc/*',
+    '*://next.m-team.cc/*',
+    '*://www.m-team.cc/*',
     '*://ourbits.club/torrents.php*',
     '*://*.ourbits.club/torrents.php*',
     '*://ourbits.club/details.php*',
@@ -110,81 +107,108 @@ export default defineContentScript({
       errorLog('Chrome runtime not available!')
       return
     }
-    
-    try {
-      // ✅ 关键：先等待 Background Service Worker 和数据库就绪
-      // 这样后续的消息发送不会因为 DB_NOT_READY 而失败
-      infoLog('Waiting for background DB to be ready...')
-      // Wait for background DB readiness with retry
-      let attempts = 0
-      const MAX_ATTEMPTS = 8
-      while (attempts < MAX_ATTEMPTS) {
-        const ok = await Store.healthCheck()
-        if (ok) break
-        attempts++
-        await new Promise(r => setTimeout(r, Math.min(500 * Math.pow(2, attempts), 8000)))
+
+    // ==================== 懒加载：轻量 URL 瞭望员 ====================
+    // 如果当前 URL 不匹配任何路由（如 MTeam 首页），跳过重量级初始化，
+    // 仅启动轻量 URL 监听器，等待用户导航到目标页面后再完整初始化。
+    // 这样避免在无关页面上执行 DB 健康检查、样式注入、路由初始化等开销。
+    if (!hasMatchingRoute(location.href)) {
+      infoLog('No matching route — starting lightweight URL watcher')
+      let initialized = false
+
+      const tryInit = async () => {
+        if (initialized || !hasMatchingRoute(location.href)) return
+        initialized = true
+        clearInterval(pollId)
+        window.removeEventListener('popstate', tryInit)
+        if (originalPushState) history.pushState = originalPushState
+        if (originalReplaceState) history.replaceState = originalReplaceState
+        infoLog('Route detected — running full initialization')
+        await fullInit()
       }
-      infoLog('Background DB ready')
-      
-      // 注入全局样式
-      injectGlobalStyles()
-      infoLog('Global styles injected')
-      
-      // 检测当前页面是否为支持的媒体详情页（非搜索页）
-      if (!currentIdentity) {
-        infoLog('Not a media detail page (may be search page or unsupported)')
-      } else {
-        infoLog('Detected identity:', currentIdentity)
-        
-        // 加载当前记录
-        await loadCurrentRecord()
-        infoLog('Current record loaded')
+
+      // Poll every 2s (lightweight, no DOM observation)
+      const pollId = setInterval(tryInit, 2000)
+      // popstate (back/forward)
+      window.addEventListener('popstate', tryInit)
+      // Monkey-patch pushState/replaceState for SPA navigation
+      const originalPushState = history.pushState
+      const originalReplaceState = history.replaceState
+      history.pushState = function (...args: [any, string, string?]) {
+        originalPushState.apply(this, args)
+        tryInit()
       }
-      
-      // 使用路由器统一分发（处理豆瓣、IMDb、NeoDB、搜索页等）
-      // 路由器内部会根据 URL 自动识别页面类型并调用相应处理器
-      // 对于详情页，路由处理器会注入状态标签；对于搜索页，会注入增强器
-      initRouter()
-      infoLog('Router initialized')
-      
-      // 非豆瓣详情页无需悬浮面板 — 路由器已注入轻量状态标签
-      // 豆瓣页面由路由处理器（handleDoubanDetailPage）注入状态标签到页面 DOM 中
-      
-      // 监听系统主题变化
-      observeThemeChanges()
-      infoLog('Theme observer started')
-      
-      // ✅ 监听豆瓣评分变化，动态更新 NeoDB 按钮（事件驱动）
-      startRatingObserver()
-      infoLog('Rating observer started')
-      
-      // ✅ 设置扩展上下文失效监听
-      setupContextInvalidationListener()
-      
-      // ✅ 注册页面卸载时的清理
-      window.addEventListener('beforeunload', () => {
-        if (urlObserver) {
-          urlObserver.disconnect()
-          urlObserver = null
+      history.replaceState = function (...args: [any, string, string?]) {
+        originalReplaceState.apply(this, args)
+        tryInit()
+      }
+
+      return // Skip heavy init — watcher will call fullInit() when ready
+    }
+
+    // URL 已匹配路由，直接执行完整初始化
+    await fullInit()
+
+    // ==================== 完整初始化函数 ====================
+    async function fullInit() {
+      try {
+        // ✅ 关键：先等待 Background Service Worker 和数据库就绪
+        infoLog('Waiting for background DB to be ready...')
+        let attempts = 0
+        const MAX_ATTEMPTS = 8
+        while (attempts < MAX_ATTEMPTS) {
+          const ok = await Store.healthCheck()
+          if (ok) break
+          attempts++
+          await new Promise(r => setTimeout(r, Math.min(500 * Math.pow(2, attempts), 8000)))
         }
-        if (themeChangeListener) {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-          if (mediaQuery.removeEventListener) {
-            mediaQuery.removeEventListener('change', themeChangeListener)
-          } else if (mediaQuery.removeListener) {
-            mediaQuery.removeListener(themeChangeListener)
+        infoLog('Background DB ready')
+
+        // 注入全局样式
+        injectGlobalStyles()
+        infoLog('Global styles injected')
+
+        // 检测当前页面是否为支持的媒体详情页
+        currentIdentity = Identity.fromUrl(window.location.href)
+        if (!currentIdentity) {
+          infoLog('Not a media detail page')
+        } else {
+          infoLog('Detected identity:', currentIdentity)
+          await loadCurrentRecord()
+          infoLog('Current record loaded')
+        }
+
+        // 使用路由器统一分发
+        initRouter()
+        infoLog('Router initialized')
+
+        // 监听系统主题变化
+        observeThemeChanges()
+        infoLog('Theme observer started')
+
+        // ✅ 监听豆瓣评分变化
+        startRatingObserver()
+        infoLog('Rating observer started')
+
+        // ✅ 设置扩展上下文失效监听
+        setupContextInvalidationListener()
+
+        // ✅ 注册页面卸载时的清理
+        window.addEventListener('beforeunload', () => {
+          if (urlObserver) { urlObserver.disconnect(); urlObserver = null }
+          if (themeChangeListener) {
+            const mq = window.matchMedia('(prefers-color-scheme: dark)')
+            if (mq.removeEventListener) mq.removeEventListener('change', themeChangeListener)
+            else if (mq.removeListener) mq.removeListener(themeChangeListener)
           }
-        }
-        if (ratingObserver) {
-          ratingObserver.disconnect()
-          ratingObserver = null
-        }
-        debugLog('Page cleanup completed')
-      })
-      
-      infoLog('✅ Initialization complete')
-    } catch (error) {
-      errorLog('❌ Initialization failed:', error)
+          if (ratingObserver) { ratingObserver.disconnect(); ratingObserver = null }
+          debugLog('Page cleanup completed')
+        })
+
+        infoLog('✅ Initialization complete')
+      } catch (error) {
+        errorLog('❌ Initialization failed:', error)
+      }
     }
   },
 })

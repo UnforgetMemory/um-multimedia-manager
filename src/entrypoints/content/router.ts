@@ -13,6 +13,9 @@ import { PTDimmer } from './enhancers/pt-dimmer'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
 import { handlePTDetailPage } from './handlers/pt-detail'
 
+// PTDimmer singleton — reused across SPA navigations to avoid leaking observers
+let ptdimmerInstance: PTDimmer | null = null
+
 /**
  * 路由规则接口
  */
@@ -117,8 +120,9 @@ const ROUTES: RouteRule[] = [
       url.includes('pterclub.net/officialgroup.php') ||
       url.includes('pthome.net/torrents.php'),
     handler: async () => {
-      const dimmer = new PTDimmer()
-      await dimmer.runFor(location.href)
+      if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer()
+      ptdimmerInstance.cleanup()
+      await ptdimmerInstance.runFor(location.href)
     },
   },
 ]
@@ -136,6 +140,13 @@ function findMatchingRoute(url: string): RouteRule | null {
 }
 
 /**
+ * 检查 URL 是否匹配任何路由（用于懒加载判断）
+ */
+export function hasMatchingRoute(url: string): boolean {
+  return findMatchingRoute(url) !== null
+}
+
+/**
  * 执行路由分发
  */
 export async function dispatchRoute(url: string): Promise<void> {
@@ -143,6 +154,13 @@ export async function dispatchRoute(url: string): Promise<void> {
   
   if (!route) {
     console.log('[UMM Router] No matching route for:', url)
+    // Clean up PTDimmer if it was running (e.g. user navigated away from a PT site)
+    // Use both module-level variable AND static reference for bulletproof cleanup
+    const dimmer = ptdimmerInstance || PTDimmer.currentInstance
+    if (dimmer) {
+      console.log('[UMM Router] Cleaning up PTDimmer on route unmatch')
+      dimmer.cleanup()
+    }
     return
   }
   
@@ -174,6 +192,7 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
   
   const checkUrl = () => {
     if (location.href !== lastUrl) {
+      console.log('[UMM Router] URL change detected:', lastUrl, '→', location.href)
       lastUrl = location.href
       callback(lastUrl)
     }
@@ -187,10 +206,12 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
   const origReplaceState = history.replaceState
   history.pushState = function (...args: Parameters<typeof origPushState>) {
     origPushState.apply(this, args)
+    console.log('[UMM Router] pushState detected')
     checkUrl()
   }
   history.replaceState = function (...args: Parameters<typeof origReplaceState>) {
     origReplaceState.apply(this, args)
+    console.log('[UMM Router] replaceState detected')
     checkUrl()
   }
 
@@ -210,6 +231,9 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
     childList: true,
     subtree: true,
   })
+
+  // 最终兜底：setInterval 轮询（某些 SPA 可能绕过所有上述机制）
+  const pollInterval = setInterval(checkUrl, 1000)
   
   // 返回清理函数
   return () => {
@@ -217,6 +241,7 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
     history.pushState = origPushState
     history.replaceState = origReplaceState
     observer.disconnect()
+    clearInterval(pollInterval)
     if (throttleTimer) clearTimeout(throttleTimer)
   }
 }
