@@ -2,13 +2,14 @@
  * PT 站点 Dimmer 增强器
  * 
  * 功能：在 PT 站点种子列表中暗化已看/已听的条目
- * 支持站点：
+ *    支持站点：
  * - M-Team (next.m-team.cc, kp.m-team.cc)
  * - Audiences (audiences.me)
  * - HDHome (hdhome.org)
  * - HDArea (hdarea.club)
  * - OurBits (ourbits.club)
  * - PTerClub (pterclub.net)
+ * - Haidan (haidan.cc)
  */
 
 import { Store } from '@/features/database'
@@ -689,6 +690,67 @@ export class PTDimmer {
                 imdbIds,
               )
             }
+        },
+      },
+      {
+        // Haidan (haidan.cc) — DIV-based layout, not table.torrents
+        match: () =>
+          url.includes('haidan.cc') && (url.includes('torrents.php') || url.includes('videos.php')),
+        selector: '.torrent_panel_inner',
+        process: async () => {
+          const { doubanIds, imdbIds } = await this.getMovieSets()
+          this.debug('[Haidan] ID sets — douban:', doubanIds.size, 'imdb:', imdbIds.size)
+          const groups = document.querySelectorAll('.torrent_group')
+          if (groups.length === 0) {
+            this.debug('[Haidan] No torrent groups found — aborting')
+            return
+          }
+          this.debug('[Haidan] Found', groups.length, 'torrent groups to process')
+          let dimmed = 0, notMatched = 0
+          groups.forEach((group) => {
+            const doubanLink = group.querySelector('a[href*="movie.douban.com/subject/"]') as HTMLAnchorElement | null
+            const imdbLink = group.querySelector('a[href*="www.imdb.com/title/"]') as HTMLAnchorElement | null
+
+            const doubanId = doubanLink
+              ?.getAttribute('href')
+              ?.match(/\/subject\/(\d+)/)?.[1]
+            const imdbId = imdbLink
+              ?.getAttribute('href')
+              ?.match(/\/title\/(tt\d+)/)?.[1]
+
+            const matched = (doubanId && doubanIds.has(doubanId)) || (imdbId && imdbIds.has(imdbId))
+
+            if (doubanId || imdbId) {
+              this.debug('[Haidan] Row IDs:', JSON.stringify({ doubanId, imdbId }), '→', matched ? 'DIMMED ✓' : 'no match in sets')
+            }
+
+            if (matched) {
+              this.dimElement(group as HTMLElement)
+              dimmed++
+            } else if (!doubanId && !imdbId) {
+              notMatched++
+            }
+          })
+          this.debug('[Haidan] Done — groups:', groups.length, '| dimmed:', dimmed, '| no IDs found:', notMatched)
+
+          // Cache fallback: for groups without direct douban/imdb links, check pt_id_cache
+          const groupsWithoutIds = Array.from(groups).filter((g) =>
+            !g.querySelector('a[href*="movie.douban.com/subject/"]') &&
+            !g.querySelector('a[href*="www.imdb.com/title/"]')
+          )
+          if (groupsWithoutIds.length > 0) {
+            this.debug('[Haidan] Cache fallback for', groupsWithoutIds.length, 'groups without direct IDs')
+            await this.applyCacheFallback(
+              groupsWithoutIds,
+              (g) => {
+                const link = g.querySelector('a.video_name_str') as HTMLAnchorElement | null
+                return link?.href ?? null
+              },
+              doubanIds,
+              new Set<string>(),
+              imdbIds,
+            )
+          }
         },
       },
       {

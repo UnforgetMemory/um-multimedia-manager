@@ -66,6 +66,9 @@ export default defineContentScript({
     '*://*.audiences.me/details.php*',
     '*://www.pthome.net/torrents.php*',
     '*://www.pthome.net/details.php*',
+    '*://www.haidan.cc/torrents.php*',
+    '*://www.haidan.cc/videos.php*',
+    '*://www.haidan.cc/details.php*',
     '*://web5.mukaku.com/*'
   ],
   runAt: 'document_idle',

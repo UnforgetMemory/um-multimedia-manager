@@ -100,7 +100,7 @@ const ROUTES: RouteRule[] = [
   {
     match: (url) =>
       (url.includes('m-team.cc/detail') && !url.includes('/browse')) ||
-      (['audiences.me', 'hdhome.org', 'hdarea.club', 'ourbits.club', 'pterclub.net', 'pthome.net'].some(
+      (['audiences.me', 'hdhome.org', 'hdarea.club', 'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc'].some(
         (host) => url.includes(host),
       ) && url.includes('details.php')),
     handler: async () => {
@@ -118,7 +118,9 @@ const ROUTES: RouteRule[] = [
       url.includes('ourbits.club/torrents.php') ||
       url.includes('pterclub.net/torrents.php') ||
       url.includes('pterclub.net/officialgroup.php') ||
-      url.includes('pthome.net/torrents.php'),
+      url.includes('pthome.net/torrents.php') ||
+      url.includes('haidan.cc/torrents.php') ||
+      url.includes('haidan.cc/videos.php'),
     handler: async () => {
       if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer()
       ptdimmerInstance.cleanup()

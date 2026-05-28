@@ -33,6 +33,7 @@ export default defineConfig({
       '*://hdarea.club/*',
       '*://pterclub.net/*',
       '*://www.pthome.net/*',
+      '*://www.haidan.cc/*',
       '*://web5.mukaku.com/*',
       '<all_urls>'
     ],

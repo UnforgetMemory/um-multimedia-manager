@@ -152,7 +152,7 @@ export async function handlePTDetailPage(url: string): Promise<void> {
   const isMTeam = url.includes('m-team.cc')
   const isNexusPHP = [
     'audiences.me', 'hdhome.org', 'hdarea.club',
-    'ourbits.club', 'pterclub.net', 'pthome.net',
+    'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc',
   ].some((host) => url.includes(host))
 
   if (!isMTeam && !isNexusPHP) return
