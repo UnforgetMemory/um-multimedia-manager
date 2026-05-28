@@ -23,10 +23,14 @@ interface CachedIdSets {
 export class PTDimmer {
   private debugTag = '[PT Dimmer Debug]'
   private observer: MutationObserver | null = null
+  private waitForObserver: MutationObserver | null = null
   private pollTimer: number | null = null
   private scrollHandler: (() => void) | null = null
   private scrollTarget: HTMLElement | null = null
   private storageChangeListener: ((changes: any, area: string) => void) | null = null
+
+  /** Static reference to current instance — ensures cleanup() can always find us */
+  static currentInstance: PTDimmer | null = null
 
   // Cache for ID sets
   private idCache: CachedIdSets | null = null
@@ -43,12 +47,17 @@ export class PTDimmer {
   /**
    * 清理所有监听器和定时器
    */
-  private cleanup(): void {
+  cleanup(): void {
+    this.active = false
     this.processing = false
     this.processQueued = false
     if (this.observer) {
       this.observer.disconnect()
       this.observer = null
+    }
+    if (this.waitForObserver) {
+      this.waitForObserver.disconnect()
+      this.waitForObserver = null
     }
     if (this.pollTimer) {
       clearInterval(this.pollTimer)
@@ -64,6 +73,7 @@ export class PTDimmer {
       chrome.storage.onChanged.removeListener(this.storageChangeListener)
       this.storageChangeListener = null
     }
+    PTDimmer.currentInstance = null
   }
 
   /**
@@ -232,12 +242,10 @@ export class PTDimmer {
 
       // 如果找到了任一 ID，提前退出（匹配旧脚本行为）
       if (result.movieDoubanId || result.musicDoubanId || result.imdbId) {
-        this.debug('[M-Team] Found ID on link', scannedLinks, '→', JSON.stringify(result))
         break
       }
     }
 
-    this.debug('[M-Team] extractMTeamIds scanned', scannedLinks, 'links → result:', JSON.stringify(result))
     return result
   }
 
@@ -313,11 +321,9 @@ export class PTDimmer {
       const hasImdb = imdbId && imdbIds.has(imdbId)
       const matched = hasMovie || hasMusic || hasImdb
 
-      this.debug(
-        '[M-Team] Row IDs:', JSON.stringify({ movieDoubanId, musicDoubanId, imdbId }),
-        '| Match:', { movie: !!hasMovie, music: !!hasMusic, imdb: !!hasImdb },
-        '| →', matched ? 'DIMMED ✓' : 'no match'
-      )
+      if (matched) {
+        this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify({ movieDoubanId, musicDoubanId, imdbId }))
+      }
 
       row.setAttribute('data-umm-mteam-resolved', 'true')
       row.setAttribute('data-umm-mteam-matched', matched ? 'true' : 'false')
@@ -413,6 +419,7 @@ export class PTDimmer {
   /**
    * 设置响应式监听循环（用于 M-Team）
    */
+  private active = false
   private processing = false
   private processQueued = false
 
@@ -428,43 +435,70 @@ export class PTDimmer {
       })
       .finally(() => {
         this.processing = false
-        if (this.processQueued) {
+        if (this.processQueued && this.active) {
           this.processQueued = false
           this.safeProcess(process)
         }
       })
   }
 
-  private setupReactiveLoop(
-    target: HTMLElement,
-    process: () => Promise<void>
-  ): void {
-    this.debug('[Loop] Setting up reactive loop — target:', target.tagName, '#', target.id || '')
-    this.safeProcess(process)
+  /**
+   * M-Team 专用响应式监听
+   *
+   * 相比通用 reactive loop 的优化：
+   * - 首次处理完成后，定位行容器挂载精准 observer（childList only，不递归）
+   * - 仅当 Ant Design 替换行时才触发，空闲时完全静默
+   * - 无轮询（避免 1400ms 的持续浪费）
+   * - 无滚动监听（MTeam 不滚动加载）
+   */
+  private setupMTeamWatcher(process: () => Promise<void>): void {
+    this.debug('[M-Team] Setting up MTeam watcher (event-driven, no polling)')
+
+    const wrappedProcess = async () => {
+      await process()
+      // 首次处理完成 → 定位行容器，挂载精准 observer
+      if (!this.observer) {
+        this.attachMTeamObserver(process)
+      }
+    }
+
+    // 首次立即执行
+    this.safeProcess(wrappedProcess)
+  }
+
+  /**
+   * 在 M-Team 的行容器上挂载精准 MutationObserver
+   * 使用 childList:true（不递归），仅监控行增删
+   */
+  private attachMTeamObserver(process: () => Promise<void>): void {
+    const rows = document.querySelectorAll('[role="row"]')
+    if (rows.length === 0) {
+      this.debug('[M-Team] No rows found for observer target — using fallback on #root')
+      const root = document.getElementById('root')
+      if (root) {
+        this.observer = new MutationObserver(
+          this.throttle(() => this.safeProcess(process), 180)
+        )
+        this.observer.observe(root, { childList: true, subtree: true })
+      }
+      return
+    }
+
+    const container = rows[0].parentElement
+    if (!container) return
+
+    this.debug('[M-Team] Observer target:', container.tagName,
+      container.id ? '#' + container.id : '',
+      container.className ? '.' + container.className.trim().split(/\s+/).join('.') : ''
+    )
 
     this.observer = new MutationObserver(
       this.throttle(() => {
-        this.debug('[Loop] MutationObserver triggered')
+        this.debug('[M-Team] Row mutation detected')
         this.safeProcess(process)
       }, 180)
     )
-    this.observer.observe(target, {
-      childList: true,
-      subtree: true,
-    })
-    this.debug('[Loop] MutationObserver attached')
-
-    this.pollTimer = window.setInterval(() => {
-      this.safeProcess(process)
-    }, 1400)
-    this.debug('[Loop] Poll timer set (1400ms)')
-
-    this.scrollTarget = target
-    this.scrollHandler = this.throttle(() => {
-      this.safeProcess(process)
-    }, 120)
-    this.scrollTarget.addEventListener('scroll', this.scrollHandler, true)
-    window.addEventListener('resize', this.scrollHandler!)
+    this.observer.observe(container, { childList: true })
   }
 
   /**
@@ -485,6 +519,7 @@ export class PTDimmer {
     }
 
     if (match()) {
+      console.log('[PT Dimmer] waitForElement: element already present for', selector)
       callback()
       return
     }
@@ -494,10 +529,13 @@ export class PTDimmer {
       if (match()) {
         fulfilled = true
         observer.disconnect()
+        this.waitForObserver = null
+        console.log('[PT Dimmer] waitForElement: element appeared for', selector)
         callback()
       }
     })
 
+    this.waitForObserver = observer
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -508,10 +546,12 @@ export class PTDimmer {
       if (match()) {
         // Element appeared just before timeout — still fire
         observer.disconnect()
+        this.waitForObserver = null
         callback()
         return
       }
       observer.disconnect()
+      this.waitForObserver = null
       console.warn(
         `[PT Dimmer] waitForElement timed out after ${timeout}ms — selector: "${selector}"`,
         contentCheck ? '(with contentCheck)' : '',
@@ -525,6 +565,8 @@ export class PTDimmer {
   public async runFor(url: string): Promise<void> {
     this.debug('=== runFor called for URL:', url)
     this.cleanup()
+    PTDimmer.currentInstance = this
+    this.active = true
 
     // Listen for record changes → invalidate ID cache
     this.storageChangeListener = (_changes, area) => {
@@ -543,6 +585,9 @@ export class PTDimmer {
         contentCheck: (el: Element) =>
           el.childElementCount > 0 && el.querySelector('a[href]') !== null,
         process: async () => {
+          if (!location.href.includes('m-team.cc/browse')) {
+            return
+          }
           this.debug('[M-Team] Starting process...')
           const { movieDoubanIds, musicDoubanIds, imdbIds } =
             await this.getMTeamSets()
@@ -567,13 +612,12 @@ export class PTDimmer {
               imdbIds,
             )
           }
+
+          // NOTE: We do NOT stop the reactive loop here — focused observer on row container
+          // is event-driven (no polling), fires only when Ant Design swaps rows.
         },
         setup: (_target: HTMLElement, process: () => Promise<void>) => {
-          // Prefer #root over body for observer target to reduce DOM observation scope
-          const root = document.getElementById('root')
-          const observerTarget = root && root.childElementCount > 0 ? root : _target
-          this.debug('[M-Team] Observer target:', observerTarget.tagName, '#', observerTarget.id || '(no id)')
-          this.setupReactiveLoop(observerTarget, process)
+          this.setupMTeamWatcher(process)
         },
       },
       {
@@ -752,7 +796,7 @@ export class PTDimmer {
           subtree: true,
         })
       },
-      5000,
+      15000,
       active.contentCheck,
     )
   }
