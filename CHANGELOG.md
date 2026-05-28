@@ -2,6 +2,32 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [1.5.4] - 2026-05-28
+
+### Added
+
+- **PT 站点适配 — PTHome**: 新增 PTHome (`www.pthome.net`) PT Dimmer 支持（基于 NexusPHP table 布局）
+- **PT 站点适配 — Haidan**: 新增 Haidan (`www.haidan.cc`) PT Dimmer 支持（DIV-based `.torrent_group` 布局，支持 `torrents.php` / `videos.php`）
+- **MTeam 懒加载**: Content script 覆盖 `kp.m-team.cc/*` 全局匹配，非 PT 页面仅运行轻量 URL 监听器，检测到 `/browse` 路由后触发完整初始化
+- **MTeam SPA 路由增强**: 新增 `history.pushState`/`replaceState` 拦截 + 1s 轮询兜底，确保 Ant Design 路由切换时 PT Dimmer 可靠触发
+- **PTDimmer 单例模式**: Router 层使用 `PTDimmer` 单例复用，避免每次路由分发创建新实例导致 observer 泄漏
+
+### Fixed
+
+- **MTeam waitForElement 超时**: 超时从 5s→15s，添加 `fulfilled` 标志防重复回调，超时打 `console.warn` 而非静默断开
+- **MTeam 无限处理循环**: 为 `safeProcess` 添加重入锁（`processing` + `processQueued` 标志），防止 poll/observer/scroll 三路并发
+- **MTeam observer 范围收窄**: 以 `setupMTeamWatcher`+`attachMTeamObserver` 替代 `setupReactiveLoop`，从 `body` 全量 subtree 改为仅监听 `[role="row"]` 容器 `childList`，彻底移除 poll 定时器和 scroll 处理器
+- **MTeam 签名不稳定**: `getMTeamRowSignature` 移除 `textContent.slice(0,160)`，改用稳定字段避免 React 重渲染导致签名不一致
+- **MTeam `resolved='false'` 死循环**: `processMTeamRows` 和 `applyCacheFallback` 均无条件标记 `resolved='true'`，防止无 ID 行被反复处理
+- **MTeam 导航离开后持续处理**: 添加 URL guard（不匹配时跳过处理）+ `active` 标志 + `dispatchRoute` 无路由分支 cleanup
+- **PTHome / Haidan 详情页路由**: `pt-detail.ts` 添加 `pthome.net` / `haidan.cc` 到 NexusPHP 主机列表
+
+### Changed
+
+- **watchUrlChanges**: 10% 随机采样 → 300ms 节流 MutationObserver + popstate + pushState/replaceState + 1s setInterval 四重保障
+- **dispatchRoute cleanup**: 使用 `PTDimmer.currentInstance` 静态引用兜底，确保路由切换时 observer 被正确清理
+- **版本更新**: 1.5.3 → 1.5.4
+
 ## [1.5.3] - 2026-05-27
 
 ### Added
