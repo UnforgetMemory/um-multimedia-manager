@@ -7,7 +7,7 @@ All notable changes to the UMM (um-multimedia-manager) project are documented he
 ### Fixed
 
 - **豆瓣弹窗误判已看**: 修复豆瓣详情页打开记录弹窗时，扩展误判为"已看"状态导致 NeoDB 同步按钮错误显示的问题。新增 `#dialog` 弹窗可见性检测，弹窗打开时跳过状态扫描
-- **NeoDB 按钮分数不更新**: 修复修改已看评分后，NeoDB 同步按钮中基准分数未实时更新的问题。改为优先从页面 DOM 读取评分（`pageState.rating`），降级到本地缓存
+- **NeoDB 按钮分数不更新**: 修复修改已看评分后，NeoDB 同步按钮中基准分数未实时更新的问题。重构后的 `handlers/douban.ts` 回归了 `localRecord?.rating` 旧逻辑，现改为优先从页面 DOM 读取评分（`scanDoubanPageStatus().rating`），降级到本地缓存。同时补充 `#n_rating` 的 `input`/`change` 事件监听，修复 MutationObserver 无法捕获 `input.value` property-only 变更的问题
 - **未看页面按钮闪现**: 修复在未看页面点击星星评分时，NeoDB 按钮短暂闪现的问题。旧版 `injectNeoDBPushButtons()` 缺少 `status === 'done'` 守卫，导致 rating observer 触发时直接注入按钮
 - **音乐详情页功能丢失**: 修复 `form[action="remove"]` 检测条件过严导致音乐详情页扩展功能失效的问题。音乐页面采用纯文本匹配，电影/书籍页面采用文本+表单双重验证
 

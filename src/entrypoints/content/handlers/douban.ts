@@ -791,8 +791,9 @@ async function injectNeoDBPushButtons(
   watermark.setAttribute('aria-hidden', 'true') // ✅ P1: 对屏幕阅读器隐藏
   container.appendChild(watermark)
   
-  // 获取当前评分（如果没有记录则为 0）
-  const currentRating = localRecord?.rating || 0
+  // 获取当前评分：优先从页面 DOM 实时读取，降级到本地记录
+  const livePageState = scanDoubanPageStatus(identity)
+  const currentRating = livePageState.rating || localRecord?.rating || 0
   const ratingMinus = Utils.clampRating10(currentRating - 1)
   const ratingPlus = Utils.clampRating10(currentRating + 1)
   
@@ -996,8 +997,9 @@ async function performNeoDBPush(
     throw new Error('请先在设置中配置 NeoDB Token')
   }
   
-  // 计算调整后的评分（如果没有记录则为 0）
-  const baseRating = record?.rating || 0
+  // 计算调整后的评分：优先从页面 DOM 实时读取，降级到记录
+  const livePageState = scanDoubanPageStatus(identity)
+  const baseRating = livePageState.rating || record?.rating || 0
   const adjustedRating = Utils.clampRating10(baseRating + ratingAdjust)
   
   // 构建推送数据

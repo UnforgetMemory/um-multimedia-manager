@@ -1060,6 +1060,7 @@ function observeThemeChanges() {
  */
 let ratingObserver: MutationObserver | null = null
 let lastKnownRating = 0
+let ratingInputCleanup: (() => void) | null = null
 
 function startRatingObserver() {
   // 只在豆瓣详情页启用
@@ -1081,6 +1082,12 @@ function startRatingObserver() {
   // 断开旧的 observer
   if (ratingObserver) {
     ratingObserver.disconnect()
+  }
+
+  // 清理旧的 input 事件监听
+  if (ratingInputCleanup) {
+    ratingInputCleanup()
+    ratingInputCleanup = null
   }
 
   ratingObserver = new MutationObserver((() => {
@@ -1106,6 +1113,24 @@ function startRatingObserver() {
     attributes: true,
     attributeFilter: ['class', 'value'],
   })
+
+  // 补充：监听 #n_rating 的 input/change 事件（MutationObserver 无法捕获 property-only 变更）
+  if (nRatingInput) {
+    const handleRatingInput = () => {
+      const newRating = Number.parseInt(nRatingInput.value, 10) || 0
+      if (newRating !== lastKnownRating) {
+        lastKnownRating = newRating
+        debugLog(`Rating input event: ${newRating}, re-rendering NeoDB buttons`)
+        injectNeoDBPushButtons()
+      }
+    }
+    nRatingInput.addEventListener('input', handleRatingInput)
+    nRatingInput.addEventListener('change', handleRatingInput)
+    ratingInputCleanup = () => {
+      nRatingInput.removeEventListener('input', handleRatingInput)
+      nRatingInput.removeEventListener('change', handleRatingInput)
+    }
+  }
 }
 
 // ==================== 启动 ====================
