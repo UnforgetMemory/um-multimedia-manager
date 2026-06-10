@@ -435,10 +435,19 @@ function scanDoubanPageStatus(): { status: string; rating: number } {
   }
   
   // 检测是否包含"我看过"或"我听过"
+  // ✅ 修复：弹窗可见时跳过 + 精确匹配已看状态信号
   const isMovie = currentIdentity?.type === 'movie' || currentIdentity?.type === 'book'
   const watchedText = isMovie ? '我看过' : '我听过'
+  const doubanDialog = document.getElementById('dialog')
+  const isDialogVisible = doubanDialog && doubanDialog.offsetParent !== null
+  if (isDialogVisible) {
+    return { status: 'none', rating: 0 }
+  }
+  const hasFullText = interestBox.innerText.includes(watchedText)
+  const hasRemoveForm = !!interestBox.querySelector('form[action="remove"]')
+  const hasWatchedText = hasFullText && (hasRemoveForm || !isMovie)
   
-  if (!interestBox.innerText.includes(watchedText)) {
+  if (!hasWatchedText) {
     return { status: 'none', rating: 0 }
   }
   
@@ -606,13 +615,23 @@ function _createDoubanStatusChip(status: number, rating: number, note: string = 
  */
 function injectNeoDBPushButtons() {
   if (!currentIdentity) return
-  
+
+  // ✅ 守卫：仅在已看状态且弹窗未显示时注入按钮
+  const pageState = scanDoubanPageStatus()
+  if (pageState.status !== 'done') {
+    debugLog('Page not marked as done, skip NeoDB buttons')
+    // 移除可能残留的旧按钮
+    const oldButtons = document.getElementById('umm-neodb-push-buttons')
+    if (oldButtons) oldButtons.remove()
+    return
+  }
+
   const interestSect = document.querySelector('#interest_sect_level')
   if (!interestSect) {
     debugLog('Could not find #interest_sect_level for NeoDB buttons')
     return
   }
-  
+
   // 移除旧的按钮
   const oldButtons = document.getElementById('umm-neodb-push-buttons')
   if (oldButtons) {

@@ -440,16 +440,29 @@ function scanDoubanPageStatus(identity: UrlIdentity): { status: string; rating: 
   }
   
   // 检测是否包含"我看过"或"我听过"
+  // ✅ 修复：弹窗可见时跳过 + 精确匹配已看状态信号
   const isMusic = identity.type === 'music'
   const watchedText = isMusic ? '我听过' : '我看过'
-    
-  const hasWatchedText = interestBox.innerText.includes(watchedText)
-  console.log('[UMM Douban] Looking for text:', watchedText, '| Found:', hasWatchedText)
-  
+  // 如果豆瓣弹窗(#dialog)可见，直接返回 none，避免弹窗内容干扰
+  const doubanDialog = document.getElementById('dialog')
+  const isDialogVisible = doubanDialog && doubanDialog.offsetParent !== null
+  if (isDialogVisible) {
+    console.log('[UMM Douban] Douban dialog is visible, skip detection')
+    return { status: 'none', rating: 0 }
+  }
+  // 已看状态判定：
+  // 1. #interest_sect_level 全文包含"我看过"/"我听过"
+  // 2. 且存在删除表单（form[action="remove"]）—— 仅已看状态才有
+  // 注意：不要求 #n_rating 有值，因为用户可能已看但未评分
+  const hasFullText = interestBox.innerText.includes(watchedText)
+  const hasRemoveForm = !!interestBox.querySelector('form[action="remove"]')
+  const hasWatchedText = hasFullText && (hasRemoveForm || isMusic)
+  console.log('[UMM Douban] Looking for text:', watchedText, '| Found:', hasWatchedText, '| FullText:', hasFullText, '| RemoveForm:', hasRemoveForm, '| Dialog:', isDialogVisible)
+
   if (!hasWatchedText) {
     return { status: 'none', rating: 0 }
   }
-  
+
   // 获取评分
   let stars = 0
   const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
