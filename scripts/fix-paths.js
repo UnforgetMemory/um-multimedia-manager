@@ -33,12 +33,48 @@ htmlFiles.forEach(file => {
     content = content.replace(/src="\/chunks\//g, 'src="./chunks/')
     content = content.replace(/href="\/chunks\//g, 'href="./chunks/')
     content = content.replace(/href="\/assets\//g, 'href="./assets/')
-    
+    // Remove crossorigin attributes — Chrome extensions don't support CORS for extension pages
+    content = content.replace(/\s+crossorigin/g, '')
+
     writeFileSync(filePath, content, 'utf-8')
     console.log(`[PostBuild] ✓ Fixed paths in ${file}`)
   } catch (error) {
     console.error(`[PostBuild] ✗ Failed to process ${file}:`, error.message)
   }
 })
+
+// ==================== Fix dynamic import paths in popup chunk ====================
+// Chrome extensions resolve ES module dynamic imports relative to the document URL,
+// not the importing script's URL. popup chunk is at chunks/popup-*.js but document
+// is popup.html at root. So import("./RecordsPage-*.js") resolves to root instead of chunks/.
+// Fix: add chunks/ prefix to dynamic import paths in the popup chunk JS.
+
+import { readdirSync } from 'fs'
+
+console.log('[PostBuild] Fixing dynamic import paths in popup chunk...')
+
+try {
+  const chunksDir = join(distDir, 'chunks')
+  const popupChunk = readdirSync(chunksDir).find(f => f.startsWith('popup-') && f.endsWith('.js'))
+
+  if (popupChunk) {
+    const chunkPath = join(chunksDir, popupChunk)
+    let content = readFileSync(chunkPath, 'utf-8')
+
+    // Fix Vite's __vite__mapDeps lazy import paths: "./X.js" -> "./chunks/X.js"
+    // Paths are like "./RecordsPage-CF_MfgH0.js" — resolve relative to chunks/ since
+    // Chrome resolves ES module dynamic imports relative to the document URL, not the script URL.
+    content = content.replace(/"\.\/(.*?)\.js"/g, (match, name) => {
+      // Skip virtual/plugin imports
+      if (name.startsWith('_virtual_') || name.includes('wxt-plugins')) return match
+      return `"./chunks/${name}.js"`
+    })
+
+    writeFileSync(chunkPath, content, 'utf-8')
+    console.log(`[PostBuild] ✓ Fixed dynamic imports in ${popupChunk}`)
+  }
+} catch (error) {
+  console.error(`[PostBuild] ✗ Failed to fix dynamic imports:`, error.message)
+}
 
 console.log('[PostBuild] Done!')

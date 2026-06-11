@@ -1,52 +1,39 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
-import { Store } from '@/features/database'
-import type { Domain, Provider } from '@/config'
+import { onMounted, onUnmounted, ref, computed, provide } from 'vue'
+import { useRouter, useRoute, RouterView } from 'vue-router'
 import { MISC_KEYS } from '@/config'
-import type { AppSettings, StoreRecord } from '@/types'
+import type { StoreRecord } from '@/types'
 import { safeSendMessage } from '@/utils/context'
+import { useConfirmDialog } from './useConfirmDialog'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import {
+  Moon, Sun, Settings, Database, RefreshCw,
+  Star, Link, XCircle
+} from 'lucide-vue-next'
 
-/** StoreRecord enriched by GET_ALL_RECORDS with key-derived fields */
 interface DisplayRecord extends StoreRecord {
   type: string
   provider: string
   providerId: string
 }
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import {
-  Moon, Sun, Settings, Database, RefreshCw,
-  CheckCircle2, XCircle, Star, Download, Upload, AlertCircle, Link
-} from 'lucide-vue-next'
 
-// ✅ 辅助函数：通过 Background 向当前活动页面发送 Toast（fire-and-forget，不阻塞 UI）
-// 注意：content script 必须在当前活动标签页加载才能显示 toast
-function showPageToast(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) {
-  try {
-    chrome.runtime.sendMessage(
-      { type: 'SHOW_TOAST', payload: { type, title, message } },
-      () => { /* fire-and-forget — 忽略响应 */ void chrome.runtime.lastError }
-    )
-  } catch (error) {
-    // 静默失败 — toast 是非关键 UI 反馈
-  }
-}
-
-// ==================== 应用版本 ====================
 const appVersion = chrome.runtime.getManifest().version
 
-// ==================== 页面状态管理 ====================
-type Page = 'records' | 'platforms' | 'ratings' | 'linked' | 'settings'
-const currentPage = ref<Page>('records')
+const router = useRouter()
+const route = useRoute()
 
-// 导航页面配置
+type Page = 'records' | 'platforms' | 'ratings' | 'linked' | 'settings'
+
+const currentPage = computed<Page>(() => {
+  const name = route.name as string
+  if (name && ['records', 'platforms', 'ratings', 'linked', 'settings'].includes(name)) {
+    return name as Page
+  }
+  return 'records'
+})
+
 const pages = [
   { id: 'records', label: '概览', icon: Database },
   { id: 'platforms', label: '平台分布', icon: Settings },
@@ -55,7 +42,7 @@ const pages = [
   { id: 'settings', label: '设置', icon: Settings },
 ] as const
 
-// ==================== 记录列表页面 ====================
+// ==================== 共享状态 ====================
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 const records = ref<DisplayRecord[]>([])
@@ -66,46 +53,29 @@ const stats = ref({
   music: 0,
 })
 
-// ✅ 修复：添加加载超时保护，防止 loading 永远卡住
 let loadTimeout: ReturnType<typeof setTimeout> | null = null
 
-// 加载数据
 async function loadData() {
-  console.log('[Popup] ===== loadData START =====')
-  console.log('[Popup] current loading:', loading.value)
-  
-  // ✅ 修复：如果正在加载，直接返回（防止竞态）
-  if (loading.value) {
-    console.log('[Popup] ⚠️ Already loading, SKIP duplicate request')
-    return
-  }
-  
-  // 清除之前的超时保护
+  if (loading.value) return
+
   if (loadTimeout) clearTimeout(loadTimeout)
-  
+
   loading.value = true
   loadError.value = null
-  console.log('[Popup] loading set to TRUE')
-  
-  // ✅ 新增：10 秒超时保护
+
   loadTimeout = setTimeout(() => {
     if (loading.value) {
-      console.warn('[Popup] ⏱️ Load timeout after 10s, resetting loading state')
       loading.value = false
     }
   }, 10000)
-  
+
   try {
-    console.log('[Popup] Sending GET_ALL_RECORDS message...')
-    
     const response = await safeSendMessage(
       { type: 'GET_ALL_RECORDS' },
       {
-        timeout: 10000,  // ✅ 统一为 10 秒
-        retries: 2,      // ✅ 降低至 2 次重试
+        timeout: 10000,
+        retries: 2,
         fallback: () => {
-          console.error('[Popup] ⚠️ Connection failed after retries')
-          // ✅ 修复：fallback 中也重置加载状态和错误提示
           loading.value = false
           loadError.value = '数据加载失败，请重试'
           records.value = []
@@ -113,59 +83,32 @@ async function loadData() {
         }
       }
     )
-    
-    console.log('[Popup] Response received:', {
-      success: response?.success,
-      recordCount: response?.records?.length,
-      error: response?.error
-    })
-    
+
     if (!response?.success) {
-      const errorMsg = response?.error || '获取数据失败'
-      console.error('[Popup] ❌ Response not successful:', errorMsg)
-      throw new Error(errorMsg)
+      throw new Error(response?.error || '获取数据失败')
     }
-    
-    console.log('[Popup] ✅ Records loaded:', response.records.length)
+
     records.value = response.records
     loadError.value = null
-    console.log('[Popup] Records updated:', records.value.length)
-    
     updateStats()
-    console.log('[Popup] Stats updated:', stats.value)
   } catch (error) {
-    console.error('[Popup] ❌ Failed to load data:', error)
-    // ✅ 修复：确保即使失败也清除 loading 状态
     records.value = []
     updateStats()
     loadError.value = '数据加载失败，请重试'
-    
-    // ✅ 改进：提供更详细的错误提示
-    const errorMessage = (error as Error).message
-    if (errorMessage.includes('timeout') || errorMessage.includes('Message timeout')) {
-      console.warn('[Popup] ⏱️ Request timed out. This may happen when:')
-      console.warn('  1. Service Worker was terminated by Chrome')
-      console.warn('  2. Database query is too slow (', records.value.length, 'records)')
-      console.warn('  3. System is under heavy load')
-      console.warn('[Popup] 💡 Try closing and reopening the Popup')
-    }
   } finally {
-    // ✅ 修复：确保 always 清除 loading 和超时
     if (loadTimeout) {
       clearTimeout(loadTimeout)
       loadTimeout = null
     }
     loading.value = false
-    console.log('[Popup] ===== loadData END (loading=false) =====')
   }
 }
 
-// 更新统计（单次遍历优化）
 function updateStats() {
   let movie = 0
   let tv = 0
   let music = 0
-  
+
   for (const record of records.value) {
     switch (record.type) {
       case 'movie': movie++; break
@@ -173,7 +116,7 @@ function updateStats() {
       case 'music': music++; break
     }
   }
-  
+
   stats.value = {
     total: records.value.length,
     movie,
@@ -182,758 +125,37 @@ function updateStats() {
   }
 }
 
-// 按平台统计
-const platformStats = computed(() => {
-  const stats: Record<string, number> = {}
-  
-  for (const record of records.value) {
-    const key = `${record.type} / ${record.provider}`
-    stats[key] = (stats[key] || 0) + 1
+let refreshTimer: ReturnType<typeof setTimeout> | null = null
+function handleRefresh() {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer)
   }
-  
-  // 按数量降序排序
-  return Object.entries(stats)
-    .sort((a, b) => b[1] - a[1])
-    .reduce((obj, [key, value]) => {
-      obj[key] = value
-      return obj
-    }, {} as Record<string, number>)
-})
 
-// 统计卡片列表
-const statsList = computed(() => [
-  { label: '总计', value: stats.value.total },
-  { label: '电影', value: stats.value.movie },
-  { label: '剧集', value: stats.value.tv },
-  { label: '音乐', value: stats.value.music },
-])
-
-// ==================== 评分管理页面 ====================
-const ratingInput = ref('')
-const ratingValue = ref<number | null>(null)
-const ratingComment = ref('')
-
-// 支持的平台选项
-const PLATFORM_OPTIONS = [
-  { value: 'douban', label: '豆瓣' },
-  { value: 'imdb', label: 'IMDb' },
-  { value: 'neodb', label: 'NeoDB' },
-  { value: 'tmdb', label: 'TMDB' },
-] as const
-
-// 当前选择的平台
-const selectedPlatform = ref<string>('douban')
-
-// 当前选择的媒体类型
-const selectedDomain = ref<Domain>('movie')
-
-// Wrapper: StoreRecord + metadata from parsed input (needed by template)
-interface RatingQueryRecord extends StoreRecord {
-  type: string
-  provider: Provider
-  providerId: string
+  refreshTimer = setTimeout(() => {
+    loadData()
+    refreshTimer = null
+  }, 300)
 }
-
-// 评分查询状态
-const ratingQueryResult = ref<RatingQueryRecord | null>(null)
-const isQuerying = ref(false)
-let queryDebounceTimer: ReturnType<typeof setTimeout> | null = null
-
-// 实时解析结果 (计算属性)
-const parseResult = computed(() => {
-  if (!ratingInput.value.trim()) return null
-  return parseRatingInput()
-})
-
-
-
-// 校验并补全 Provider ID
-function validateAndNormalizeProviderId(
-  provider: Provider,
-  _type: Domain,  // 豆瓣图书归类为movie域,但此参数预留
-  rawId: string
-): { valid: boolean; normalizedId: string; error?: string } {
-  const trimmed = rawId.trim()
-  
-  if (!trimmed) {
-    return { valid: false, normalizedId: '', error: 'ID不能为空' }
-  }
-  
-  // IMDb ID 校验和补全
-  if (provider === 'imdb') {
-    // 如果已有tt前缀,验证格式
-    if (/^tt\d+$/i.test(trimmed)) {
-      return { valid: true, normalizedId: trimmed.toLowerCase() }
-    }
-    // 纯数字,自动添加tt前缀
-    if (/^\d+$/.test(trimmed)) {
-      return { valid: true, normalizedId: `tt${trimmed}` }
-    }
-    return { valid: false, normalizedId: '', error: 'IMDb ID必须是数字或tt开头的格式' }
-  }
-  
-  // 豆瓣 ID 校验 (纯数字)
-  if (provider === 'douban') {
-    if (/^\d+$/.test(trimmed)) {
-      return { valid: true, normalizedId: trimmed }
-    }
-    return { valid: false, normalizedId: '', error: '豆瓣ID必须是纯数字' }
-  }
-  
-  // NeoDB ID 校验 (支持 xxx-yyy 格式)
-  if (provider === 'neodb') {
-    if (/^[\w-]+$/.test(trimmed)) {
-      return { valid: true, normalizedId: trimmed }
-    }
-    return { valid: false, normalizedId: '', error: 'NeoDB ID格式无效' }
-  }
-  
-  // TMDB ID 校验 (纯数字)
-  if (provider === 'tmdb') {
-    if (/^\d+$/.test(trimmed)) {
-      return { valid: true, normalizedId: trimmed }
-    }
-    return { valid: false, normalizedId: '', error: 'TMDB ID必须是纯数字' }
-  }
-  
-  return { valid: false, normalizedId: '', error: '未知平台' }
-}
-
-// 解析评分输入 (增强版 - 支持ID校验和URL生成)
-function parseRatingInput(): {
-  type: string        // movie/tv/music/book
-  provider: Provider
-  providerId: string
-  url: string
-  valid: boolean
-  error?: string
-} | null {
-  const input = ratingInput.value.trim()
-  if (!input) return null
-  
-  const provider = selectedPlatform.value as Provider
-  const type = selectedDomain.value
-  
-  // 1. 尝试从 URL 解析
-  // 豆瓣 URL
-  const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/)
-  if (doubanMatch) {
-    const isBook = input.includes('book')
-    const isMusic = input.includes('music')
-    const id = doubanMatch[1]
-    const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie'
-    return {
-      type: isBook || !isMusic ? 'movie' : 'music',
-      provider: 'douban',
-      providerId: id,
-      url: `https://${subdomain}.douban.com/subject/${id}/`,
-      valid: true,
-    }
-  }
-  
-  // IMDb URL
-  const imdbMatch = input.match(/imdb\.com\/title\/(tt\d+)/i)
-  if (imdbMatch) {
-    const id = imdbMatch[1].toLowerCase()
-    return {
-      type: 'movie',
-      provider: 'imdb',
-      providerId: id,
-      url: `https://www.imdb.com/title/${id}/`,
-      valid: true,
-    }
-  }
-  
-  // NeoDB URL
-  const neodbMatch = input.match(/neodb\.social\/(movie|tv|album)\/([\w-]+)/)
-  if (neodbMatch) {
-    const [, pathType, id] = neodbMatch
-    return {
-      type: pathType === 'album' ? 'music' : pathType,
-      provider: 'neodb',
-      providerId: id,
-      url: `https://neodb.social/${pathType}/${id}/`,
-      valid: true,
-    }
-  }
-  
-  // TMDB URL
-  const tmdbMovieMatch = input.match(/themoviedb\.org\/movie\/(\d+)/)
-  if (tmdbMovieMatch) {
-    const id = tmdbMovieMatch[1]
-    return {
-      type: 'movie',
-      provider: 'tmdb',
-      providerId: id,
-      url: `https://www.themoviedb.org/movie/${id}/`,
-      valid: true,
-    }
-  }
-  
-  const tmdbTvMatch = input.match(/themoviedb\.org\/tv\/(\d+)/)
-  if (tmdbTvMatch) {
-    const id = tmdbTvMatch[1]
-    return {
-      type: 'tv',
-      provider: 'tmdb',
-      providerId: id,
-      url: `https://www.themoviedb.org/tv/${id}/`,
-      valid: true,
-    }
-  }
-  
-  // 2. 尝试作为纯 ID 处理 (需要校验)
-  const validation = validateAndNormalizeProviderId(provider, type, input)
-  
-  if (!validation.valid) {
-    return {
-      type,
-      provider,
-      providerId: input,
-      url: '',
-      valid: false,
-      error: validation.error,
-    }
-  }
-  
-  // ID 有效,生成 URL
-  const normalizedId = validation.normalizedId
-  let url = ''
-  
-  if (provider === 'douban') {
-    // 豆瓣: book归类为movie域,但URL使用book子域名
-    url = type === 'music'
-      ? `https://music.douban.com/subject/${normalizedId}/`
-      : `https://movie.douban.com/subject/${normalizedId}/`  // movie和book都用movie.douban.com
-  } else if (provider === 'imdb') {
-    url = `https://www.imdb.com/title/${normalizedId}/`
-  } else if (provider === 'neodb') {
-    const path = type === 'tv' ? 'tv' : type === 'music' ? 'album' : 'movie'
-    url = `https://neodb.social/${path}/${normalizedId}/`
-  } else if (provider === 'tmdb') {
-    url = type === 'tv'
-      ? `https://www.themoviedb.org/tv/${normalizedId}/`
-      : `https://www.themoviedb.org/movie/${normalizedId}/`
-  }
-  
-  return {
-    type,
-    provider,
-    providerId: normalizedId,
-    url,
-    valid: true,
-  }
-}
-
-// 获取状态标签文本
-function getStatusLabel(status: number, type: string): string {
-  const labels: Record<number, string> = {
-    0: type === 'music' ? '未听' : '未看',
-    1: type === 'music' ? '在听' : '在看',
-    2: type === 'music' ? '已听' : '已看',
-  }
-  return labels[status] || '未知'
-}
-
-// 防抖查询数据库记录
-async function queryRecordFromDB() {
-  const parsed = parseRatingInput()
-  if (!parsed) {
-    ratingQueryResult.value = null
-    isQuerying.value = false
-    return
-  }
-
-  isQuerying.value = true
-  try {
-    const storeName = `${parsed.provider}_records`
-    const key = `${parsed.type}::${parsed.providerId}`
-    const record = await Store.dbGet(storeName, key)
-
-    if (record) {
-      // Merge record with parsed metadata so template can access .type/.provider/.providerId
-      ratingQueryResult.value = {
-        ...record,
-        type: parsed.type,
-        provider: parsed.provider,
-        providerId: parsed.providerId,
-      }
-    } else {
-      ratingQueryResult.value = null
-    }
-  } catch (error) {
-    console.error('[Query] Failed:', error)
-    ratingQueryResult.value = null
-  } finally {
-    isQuerying.value = false
-  }
-}
-
-// 监听输入变化 - 防抖查询 + 自动识别平台和类型
-watch(ratingInput, (newValue: string) => {
-  const input = newValue.trim()
-
-  // 清空时重置
-  if (!input) {
-    ratingQueryResult.value = null
-    return
-  }
-
-  // 自动识别平台和类型
-  // Douban
-  if (input.includes('douban.com')) {
-    selectedPlatform.value = 'douban'
-    if (input.includes('music.douban.com')) {
-      selectedDomain.value = 'music'
-    } else if (input.includes('book.douban.com')) {
-      selectedDomain.value = 'movie' // book 归类到 movie 域
-    } else {
-      selectedDomain.value = 'movie'
-    }
-  // IMDb
-  } else if (input.includes('imdb.com') || /^tt\d+$/i.test(input)) {
-    selectedPlatform.value = 'imdb'
-    selectedDomain.value = 'movie'
-  // NeoDB
-  } else if (input.includes('neodb.social')) {
-    selectedPlatform.value = 'neodb'
-    if (input.includes('/tv/')) {
-      selectedDomain.value = 'tv'
-    } else if (input.includes('/album/')) {
-      selectedDomain.value = 'music'
-    } else {
-      selectedDomain.value = 'movie'
-    }
-  // TMDB
-  } else if (input.includes('themoviedb.org')) {
-    selectedPlatform.value = 'tmdb'
-    if (input.includes('/tv/')) {
-      selectedDomain.value = 'tv'
-    } else {
-      selectedDomain.value = 'movie'
-    }
-  }
-
-  // 防抖查询(500ms)
-  if (queryDebounceTimer) clearTimeout(queryDebounceTimer)
-  queryDebounceTimer = setTimeout(() => queryRecordFromDB(), 500)
-})
-
-// 监听类型选择变化，重新查询
-watch(selectedDomain, () => {
-  if (ratingInput.value.trim()) {
-    queryRecordFromDB()
-  }
-})
-
-// 保存评分
-async function saveRating() {
-  if (!ratingInput.value.trim()) {
-    await showPageToast('error', '请输入平台 ID/URL')
-    return
-  }
-  
-  // 验证评分值
-  if (!ratingValue.value || ratingValue.value < 1 || ratingValue.value > 10) {
-    await showPageToast('error', '请选择有效的评分(1-10)')
-    return
-  }
-  
-  const parsed = parseRatingInput()
-  if (!parsed) {
-    await showPageToast('error', '无法解析输入的 ID 或 URL')
-    return
-  }
-  
-  try {
-    console.log('[Rating] Saving rating:', parsed)
-    
-    const storeName = `${parsed.provider}_records`
-    const key = `${parsed.type}::${parsed.providerId}`
-    const existing = await Store.dbGet(storeName, key)
-    await Store.dbPut(storeName, key, {
-      url: parsed.url,
-      status: existing?.status ?? 1,  // keep existing or wish(1)
-      rating: ratingValue.value,
-      comment: ratingComment.value || undefined,
-      updatedAt: new Date().toISOString(),
-      linkedIds: existing?.linkedIds ?? {},
-    })
-    
-    console.log('[Rating] ✅ Saved')
-    await showPageToast('success', `评分已保存(${parsed.provider}/${parsed.providerId})`)
-    
-    // 清空输入
-    ratingInput.value = ''
-    ratingValue.value = null
-    ratingComment.value = ''
-    ratingQueryResult.value = null
-  } catch (error) {
-    console.error('[Rating] ❌ Failed:', error)
-    await showPageToast('error', '保存评分失败', (error as Error).message)
-  }
-}
-
-
-
-// ==================== 关联查询页面 ====================
-
-// 关联查询输入
-const linkedInput = ref('')
-const linkedSelectedPlatform = ref<string>('douban')
-const linkedSelectedDomain = ref<Domain>('movie')
-const isLinkedQuerying = ref(false)
-
-// 关联查询结果
-interface LinkedQueryResult {
-  source: {
-    provider: string
-    type: string
-    providerId: string
-    url: string
-    status: number
-    rating: number
-    updatedAt: string
-  }
-  linked: Array<{
-    provider: string
-    type: string
-    providerId: string
-    url: string
-    status: number
-    rating: number
-    updatedAt: string
-    storeName: string
-  }>
-}
-
-const linkedQueryResult = ref<LinkedQueryResult | null>(null)
-
-// 解析关联查询输入（复用 parseRatingInput 逻辑）
-function parseLinkedInput(): {
-  type: string
-  provider: Provider
-  providerId: string
-  url: string
-  valid: boolean
-  error?: string
-} | null {
-  const input = linkedInput.value.trim()
-  if (!input) return null
-
-  const provider = linkedSelectedPlatform.value as Provider
-  const type = linkedSelectedDomain.value
-
-  // 1. 尝试从 URL 解析
-  // 豆瓣 URL
-  const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/)
-  if (doubanMatch) {
-    const isBook = input.includes('book')
-    const isMusic = input.includes('music')
-    const id = doubanMatch[1]
-    const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie'
-    return {
-      type: isBook || !isMusic ? 'movie' : 'music',
-      provider: 'douban',
-      providerId: id,
-      url: `https://${subdomain}.douban.com/subject/${id}/`,
-      valid: true,
-    }
-  }
-
-  // IMDb URL
-  const imdbMatch = input.match(/imdb\.com\/title\/(tt\d+)/i)
-  if (imdbMatch) {
-    const id = imdbMatch[1].toLowerCase()
-    return {
-      type: 'movie',
-      provider: 'imdb',
-      providerId: id,
-      url: `https://www.imdb.com/title/${id}/`,
-      valid: true,
-    }
-  }
-
-  // NeoDB URL
-  const neodbMatch = input.match(/neodb\.social\/(movie|tv|album)\/([\w-]+)/)
-  if (neodbMatch) {
-    const [, pathType, id] = neodbMatch
-    return {
-      type: pathType === 'album' ? 'music' : pathType,
-      provider: 'neodb',
-      providerId: id,
-      url: `https://neodb.social/${pathType}/${id}/`,
-      valid: true,
-    }
-  }
-
-  // TMDB URL
-  const tmdbMovieMatch = input.match(/themoviedb\.org\/movie\/(\d+)/)
-  if (tmdbMovieMatch) {
-    const id = tmdbMovieMatch[1]
-    return {
-      type: 'movie',
-      provider: 'tmdb',
-      providerId: id,
-      url: `https://www.themoviedb.org/movie/${id}/`,
-      valid: true,
-    }
-  }
-
-  const tmdbTvMatch = input.match(/themoviedb\.org\/tv\/(\d+)/)
-  if (tmdbTvMatch) {
-    const id = tmdbTvMatch[1]
-    return {
-      type: 'tv',
-      provider: 'tmdb',
-      providerId: id,
-      url: `https://www.themoviedb.org/tv/${id}/`,
-      valid: true,
-    }
-  }
-
-  // 2. 纯 ID 处理
-  let providerId = input.trim()
-
-  // IMDB: tt + 数字
-  if (/^tt\d+$/i.test(providerId)) {
-    return {
-      type: 'movie',
-      provider: 'imdb',
-      providerId: providerId.toLowerCase(),
-      url: `https://www.imdb.com/title/${providerId.toLowerCase()}/`,
-      valid: true,
-    }
-  }
-
-  // 豆瓣: 纯数字
-  if (/^\d+$/.test(providerId)) {
-    const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : 'movie'
-    return {
-      type: linkedSelectedDomain.value,
-      provider: 'douban',
-      providerId,
-      url: `https://${subdomain}.douban.com/subject/${providerId}/`,
-      valid: true,
-    }
-  }
-
-  return {
-    type,
-    provider,
-    providerId,
-    url: '',
-    valid: false,
-    error: '无法解析输入的 ID 或 URL',
-  }
-}
-
-// 查询关联数据
-async function queryLinkedData() {
-  const parsed = parseLinkedInput()
-  if (!parsed || !parsed.valid) {
-    linkedQueryResult.value = null
-    return
-  }
-
-  isLinkedQuerying.value = true
-  try {
-    const storeName = `${parsed.provider}_records`
-    const key = `${parsed.type}::${parsed.providerId}`
-    const record = await Store.dbGet(storeName, key)
-
-    if (!record) {
-      linkedQueryResult.value = null
-      return
-    }
-
-    // 构建源数据
-    const source = {
-      provider: parsed.provider,
-      type: parsed.type,
-      providerId: parsed.providerId,
-      url: record.url,
-      status: record.status,
-      rating: record.rating,
-      updatedAt: record.updatedAt,
-    }
-
-    // 查询关联平台数据
-    const linked: LinkedQueryResult['linked'] = []
-    const linkedIds = record.linkedIds || {}
-
-    for (const [linkedProvider, linkedKey] of Object.entries(linkedIds)) {
-      if (!linkedKey) continue
-
-      // linkedKey 格式: "type::providerId" 或直接是 providerId
-      let linkedType: string
-      let linkedProviderId: string
-
-      if (linkedKey.includes('::')) {
-        const parts = linkedKey.split('::')
-        linkedType = parts[0]
-        linkedProviderId = parts[1]
-      } else {
-        // 旧格式: 直接是 providerId，类型从源记录继承
-        linkedType = parsed.type
-        linkedProviderId = linkedKey
-      }
-
-      const linkedStoreName = `${linkedProvider}_records`
-      const linkedRecord = await Store.dbGet(linkedStoreName, `${linkedType}::${linkedProviderId}`)
-
-      if (linkedRecord) {
-        linked.push({
-          provider: linkedProvider,
-          type: linkedType,
-          providerId: linkedProviderId,
-          url: linkedRecord.url,
-          status: linkedRecord.status,
-          rating: linkedRecord.rating,
-          updatedAt: linkedRecord.updatedAt,
-          storeName: linkedStoreName,
-        })
-      } else {
-        // 关联记录不存在（可能已被删除）
-        linked.push({
-          provider: linkedProvider,
-          type: linkedType,
-          providerId: linkedProviderId,
-          url: '',
-          status: -1,  // 表示不存在
-          rating: 0,
-          updatedAt: '',
-          storeName: linkedStoreName,
-        })
-      }
-    }
-
-    linkedQueryResult.value = { source, linked }
-  } catch (error) {
-    console.error('[Linked] Query failed:', error)
-    linkedQueryResult.value = null
-  } finally {
-    isLinkedQuerying.value = false
-  }
-}
-
-// 监听关联查询输入变化（防抖）
-let linkedQueryDebounceTimer: ReturnType<typeof setTimeout> | null = null
-watch(linkedInput, (newValue: string) => {
-  const input = newValue.trim()
-  if (!input) {
-    linkedQueryResult.value = null
-    return
-  }
-
-  // 自动识别平台和类型
-  if (input.includes('douban.com')) {
-    linkedSelectedPlatform.value = 'douban'
-    if (input.includes('music.douban.com')) {
-      linkedSelectedDomain.value = 'music'
-    } else if (input.includes('book.douban.com')) {
-      linkedSelectedDomain.value = 'movie'
-    } else {
-      linkedSelectedDomain.value = 'movie'
-    }
-  } else if (input.includes('imdb.com') || /^tt\d+$/i.test(input)) {
-    linkedSelectedPlatform.value = 'imdb'
-    linkedSelectedDomain.value = 'movie'
-  } else if (input.includes('neodb.social')) {
-    linkedSelectedPlatform.value = 'neodb'
-    if (input.includes('/tv/')) {
-      linkedSelectedDomain.value = 'tv'
-    } else if (input.includes('/album/')) {
-      linkedSelectedDomain.value = 'music'
-    } else {
-      linkedSelectedDomain.value = 'movie'
-    }
-  } else if (input.includes('themoviedb.org')) {
-    linkedSelectedPlatform.value = 'tmdb'
-    if (input.includes('/tv/')) {
-      linkedSelectedDomain.value = 'tv'
-    } else {
-      linkedSelectedDomain.value = 'movie'
-    }
-  }
-
-  // 防抖查询
-  if (linkedQueryDebounceTimer) clearTimeout(linkedQueryDebounceTimer)
-  linkedQueryDebounceTimer = setTimeout(() => queryLinkedData(), 500)
-})
-
-// 监听类型选择变化，重新查询
-watch(linkedSelectedDomain, () => {
-  if (linkedInput.value.trim()) {
-    queryLinkedData()
-  }
-})
-
-// 获取平台标签
-function getPlatformLabel(provider: string): string {
-  const labels: Record<string, string> = {
-    douban: '豆瓣',
-    imdb: 'IMDb',
-    neodb: 'NeoDB',
-    tmdb: 'TMDB',
-  }
-  return labels[provider] || provider
-}
-
-// 获取状态文本
-function getLinkedStatusText(status: number, type: string): string {
-  const labels: Record<number, string> = {
-    '-1': '未找到',
-    0: type === 'music' ? '未听' : '未看',
-    1: type === 'music' ? '在听' : '在看',
-    2: type === 'music' ? '已听' : '已看',
-  }
-  return labels[status] || '未知'
-}
-
-// 获取状态颜色
-function getLinkedStatusColor(status: number): string {
-  const colors: Record<number, string> = {
-    '-1': '#9ca3af',
-    0: '#6b7280',
-    1: '#3b82f6',
-    2: '#10b981',
-  }
-  return colors[status] || '#6b7280'
-}
-
 
 // ==================== 主题配置 ====================
-// ✅ 修复：初始值设为 'auto',避免不必要的切换
 const currentTheme = ref<'light' | 'dark' | 'auto'>('auto')
-console.log('[Theme] Component initialized, currentTheme:', currentTheme.value)
 
-// 应用主题到 DOM
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
-  console.log('[Theme] applyTheme called with:', theme)
-  
-  // ✅ 修复：检测系统偏好
   if (theme === 'auto') {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     if (prefersDark) {
       document.documentElement.classList.add('dark')
-      console.log('[Theme] Auto mode: system prefers dark')
     } else {
       document.documentElement.classList.remove('dark')
-      console.log('[Theme] Auto mode: system prefers light')
     }
   } else if (theme === 'dark') {
     document.documentElement.classList.add('dark')
-    console.log('[Theme] Added dark class to html')
   } else {
     document.documentElement.classList.remove('dark')
-    console.log('[Theme] Removed dark class from html')
   }
   currentTheme.value = theme
-  console.log('[Theme] currentTheme updated to:', currentTheme.value)
 }
 
-// 计算属性：显示给用户的主题名称
 const themeLabel = computed(() => {
   switch (currentTheme.value) {
     case 'light': return '亮色'
@@ -943,9 +165,7 @@ const themeLabel = computed(() => {
   }
 })
 
-// 切换主题
 function toggleTheme() {
-  console.log('[Theme] toggleTheme called, current value:', currentTheme.value)
   if (currentTheme.value === 'light') {
     applyTheme('dark')
   } else if (currentTheme.value === 'dark') {
@@ -953,703 +173,81 @@ function toggleTheme() {
   } else {
     applyTheme('light')
   }
-  
-  // 持久化到 chrome.storage（如果可用）
+
   if (chrome.storage?.local) {
     chrome.storage.local.set({
       [MISC_KEYS.SETTINGS_NESTED]: {
         appearance: currentTheme.value
       }
     })
-  } else {
-    console.log('[Theme] Cannot save to storage (not running in extension context)')
-  }
-  
-  console.log('[Theme] Switched to:', currentTheme.value)
-}
-
-// ==================== 设置页面 ====================
-const webdavConfig = ref({
-  url: '',
-  username: '',
-  password: '',
-})
-
-const neodbToken = ref('')
-const autoSyncNeoDB = ref(false)
-
-// ✅ 配置保存状态指示器
-const isConfigSaved = ref(false)
-
-// ==================== WebDAV 操作 Loading 状态 ====================
-const webdavLoading = ref({
-  sync: false,        // 智能合并同步
-  download: false,    // 云端覆盖本地
-  upload: false,      // 本地覆盖云端
-  import: false,      // 导入数据
-})
-
-// 计算属性：是否有任何 WebDAV 操作正在进行
-const isAnyWebDAVOperationRunning = computed(() => {
-  return Object.values(webdavLoading.value).some(loading => loading)
-})
-
-// ==================== 调试设置 ====================
-const debugEnabled = ref(false)
-const logLevel = ref<AppSettings['logLevel']>('info')
-
-const LOG_LEVEL_OPTIONS = [
-  { value: 'debug', label: 'Debug', description: '显示所有日志' },
-  { value: 'info', label: 'Info', description: '信息及以上' },
-  { value: 'warn', label: 'Warn', description: '警告及以上' },
-  { value: 'error', label: 'Error', description: '仅错误' },
-] as const
-
-// ==================== 确认对话框状态 ====================
-interface ConfirmDialogState {
-  open: boolean
-  title: string
-  description: string
-  warning?: string
-  details?: string
-  icon: any
-  confirmText?: string
-  action: () => Promise<void>
-  loading: boolean
-}
-
-const confirmDialog = ref<ConfirmDialogState>({
-  open: false,
-  title: '',
-  description: '',
-  warning: undefined,
-  details: undefined,
-  icon: AlertCircle,
-  confirmText: '确认',
-  action: async () => {},
-  loading: false,
-})
-
-/**
- * 显示确认对话框
- */
-function showConfirmDialog(config: Omit<ConfirmDialogState, 'open' | 'loading'>) {
-  confirmDialog.value = {
-    ...config,
-    open: true,
-    loading: false,
   }
 }
 
-/**
- * 处理确认操作
- */
-async function handleConfirmAction() {
-  confirmDialog.value.loading = true
-  
-  try {
-    await confirmDialog.value.action()
-    confirmDialog.value.open = false
-  } catch (error) {
-    console.error('[Popup] Confirm action failed:', error)
-    // 错误已由具体操作处理，这里只关闭 loading
-  } finally {
-    confirmDialog.value.loading = false
-  }
+// ==================== 导航 ====================
+function navigateTo(page: Page) {
+  router.push('/' + (page === 'records' ? '' : page))
 }
 
-async function loadSettings() {
-  console.log('[Popup] Loading settings from storage...')
-  try {
-    // ✅ 从持久化存储读取 Token
-    const settings = await Store.getSettings()
-    console.log('[Popup] Raw settings loaded:', {
-      hasUrl: !!settings.webdavUrl,
-      hasUsername: !!settings.webdavUsername,
-      hasPassword: !!settings.webdavPassword,
-      urlLength: settings.webdavUrl?.length || 0,
-    })
-    
-    neodbToken.value = settings.neodbToken || ''
-    autoSyncNeoDB.value = settings.autoSyncNeoDB ?? false
+// ==================== 确认对话框 ====================
+const { state: confirmDialog, handleConfirmAction } = useConfirmDialog()
 
-    // 加载其他设置
-    webdavConfig.value = {
-      url: settings.webdavUrl || '',
-      username: settings.webdavUsername || '',
-      password: settings.webdavPassword || '',
-    }
-    
-    // ✅ 更新保存状态
-    isConfigSaved.value = !!(settings.webdavUrl && settings.webdavUsername && settings.webdavPassword)
-    
-    // 加载调试设置
-    debugEnabled.value = settings.debugEnabled ?? false
-    logLevel.value = settings.logLevel ?? 'info'
-    
-    // 等待 Vue 处理所有 watcher 回调（初始值变更触发的回调已执行完毕）
-    // 然后再标记初始化完成，确保 watcher 的 first-trigger guard 能正确拦截初始化阶段的回调
-    await nextTick()
-    autoSyncNeoDBInitialized = true
-    debugInitialized = true
-    
-    console.log('[Popup] Settings loaded successfully, isConfigSaved:', isConfigSaved.value)
-  } catch (error) {
-    console.error('[Popup] Failed to load settings:', error)
-  }
-}
-
-// ✅ 组件挂载时自动加载配置
-onMounted(() => {
-  loadSettings()
-})
-
-async function saveWebDAVConfig() {
-  console.log('[Popup] Saving WebDAV config:', {
-    url: webdavConfig.value.url ? `${webdavConfig.value.url.substring(0, 20)}...` : '(empty)',
-    username: webdavConfig.value.username || '(empty)',
-    password: webdavConfig.value.password ? '***' : '(empty)',
-  })
-  
-  // 验证 WebDAV URL
-  if (webdavConfig.value.url && !webdavConfig.value.url.startsWith('https://')) {
-    await showPageToast('error', 'URL 必须使用 HTTPS', '为保证安全，WebDAV URL 必须使用 HTTPS 协议')
-    return
-  }
-  
-  try {
-    await Store.updateSettings({
-      webdavUrl: webdavConfig.value.url,
-      webdavUsername: webdavConfig.value.username,
-      webdavPassword: webdavConfig.value.password,
-    })
-    
-    // ✅ 立即验证配置已保存
-    const verifySettings = await Store.getSettings()
-    console.log('[Popup] Config verification:', {
-      url: verifySettings.webdavUrl ? '✓' : '✗',
-      username: verifySettings.webdavUsername ? '✓' : '✗',
-      password: verifySettings.webdavPassword ? '✓' : '✗'
-    })
-    
-    if (!verifySettings.webdavUrl || !verifySettings.webdavUsername || !verifySettings.webdavPassword) {
-      throw new Error('配置保存验证失败，请重试')
-    }
-    
-    // ✅ 更新保存状态
-    isConfigSaved.value = true
-    
-    await showPageToast('success', '配置已保存', 'WebDAV 云同步功能现已可用')
-  } catch (error) {
-    console.error('Failed to save WebDAV config:', error)
-    isConfigSaved.value = false
-    await showPageToast('error', '保存失败', String(error))
-  }
-}
-
-async function testWebDAVConnection() {
-  try {
-    // 验证 URL
-    if (!webdavConfig.value.url) {
-      await showPageToast('error', '请输入 WebDAV URL')
-      return
-    }
-    
-    if (!webdavConfig.value.url.startsWith('https://')) {
-      await showPageToast('error', 'URL 必须使用 HTTPS', '为保证安全，WebDAV URL 必须使用 HTTPS 协议')
-      return
-    }
-    
-    const result = await safeSendMessage(
-      {
-        type: 'WEBDAV_TEST',
-        payload: webdavConfig.value,
-      },
-      {
-        timeout: 10000,
-        fallback: () => {
-          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
-        }
-      }
-    )
-    
-    if (!result) return
-    
-    if (result.success) {
-      await showPageToast('success', 'WebDAV 连接成功', '服务器响应正常')
-    } else {
-      await showPageToast('error', 'WebDAV 连接失败', result.message || '请检查 URL、用户名和密码是否正确')
-    }
-  } catch (error) {
-    await showPageToast('error', '测试失败', String(error))
-  }
-}
-
-async function saveNeoDBToken() {
-  try {
-    const token = neodbToken.value.trim()
-
-    // ✅ 使用持久化存储（local storage），方便用户长期使用
-    await Store.updateSettings({ neodbToken: token })
-    await showPageToast('success', 'NeoDB Token 已保存', '评分同步功能现已激活')
-  } catch (error) {
-    console.error('Failed to save NeoDB token:', error)
-    await showPageToast('error', '保存失败', String(error))
-  }
-}
-
-// Watch autoSyncNeoDB changes and save to storage
-let autoSyncNeoDBSaving = false
-let autoSyncNeoDBInitialized = false
-watch(autoSyncNeoDB, async (newVal) => {
-  // Skip the first trigger (initial load from storage)
-  if (!autoSyncNeoDBInitialized) {
-    autoSyncNeoDBInitialized = true
-    return
-  }
-  if (autoSyncNeoDBSaving) return
-  autoSyncNeoDBSaving = true
-  try {
-    await Store.updateSettings({ autoSyncNeoDB: newVal })
-    if (newVal) {
-      await showPageToast('success', '已开启自动同步到 NeoDB', '豆瓣页面首次检测到已看/听时将自动推送评分')
-    } else {
-      await showPageToast('info', '已关闭自动同步到 NeoDB')
-    }
-  } catch (error) {
-    console.error('Failed to save autoSyncNeoDB:', error)
-    await showPageToast('error', '保存失败', String(error))
-  } finally {
-    autoSyncNeoDBSaving = false
-  }
-})
-
-// ==================== 调试设置 ====================
-// Watch debug settings changes and save to storage
-let debugSaving = false
-let debugInitialized = false
-
-watch([debugEnabled, logLevel], async ([newEnabled, newLevel]) => {
-  if (!debugInitialized) {
-    debugInitialized = true
-    return
-  }
-  if (debugSaving) return
-  debugSaving = true
-  try {
-    await Store.updateSettings({
-      debugEnabled: newEnabled,
-      logLevel: newLevel,
-    })
-    if (newEnabled) {
-      await showPageToast('success', '日志已开启', `日志级别: ${newLevel}`)
-    } else {
-      await showPageToast('info', '日志已关闭')
-    }
-  } catch (error) {
-    console.error('Failed to save debug settings:', error)
-    await showPageToast('error', '保存失败', String(error))
-  } finally {
-    debugSaving = false
-  }
-})
-
-async function exportData() {
-  try {
-    // ✅ 立即显示“正在准备...”提示
-    await showPageToast('info', '正在准备导出数据...')
-    
-    const response = await safeSendMessage(
-      { type: 'EXPORT_DATA' },
-      {
-        timeout: 30000,
-        fallback: () => {
-          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
-        }
-      }
-    )
-    
-    if (!response?.success) {
-      throw new Error(response?.error || '导出失败')
-    }
-    
-    // 更新提示为"正在生成文件..."
-    await showPageToast('info', '正在生成文件...')
-    
-    const jsonString = JSON.stringify(response.data, null, 2)
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-    // ✅ 更新为成功提示
-    await showPageToast('success', '导出成功！')
-  } catch (error) {
-    console.error('[Popup] Export failed:', error)
-    await showPageToast('error', '导出失败', String(error))
-  }
-}
-
-function triggerImport() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.json'
-  input.onchange = async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) return
-    
-    // 解析文件获取记录数
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const payload = JSON.parse(event.target?.result as string)
-        
-        // Support both new (stores[storeName][key]) and old (datasets[provider][type]) formats
-        let recordCount = 0
-        if (payload.stores) {
-          // New format: stores.{store_name}.{key} = StoreRecord
-          for (const storeName in payload.stores) {
-            recordCount += Object.keys(payload.stores[storeName]).length
-          }
-        } else if (payload.datasets) {
-          // Old format: datasets.{provider}.{type} = MediaRecord[]
-          for (const provider in payload.datasets) {
-            for (const type in payload.datasets[provider]) {
-              recordCount += payload.datasets[provider][type].length
-            }
-          }
-        }
-        
-        // 显示确认对话框
-        showConfirmDialog({
-          title: '导入数据',
-          description: `即将导入 ${recordCount.toLocaleString()} 条记录。`,
-          warning: '导入的数据将与现有数据合并，相同 ID 的记录将被覆盖。',
-          details: `文件名: ${file.name}`,
-          icon: Upload,
-          confirmText: '开始导入',
-          action: () => executeImport(file, payload),
-        })
-      } catch (error) {
-        await showPageToast('error', '文件解析失败', String(error))
-      }
-    }
-    reader.onerror = () => {
-      showPageToast('error', '文件读取失败', '请检查文件格式是否正确')
-    }
-    reader.readAsText(file)
-  }
-  input.click()
-}
-
-async function executeImport(file: File, payload: any) {
-  webdavLoading.value.import = true
-  
-  try {
-    await showPageToast('info', `正在读取文件: ${file.name}...`)
-    await showPageToast('info', '正在解析数据...')
-    
-    // Convert old format to new format if needed
-    let importPayload = payload
-    if (payload.datasets && !payload.stores) {
-      // Convert old { datasets: { provider: { type: MediaRecord[] } } } to
-      // new { stores: { provider_records: { "type::providerId": StoreRecord } } }
-      const stores: Record<string, Record<string, any>> = {}
-      for (const provider of ['douban', 'imdb', 'neodb', 'tmdb']) {
-        const storeName = `${provider}_records`
-        if (payload.datasets[provider]) {
-          stores[storeName] = {}
-          for (const type of Object.keys(payload.datasets[provider])) {
-            for (const record of payload.datasets[provider][type]) {
-              const key = `${type}::${record.providerId || record.id}`
-              stores[storeName][key] = {
-                url: record.url || '',
-                status: record.status ?? 1,
-                rating: record.rating ?? null,
-                updatedAt: record.updatedAt || record.updatedAt || new Date().toISOString(),
-                linkedIds: record.linkedIds || {},
-              }
-            }
-          }
-        }
-      }
-      importPayload = { stores }
-    }
-    
-    let recordCount = 0
-    for (const storeName in importPayload.stores || {}) {
-      recordCount += Object.keys(importPayload.stores[storeName]).length
-    }
-    await showPageToast('info', `正在导入 ${recordCount.toLocaleString()} 条记录...`)
-    
-    await safeSendMessage(
-      {
-        type: 'IMPORT_DATA',
-        payload: importPayload,
-      },
-      {
-        timeout: 30000,
-        fallback: () => {
-          showPageToast('error', '扩展上下文已失效，请重新打开 Popup')
-        }
-      }
-    )
-    
-    await showPageToast('success', '导入成功', `共导入 ${recordCount.toLocaleString()} 条记录`)
-    loadData()
-  } catch (error) {
-    await showPageToast('error', '导入失败', String(error))
-  } finally {
-    webdavLoading.value.import = false
-  }
-}
-
-async function syncWithCloud() {
-  // 前置检查
-  if (!isConfigSaved.value) {
-    await showPageToast('error', '配置未保存', '请先在设置中保存 WebDAV 配置')
-    return
-  }
-  
-  // 显示确认对话框
-  showConfirmDialog({
-    title: '智能合并同步',
-    description: '将对比本地和云端数据，自动同步有变化的部分。',
-    details: '此操作会比较各数据集的哈希值，仅传输有变化的数据。',
-    icon: RefreshCw,
-    confirmText: '开始同步',
-    action: executeSyncWithCloud,
-  })
-}
-
-async function executeSyncWithCloud() {
-  webdavLoading.value.sync = true
-  
-  try {
-    await showPageToast('info', '正在连接 WebDAV 服务器...')
-    
-    const result = await safeSendMessage(
-      { type: 'WEBDAV_SYNC' },
-      {
-        timeout: 30000,
-        fallback: () => {
-          showPageToast('error', '扩展上下文已失效', '请重新打开 Popup')
-        }
-      }
-    )
-    
-    if (!result) return
-    
-    if (result.success) {
-      const directionMap: Record<string, string> = {
-        upload: '上传',
-        download: '下载',
-        merge: '合并'
-      }
-      const direction = directionMap[result.direction] || '同步'
-      await showPageToast('success', '同步成功', result.message || `已${direction}数据`)
-      loadData()
-    } else {
-      await showPageToast('error', '同步失败', result.message)
-    }
-  } catch (error) {
-    await showPageToast('error', '同步失败', String(error))
-  } finally {
-    webdavLoading.value.sync = false
-  }
-}
-
-async function downloadFromCloud() {
-  if (!isConfigSaved.value) {
-    await showPageToast('error', '配置未保存', '请先在设置中保存 WebDAV 配置')
-    return
-  }
-  
-  showConfirmDialog({
-    title: '云端覆盖本地',
-    description: '将用云端数据完全覆盖本地数据。',
-    warning: '此操作不可逆！本地的所有修改将丢失。',
-    details: '建议先导出本地数据作为备份。',
-    icon: Download,
-    confirmText: '确认覆盖',
-    action: executeDownloadFromCloud,
-  })
-}
-
-async function executeDownloadFromCloud() {
-  webdavLoading.value.download = true
-  
-  try {
-    await showPageToast('info', '正在从云端下载数据...')
-    
-    const result = await safeSendMessage(
-      { type: 'WEBDAV_DOWNLOAD' },
-      { timeout: 30000 }
-    )
-    
-    if (!result) return
-    
-    if (result.success) {
-      await showPageToast('success', '下载成功', result.message)
-      loadData()
-    } else {
-      await showPageToast('error', '下载失败', result.message)
-    }
-  } catch (error) {
-    await showPageToast('error', '下载失败', String(error))
-  } finally {
-    webdavLoading.value.download = false
-  }
-}
-
-async function uploadToCloud() {
-  if (!isConfigSaved.value) {
-    await showPageToast('error', '配置未保存', '请先在设置中保存 WebDAV 配置')
-    return
-  }
-  
-  showConfirmDialog({
-    title: '本地覆盖云端',
-    description: '将用本地数据完全覆盖云端数据。',
-    warning: '此操作不可逆！云端的所有修改将丢失。',
-    details: '请确认这是您想要的操作。',
-    icon: Upload,
-    confirmText: '确认覆盖',
-    action: executeUploadToCloud,
-  })
-}
-
-async function executeUploadToCloud() {
-  webdavLoading.value.upload = true
-  
-  try {
-    await showPageToast('info', '正在上传数据到云端...')
-    
-    const result = await safeSendMessage(
-      { type: 'WEBDAV_UPLOAD' },
-      { timeout: 30000 }
-    )
-    
-    if (!result) return
-    
-    if (result.success) {
-      await showPageToast('success', '上传成功', result.message)
-      loadData()
-    } else {
-      await showPageToast('error', '上传失败', result.message)
-    }
-  } catch (error) {
-    await showPageToast('error', '上传失败', String(error))
-  } finally {
-    webdavLoading.value.upload = false
-  }
-}
-
-// ✅ 优化：防抖刷新，避免频繁请求
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
-function handleRefresh() {
-  // ✅ 修复：取消之前的定时器，避免竞态条件
-  if (refreshTimer) {
-    clearTimeout(refreshTimer)
-  }
-  
-  refreshTimer = setTimeout(() => {
-    loadData() // ✅ 移除 forceRefresh 参数
-    refreshTimer = null
-  }, 300)
-}
+// ==================== provide 共享数据 ====================
+provide('loading', loading)
+provide('loadError', loadError)
+provide('records', records)
+provide('stats', stats)
+provide('loadData', loadData)
+provide('handleRefresh', handleRefresh)
 
 // ==================== 生命周期 ====================
 onMounted(() => {
-  // 1. 初始化主题
   if (chrome.storage?.local) {
     chrome.storage.local.get([MISC_KEYS.SETTINGS_NESTED], (result: any) => {
       if (result[MISC_KEYS.SETTINGS_NESTED]?.appearance) {
         applyTheme(result.settings.appearance)
       } else {
-        // ✅ 修复：默认使用 auto,而不是 dark
         applyTheme('auto')
       }
     })
   } else {
     applyTheme('auto')
   }
-  
-  // 2. 加载数据
+
   loadData()
-  loadSettings()
-  
-  // 3. 注册统一的 Storage 监听器
-  // ✅ 修复：添加标志位防止循环触发
+
   let isHandlingStorageChange = false
-  
+
   const storageListener = (changes: any, namespace: string) => {
-    // 防止循环触发
-    if (isHandlingStorageChange) {
-      console.log('[Popup] Ignoring nested storage change')
-      return
-    }
-    
-    // 监听数据版本变化
+    if (isHandlingStorageChange) return
+
     if (namespace === 'local' && changes[MISC_KEYS.DATA_VERSION]) {
-      console.log('[Popup] Data version changed, reloading...')
       isHandlingStorageChange = true
       loadData().finally(() => {
         isHandlingStorageChange = false
       })
     }
-    // 监听数据变化通知
     if (namespace === 'local' && changes.umm_data_changed) {
-      console.log('[Popup] Data changed detected, refreshing...')
       isHandlingStorageChange = true
       loadData().finally(() => {
         isHandlingStorageChange = false
       })
-    }
-    // ✅ 监听设置变化，实现多 Popup 实例同步
-    if (namespace === 'local' && changes.settings) {
-      const newSettings = changes.settings.newValue
-      if (newSettings?.neodbToken !== undefined) {
-        neodbToken.value = newSettings.neodbToken
-        console.log('[Popup] NeoDB token updated from storage')
-      }
     }
   }
-  
+
   if (chrome.storage?.onChanged) {
     chrome.storage.onChanged.addListener(storageListener)
   }
-  
-  // ✅ 注意：不再监听来自 Content Script 的 toast 通知
-  // 所有 Toast 现在都直接显示在浏览器页面中，而非 Popup 内部
-  
-  // 5. 统一的清理逻辑
+
   onUnmounted(() => {
     if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.removeListener(storageListener)
     }
-    
-    // ✅ 注意：不再需要移除消息监听器（已删除）
-    
-    // 清理刷新定时器
+
     if (refreshTimer) {
       clearTimeout(refreshTimer)
       refreshTimer = null
     }
-    
-    // 清理查询防抖定时器
-    if (queryDebounceTimer) {
-      clearTimeout(queryDebounceTimer)
-      queryDebounceTimer = null
-    }
-    
-    // ✅ 修复：清理加载超时保护
+
     if (loadTimeout) {
       clearTimeout(loadTimeout)
       loadTimeout = null
@@ -1660,7 +258,6 @@ onMounted(() => {
 
 <template>
   <div class="flex flex-col bg-background text-foreground" style="width: 600px; height: 500px;">
-    <!-- 顶部导航栏 -->
     <header class="border-b border-border px-4 py-3">
       <div class="flex items-center justify-between">
         <h1 class="text-xl font-semibold tracking-tight">UMM 媒体管理器</h1>
@@ -1675,15 +272,14 @@ onMounted(() => {
           <RefreshCw v-else class="h-5 w-5" />
         </Button>
       </div>
-      
-      <!-- 页面导航 -->
+
       <nav class="mt-3 flex gap-2">
         <Button
           v-for="page in pages"
           :key="page.id"
           variant="outline"
           :class="{ 'bg-primary text-primary-foreground': currentPage === page.id }"
-          @click="currentPage = page.id"
+          @click="navigateTo(page.id)"
           class="flex-1"
         >
           <component :is="page.icon" class="mr-2 h-4 w-4" />
@@ -1692,711 +288,10 @@ onMounted(() => {
       </nav>
     </header>
 
-    <!-- 主内容区域 -->
     <main class="flex-1 overflow-y-auto p-4">
-      <!-- 记录概览页面 -->
-      <Card v-if="currentPage === 'records'">
-        <CardHeader>
-          <div class="flex items-center justify-between">
-            <div>
-              <CardTitle>记录概览</CardTitle>
-              <CardDescription>您的媒体收藏统计</CardDescription>
-            </div>
-            <!-- ✅ 优化：添加手动刷新按钮 -->
-            <Button 
-              variant="ghost" 
-              size="sm"
-              @click="handleRefresh"
-              :disabled="loading"
-              title="刷新数据"
-            >
-              <RefreshCw :class="['h-4 w-4', loading && 'animate-spin']" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div v-if="loading" class="py-8 text-center text-muted-foreground">
-            加载中...
-          </div>
-
-          <!-- ✅ 修复：加载失败时显示错误提示和重试按钮 -->
-          <div v-else-if="loadError" class="py-8 text-center">
-            <Alert variant="destructive" class="mb-4">
-              <AlertCircle class="h-4 w-4" />
-              <AlertTitle>加载失败</AlertTitle>
-              <AlertDescription>{{ loadError }}</AlertDescription>
-            </Alert>
-            <Button @click="loadData" variant="outline">
-              <RefreshCw class="mr-2 h-4 w-4" />
-              重试
-            </Button>
-          </div>
-
-          <div v-else>
-            <!-- 统计卡片 -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
-              <Card v-for="stat in statsList" :key="stat.label" class="p-4">
-                <div class="text-center">
-                  <div class="text-3xl font-bold tracking-tight">{{ stat.value }}</div>
-                  <div class="text-sm font-medium text-muted-foreground mt-1">{{ stat.label }}</div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- 平台分布页面 -->
-      <Card v-if="currentPage === 'platforms'">
-        <CardHeader>
-          <CardTitle>平台分布</CardTitle>
-          <CardDescription>各媒体平台的详细统计</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div v-if="loading" class="py-8 text-center text-muted-foreground">
-            加载中...
-          </div>
-
-          <!-- ✅ 修复：加载失败时显示错误提示和重试按钮 -->
-          <div v-else-if="loadError" class="py-8 text-center">
-            <Alert variant="destructive" class="mb-4">
-              <AlertCircle class="h-4 w-4" />
-              <AlertTitle>加载失败</AlertTitle>
-              <AlertDescription>{{ loadError }}</AlertDescription>
-            </Alert>
-            <Button @click="loadData" variant="outline">
-              <RefreshCw class="mr-2 h-4 w-4" />
-              重试
-            </Button>
-          </div>
-
-          <div v-else class="space-y-3">
-            <div
-              v-for="[platform, count] in Object.entries(platformStats)"
-              :key="platform"
-              class="flex items-center justify-between rounded-md border border-border p-4"
-            >
-              <span class="text-lg font-medium">{{ platform }}</span>
-              <Badge variant="secondary" class="text-lg font-medium px-3 py-1">
-                {{ count }}
-              </Badge>
-            </div>
-            
-            <div v-if="Object.keys(platformStats).length === 0" class="text-center py-8 text-muted-foreground">
-              暂无数据
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- 评分管理页面 -->
-      <Card v-if="currentPage === 'ratings'">
-        <CardHeader>
-          <CardTitle>评分管理</CardTitle>
-          <CardDescription>为媒体作品添加和管理评分</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-6">
-            <!-- 添加评分表单 -->
-            <div class="space-y-4 p-4 border border-border rounded-lg">
-              <div>
-                <Label for="platform-select">选择平台</Label>
-                <Select v-model="selectedPlatform" class="mt-2">
-                  <SelectTrigger id="platform-select">
-                    <SelectValue placeholder="选择平台" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem v-for="platform in PLATFORM_OPTIONS" :key="platform.value" :value="platform.value">
-                      {{ platform.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label for="domain-select">媒体类型</Label>
-                <Select v-model="selectedDomain" class="mt-2">
-                  <SelectTrigger id="domain-select">
-                    <SelectValue placeholder="选择类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="movie">电影</SelectItem>
-                    <SelectItem value="tv">剧集</SelectItem>
-                    <SelectItem value="music">音乐</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label for="rating-input">平台 ID 或 URL</Label>
-                <Input
-                  id="rating-input"
-                  v-model="ratingInput"
-                  placeholder="例如: 1299004 或 https://movie.douban.com/subject/1299004/"
-                  class="mt-2"
-                />
-              </div>
-              
-              <!-- 实时解析结果 -->
-              <Alert v-if="ratingInput && !isQuerying" :variant="parseResult?.valid ? 'default' : 'destructive'">
-                <CheckCircle2 v-if="parseResult?.valid" class="h-4 w-4" />
-                <XCircle v-else class="h-4 w-4" />
-                <AlertTitle>{{ parseResult?.valid ? '✅ 解析成功' : '❌ 解析失败' }}</AlertTitle>
-                <AlertDescription v-if="parseResult">
-                  <div v-if="parseResult.valid" class="mt-2 space-y-1 text-sm">
-                    <div class="flex items-center gap-2">
-                      <strong>平台:</strong>
-                      <Badge variant="outline" class="text-xs">
-                        {{ parseResult.provider }} / {{ parseResult.type }}
-                      </Badge>
-                    </div>
-                    <div><strong>ID:</strong> {{ parseResult.providerId }}</div>
-                    <div><strong>URL:</strong> <code class="text-xs bg-muted px-1 py-0.5 rounded">{{ parseResult.url }}</code></div>
-                  </div>
-                  <div v-else class="text-sm text-destructive">
-                    {{ parseResult.error }}
-                  </div>
-                </AlertDescription>
-              </Alert>
-              
-              <!-- 查询结果显示 -->
-              <Alert v-if="isQuerying">
-                <RefreshCw class="h-4 w-4 animate-spin" />
-                <AlertTitle>查询中...</AlertTitle>
-                <AlertDescription>
-                  正在从数据库中查找记录
-                </AlertDescription>
-              </Alert>
-              
-              <!-- 已看/听状态 -->
-              <Alert v-else-if="ratingQueryResult && ratingQueryResult.status === 2" variant="default">
-                <CheckCircle2 class="h-4 w-4" />
-                <AlertTitle class="font-semibold">
-                  ✅ {{ ratingQueryResult.type === 'music' ? '已听' : '已看' }}
-                </AlertTitle>
-                <AlertDescription>
-                  <div class="mt-2 space-y-1 text-sm">
-                    <div class="flex items-center gap-2">
-                      <strong class="font-medium">平台:</strong>
-                      <Badge variant="outline" class="text-xs font-medium">
-                        {{ ratingQueryResult.provider }} / {{ ratingQueryResult.type }}
-                      </Badge>
-                    </div>
-                    <div><strong class="font-medium">ID:</strong> {{ ratingQueryResult.providerId }}</div>
-                    <div v-if="ratingQueryResult.rating" class="flex items-center gap-2">
-                      <strong class="font-medium">本地评分:</strong>
-                      <Badge variant="default" class="font-medium">
-                        <Star class="mr-1 h-3 w-3" />
-                        {{ ratingQueryResult.rating }}/10
-                      </Badge>
-                    </div>
-                    <div v-if="ratingQueryResult.comment" class="flex items-start gap-2">
-                      <strong class="font-medium shrink-0">评语:</strong>
-                      <span class="text-sm italic">"{{ ratingQueryResult.comment }}"</span>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-              
-              <!-- 其他状态（在看/未看） -->
-              <Alert v-else-if="ratingQueryResult" variant="default">
-                <Database class="h-4 w-4" />
-                <AlertTitle class="font-semibold">找到记录</AlertTitle>
-                <AlertDescription>
-                  <div class="mt-2 space-y-1 text-sm">
-                    <div class="flex items-center gap-2">
-                      <strong class="font-medium">平台:</strong>
-                      <Badge variant="outline" class="text-xs font-medium">
-                        {{ ratingQueryResult.provider }} / {{ ratingQueryResult.type }}
-                      </Badge>
-                    </div>
-                    <div><strong class="font-medium">ID:</strong> {{ ratingQueryResult.providerId }}</div>
-                    <div class="flex items-center gap-2">
-                      <strong class="font-medium">状态:</strong>
-                      <Badge 
-                        :variant="ratingQueryResult.status === 1 ? 'default' : 'secondary'"
-                        class="text-xs font-medium"
-                      >
-                        {{ getStatusLabel(ratingQueryResult.status, ratingQueryResult.type) }}
-                      </Badge>
-                    </div>
-                    <div v-if="ratingQueryResult.rating" class="flex items-center gap-2">
-                      <strong class="font-medium">评分:</strong>
-                      <Badge variant="outline" class="font-medium">
-                        <Star class="mr-1 h-3 w-3" />
-                        {{ ratingQueryResult.rating }}/10
-                      </Badge>
-                    </div>
-                    <div v-if="ratingQueryResult.comment" class="flex items-start gap-2">
-                      <strong class="font-medium shrink-0">评语:</strong>
-                      <span class="text-sm italic">"{{ ratingQueryResult.comment }}"</span>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-              
-              <Alert v-else-if="ratingInput && !isQuerying">
-                <Database class="h-4 w-4" />
-                <AlertTitle>未找到记录</AlertTitle>
-                <AlertDescription>
-                  数据库中暂无此记录,请先在对应平台页面标记“已看”,然后再来评分
-                </AlertDescription>
-              </Alert>
-              
-              <div>
-                <Label>评分 (1-10)</Label>
-                <div class="grid grid-cols-5 gap-2 mt-2">
-                  <Button
-                    v-for="i in 10"
-                    :key="i"
-                    variant="outline"
-                    :class="{ 'bg-primary text-primary-foreground': ratingValue === i }"
-                    @click="ratingValue = i"
-                    class="h-9"
-                  >
-                    {{ i }}
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <Label>评语</Label>
-                <textarea
-                  v-model="ratingComment"
-                  placeholder="添加评论..."
-                  class="mt-2 w-full min-h-[60px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </div>
-
-              <Button @click="saveRating" class="w-full">
-                <Star class="mr-2 h-4 w-4" />
-                保存评分
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- 关联查询页面 -->
-      <Card v-if="currentPage === 'linked'">
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2">
-            <Link class="h-5 w-5" />
-            关联查询
-          </CardTitle>
-          <CardDescription>查询跨平台关联数据，支持 ID 和 URL 自动解析</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-6">
-            <!-- 查询表单 -->
-            <div class="space-y-4 p-4 border border-border rounded-lg">
-              <div>
-                <Label for="linked-platform-select">选择平台</Label>
-                <Select v-model="linkedSelectedPlatform" class="mt-2">
-                  <SelectTrigger id="linked-platform-select">
-                    <SelectValue placeholder="选择平台" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem v-for="platform in PLATFORM_OPTIONS" :key="platform.value" :value="platform.value">
-                      {{ platform.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label for="linked-domain-select">媒体类型</Label>
-                <Select v-model="linkedSelectedDomain" class="mt-2">
-                  <SelectTrigger id="linked-domain-select">
-                    <SelectValue placeholder="选择类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="movie">电影</SelectItem>
-                    <SelectItem value="tv">剧集</SelectItem>
-                    <SelectItem value="music">音乐</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label for="linked-input">平台 ID 或 URL</Label>
-                <Input
-                  id="linked-input"
-                  v-model="linkedInput"
-                  placeholder="例如: 35401245 或 https://movie.douban.com/subject/35401245/"
-                  class="mt-2"
-                />
-                <p class="text-xs text-muted-foreground mt-2">
-                  支持豆瓣、IMDb、NeoDB、TMDB 的 ID 或完整 URL
-                </p>
-              </div>
-            </div>
-
-            <!-- 查询状态 -->
-            <Alert v-if="isLinkedQuerying" variant="default">
-              <RefreshCw class="h-4 w-4 animate-spin" />
-              <AlertTitle>查询中...</AlertTitle>
-              <AlertDescription>
-                正在查询关联数据
-              </AlertDescription>
-            </Alert>
-
-            <!-- 查询结果 -->
-            <div v-if="linkedQueryResult && !isLinkedQuerying" class="space-y-4">
-              <!-- 源记录 -->
-              <div class="p-4 border border-border rounded-lg bg-muted/30">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-sm font-semibold text-foreground">查询结果</h4>
-                  <Badge variant="outline" class="text-xs">
-                    {{ getPlatformLabel(linkedQueryResult.source.provider) }}
-                  </Badge>
-                </div>
-
-                <div class="space-y-2 text-sm">
-                  <div class="flex items-center justify-between">
-                    <span class="text-muted-foreground">类型</span>
-                    <span class="font-medium">{{ linkedQueryResult.source.type }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-muted-foreground">ID</span>
-                    <span class="font-mono text-xs">{{ linkedQueryResult.source.providerId }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-muted-foreground">状态</span>
-                    <Badge
-                      :style="{ backgroundColor: getLinkedStatusColor(linkedQueryResult.source.status), color: 'white' }"
-                      class="text-xs"
-                    >
-                      {{ getLinkedStatusText(linkedQueryResult.source.status, linkedQueryResult.source.type) }}
-                    </Badge>
-                  </div>
-                  <div v-if="linkedQueryResult.source.rating > 0" class="flex items-center justify-between">
-                    <span class="text-muted-foreground">评分</span>
-                    <span class="font-medium flex items-center gap-1">
-                      <Star class="h-3 w-3 text-yellow-500" />
-                      {{ linkedQueryResult.source.rating }}/10
-                    </span>
-                  </div>
-                  <div v-if="linkedQueryResult.source.url" class="flex items-center justify-between">
-                    <span class="text-muted-foreground">链接</span>
-                    <a
-                      :href="linkedQueryResult.source.url"
-                      target="_blank"
-                      class="text-primary text-xs hover:underline truncate max-w-[200px]"
-                    >
-                      {{ linkedQueryResult.source.url }}
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 关联平台数据 -->
-              <div v-if="linkedQueryResult.linked.length > 0">
-                <Separator class="my-4" />
-                <h4 class="text-sm font-semibold text-foreground mb-3">关联平台数据</h4>
-
-                <div class="space-y-3">
-                  <div
-                    v-for="(item, index) in linkedQueryResult.linked"
-                    :key="index"
-                    class="p-3 border border-border rounded-lg"
-                    :class="{ 'bg-muted/20': item.status === -1 }"
-                  >
-                    <div class="flex items-center justify-between mb-2">
-                      <div class="flex items-center gap-2">
-                        <Badge variant="secondary" class="text-xs">
-                          {{ getPlatformLabel(item.provider) }}
-                        </Badge>
-                        <span class="text-xs text-muted-foreground">{{ item.type }}</span>
-                      </div>
-                      <Badge
-                        :style="{ backgroundColor: getLinkedStatusColor(item.status), color: 'white' }"
-                        class="text-xs"
-                      >
-                        {{ getLinkedStatusText(item.status, item.type) }}
-                      </Badge>
-                    </div>
-
-                    <div class="space-y-1 text-sm">
-                      <div class="flex items-center justify-between">
-                        <span class="text-muted-foreground">ID</span>
-                        <span class="font-mono text-xs">{{ item.providerId }}</span>
-                      </div>
-                      <div v-if="item.rating > 0" class="flex items-center justify-between">
-                        <span class="text-muted-foreground">评分</span>
-                        <span class="font-medium flex items-center gap-1">
-                          <Star class="h-3 w-3 text-yellow-500" />
-                          {{ item.rating }}/10
-                        </span>
-                      </div>
-                      <div v-if="item.url" class="flex items-center justify-between">
-                        <span class="text-muted-foreground">链接</span>
-                        <a
-                          :href="item.url"
-                          target="_blank"
-                          class="text-primary text-xs hover:underline truncate max-w-[200px]"
-                        >
-                          {{ item.url }}
-                        </a>
-                      </div>
-                      <div v-if="item.updatedAt" class="flex items-center justify-between">
-                        <span class="text-muted-foreground">更新</span>
-                        <span class="text-xs text-muted-foreground">
-                          {{ new Date(item.updatedAt).toLocaleDateString() }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 无关联数据提示 -->
-              <div v-else class="p-4 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-                暂无关联数据
-              </div>
-            </div>
-
-            <!-- 无结果提示 -->
-            <div
-              v-if="linkedInput && !isLinkedQuerying && !linkedQueryResult"
-              class="p-4 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg"
-            >
-              未找到匹配的记录，请检查输入的 ID 或 URL
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- 设置页面 -->
-      <Card v-if="currentPage === 'settings'">
-        <CardHeader>
-          <CardTitle>设置与同步</CardTitle>
-          <CardDescription>配置 WebDAV 和数据管理</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-6">
-            <!-- WebDAV 配置 -->
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold">WebDAV 配置</h3>
-                <!-- ✅ 新增：配置状态指示 -->
-                <Badge v-if="isConfigSaved" variant="default" class="bg-green-500">
-                  已保存
-                </Badge>
-                <Badge v-else variant="outline" class="text-orange-500 border-orange-500">
-                  未保存
-                </Badge>
-              </div>
-              
-              <div>
-                <Label for="webdav-url" class="font-medium">服务器地址</Label>
-                <Input
-                  id="webdav-url"
-                  v-model="webdavConfig.url"
-                  placeholder="https://example.com/dav/"
-                  class="mt-2"
-                />
-              </div>
-              
-              <div>
-                <Label for="webdav-username" class="font-medium">用户名</Label>
-                <Input
-                  id="webdav-username"
-                  v-model="webdavConfig.username"
-                  class="mt-2"
-                />
-              </div>
-              
-              <div>
-                <Label for="webdav-password" class="font-medium">密码</Label>
-                <Input
-                  id="webdav-password"
-                  v-model="webdavConfig.password"
-                  type="password"
-                  class="mt-2"
-                />
-              </div>
-
-              <div class="flex gap-2">
-                <Button @click="saveWebDAVConfig" class="flex-1 font-medium">
-                  保存配置
-                </Button>
-                <Button @click="testWebDAVConnection" variant="outline" class="flex-1 font-medium">
-                  测试连接
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            <!-- 数据管理 -->
-            <div class="space-y-4">
-              <h3 class="text-sm font-semibold">数据管理</h3>
-              
-              <div class="grid grid-cols-2 gap-3">
-                <Button 
-                  @click="exportData" 
-                  variant="outline"
-                  :disabled="isAnyWebDAVOperationRunning"
-                >
-                  <Download class="mr-2 h-4 w-4" />
-                  导出数据
-                </Button>
-                <Button 
-                  @click="triggerImport" 
-                  variant="outline"
-                  :disabled="isAnyWebDAVOperationRunning"
-                >
-                  <RefreshCw v-if="webdavLoading.import" class="mr-2 h-4 w-4 animate-spin" />
-                  <Upload v-else class="mr-2 h-4 w-4" />
-                  {{ webdavLoading.import ? '导入中...' : '导入数据' }}
-                </Button>
-              </div>
-              
-              <!-- ✅ 三种同步方式 -->
-              <div class="space-y-2">
-                <Button 
-                  @click="downloadFromCloud" 
-                  variant="outline" 
-                  class="w-full"
-                  :disabled="!isConfigSaved || isAnyWebDAVOperationRunning"
-                >
-                  <RefreshCw v-if="webdavLoading.download" class="mr-2 h-4 w-4 animate-spin" />
-                  <Download v-else class="mr-2 h-4 w-4" />
-                  {{ webdavLoading.download ? '下载中...' : '云端覆盖本地' }}
-                </Button>
-                <Button 
-                  @click="uploadToCloud" 
-                  variant="outline" 
-                  class="w-full"
-                  :disabled="!isConfigSaved || isAnyWebDAVOperationRunning"
-                >
-                  <RefreshCw v-if="webdavLoading.upload" class="mr-2 h-4 w-4 animate-spin" />
-                  <Upload v-else class="mr-2 h-4 w-4" />
-                  {{ webdavLoading.upload ? '上传中...' : '本地覆盖云端' }}
-                </Button>
-                <Button 
-                  @click="syncWithCloud" 
-                  class="w-full"
-                  :disabled="!isConfigSaved || isAnyWebDAVOperationRunning"
-                >
-                  <RefreshCw v-if="webdavLoading.sync" class="mr-2 h-4 w-4 animate-spin" />
-                  <RefreshCw v-else class="mr-2 h-4 w-4" />
-                  {{ webdavLoading.sync ? '同步中...' : '智能合并同步' }}
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            <!-- NeoDB 配置 -->
-            <div class="space-y-4">
-              <h3 class="text-sm font-semibold">NeoDB 配置</h3>
-              
-              <div>
-                <Label for="neodb-token" class="font-medium">API Token</Label>
-                <Input
-                  id="neodb-token"
-                  v-model="neodbToken"
-                  type="password"
-                  placeholder="请输入您的 NeoDB API Token"
-                  class="mt-2"
-                />
-                <p class="text-xs text-muted-foreground mt-2">
-                  用于同步评分到 NeoDB，可在 NeoDB 个人中心获取
-                </p>
-              </div>
-
-              <Button @click="saveNeoDBToken" class="w-full font-medium">
-                保存 Token
-              </Button>
-
-              <!-- 自动同步开关（仅当 Token 已配置时显示） -->
-              <div v-if="neodbToken.trim()" class="flex items-center justify-between rounded-lg border p-3">
-                <div class="space-y-0.5">
-                  <Label class="font-medium">自动同步到 NeoDB</Label>
-                  <p class="text-xs text-muted-foreground">
-                    豆瓣页面首次写入时自动推送评分
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="autoSyncNeoDB"
-                  :class="[
-                    'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
-                    autoSyncNeoDB ? 'bg-primary' : 'bg-input'
-                  ]"
-                  @click="autoSyncNeoDB = !autoSyncNeoDB"
-                >
-                  <span
-                    :class="[
-                      'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-                      autoSyncNeoDB ? 'translate-x-5' : 'translate-x-0'
-                    ]"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <Separator />
-
-            <!-- 调试设置 -->
-            <div class="space-y-4">
-              <h3 class="text-sm font-semibold">调试日志</h3>
-              
-              <!-- 开关 -->
-              <div class="flex items-center justify-between rounded-lg border p-3">
-                <div class="space-y-0.5">
-                  <Label class="font-medium">启用日志</Label>
-                  <p class="text-xs text-muted-foreground">
-                    开启后将在控制台输出调试信息
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="debugEnabled"
-                  :class="[
-                    'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
-                    debugEnabled ? 'bg-primary' : 'bg-input'
-                  ]"
-                  @click="debugEnabled = !debugEnabled"
-                >
-                  <span
-                    :class="[
-                      'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-                      debugEnabled ? 'translate-x-5' : 'translate-x-0'
-                    ]"
-                  />
-                </button>
-              </div>
-
-              <!-- 日志级别选择器 -->
-              <div v-if="debugEnabled" class="space-y-2">
-                <Label class="font-medium">日志级别</Label>
-                <Select v-model="logLevel">
-                  <SelectTrigger class="w-full">
-                    <SelectValue placeholder="选择日志级别" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="opt in LOG_LEVEL_OPTIONS"
-                      :key="opt.value"
-                      :value="opt.value"
-                    >
-                      {{ opt.label }} — {{ opt.description }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <RouterView />
     </main>
 
-    <!-- 底部状态栏 -->
     <footer class="border-t border-border px-4 py-2 text-xs font-medium text-muted-foreground">
       <div class="flex items-center justify-between">
         <span>v{{ appVersion }}</span>
@@ -2404,7 +299,6 @@ onMounted(() => {
       </div>
     </footer>
 
-    <!-- ==================== WebDAV 确认对话框 ==================== -->
     <Dialog v-model:open="confirmDialog.open">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
@@ -2416,28 +310,28 @@ onMounted(() => {
             {{ confirmDialog.description }}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div class="py-4">
           <Alert v-if="confirmDialog.warning" variant="destructive">
             <XCircle class="h-4 w-4" />
             <AlertTitle>警告</AlertTitle>
             <AlertDescription>{{ confirmDialog.warning }}</AlertDescription>
           </Alert>
-          
+
           <p v-if="confirmDialog.details" class="text-sm text-muted-foreground mt-3">
             {{ confirmDialog.details }}
           </p>
         </div>
-        
+
         <DialogFooter>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             @click="confirmDialog.open = false"
             :disabled="confirmDialog.loading"
           >
             取消
           </Button>
-          <Button 
+          <Button
             @click="handleConfirmAction"
             :disabled="confirmDialog.loading"
           >
@@ -2451,6 +345,4 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* shadcn-vue 官方设计不需要额外样式 */
-/* 所有样式通过 Tailwind CSS 类名实现 */
 </style>

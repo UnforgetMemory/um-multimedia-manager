@@ -9,7 +9,7 @@ export default defineConfig({
   publicDir: 'icons',
   manifest: {
     name: 'UMM - 多媒体管理器',
-    version: '1.5.5',
+    version: '2.0.0',
     description: '常见影视音乐平台的观看/收听记录管理工具，支持数据导入、清洗、合并和导出，提供 WebDAV 备份和第三方平台数据抓取功能。',
     permissions: [
       'storage',
@@ -34,8 +34,7 @@ export default defineConfig({
       '*://pterclub.net/*',
       '*://www.pthome.net/*',
       '*://www.haidan.cc/*',
-      '*://web5.mukaku.com/*',
-      '<all_urls>'
+      '*://web5.mukaku.com/*'
     ],
     content_security_policy: {
       extension_pages: "script-src 'self'; object-src 'self';",

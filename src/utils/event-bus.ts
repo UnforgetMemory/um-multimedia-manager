@@ -20,6 +20,7 @@ export function broadcast(event: EventType, data?: unknown): void {
 // ==================== Content Script 端 ====================
 
 const subscribers = new Map<EventType, Set<(data: unknown) => void>>()
+let initialized = false
 
 /** Subscribe to an event type. Returns unsubscribe function. */
 export function subscribe(event: EventType, callback: (data: unknown) => void): () => void {
@@ -38,6 +39,8 @@ export function subscribe(event: EventType, callback: (data: unknown) => void): 
 
 /** Initialize the message listener (call once in content script main) */
 export function initEventBus(): void {
+  if (initialized) return
+  initialized = true
   chrome.runtime.onMessage.addListener((message: unknown) => {
     const msg = message as EventBusMessage
     if (msg.type !== 'EVENT_BUS') return
