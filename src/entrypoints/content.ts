@@ -780,7 +780,7 @@ async function pushToNeoDB(ratingAdjust: number) {
           existing.linkedIds.neodb = neodbFullKey
           await Store.dbPut(storeName, key, existing)
           currentRecord = existing
-          console.log('[UMM] ✅ Updated record with NeoDB linked ID:', neodbFullKey)
+          infoLog('Updated record with NeoDB linked ID:', neodbFullKey)
         }
 
         // 2. 创建或更新 NeoDB 本地记录（双向链接）
@@ -792,7 +792,7 @@ async function pushToNeoDB(ratingAdjust: number) {
             existingNeoDB.linkedIds = existingNeoDB.linkedIds || {}
             existingNeoDB.linkedIds.douban = doubanFullKey
             await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
-            console.log('[UMM] ✅ Updated existing NeoDB record linkedIds:', neodbFullKey)
+            infoLog('Updated existing NeoDB record linkedIds:', neodbFullKey)
           }
         } else {
           // 不存在 → 创建新记录
@@ -804,10 +804,10 @@ async function pushToNeoDB(ratingAdjust: number) {
             linkedIds: { douban: doubanFullKey },
           }
           await Store.dbPut(neodbStoreName, neodbFullKey, neodbRecord)
-          console.log('[UMM] ✅ Created NeoDB local record:', neodbFullKey)
+          infoLog('Created NeoDB local record:', neodbFullKey)
         }
       } else {
-        console.warn('[UMM] ⚠️ No catalogUuid in response or no currentIdentity')
+        warnLog('No catalogUuid in response or no currentIdentity')
       }
 
       // 事件驱动：重新渲染 NeoDB 按钮（将使用更新后的 linkedIds 和 DOM 实时评分）
