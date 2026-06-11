@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # WXT build artifacts
 .wxt/
 
@@ -62,10 +67,10 @@ releases/
 # Editor and IDE files
 *.swp
 *~
-.DS_Store
 
 # Test artifacts
 tests/
+playwright-report/
 
 # Sisyphus agent sessions
 .sisyphus/

@@ -12,12 +12,33 @@ import { defineBackground } from 'wxt/utils/define-background'
 import type { AppSettings, ExportData, Statistics, RecordStoreName, RemoteMeta, DatasetMeta } from '@/types'
 import * as NeoDB from '@/features/neodb/api'
 import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
+
+/** Allowed store names for generic DB message handlers */
+const ALLOWED_DB_STORES = new Set<string>([
+  ...RECORD_STORES,
+  STORE_NAMES.TTL_CACHE,
+  STORE_NAMES.PT_ID_CACHE,
+])
+
+function isAllowedStore(storeName: string): boolean {
+  return ALLOWED_DB_STORES.has(storeName)
+}
 import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 import { calculateStoreHash } from '@/utils/hash-utils'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
+
+/** Escape HTML special characters — pure regex, no DOM element creation */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
 import { settingsCache } from '@/features/settings/cache'
 import { broadcast } from '@/utils/event-bus'
@@ -25,7 +46,7 @@ import { broadcast } from '@/utils/event-bus'
 export default defineBackground({
   type: 'module',
 
-  async main() {
+  main() {
     const startTime = Date.now()
     let dbReady = false
     let dbInitFailed = false
@@ -170,7 +191,7 @@ export default defineBackground({
     // ==================== Message Handling ====================
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (!sender.id && !sender.url) return false
+      if (!sender.id || sender.id !== chrome.runtime.id) return false
 
       handleMessage(message, sender, sendResponse).catch(err => {
         errorLog('❌ handleMessage failed:', err)
@@ -236,28 +257,48 @@ export default defineBackground({
         switch (message.type) {
           // ==================== Core DB Operations ====================
           case 'DB_GET': {
+            if (!isAllowedStore(message.payload.storeName)) {
+              sendResponse({ success: false, error: 'Invalid store name' })
+              break
+            }
             const record = await mediaDB.get(message.payload.storeName, message.payload.key)
             sendResponse({ success: true, record })
             break
           }
           case 'DB_PUT': {
+            if (!isAllowedStore(message.payload.storeName)) {
+              sendResponse({ success: false, error: 'Invalid store name' })
+              break
+            }
             await mediaDB.put(message.payload.storeName, message.payload.key, message.payload.record)
             broadcast('record:updated', { storeName: message.payload.storeName, key: message.payload.key })
             sendResponse({ success: true })
             break
           }
           case 'DB_DELETE': {
+            if (!isAllowedStore(message.payload.storeName)) {
+              sendResponse({ success: false, error: 'Invalid store name' })
+              break
+            }
             await mediaDB.delete(message.payload.storeName, message.payload.key)
             broadcast('record:deleted', { storeName: message.payload.storeName, key: message.payload.key })
             sendResponse({ success: true })
             break
           }
           case 'DB_GET_ALL': {
+            if (!isAllowedStore(message.payload.storeName)) {
+              sendResponse({ success: false, error: 'Invalid store name' })
+              break
+            }
             const entries = await mediaDB.getAll(message.payload.storeName)
             sendResponse({ success: true, entries })
             break
           }
           case 'DB_QUERY': {
+            if (!isAllowedStore(message.payload.storeName)) {
+              sendResponse({ success: false, error: 'Invalid store name' })
+              break
+            }
             const entries = await mediaDB.query(
               message.payload.storeName,
               message.payload.indexName,
@@ -267,6 +308,10 @@ export default defineBackground({
             break
           }
           case 'DB_COUNT': {
+            if (!isAllowedStore(message.payload.storeName)) {
+              sendResponse({ success: false, error: 'Invalid store name' })
+              break
+            }
             const count = await mediaDB.count(message.payload.storeName)
             sendResponse({ success: true, count })
             break
@@ -476,9 +521,18 @@ export default defineBackground({
         }
       }
 
-      // Import settings if present
+      // Import settings if present (whitelist allowed keys only)
       if (payload.settings) {
-        await chrome.storage.local.set(payload.settings)
+        const allowedKeys = new Set<string>(Object.values(STORAGE_KEYS))
+        const filtered: Record<string, any> = {}
+        for (const [key, value] of Object.entries(payload.settings)) {
+          if (allowedKeys.has(key)) {
+            filtered[key] = value
+          }
+        }
+        if (Object.keys(filtered).length > 0) {
+          await chrome.storage.local.set(filtered)
+        }
       }
 
       infoLog(`📥 Imported ${totalImported} records across ${Object.keys(payload.stores).length} stores`)
@@ -666,7 +720,7 @@ export default defineBackground({
 
       const content = document.createElement('div')
       content.className = 'umm-toast__content'
-      content.innerHTML = `<strong>${title}</strong>${message ? `<p>${message}</p>` : ''}`
+      content.innerHTML = `<strong>${escapeHtml(title)}</strong>${message ? `<p>${escapeHtml(message)}</p>` : ''}`
       toast.appendChild(content)
 
       ctr.appendChild(toast)
