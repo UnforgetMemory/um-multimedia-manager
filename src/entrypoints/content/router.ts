@@ -184,10 +184,9 @@ export async function dispatchRoute(url: string): Promise<void> {
 /**
  * 监听 URL 变化（适用于 SPA 应用）
  *
- * 覆盖三种 URL 变化方式:
+ * 覆盖两种 URL 变化方式:
  * 1. popstate — 浏览器前进/后退
  * 2. history.pushState / replaceState — SPA 客户端路由
- * 3. MutationObserver — 兜底（throttled）
  */
 export function watchUrlChanges(callback: (url: string) => void): () => void {
   let lastUrl = location.href
