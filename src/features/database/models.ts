@@ -50,6 +50,9 @@ export function storeNameForPlatform(platform: string): string {
 class MediaDatabase {
   private db: IDBDatabase | null = null
   private initPromise: Promise<void> | null = null
+  private readCache = new Map<string, { data: any; timestamp: number }>()
+  private readonly READ_CACHE_TTL = 30_000  // 30s for single reads
+  private readonly LIST_CACHE_TTL = 5_000   // 5s for list reads
 
   // ==================== Initialization ====================
 
@@ -162,26 +165,42 @@ class MediaDatabase {
     })
   }
 
+  private invalidateStoreCache(storeName: string): void {
+    for (const k of this.readCache.keys()) {
+      if (k.startsWith(storeName + '::')) {
+        this.readCache.delete(k)
+      }
+    }
+  }
+
   // ==================== Public API ====================
 
   /** Get a single record by key. Returns null if not found. Normalizes on read. */
   async get(storeName: string, key: string): Promise<StoreRecord | null> {
+    const cacheKey = `${storeName}::${key}`
+    const cached = this.readCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < this.READ_CACHE_TTL) {
+      return cached.data as StoreRecord | null
+    }
+
     const result = await this.storeOp(storeName, 'readonly', store => store.get(key))
-    if (!result) return null
+    if (!result) {
+      this.readCache.set(cacheKey, { data: null, timestamp: Date.now() })
+      return null
+    }
 
     try {
       const { record, migrated } = normalizeStoreRecord(result)
       if (migrated) {
-        // Write back migrated record asynchronously (don't block read)
         this.put(storeName, key, record).catch(err => {
           console.warn(`[DB] Failed to write back migrated record ${key}:`, err)
         })
       }
+      this.readCache.set(cacheKey, { data: record, timestamp: Date.now() })
       return record
     } catch (err) {
       if (err instanceof MigrationError) {
         console.error(`[DB] Migration failed for ${storeName}/${key}:`, err.message, err.details)
-        // Return raw record as-is — caller may still work with partial data
         return result as StoreRecord
       }
       throw err
@@ -193,15 +212,23 @@ class MediaDatabase {
     record.updatedAt = record.updatedAt || new Date().toISOString()
     const stamped = stampRecordVersion(record)
     await this.storeOp(storeName, 'readwrite', store => store.put(stamped, key))
+    this.invalidateStoreCache(storeName)
   }
 
   /** Delete a record by key. */
   async delete(storeName: string, key: string): Promise<void> {
     await this.storeOp(storeName, 'readwrite', store => store.delete(key))
+    this.invalidateStoreCache(storeName)
   }
 
   /** Get all records from a store. Normalizes each record on read. */
   async getAll(storeName: string): Promise<Array<{ key: string; record: StoreRecord }>> {
+    const listCacheKey = `__list__${storeName}`
+    const cached = this.readCache.get(listCacheKey)
+    if (cached && Date.now() - cached.timestamp < this.LIST_CACHE_TTL) {
+      return cached.data as Array<{ key: string; record: StoreRecord }>
+    }
+
     const db = await this.ensureDB()
     return new Promise((resolve, reject) => {
       const tx = db.transaction(storeName, 'readonly')
@@ -216,7 +243,6 @@ class MediaDatabase {
             const { record, migrated } = normalizeStoreRecord(cursor.value)
             results.push({ key: cursor.key as string, record })
             if (migrated) {
-              // Write back migrated record asynchronously
               this.put(storeName, cursor.key as string, record).catch(err => {
                 console.warn(`[DB] Failed to write back migrated record ${cursor.key}:`, err)
               })
@@ -231,6 +257,7 @@ class MediaDatabase {
           }
           cursor.continue()
         } else {
+          this.readCache.set(listCacheKey, { data: results, timestamp: Date.now() })
           resolve(results)
         }
       }
@@ -506,7 +533,10 @@ class MediaDatabase {
       for (const name of allStoreNames) {
         tx.objectStore(name).clear()
       }
-      tx.oncomplete = () => resolve()
+      tx.oncomplete = () => {
+        this.readCache.clear()
+        resolve()
+      }
       tx.onerror = () => reject(tx.error)
     })
   }
