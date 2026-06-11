@@ -19,11 +19,12 @@ import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
 import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
+import { settingsCache } from '@/features/settings/cache'
 
 export default defineBackground({
   type: 'module',
 
-  main() {
+  async main() {
     const startTime = Date.now()
     let dbReady = false
     let dbInitFailed = false
@@ -91,6 +92,9 @@ export default defineBackground({
 
     async function initBackground() {
       infoLog('=== Service Worker Starting ===')
+
+      await settingsCache.init()
+      settingsCache.startListening()
 
       // API availability check
       const requiredAPIs = ['storage', 'runtime', 'notifications', 'alarms']
@@ -393,59 +397,24 @@ export default defineBackground({
     // ==================== Handler Implementations ====================
 
     async function handleGetSettings(sendResponse: (r?: any) => void) {
-      const result = (await chrome.storage.local.get(null)) as Record<string, any>
-      const settings: AppSettings = {
-        webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
-        webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
-        webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
-        neodbToken: result[STORAGE_KEYS.NEODB_TOKEN] || '',
-        autoSync: result[STORAGE_KEYS.AUTO_SYNC] ?? false,
-        autoSyncNeoDB: result[STORAGE_KEYS.AUTO_SYNC_NEO_DB] ?? false,
-        syncInterval: result[STORAGE_KEYS.SYNC_INTERVAL] ?? 30,
-        theme: result[STORAGE_KEYS.THEME] || 'auto',
-        language: result[STORAGE_KEYS.LANGUAGE] || 'zh-CN',
-        notificationEnabled: result[STORAGE_KEYS.NOTIFICATION_ENABLED] ?? true,
-        appearance: result[STORAGE_KEYS.APPEARANCE] || 'auto',
-        accentColor: result[STORAGE_KEYS.ACCENT_COLOR] || 'blue',
-        grayColor: result[STORAGE_KEYS.GRAY_COLOR] || 'slate',
-        debugEnabled: result[STORAGE_KEYS.DEBUG_ENABLED] ?? false,
-        logLevel: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
-      }
+      const settings = settingsCache.get()
       sendResponse({ success: true, settings })
     }
 
     async function handleUpdateSettings(payload: Partial<AppSettings>, sendResponse: (r?: any) => void) {
-      await chrome.storage.local.set(payload as Record<string, any>)
-      // Return updated settings
-      const result = (await chrome.storage.local.get(null)) as Record<string, any>
-      const settings: AppSettings = {
-        webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
-        webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
-        webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
-        neodbToken: result[STORAGE_KEYS.NEODB_TOKEN] || '',
-        autoSync: result[STORAGE_KEYS.AUTO_SYNC] ?? false,
-        autoSyncNeoDB: result[STORAGE_KEYS.AUTO_SYNC_NEO_DB] ?? false,
-        syncInterval: result[STORAGE_KEYS.SYNC_INTERVAL] ?? 30,
-        theme: result[STORAGE_KEYS.THEME] || 'auto',
-        language: result[STORAGE_KEYS.LANGUAGE] || 'zh-CN',
-        notificationEnabled: result[STORAGE_KEYS.NOTIFICATION_ENABLED] ?? true,
-        appearance: result[STORAGE_KEYS.APPEARANCE] || 'auto',
-        accentColor: result[STORAGE_KEYS.ACCENT_COLOR] || 'blue',
-        grayColor: result[STORAGE_KEYS.GRAY_COLOR] || 'slate',
-        debugEnabled: result[STORAGE_KEYS.DEBUG_ENABLED] ?? false,
-        logLevel: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
-      }
+      await settingsCache.updateAll(payload)
+      const settings = settingsCache.get()
       sendResponse({ success: true, settings })
     }
 
     async function handleExportData(sendResponse: (r?: any) => void) {
       const stores = await mediaDB.getAllStores()
-      const result = (await chrome.storage.local.get(null)) as Record<string, any>
+      const appSettings = settingsCache.get()
       const settings: Partial<AppSettings> = {
-        autoSync: result[STORAGE_KEYS.AUTO_SYNC] ?? false,
-        syncInterval: result[STORAGE_KEYS.SYNC_INTERVAL] ?? 30,
-        theme: result[STORAGE_KEYS.THEME] || 'auto',
-        notificationEnabled: result[STORAGE_KEYS.NOTIFICATION_ENABLED] ?? true,
+        autoSync: appSettings.autoSync,
+        syncInterval: appSettings.syncInterval,
+        theme: appSettings.theme,
+        notificationEnabled: appSettings.notificationEnabled,
       }
 
       const data: ExportData = {
