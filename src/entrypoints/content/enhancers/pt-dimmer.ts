@@ -168,13 +168,19 @@ export class PTDimmer {
   }
 
   /**
-   * 从 M-Team 行中提取 ID
+   * 从 M-Team 行中提取 ID（带行级缓存）
    */
   private extractMTeamIds(row: Element): {
     movieDoubanId: string | null
     musicDoubanId: string | null
     imdbId: string | null
   } {
+    const el = row as HTMLElement
+    const cached = el.dataset.ummIds
+    if (cached) {
+      try { return JSON.parse(cached) } catch { /* fall through */ }
+    }
+
     const result = {
       movieDoubanId: null as string | null,
       musicDoubanId: null as string | null,
@@ -247,6 +253,7 @@ export class PTDimmer {
       }
     }
 
+    try { el.dataset.ummIds = JSON.stringify(result) } catch { /* ignore quota errors */ }
     return result
   }
 
@@ -271,7 +278,10 @@ export class PTDimmer {
   /**
    * 生成 M-Team 行签名（用于避免重复处理）
    */
-  private getMTeamRowSignature(row: Element): string {
+  private getMTeamRowSignature(
+    row: Element,
+    ids: { movieDoubanId: string | null; musicDoubanId: string | null; imdbId: string | null },
+  ): string {
     const detailLink = row.querySelector('a[href*="/detail/"]') as HTMLAnchorElement | null
     const detailHref = detailLink?.getAttribute('href') || detailLink?.href || ''
 
@@ -281,8 +291,6 @@ export class PTDimmer {
         return anchor.getAttribute('href') || anchor.href || ''
       })
       .join('|')
-
-    const ids = this.extractMTeamIds(row)
 
     return [
       detailHref,
@@ -304,7 +312,8 @@ export class PTDimmer {
   ): void {
     let skipped = 0, dimmed = 0, notMatched = 0
     rows.forEach((row) => {
-      const signature = this.getMTeamRowSignature(row)
+      const ids = this.extractMTeamIds(row)
+      const signature = this.getMTeamRowSignature(row, ids)
       if (
         row.getAttribute('data-umm-mteam-signature') === signature &&
         row.getAttribute('data-umm-mteam-resolved') === 'true'
@@ -315,7 +324,7 @@ export class PTDimmer {
 
       row.setAttribute('data-umm-mteam-signature', signature)
 
-      const { movieDoubanId, musicDoubanId, imdbId } = this.extractMTeamIds(row)
+      const { movieDoubanId, musicDoubanId, imdbId } = ids
 
       const hasMovie = movieDoubanId && movieDoubanIds.has(movieDoubanId)
       const hasMusic = musicDoubanId && musicDoubanIds.has(musicDoubanId)
