@@ -31,6 +31,7 @@ export default defineBackground({
     let dbInitFailed = false
 
     // Pending message queue for messages arriving before DB is ready
+    const MAX_QUEUE_SIZE = 50
     const pendingMessages: Array<{
       message: any
       sender: chrome.runtime.MessageSender
@@ -207,6 +208,13 @@ export default defineBackground({
 
       // Queue message if DB not ready
       if (!dbReady && !dbInitFailed) {
+        if (pendingMessages.length >= MAX_QUEUE_SIZE) {
+          if (message.type !== 'HEALTH_CHECK') {
+            warnLog(`[BG] Queue full (${MAX_QUEUE_SIZE}), dropping ${message.type}`)
+            sendResponse({ success: false, error: 'Queue full' })
+            return
+          }
+        }
         pendingMessages.push({ message, sender: _sender, sendResponse })
         setTimeout(() => {
           const idx = pendingMessages.findIndex(m => m.sendResponse === sendResponse)
