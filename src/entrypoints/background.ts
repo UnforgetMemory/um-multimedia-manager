@@ -20,6 +20,7 @@ import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
 import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
 import { settingsCache } from '@/features/settings/cache'
+import { broadcast } from '@/utils/event-bus'
 
 export default defineBackground({
   type: 'module',
@@ -233,11 +234,13 @@ export default defineBackground({
           }
           case 'DB_PUT': {
             await mediaDB.put(message.payload.storeName, message.payload.key, message.payload.record)
+            broadcast('record:updated', { storeName: message.payload.storeName, key: message.payload.key })
             sendResponse({ success: true })
             break
           }
           case 'DB_DELETE': {
             await mediaDB.delete(message.payload.storeName, message.payload.key)
+            broadcast('record:deleted', { storeName: message.payload.storeName, key: message.payload.key })
             sendResponse({ success: true })
             break
           }
@@ -298,6 +301,7 @@ export default defineBackground({
               message.payload.record,
               message.payload.linked
             )
+            broadcast('record:updated', { storeName: `${message.payload.platform}_records`, key: message.payload.key })
             sendResponse({ success: true, result })
             break
           }

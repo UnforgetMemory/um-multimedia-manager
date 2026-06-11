@@ -15,6 +15,7 @@ import { FloatingToast } from './content/utils/toast'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
+import { initEventBus } from '@/utils/event-bus'
 
 // ==================== 全局状态 ====================
 
@@ -74,6 +75,9 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   async main() {
+    // Initialize EventBus for receiving background events
+    initEventBus()
+
     // ==================== Log Config Sync ====================
     // Read debug settings from storage on startup
     try {
