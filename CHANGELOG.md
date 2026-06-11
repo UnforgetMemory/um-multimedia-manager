@@ -2,6 +2,44 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [2.0.0] - 2026-06-11
+
+### Added
+
+- **Settings 内存缓存**: Background Service Worker 新增 SettingsCache，避免重复读取 chrome.storage.local
+- **DB 读取缓存**: MediaDatabase 添加 LRU 缓存层，30s TTL 单条缓存，5s 列表缓存，store 级失效
+- **EventBus 广播总线**: Background → Content Script 事件广播，record:updated/deleted 事件推送
+- **Popup vue-router 懒加载**: 2456 行 App.vue 拆分为 5 个路由组件（RecordsPage, PlatformsPage, RatingsPage, LinkedPage, SettingsPage），每个页面 ~2-16KB chunk
+
+### Changed
+
+- **URL 检测简化**: 从 4 层（popstate + pushState + MutationObserver + setInterval）精简为 2 层（popstate + pushState）
+- **PT Dimmer 行级缓存**: extractMTeamIds 结果缓存到 row data 属性，减少 ~50% 冗余解析
+- **escapeHtml 正则化**: 替换 DOM 操作为纯正则替换，无需创建临时 DOM 元素
+- **DB 事务优化**: syncPageRecord 改为单事务批量操作
+- **样式注入合并**: content.ts 和 douban.ts 重复 CSS 合并到 global.ts
+- **Console 清理**: 替换 console.log/warn 为 logger 工具
+- **消息队列限流**: 添加 MAX_QUEUE_SIZE = 50 限制，防止 DB 初始化期间内存无限增长
+- **版本更新**: 1.5.5 → 2.0.0
+
+### Fixed
+
+- **Vue provide/inject ref 解包**: RecordsPage 和 PlatformsPage 中 inject 返回原始 ref 对象，改为 stats.value.total / records.value 访问
+- **Background toast XSS**: handleShowToast innerHTML 未转义，添加 escapeHtml() 转义
+- **IMPORT_DATA 安全**: 设置导入无 key 白名单，可覆盖敏感配置（webdavPassword 等），现仅允许 STORAGE_KEYS 中的 key
+- **消息发送者验证**: sender.id 未验证是否为本扩展，改为检查 sender.id === chrome.runtime.id
+- **DB storeName 白名单**: DB 消息处理器未验证 storeName，添加 isAllowedStore() 校验
+- **Host 权限过宽**: 移除 <all_urls>，保留具体域名列表
+
+### Security
+
+- Background toast innerHTML XSS 防护（High）
+- IMPORT_DATA settings key 白名单（Medium）
+- sender.id 身份验证（Medium）
+- DB storeName 白名单校验（Medium）
+- 移除 <all_urls> host permission（Medium）
+- .gitignore 添加 .env / .env.local / playwright-report/
+
 ## [1.5.5] - 2026-06-10
 
 ### Fixed
