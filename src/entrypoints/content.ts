@@ -118,7 +118,6 @@ export default defineContentScript({
     // ==================== 懒加载：轻量 URL 瞭望员 ====================
     // 如果当前 URL 不匹配任何路由（如 MTeam 首页），跳过重量级初始化，
     // 仅启动轻量 URL 监听器，等待用户导航到目标页面后再完整初始化。
-    // 这样避免在无关页面上执行 DB 健康检查、样式注入、路由初始化等开销。
     if (!hasMatchingRoute(location.href)) {
       infoLog('No matching route — starting lightweight URL watcher')
       let initialized = false
@@ -126,7 +125,6 @@ export default defineContentScript({
       const tryInit = async () => {
         if (initialized || !hasMatchingRoute(location.href)) return
         initialized = true
-        clearInterval(pollId)
         window.removeEventListener('popstate', tryInit)
         if (originalPushState) history.pushState = originalPushState
         if (originalReplaceState) history.replaceState = originalReplaceState
@@ -134,11 +132,8 @@ export default defineContentScript({
         await fullInit()
       }
 
-      // Poll every 2s (lightweight, no DOM observation)
-      const pollId = setInterval(tryInit, 2000)
-      // popstate (back/forward)
       window.addEventListener('popstate', tryInit)
-      // Monkey-patch pushState/replaceState for SPA navigation
+
       const originalPushState = history.pushState
       const originalReplaceState = history.replaceState
       history.pushState = function (...args: [any, string, string?]) {
@@ -150,7 +145,7 @@ export default defineContentScript({
         tryInit()
       }
 
-      return // Skip heavy init — watcher will call fullInit() when ready
+      return
     }
 
     // URL 已匹配路由，直接执行完整初始化
@@ -1141,89 +1136,10 @@ function startRatingObserver() {
 
 /**
  * ✅ 设置扩展上下文失效监听
- * 定期检查上下文状态，失效时清理资源并提示用户
+ * Context invalidation is handled by safeSendMessage retry logic in context.ts
  */
 function setupContextInvalidationListener() {
-  // 定期检查扩展上下文是否仍然有效
-  // 注意：Chrome MV3 没有原生事件通知上下文失效，因此使用轮询
-  const checkInterval = setInterval(() => {
-    if (!chrome.runtime?.id) {
-      warnLog('Extension context lost, cleaning up...')
-      clearInterval(checkInterval)
-      
-      // 清理所有定时器和缓存
-      cleanupAllResources()
-      
-      // 显示一次性提示
-      showContextInvalidationNotice()
-    }
-  }, 60000) // 每 60 秒检查一次
-  
-  // 页面卸载时清理
-  window.addEventListener('beforeunload', () => {
-    clearInterval(checkInterval)
-  })
-}
-
-/**
- * 清理所有资源
- */
-function cleanupAllResources() {
-  // 清理 URL 观察器
-  if (urlObserver) {
-    urlObserver.disconnect()
-    urlObserver = null
-  }
-  
-  // 清理状态标签
-  if (statusChipElement) {
-    statusChipElement.remove()
-    statusChipElement = null
-  }
-  
-  // 清理主题监听器
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  if (themeChangeListener) {
-    if (mediaQuery.removeEventListener) {
-      mediaQuery.removeEventListener('change', themeChangeListener)
-    } else if (mediaQuery.removeListener) {
-      mediaQuery.removeListener(themeChangeListener)
-    }
-    themeChangeListener = null
-  }
-}
-
-/**
- * 显示上下文失效提示
- */
-function showContextInvalidationNotice() {
-  // 只在页面上显示一次
-  if (document.getElementById('umm-context-warning')) return
-  
-  const warning = document.createElement('div')
-  warning.id = 'umm-context-warning'
-  warning.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #ff6b6b;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    z-index: 999999;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: opacity 0.3s ease;
-  `
-  warning.textContent = '⚠️ UMM 扩展已更新，请刷新页面以使用最新版本'
-  
-  document.body.appendChild(warning)
-  
-  // 5 秒后自动消失
-  setTimeout(() => {
-    warning.style.opacity = '0'
-    setTimeout(() => warning.remove(), 300)
-  }, 5000)
+  // No-op: context invalidation handled by safeSendMessage retry logic
 }
 
 // ==================== 消息监听器（接收来自 Popup/Background 的 Toast 请求）====================

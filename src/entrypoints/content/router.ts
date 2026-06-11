@@ -191,60 +191,31 @@ export async function dispatchRoute(url: string): Promise<void> {
  */
 export function watchUrlChanges(callback: (url: string) => void): () => void {
   let lastUrl = location.href
-  
+
   const checkUrl = () => {
     if (location.href !== lastUrl) {
-      console.log('[UMM Router] URL change detected:', lastUrl, '→', location.href)
       lastUrl = location.href
       callback(lastUrl)
     }
   }
-  
-  // 监听 popstate 事件（浏览器前进/后退）
+
   window.addEventListener('popstate', checkUrl)
 
-  // 拦截 pushState / replaceState（SPA 客户端路由）
   const origPushState = history.pushState
   const origReplaceState = history.replaceState
   history.pushState = function (...args: Parameters<typeof origPushState>) {
     origPushState.apply(this, args)
-    console.log('[UMM Router] pushState detected')
     checkUrl()
   }
   history.replaceState = function (...args: Parameters<typeof origReplaceState>) {
     origReplaceState.apply(this, args)
-    console.log('[UMM Router] replaceState detected')
     checkUrl()
   }
 
-  // 节流：使用 MutationObserver 作为后备（部分 SPA 仅操作 DOM 不走 history）
-  let throttleTimer: ReturnType<typeof setTimeout> | null = null
-  const throttledCheck = () => {
-    if (throttleTimer) return
-    throttleTimer = setTimeout(() => {
-      throttleTimer = null
-      checkUrl()
-    }, 300)
-  }
-  
-  const observer = new MutationObserver(throttledCheck)
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  })
-
-  // 最终兜底：setInterval 轮询（某些 SPA 可能绕过所有上述机制）
-  const pollInterval = setInterval(checkUrl, 1000)
-  
-  // 返回清理函数
   return () => {
     window.removeEventListener('popstate', checkUrl)
     history.pushState = origPushState
     history.replaceState = origReplaceState
-    observer.disconnect()
-    clearInterval(pollInterval)
-    if (throttleTimer) clearTimeout(throttleTimer)
   }
 }
 
