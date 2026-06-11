@@ -12,6 +12,7 @@ import type { StoreRecord } from '@/types'
 import { initRouter, hasMatchingRoute } from './content/router'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
+import { escapeHtml } from './content/utils/dom'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
@@ -384,14 +385,7 @@ function _detectPageTheme(): 'light' | 'dark' {
   return 'light'
 }
 
-/**
- * HTML 转义函数 - 防止 XSS 攻击
- */
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
-}
+
 
 /**
  * 等待元素出现（Promise 版本）
