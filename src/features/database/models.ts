@@ -167,7 +167,7 @@ class MediaDatabase {
 
   private invalidateStoreCache(storeName: string): void {
     for (const k of this.readCache.keys()) {
-      if (k.startsWith(storeName + '::')) {
+      if (k.startsWith(storeName + '::') || k === `__list__${storeName}`) {
         this.readCache.delete(k)
       }
     }
