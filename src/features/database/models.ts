@@ -463,44 +463,78 @@ class MediaDatabase {
       }
     }
 
-    // 2. Linked platforms
-    if (linked) {
+    // 2. Linked platforms — single transaction for all reads + writes
+    if (linked && linked.length > 0) {
+      const db = await this.ensureDB()
+      const allStoreNames = [...RECORD_STORES]
+      const tx = db.transaction(allStoreNames, 'readwrite')
+
+      const results: Array<{
+        link: { platform: string; key: string; url: string };
+        existing: StoreRecord | null;
+      }> = []
+
+      // Batch all reads
       for (const link of linked) {
-        const linkedStore = storeNameForPlatform(link.platform)
-        const linkedExisting = await this.get(linkedStore, link.key)
+        const linkedStoreName = storeNameForPlatform(link.platform)
+        const linkedStore = tx.objectStore(linkedStoreName)
+        const getReq = linkedStore.get(link.key)
+
+        await new Promise<void>((resolve) => {
+          getReq.onsuccess = () => {
+            results.push({ link, existing: getReq.result || null })
+            resolve()
+          }
+          getReq.onerror = () => {
+            results.push({ link, existing: null })
+            resolve()
+          }
+        })
+      }
+
+      // Process and write in same transaction
+      const now = new Date().toISOString()
+      for (const { link, existing } of results) {
+        const linkedStoreName = storeNameForPlatform(link.platform)
+        const linkedStore = tx.objectStore(linkedStoreName)
 
         // Build backward-linkedIds
-        const backwardLinkedIds: Record<string, string> = {}
-        backwardLinkedIds[platform] = key
+        const backwardLinkedIds: Record<string, string> = { [platform]: key }
 
-        if (!linkedExisting) {
+        if (!existing) {
           // No existing → write with linkedIds pointing back to primary
-          await this.put(linkedStore, link.key, {
+          linkedStore.put({
             url: link.url,
             status: record.status,
             rating: record.rating,
             comment: record.comment,
-            updatedAt: new Date().toISOString(),
+            updatedAt: now,
             linkedIds: backwardLinkedIds,
-          })
+          }, link.key)
           changed = true
           syncedPlatforms.push(link.platform)
-        } else if (linkedExisting.status !== 2) {
+        } else if (existing.status !== 2) {
           // Has data but status != 2 (not watched) → sync status only
-          // Preserve the linked platform's URL, rating, and comment
-          await this.put(linkedStore, link.key, {
-            ...linkedExisting,
+          linkedStore.put({
+            ...existing,
             status: record.status,           // Sync status from primary
-            rating: linkedExisting.rating,    // NEVER overwrite linked rating
-            comment: record.comment ?? linkedExisting.comment,  // Sync comment if provided
-            updatedAt: new Date().toISOString(),
-            linkedIds: { ...linkedExisting.linkedIds, ...backwardLinkedIds },
-          })
+            rating: existing.rating,          // NEVER overwrite linked rating
+            comment: record.comment ?? existing.comment,  // Sync comment if provided
+            updatedAt: now,
+            linkedIds: { ...existing.linkedIds, ...backwardLinkedIds },
+          }, link.key)
           changed = true
           syncedPlatforms.push(link.platform)
         }
         // If status == 2 → skip (user watched on this platform, don't overwrite)
       }
+
+      // Wait for transaction to complete
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+        tx.onabort = () => reject(tx.error)
+      })
     }
 
     return { changed, syncedPlatforms }
