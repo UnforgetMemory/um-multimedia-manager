@@ -2,7 +2,7 @@
 import { inject, computed, onMounted, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Settings } from 'lucide-vue-next'
+import { Settings, Film, Tv, Music, Link } from 'lucide-vue-next'
 import { safeSendMessage } from '@/utils/context'
 
 interface DisplayRecord {
@@ -28,7 +28,7 @@ const stats = computed(() => {
 })
 
 const appVersion = computed(() => { try { return chrome.runtime.getManifest().version } catch { return '3.0.0' } })
-const recentRecords = computed(() => records.value.slice(0, 5))
+const recentRecords = computed(() => records.value.slice(0, 8))
 
 function getPlatformLabel(provider: string): string {
   return ({ douban: '豆瓣', imdb: 'IMDb', neodb: 'NeoDB', tmdb: 'TMDB' } as Record<string, string>)[provider] || provider
@@ -49,57 +49,81 @@ onMounted(() => { loadData(); fetchData() })
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <div class="mx-auto px-[var(--page-margin)] py-6" style="max-width: var(--popup-max-width)">
-      <div class="flex items-center justify-between mb-8">
-        <h1 class="font-h1 tracking-tight">UMM</h1>
-        <span class="font-caption text-secondary-content">v{{ appVersion }}</span>
+  <div style="background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%); min-height: 100%;">
+    <div style="padding: 16px 20px; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; height: 468px;">
+
+      <!-- Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <h1 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground));">UMM</h1>
+          <span style="font-size: 0.7rem; color: hsl(var(--muted-foreground));">v{{ appVersion }}</span>
+        </div>
+        <Badge variant="outline" class="text-xs">{{ stats.total.toLocaleString() }} 条</Badge>
       </div>
 
-      <div v-if="loading" class="py-12 text-center text-secondary-content font-body">加载中...</div>
+      <!-- Loading -->
+      <div v-if="loading" style="flex: 1; display: flex; align-items: center; justify-content: center; color: hsl(var(--muted-foreground));">
+        加载中...
+      </div>
 
       <template v-else>
-        <div class="grid grid-cols-2 gap-4 mb-[var(--section-gap)]">
-          <div class="rounded-xl border border-border p-[var(--card-padding)] text-center">
-            <div class="font-display text-primary-content">{{ stats.movie }}</div>
-            <div class="font-caption text-secondary-content mt-1">电影</div>
+        <!-- Stats Grid -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;">
+          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
+              <Film style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
+              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">电影</span>
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.movie.toLocaleString() }}</div>
           </div>
-          <div class="rounded-xl border border-border p-[var(--card-padding)] text-center">
-            <div class="font-display text-primary-content">{{ stats.tv }}</div>
-            <div class="font-caption text-secondary-content mt-1">剧集</div>
+          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
+              <Tv style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
+              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">剧集</span>
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.tv.toLocaleString() }}</div>
           </div>
-          <div class="rounded-xl border border-border p-[var(--card-padding)] text-center">
-            <div class="font-display text-primary-content">{{ stats.music }}</div>
-            <div class="font-caption text-secondary-content mt-1">音乐</div>
+          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
+              <Music style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
+              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">音乐</span>
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.music.toLocaleString() }}</div>
           </div>
-          <div class="rounded-xl border border-border p-[var(--card-padding)] text-center">
-            <div class="font-display text-primary-content">{{ records.length }}</div>
-            <div class="font-caption text-secondary-content mt-1">已关联</div>
+          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
+              <Link style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
+              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">关联</span>
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.total.toLocaleString() }}</div>
           </div>
         </div>
 
-        <div v-if="recentRecords.length > 0" class="mb-[var(--section-gap)]">
-          <h2 class="font-h2 text-primary-content mb-4">最近记录</h2>
-          <div class="space-y-2">
-            <div v-for="(record, i) in recentRecords" :key="i" class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-              <div class="flex items-center gap-3">
-                <Badge variant="outline" class="text-xs">{{ getPlatformLabel(record.provider) }}</Badge>
-                <span class="font-body text-primary-content">{{ record.type }}</span>
-                <span class="font-mono text-secondary-content text-xs">{{ record.providerId }}</span>
+        <!-- Recent Records -->
+        <div v-if="recentRecords.length > 0" style="flex: 1; overflow-y: auto; margin-bottom: 12px;">
+          <h2 style="font-size: 0.75rem; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">最近记录</h2>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div
+              v-for="(record, i) in recentRecords"
+              :key="i"
+              style="display: flex; align-items: center; justify-content: space-between; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 6px 10px;"
+            >
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <span style="font-size: 0.6rem; font-weight: 600; color: hsl(var(--primary)); background: hsl(var(--muted)); padding: 1px 5px; border-radius: 4px; white-space: nowrap;">{{ getPlatformLabel(record.provider) }}</span>
+                <span style="font-size: 0.7rem; color: hsl(var(--muted-foreground));">{{ record.type }}</span>
+                <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground) / 0.6); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ record.providerId }}</span>
               </div>
-              <span v-if="record.rating" class="font-caption text-primary">★ {{ record.rating }}</span>
+              <span v-if="record.rating" style="font-size: 0.7rem; font-weight: 600; color: hsl(var(--primary)); white-space: nowrap;">★ {{ record.rating }}</span>
             </div>
           </div>
         </div>
 
-        <Button @click="openOptionsPage" class="w-full" size="lg">
-          <Settings class="mr-2 h-4 w-4" />管理面板
+        <!-- CTA Button -->
+        <Button @click="openOptionsPage" class="w-full" size="sm" style="margin-top: auto;">
+          <Settings class="mr-1.5 h-3.5 w-3.5" />管理面板
         </Button>
       </template>
 
-      <div class="mt-8 pt-4 border-t border-border text-center">
-        <span class="font-caption text-tertiary-content">{{ records.length }} 条记录 · v{{ appVersion }}</span>
-      </div>
     </div>
   </div>
 </template>
