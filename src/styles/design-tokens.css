@@ -1,0 +1,46 @@
+/* 12-Level Responsive Breakpoints */
+:root {
+  --bp-xs: 0px;
+  --bp-sm: 320px;
+  --bp-md: 375px;
+  --bp-lg: 480px;
+  --bp-xl: 640px;
+  --bp-2xl: 768px;
+  --bp-3xl: 1024px;
+  --bp-4xl: 1280px;
+  --bp-5xl: 1536px;
+  --bp-6xl: 1920px;
+  --bp-7xl: 2560px;
+  --bp-8xl: 3200px;
+
+  /* Spacing Scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Responsive page margins */
+  --page-margin: clamp(16px, 12px + 1vw, 64px);
+  --card-padding: clamp(12px, 8px + 0.8vw, 40px);
+  --section-gap: clamp(16px, 12px + 1vw, 56px);
+
+  /* Font scale multiplier */
+  --font-scale: 1;
+}
+
+/* Density modes */
+.density-compact { --font-scale: 0.9; --page-margin: clamp(12px, 8px + 0.5vw, 32px); --card-padding: clamp(8px, 6px + 0.4vw, 20px); --section-gap: clamp(12px, 8px + 0.5vw, 24px); }
+.density-default { --font-scale: 1; }
+.density-comfortable { --font-scale: 1.1; --page-margin: clamp(20px, 16px + 1.5vw, 80px); --card-padding: clamp(16px, 12px + 1vw, 48px); --section-gap: clamp(24px, 16px + 1.5vw, 64px); }
+
+/* Font size scaling */
+.font-compact { font-size: calc(var(--font-body-size) * 0.9); }
+.font-default { font-size: var(--font-body-size); }
+.font-comfortable { font-size: calc(var(--font-body-size) * 1.1); }

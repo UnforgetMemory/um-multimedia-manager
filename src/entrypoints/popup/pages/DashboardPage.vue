@@ -45,7 +45,7 @@ onMounted(() => {
   <div class="flex flex-col h-full">
     <!-- Header -->
     <div class="flex items-center justify-between px-5 pt-4 pb-2">
-      <h1 class="text-lg font-bold tracking-tight">UManager</h1>
+      <h1 class="text-lg font-bold tracking-tight">UMManager</h1>
       <span class="text-xs text-muted-foreground">v{{ appVersion }}</span>
     </div>
 

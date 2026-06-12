@@ -15,6 +15,11 @@
   --font-h2-weight: 600;
   --font-h2-line-height: 1.4;
 
+  /* Heading 3: subsection titles */
+  --font-h3-size: clamp(0.875rem, 0.75rem + 0.375vw, 1.25rem);
+  --font-h3-weight: 600;
+  --font-h3-line-height: 1.4;
+
   /* Body: paragraphs, labels */
   --font-body-size: clamp(0.875rem, 0.75rem + 0.375vw, 1.25rem);
   --font-body-weight: 400;
@@ -24,6 +29,11 @@
   --font-caption-size: clamp(0.75rem, 0.625rem + 0.375vw, 1rem);
   --font-caption-weight: 400;
   --font-caption-line-height: 1.5;
+
+  /* Mono: code, IDs */
+  --font-mono-size: clamp(0.75rem, 0.625rem + 0.375vw, 1rem);
+  --font-mono-weight: 400;
+  --font-mono-line-height: 1.5;
 
   /* Spacing scale */
   --space-1: 4px;
@@ -70,6 +80,12 @@
   line-height: var(--font-h2-line-height);
 }
 
+.font-h3 {
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  line-height: var(--font-h3-line-height);
+}
+
 .font-body {
   font-size: var(--font-body-size);
   font-weight: var(--font-body-weight);
@@ -82,7 +98,14 @@
   line-height: var(--font-caption-line-height);
 }
 
-/* Color hierarchy */
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: var(--font-mono-size);
+  font-weight: var(--font-mono-weight);
+  line-height: var(--font-mono-line-height);
+}
+
+/* Brightness levels */
 .text-primary-content { color: hsl(var(--foreground)); }
 .text-secondary-content { color: hsl(var(--muted-foreground)); }
 .text-tertiary-content { color: hsl(var(--muted-foreground) / 0.6); }
