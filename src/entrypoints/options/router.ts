@@ -28,6 +28,11 @@ const router = createRouter({
       component: () => import('./tabs/SyncTab.vue'),
     },
     {
+      path: '/appearance',
+      name: 'appearance',
+      component: () => import('./tabs/AppearanceTab.vue'),
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('./tabs/SettingsTab.vue'),
