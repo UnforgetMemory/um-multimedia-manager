@@ -88,7 +88,12 @@ export function buildKey(source: string, id: string): string {
 }
 
 export function normalizeAvId(input: string): string {
-  return input.toUpperCase().trim()
+  return input.toUpperCase().trim().replace(/\s+/g, '-')
+}
+
+/** Extract base ID without suffix (e.g., "ABF-017-UC" → "ABF-017") */
+export function extractBaseId(id: string): string {
+  return id.replace(/-(UC|C|uncensored|censored)$/i, '')
 }
 
 export function normalizeTime(inputTime?: string): string {
@@ -282,6 +287,16 @@ export const AdultAvStore = {
     const res = await sendMsg('ADULT_AV_BATCH_ADD', { source, items })
     return res.addedCount || 0
   },
+
+  /** Find all records matching a base ID (handles UC/C suffix variants) */
+  async findByBaseId(baseId: string): Promise<AdultAvId[]> {
+    const all = await this.getAll()
+    const normalized = baseId.toUpperCase().trim()
+    return all.filter(item => {
+      const itemBase = item.id.replace(/-(UC|C|uncensored|censored)$/i, '')
+      return itemBase === normalized || item.id === normalized
+    })
+  },
 }
 ```
 
@@ -317,14 +332,24 @@ In the switch statement, add before `default:`:
 case 'ADULT_AV_CHECK': {
   const { id } = message.payload
   if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
-  // O(1) lookup: try known sources directly via mediaDB.get()
+  // Two-level matching: exact → prefix (handles UC/C suffix variants)
   const cleanId = normalizeAvId(id)
+  const baseId = extractBaseId(cleanId)
   const knownSources = ['javdb', 'sehuatang']
   let found: any = null
+  // Level 1: exact match
   for (const source of knownSources) {
     const key = buildKey(source, cleanId)
     const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
     if (record) { found = { key, record }; break }
+  }
+  // Level 2: prefix match (handles UC/C variants)
+  if (!found && cleanId !== baseId) {
+    for (const source of knownSources) {
+      const key = buildKey(source, baseId)
+      const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
+      if (record) { found = { key, record }; break }
+    }
   }
   sendResponse({ success: true, exists: !!found, record: found?.record })
   break
