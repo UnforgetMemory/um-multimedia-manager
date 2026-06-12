@@ -96,14 +96,28 @@ export interface PtIdCacheEntry {
   schemaVersion?: number  // Cache entry schema version (0 or undefined = legacy)
 }
 
-// ==================== Sehuatang AV ID ====================
+// ==================== Adult AV ID ====================
 
-/** Sehuatang/JavDB viewed AV ID record (V2 format) */
-export interface SehuatangAvId {
-  id: string           // AV ID uppercase, e.g. "ABP-123"
+/** Adult AV ID record (unified for javdb, sehuatang, etc.) */
+export interface AdultAvId {
+  source: string       // "javdb" | "sehuatang" | future sources
+  id: string           // AV ID uppercase
+  url: string          // Source page URL
   rating: number       // 0-10
   updatedAt: string    // ISO 8601
 }
+
+/** Input for adding adult AV IDs */
+export interface AdultAvIdInput {
+  id: string
+  rating?: number
+  url?: string
+  updatedAt?: string
+}
+
+// Kept for backward compatibility during migration
+/** @deprecated Use AdultAvId instead */
+export type SehuatangAvId = AdultAvId
 
 // ==================== Messages ====================
 
@@ -128,6 +142,10 @@ export type MessageType =
   | 'GET_STATISTICS'
   | 'HEALTH_CHECK'
   | 'GET_MIGRATION_STATUS'
+  | 'ADULT_AV_CHECK'
+  | 'ADULT_AV_ADD'
+  | 'ADULT_AV_BATCH_ADD'
+  | 'ADULT_AV_GET_ALL'
   | 'SEHUATANG_CHECK_VIEWED'
   | 'SEHUATANG_BATCH_ADD'
   | 'SEHUATANG_ADD'
@@ -158,6 +176,10 @@ export interface MessagePayloadMap {
   SEHUATANG_BATCH_ADD: { items: SehuatangAvId[] }
   SEHUATANG_ADD: { id: string; rating?: number }
   SEHUATANG_GET_ALL: void
+  ADULT_AV_CHECK: { id: string }
+  ADULT_AV_ADD: { source: string; id: string; rating?: number; url?: string }
+  ADULT_AV_BATCH_ADD: { source: string; items: AdultAvIdInput[] }
+  ADULT_AV_GET_ALL: { source?: string }
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {
