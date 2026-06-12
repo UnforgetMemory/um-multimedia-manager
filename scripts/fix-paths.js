@@ -43,37 +43,4 @@ htmlFiles.forEach(file => {
   }
 })
 
-// ==================== Fix dynamic import paths in popup chunk ====================
-// Chrome extensions resolve ES module dynamic imports relative to the document URL,
-// not the importing script's URL. popup chunk is at chunks/popup-*.js but document
-// is popup.html at root. So import("./RecordsPage-*.js") resolves to root instead of chunks/.
-// Fix: add chunks/ prefix to dynamic import paths in the popup chunk JS.
-
-import { readdirSync } from 'fs'
-
-console.log('[PostBuild] Fixing dynamic import paths in popup chunk...')
-
-try {
-  const chunksDir = join(distDir, 'chunks')
-  const popupChunk = readdirSync(chunksDir).find(f => f.startsWith('popup-') && f.endsWith('.js'))
-
-  if (popupChunk) {
-    const chunkPath = join(chunksDir, popupChunk)
-    let content = readFileSync(chunkPath, 'utf-8')
-
-    // Fix Vite's __vite__mapDeps lazy import paths: "./X.js" -> "./chunks/X.js"
-    // Only fix DYNAMIC imports (import("./X.js")) — these resolve relative to document URL (popup.html at root).
-    // Do NOT fix static imports (from"./X.js") — these resolve relative to the importing script (chunks/popup.js).
-    content = content.replace(/import\(`\.\/(.*?)\.js`\)/g, (match, name) => {
-      if (name.startsWith('chunks/')) return match
-      return `import(\`./chunks/${name}.js\`)`
-    })
-
-    writeFileSync(chunkPath, content, 'utf-8')
-    console.log(`[PostBuild] ✓ Fixed dynamic imports in ${popupChunk}`)
-  }
-} catch (error) {
-  console.error(`[PostBuild] ✗ Failed to fix dynamic imports:`, error.message)
-}
-
 console.log('[PostBuild] Done!')
