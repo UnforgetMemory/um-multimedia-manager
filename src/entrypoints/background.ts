@@ -450,7 +450,7 @@ export default defineBackground({
             if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
             // Two-level matching: exact → prefix (handles UC/C suffix variants)
             const cleanId = normalizeAvId(id)
-            const baseId = cleanId.replace(/-(UC|C|uncensored|censored)$/i, '')
+            const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
             const knownSources = ['javdb', 'sehuatang']
             let found: any = null
             // Level 1: exact match

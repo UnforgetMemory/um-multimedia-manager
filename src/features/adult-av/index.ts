@@ -32,7 +32,7 @@ export const AdultAvStore = {
     const all = await this.getAll()
     const normalized = baseId.toUpperCase().trim()
     return all.filter(item => {
-      const itemBase = item.id.replace(/-(UC|C|uncensored|censored)$/i, '')
+      const itemBase = item.id.replace(/-(U|C|UC|CU)$/i, '')
       return itemBase === normalized || item.id === normalized
     })
   },
