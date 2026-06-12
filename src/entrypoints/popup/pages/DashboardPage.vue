@@ -3,7 +3,7 @@ import { inject, computed, onMounted, ref } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Settings, Film, Tv, Music, ListVideo, ArrowUpRight } from 'lucide-vue-next'
+import { Settings, Film, Tv, Music, ShieldAlert, ArrowUpRight } from 'lucide-vue-next'
 import { safeSendMessage } from '@/utils/context'
 
 const loading = inject<boolean>('loading', false)
@@ -82,9 +82,9 @@ onMounted(() => { loadData(); fetchData() })
           </Card>
           <Card class="p-3 text-center">
             <CardContent class="p-0">
-              <ListVideo class="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
+              <ShieldAlert class="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
               <div class="text-2xl font-bold tracking-tight">{{ javCount.toLocaleString() }}</div>
-              <div class="text-xs text-muted-foreground mt-1">JavId</div>
+              <div class="text-xs text-muted-foreground mt-1">成人视频</div>
             </CardContent>
           </Card>
         </div>
