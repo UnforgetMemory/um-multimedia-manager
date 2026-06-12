@@ -44,7 +44,11 @@ export default defineConfig({
     content_security_policy: {
       extension_pages: "script-src 'self'; object-src 'self';",
       sandbox: "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval'; child-src 'self';"
-    }
+    },
+    options_ui: {
+      page: 'options.html',
+      open_in_tab: true,
+    },
   },
   entrypointsDir: 'entrypoints',
   outDir: 'dist',
