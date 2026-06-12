@@ -44,3 +44,19 @@ htmlFiles.forEach(file => {
 })
 
 console.log('[PostBuild] Done!')
+
+// ==================== Fix manifest: set options_ui.open_in_tab = true ====================
+// WXT 0.20.26 defaults open_in_tab to false regardless of config.
+// Fix: patch the built manifest.json after build.
+
+const manifestPath = join(distDir, 'manifest.json')
+try {
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+  if (manifest.options_ui && manifest.options_ui.open_in_tab === false) {
+    manifest.options_ui.open_in_tab = true
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
+    console.log('[PostBuild] ✓ Fixed options_ui.open_in_tab = true')
+  }
+} catch (error) {
+  console.error('[PostBuild] ✗ Failed to fix manifest:', error.message)
+}
