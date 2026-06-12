@@ -37,9 +37,12 @@ function applyAll() {
   applyTheme(theme.value)
   applyFontSize(fontSize.value)
   applyDensity(density.value)
-  // Enable transitions AFTER first apply to avoid flash on initial load
+  // Enable transitions AFTER first paint to avoid flash on initial load
+  // Double rAF ensures the browser has completed the first paint
   requestAnimationFrame(() => {
-    document.documentElement.classList.add('theme-ready')
+    requestAnimationFrame(() => {
+      document.documentElement.classList.add('theme-ready')
+    })
   })
 }
 
