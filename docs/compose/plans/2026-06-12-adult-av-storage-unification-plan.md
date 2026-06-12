@@ -305,6 +305,7 @@ git commit -m "feat(adult-av): add AdultAvStore API"
 
 ```typescript
 import { JAV_IDS_STORE_NAME, buildKey, parseKey, normalizeAvId, normalizeTime } from '@/features/adult-av/models'
+import type { AdultAvId } from '@/types'
 ```
 
 - [ ] **Step 2: Add message handlers**
@@ -316,13 +317,15 @@ In the switch statement, add before `default:`:
 case 'ADULT_AV_CHECK': {
   const { id } = message.payload
   if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
-  // Search across all sources
-  const allEntries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
+  // O(1) lookup: try known sources directly via mediaDB.get()
   const cleanId = normalizeAvId(id)
-  const found = allEntries.find(e => {
-    const { id: entryId } = parseKey(e.key)
-    return entryId === cleanId
-  })
+  const knownSources = ['javdb', 'sehuatang']
+  let found: any = null
+  for (const source of knownSources) {
+    const key = buildKey(source, cleanId)
+    const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
+    if (record) { found = { key, record }; break }
+  }
   sendResponse({ success: true, exists: !!found, record: found?.record })
   break
 }
