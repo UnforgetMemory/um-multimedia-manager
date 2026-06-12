@@ -32,7 +32,7 @@ onMounted(() => {
   loadData()
   Promise.all([
     safeSendMessage({ type: 'GET_ALL_RECORDS' }, { timeout: 10000, retries: 2 }),
-    safeSendMessage({ type: 'SEHUATANG_GET_ALL' }, { timeout: 8000, retries: 1 }),
+    safeSendMessage({ type: 'ADULT_AV_GET_ALL' }, { timeout: 8000, retries: 1 }),
   ]).then(([recordsRes, javRes]) => {
     if (recordsRes?.success) records.value = recordsRes.records
     if (javRes?.success) javCount.value = (javRes.items || []).length

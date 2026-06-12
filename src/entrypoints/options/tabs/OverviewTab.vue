@@ -17,7 +17,7 @@ interface DisplayRecord {
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 const records = ref<DisplayRecord[]>([])
-const javCount = ref(0)
+const adultAvItems = ref<any[]>([])
 const dataReady = ref(false)
 
 const stats = computed(() => {
@@ -27,7 +27,7 @@ const stats = computed(() => {
     else if (r.type === 'tv') tv++
     else if (r.type === 'music') music++
   }
-  return { total: records.value.length, movie, tv, music, jav: javCount.value }
+  return { total: records.value.length + adultAvItems.value.length, movie, tv, music, jav: adultAvItems.value.length }
 })
 
 const platformStats = computed(() => {
@@ -37,9 +37,11 @@ const platformStats = computed(() => {
     if (!map[key]) map[key] = { count: 0, type: r.type }
     map[key].count++
   }
-  // Add JavId as a separate platform
-  if (javCount.value > 0) {
-    map['sehuatang'] = { count: javCount.value, type: '成人视频' }
+  // Add adult AV sources from jav_ids store
+  for (const item of adultAvItems.value) {
+    const key = item.source
+    if (!map[key]) map[key] = { count: 0, type: '成人视频' }
+    map[key].count++
   }
   return Object.entries(map).sort((a, b) => b[1].count - a[1].count)
 })
@@ -49,7 +51,8 @@ const platformColors: Record<string, string> = {
   imdb: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
   neodb: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
   tmdb: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  sehuatang: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+  javdb: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+  sehuatang: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
 }
 
 const platformLabels: Record<string, string> = {
@@ -57,6 +60,7 @@ const platformLabels: Record<string, string> = {
   imdb: 'IMDb',
   neodb: 'NeoDB',
   tmdb: 'TMDB',
+  javdb: 'JavDB',
   sehuatang: '色花堂',
 }
 
@@ -69,13 +73,14 @@ async function loadData() {
   loading.value = true
   loadError.value = null
   try {
-    const [recordsRes, javRes] = await Promise.all([
+    const [recordsRes, adultAvRes] = await Promise.all([
       safeSendMessage({ type: 'GET_ALL_RECORDS' }, { timeout: 10000, retries: 2 }),
-      safeSendMessage({ type: 'SEHUATANG_GET_ALL' }, { timeout: 8000, retries: 1 }),
+      safeSendMessage({ type: 'ADULT_AV_GET_ALL' }, { timeout: 8000, retries: 1 }),
     ])
     if (!recordsRes?.success) throw new Error(recordsRes?.error || '获取数据失败')
     records.value = recordsRes.records
-    if (javRes?.success) javCount.value = (javRes.items || []).length
+    if (adultAvRes?.success) adultAvItems.value = adultAvRes.items || []
+    dataReady.value = true
     dataReady.value = true
   } catch {
     records.value = []
