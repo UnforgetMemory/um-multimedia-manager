@@ -12,6 +12,11 @@
       --section-gap: 24px;
       --card-padding: 16px;
     }
+    /* Apply dark theme immediately to avoid flash */
+    @media (prefers-color-scheme: dark) {
+      html { color-scheme: dark; }
+      html:not(.light) { }
+    }
   </style>
 </head>
 <body>
