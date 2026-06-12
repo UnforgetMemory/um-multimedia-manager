@@ -1,29 +1,28 @@
 <script setup lang="ts">
-import { ref, provide, onMounted } from 'vue'
+import { ref, provide } from 'vue'
+import { RouterView } from 'vue-router'
+import { safeSendMessage } from '@/utils/context'
 
 const loading = ref(false)
 const records = ref<any[]>([])
 
+async function loadData() {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const response = await safeSendMessage({ type: 'GET_ALL_RECORDS' }, { timeout: 10000, retries: 2 })
+    if (response?.success) records.value = response.records
+  } catch { records.value = [] } finally { loading.value = false }
+}
+
+function handleRefresh() { loadData() }
+
 provide('loading', loading)
 provide('records', records)
-provide('loadData', async () => {})
-provide('handleRefresh', () => {})
-
-onMounted(() => {
-  console.log('[UMM Popup] App mounted')
-})
+provide('loadData', loadData)
+provide('handleRefresh', handleRefresh)
 </script>
 
 <template>
-  <div style="padding: 20px; font-family: sans-serif;">
-    <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 16px;">UMM</h1>
-    <p style="color: #666; margin-bottom: 24px;">v3.0.0</p>
-    <p>Records: {{ records.length }}</p>
-    <button
-      @click="() => window.open((chrome as any).runtime?.getURL?.('options.html') || '#', '_blank')"
-      style="width: 100%; padding: 12px; background: #03dac6; color: #000; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 16px;"
-    >
-      管理面板
-    </button>
-  </div>
+  <RouterView />
 </template>
