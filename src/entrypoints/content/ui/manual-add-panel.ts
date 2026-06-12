@@ -2,9 +2,9 @@
  * 手动添加已阅记录面板
  */
 
-import { SehuatangStore } from '@/features/sehuatang'
+import { AdultAvStore } from '@/features/adult-av'
 import { t } from '../i18n'
-import type { SehuatangAvId } from '@/types'
+import type { AdultAvIdInput } from '@/types'
 
 const PANEL_ID = 'umm-manual-add-overlay'
 
@@ -74,16 +74,16 @@ export function showManualAddPanel(): void {
     let count = 0
     if (val.startsWith('[') && val.endsWith(']')) {
       try {
-        const parsed = JSON.parse(val) as SehuatangAvId[]
+        const parsed = JSON.parse(val) as AdultAvIdInput[]
         if (Array.isArray(parsed)) {
-          count = await SehuatangStore.batchAdd(parsed)
+          count = await AdultAvStore.batchAdd('manual', parsed)
         }
       } catch {
         alert(t('Invalid JSON'))
         return
       }
     } else {
-      await SehuatangStore.add(val, parseInt(ratingSelect.value))
+      await AdultAvStore.add('manual', val, parseInt(ratingSelect.value))
       count = 1
     }
 
