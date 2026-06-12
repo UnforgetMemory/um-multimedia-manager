@@ -41,7 +41,6 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.IMDB,
   STORE_NAMES.NEODB,
   STORE_NAMES.TMDB,
-  STORE_NAMES.SEHUATANG_AVIDS,
 ]
 
 /** Helper: get the store name for a platform */
