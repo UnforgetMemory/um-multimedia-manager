@@ -37,6 +37,10 @@ function applyAll() {
   applyTheme(theme.value)
   applyFontSize(fontSize.value)
   applyDensity(density.value)
+  // Enable transitions AFTER first apply to avoid flash on initial load
+  requestAnimationFrame(() => {
+    document.documentElement.classList.add('theme-ready')
+  })
 }
 
 export function useTheme() {

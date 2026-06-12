@@ -154,9 +154,16 @@
   * {
     border-color: hsl(var(--border));
   }
+  html {
+    transition: color-scheme 0.3s ease;
+  }
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .theme-ready * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
   /* ✅ 自定义滚动条 - 薄、圆角、主题感知 */
