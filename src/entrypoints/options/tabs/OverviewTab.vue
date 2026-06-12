@@ -31,24 +31,27 @@ const stats = computed(() => {
 })
 
 const platformStats = computed(() => {
-  const map: Record<string, { count: number; types: Set<string> }> = {}
+  const map: Record<string, { count: number; typeCounts: Record<string, number> }> = {}
   for (const r of records.value) {
     const key = r.provider
-    if (!map[key]) map[key] = { count: 0, types: new Set() }
+    if (!map[key]) map[key] = { count: 0, typeCounts: {} }
     map[key].count++
-    map[key].types.add(r.type)
+    map[key].typeCounts[r.type] = (map[key].typeCounts[r.type] || 0) + 1
   }
   // Add adult AV sources from jav_ids store
   for (const item of adultAvItems.value) {
     const key = item.source
-    if (!map[key]) map[key] = { count: 0, types: new Set(['成人视频']) }
+    if (!map[key]) map[key] = { count: 0, typeCounts: {} }
     map[key].count++
+    map[key].typeCounts['成人视频'] = (map[key].typeCounts['成人视频'] || 0) + 1
   }
   return Object.entries(map)
     .map(([provider, info]) => ({
       provider,
       count: info.count,
-      types: Array.from(info.types).map(t => typeLabels[t] || t).join(' / '),
+      types: Object.entries(info.typeCounts)
+        .map(([type, count]) => ({ label: typeLabels[type] || type, count }))
+        .sort((a, b) => b.count - a.count),
     }))
     .sort((a, b) => b.count - a.count)
 })
@@ -180,7 +183,16 @@ onMounted(loadData)
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium truncate">{{ platformLabels[info.provider] || info.provider }}</div>
-              <div class="text-xs opacity-60">{{ info.types }}</div>
+              <div class="flex flex-wrap gap-1 mt-1">
+                <span
+                  v-for="t in info.types"
+                  :key="t.label"
+                  class="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-background/50"
+                >
+                  {{ t.label }}
+                  <span class="opacity-60">{{ t.count }}</span>
+                </span>
+              </div>
             </div>
             <span class="text-lg font-bold tabular-nums shrink-0">{{ info.count.toLocaleString() }}</span>
           </div>
