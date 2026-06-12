@@ -39,11 +39,8 @@ onMounted(() => { loadData(); fetchData() })
 <template>
   <div class="flex flex-col h-full">
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 pt-4 pb-3">
-      <div>
-        <h1 class="text-lg font-bold tracking-tight">UMM</h1>
-        <p class="text-xs text-muted-foreground mt-0.5">v{{ appVersion }}</p>
-      </div>
+    <div class="flex items-center justify-between px-5 pt-4 pb-2">
+      <h1 class="text-xl font-bold tracking-tight">UMM</h1>
       <span class="text-xs text-muted-foreground">v{{ appVersion }}</span>
     </div>
 
@@ -55,43 +52,43 @@ onMounted(() => { loadData(); fetchData() })
 
       <template v-else>
         <!-- Stats -->
-        <div class="grid grid-cols-3 gap-3 mb-5">
-          <Card class="p-3 text-center">
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <Card class="p-4 text-center">
             <CardContent class="p-0">
-              <Film class="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
-              <div class="text-xl font-bold">{{ stats.movie.toLocaleString() }}</div>
-              <div class="text-xs text-muted-foreground mt-0.5">电影</div>
+              <Film class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+              <div class="text-2xl font-bold tracking-tight">{{ stats.movie.toLocaleString() }}</div>
+              <div class="text-xs text-muted-foreground mt-1">电影</div>
             </CardContent>
           </Card>
-          <Card class="p-3 text-center">
+          <Card class="p-4 text-center">
             <CardContent class="p-0">
-              <Tv class="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
-              <div class="text-xl font-bold">{{ stats.tv.toLocaleString() }}</div>
-              <div class="text-xs text-muted-foreground mt-0.5">剧集</div>
+              <Tv class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+              <div class="text-2xl font-bold tracking-tight">{{ stats.tv.toLocaleString() }}</div>
+              <div class="text-xs text-muted-foreground mt-1">剧集</div>
             </CardContent>
           </Card>
-          <Card class="p-3 text-center">
+          <Card class="p-4 text-center">
             <CardContent class="p-0">
-              <Music class="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
-              <div class="text-xl font-bold">{{ stats.music.toLocaleString() }}</div>
-              <div class="text-xs text-muted-foreground mt-0.5">音乐</div>
+              <Music class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+              <div class="text-2xl font-bold tracking-tight">{{ stats.music.toLocaleString() }}</div>
+              <div class="text-xs text-muted-foreground mt-1">音乐</div>
             </CardContent>
           </Card>
         </div>
 
         <!-- Total -->
-        <Card class="mb-5">
-          <CardContent class="flex items-center justify-between p-3">
-            <span class="text-sm text-muted-foreground">总记录</span>
-            <span class="text-lg font-bold">{{ stats.total.toLocaleString() }}</span>
+        <Card class="mb-4">
+          <CardContent class="flex items-center justify-between py-4 px-5">
+            <span class="text-sm font-medium text-muted-foreground">总记录</span>
+            <span class="text-2xl font-bold tracking-tight">{{ stats.total.toLocaleString() }}</span>
           </CardContent>
         </Card>
 
         <!-- CTA -->
-        <Button @click="openOptionsPage" class="w-full" size="sm">
-          <Settings class="w-4 h-4 mr-1.5" />
+        <Button @click="openOptionsPage" class="w-full" size="default">
+          <Settings class="w-4 h-4 mr-2" />
           管理面板
-          <ArrowUpRight class="w-3 h-3 ml-1 opacity-50" />
+          <ArrowUpRight class="w-3.5 h-3.5 ml-1.5 opacity-50" />
         </Button>
       </template>
     </div>
