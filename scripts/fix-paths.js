@@ -62,12 +62,11 @@ try {
     let content = readFileSync(chunkPath, 'utf-8')
 
     // Fix Vite's __vite__mapDeps lazy import paths: "./X.js" -> "./chunks/X.js"
-    // Paths are like "./RecordsPage-CF_MfgH0.js" — resolve relative to chunks/ since
-    // Chrome resolves ES module dynamic imports relative to the document URL, not the script URL.
-    content = content.replace(/"\.\/(?!chunks\/)(.*?)\.js"/g, (match, name) => {
-      // Skip virtual/plugin imports
-      if (name.startsWith('_virtual_') || name.includes('wxt-plugins')) return match
-      return `"./chunks/${name}.js"`
+    // Only fix DYNAMIC imports (import("./X.js")) — these resolve relative to document URL (popup.html at root).
+    // Do NOT fix static imports (from"./X.js") — these resolve relative to the importing script (chunks/popup.js).
+    content = content.replace(/import\(`\.\/(.*?)\.js`\)/g, (match, name) => {
+      if (name.startsWith('chunks/')) return match
+      return `import(\`./chunks/${name}.js\`)`
     })
 
     writeFileSync(chunkPath, content, 'utf-8')
