@@ -1,22 +1,13 @@
 <script setup lang="ts">
 import { inject, computed, onMounted, ref } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Settings, Film, Tv, Music, Link } from 'lucide-vue-next'
+import { Settings, Film, Tv, Music, Layers, ArrowUpRight } from 'lucide-vue-next'
 import { safeSendMessage } from '@/utils/context'
-
-interface DisplayRecord {
-  type: string
-  provider: string
-  providerId: string
-  rating: number
-  status: number
-}
 
 const loading = inject<boolean>('loading', false)
 const loadData = inject<() => Promise<void>>('loadData', async () => {})
 
-const records = ref<DisplayRecord[]>([])
+const records = ref<any[]>([])
 const stats = computed(() => {
   let movie = 0, tv = 0, music = 0
   for (const r of records.value) {
@@ -28,10 +19,11 @@ const stats = computed(() => {
 })
 
 const appVersion = computed(() => { try { return chrome.runtime.getManifest().version } catch { return '3.0.0' } })
-const recentRecords = computed(() => records.value.slice(0, 8))
 
-function getPlatformLabel(provider: string): string {
-  return ({ douban: '豆瓣', imdb: 'IMDb', neodb: 'NeoDB', tmdb: 'TMDB' } as Record<string, string>)[provider] || provider
+function formatNum(n: number): string {
+  if (n >= 10000) return (n / 10000).toFixed(1) + 'w'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
+  return n.toString()
 }
 
 function openOptionsPage() {
@@ -49,81 +41,74 @@ onMounted(() => { loadData(); fetchData() })
 </script>
 
 <template>
-  <div style="background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%); min-height: 100%;">
-    <div style="padding: 16px 20px; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; height: 468px;">
+  <div style="width: 600px; height: 500px; overflow: hidden; position: relative; background: linear-gradient(145deg, #0f0f13 0%, #16161d 40%, #1a1a24 100%);">
+
+    <!-- Ambient glow -->
+    <div style="position: absolute; top: -60px; right: -40px; width: 240px; height: 240px; background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%); pointer-events: none;"></div>
+    <div style="position: absolute; bottom: -40px; left: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%); pointer-events: none;"></div>
+
+    <!-- Content -->
+    <div style="position: relative; z-index: 1; padding: 28px 32px 20px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
 
       <!-- Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <div style="display: flex; align-items: baseline; gap: 8px;">
-          <h1 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground));">UMM</h1>
-          <span style="font-size: 0.7rem; color: hsl(var(--muted-foreground));">v{{ appVersion }}</span>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
+        <div>
+          <div style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(135deg, #e0e0e0 0%, #a0a0b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">UMM</div>
+          <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase;">Unified Multimedia Manager</div>
         </div>
-        <Badge variant="outline" class="text-xs">{{ stats.total.toLocaleString() }} 条</Badge>
+        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.2); font-family: monospace;">v{{ appVersion }}</div>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" style="flex: 1; display: flex; align-items: center; justify-content: center; color: hsl(var(--muted-foreground));">
-        加载中...
+      <div v-if="loading" style="flex: 1; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3);">
+        <div style="width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.4); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
       </div>
 
       <template v-else>
-        <!-- Stats Grid -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;">
-          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
-              <Film style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
-              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">电影</span>
-            </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.movie.toLocaleString() }}</div>
+        <!-- Hero stat -->
+        <div style="text-align: center; margin-bottom: 28px;">
+          <div style="font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.04em; background: linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.6) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ stats.total.toLocaleString() }}
           </div>
-          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
-              <Tv style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
-              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">剧集</span>
-            </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.tv.toLocaleString() }}</div>
+          <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 6px; letter-spacing: 0.1em; text-transform: uppercase;">总记录</div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+          <div style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 10px; text-align: center; backdrop-filter: blur(10px);">
+            <Film style="width: 16px; height: 16px; color: rgba(99,102,241,0.7); margin: 0 auto 6px;" />
+            <div style="font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1;">{{ stats.movie.toLocaleString() }}</div>
+            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 4px;">电影</div>
           </div>
-          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
-              <Music style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
-              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">音乐</span>
-            </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.music.toLocaleString() }}</div>
+          <div style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 10px; text-align: center; backdrop-filter: blur(10px);">
+            <Tv style="width: 16px; height: 16px; color: rgba(16,185,129,0.7); margin: 0 auto 6px;" />
+            <div style="font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1;">{{ stats.tv.toLocaleString() }}</div>
+            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 4px;">剧集</div>
           </div>
-          <div style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 10px 8px; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
-              <Link style="width: 12px; height: 12px; color: hsl(var(--muted-foreground));" />
-              <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground)); font-weight: 500;">关联</span>
-            </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.1;">{{ stats.total.toLocaleString() }}</div>
+          <div style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 10px; text-align: center; backdrop-filter: blur(10px);">
+            <Music style="width: 16px; height: 16px; color: rgba(245,158,11,0.7); margin: 0 auto 6px;" />
+            <div style="font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1;">{{ stats.music.toLocaleString() }}</div>
+            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 4px;">音乐</div>
           </div>
         </div>
 
-        <!-- Recent Records -->
-        <div v-if="recentRecords.length > 0" style="flex: 1; overflow-y: auto; margin-bottom: 12px;">
-          <h2 style="font-size: 0.75rem; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">最近记录</h2>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div
-              v-for="(record, i) in recentRecords"
-              :key="i"
-              style="display: flex; align-items: center; justify-content: space-between; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 6px 10px;"
-            >
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                <span style="font-size: 0.6rem; font-weight: 600; color: hsl(var(--primary)); background: hsl(var(--muted)); padding: 1px 5px; border-radius: 4px; white-space: nowrap;">{{ getPlatformLabel(record.provider) }}</span>
-                <span style="font-size: 0.7rem; color: hsl(var(--muted-foreground));">{{ record.type }}</span>
-                <span style="font-size: 0.65rem; color: hsl(var(--muted-foreground) / 0.6); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ record.providerId }}</span>
-              </div>
-              <span v-if="record.rating" style="font-size: 0.7rem; font-weight: 600; color: hsl(var(--primary)); white-space: nowrap;">★ {{ record.rating }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- CTA Button -->
-        <Button @click="openOptionsPage" class="w-full" size="sm" style="margin-top: auto;">
-          <Settings class="mr-1.5 h-3.5 w-3.5" />管理面板
-        </Button>
+        <!-- CTA -->
+        <button
+          @click="() => window.open(chrome.runtime.getURL('options.html'), '_blank')"
+          style="margin-top: auto; width: 100%; padding: 12px 20px; background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.1) 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+          onmouseover="this.style.background='linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(16,185,129,0.18) 100%)'; this.style.borderColor='rgba(255,255,255,0.15)'; this.style.color='#fff'"
+          onmouseout="this.style.background='linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.1) 100%)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.color='rgba(255,255,255,0.7)'"
+        >
+          <Settings style="width: 14px; height: 14px;" />
+          管理面板
+          <ArrowUpRight style="width: 12px; height: 12px; opacity: 0.5;" />
+        </button>
       </template>
 
+      <!-- Footer -->
+      <div style="text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.04);">
+        <span style="font-size: 0.55rem; color: rgba(255,255,255,0.15); letter-spacing: 0.05em;">UMM · Unified Multimedia Manager</span>
+      </div>
     </div>
   </div>
 </template>
