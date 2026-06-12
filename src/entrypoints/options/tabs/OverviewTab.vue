@@ -31,20 +31,34 @@ const stats = computed(() => {
 })
 
 const platformStats = computed(() => {
-  const map: Record<string, { count: number; type: string }> = {}
+  const map: Record<string, { count: number; types: Set<string> }> = {}
   for (const r of records.value) {
     const key = r.provider
-    if (!map[key]) map[key] = { count: 0, type: r.type }
+    if (!map[key]) map[key] = { count: 0, types: new Set() }
     map[key].count++
+    map[key].types.add(r.type)
   }
   // Add adult AV sources from jav_ids store
   for (const item of adultAvItems.value) {
     const key = item.source
-    if (!map[key]) map[key] = { count: 0, type: '成人视频' }
+    if (!map[key]) map[key] = { count: 0, types: new Set(['成人视频']) }
     map[key].count++
   }
-  return Object.entries(map).sort((a, b) => b[1].count - a[1].count)
+  return Object.entries(map)
+    .map(([provider, info]) => ({
+      provider,
+      count: info.count,
+      types: Array.from(info.types).map(t => typeLabels[t] || t).join(' / '),
+    }))
+    .sort((a, b) => b.count - a.count)
 })
+
+const typeLabels: Record<string, string> = {
+  movie: '电影',
+  tv: '剧集',
+  music: '音乐',
+  book: '书籍',
+}
 
 const platformColors: Record<string, string> = {
   douban: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
@@ -153,20 +167,20 @@ onMounted(loadData)
         <h3 class="font-h2 text-primary-content mb-3">平台分布</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div
-            v-for="[provider, info] in platformStats"
-            :key="provider"
+            v-for="info in platformStats"
+            :key="info.provider"
             :class="[
               'flex items-center gap-3 rounded-lg border p-3 transition-colors',
-              platformColors[provider] || 'bg-muted/50 text-muted-foreground border-border'
+              platformColors[info.provider] || 'bg-muted/50 text-muted-foreground border-border'
             ]"
           >
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-              :class="platformColors[provider] || 'bg-muted'">
-              {{ (platformLabels[provider] || provider).charAt(0) }}
+              :class="platformColors[info.provider] || 'bg-muted'">
+              {{ (platformLabels[info.provider] || info.provider).charAt(0) }}
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate">{{ platformLabels[provider] || provider }}</div>
-              <div class="text-xs opacity-60">{{ info.type }}</div>
+              <div class="text-sm font-medium truncate">{{ platformLabels[info.provider] || info.provider }}</div>
+              <div class="text-xs opacity-60">{{ info.types }}</div>
             </div>
             <span class="text-lg font-bold tabular-nums shrink-0">{{ info.count.toLocaleString() }}</span>
           </div>
