@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { inject, computed, onMounted, ref } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Settings, Film, Tv, Music, Layers, ArrowUpRight } from 'lucide-vue-next'
+import { Settings, Film, Tv, Music, ArrowUpRight } from 'lucide-vue-next'
 import { safeSendMessage } from '@/utils/context'
 
 const loading = inject<boolean>('loading', false)
@@ -20,12 +20,6 @@ const stats = computed(() => {
 
 const appVersion = computed(() => { try { return chrome.runtime.getManifest().version } catch { return '3.0.0' } })
 
-function formatNum(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + 'w'
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
-  return n.toString()
-}
-
 function openOptionsPage() {
   window.open(chrome.runtime.getURL('options.html'), '_blank')
 }
@@ -41,74 +35,59 @@ onMounted(() => { loadData(); fetchData() })
 </script>
 
 <template>
-  <div style="width: 600px; height: 500px; overflow: hidden; position: relative; background: linear-gradient(145deg, #0f0f13 0%, #16161d 40%, #1a1a24 100%);">
+  <div class="min-h-screen bg-background text-foreground" style="padding: 24px 28px; max-width: 560px; margin: 0 auto;">
 
-    <!-- Ambient glow -->
-    <div style="position: absolute; top: -60px; right: -40px; width: 240px; height: 240px; background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%); pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -40px; left: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%); pointer-events: none;"></div>
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-lg font-bold tracking-tight">UMM</h1>
+        <p class="text-xs text-muted-foreground mt-0.5">Unified Multimedia Manager</p>
+      </div>
+      <span class="text-xs text-muted-foreground font-mono">v{{ appVersion }}</span>
+    </div>
 
-    <!-- Content -->
-    <div style="position: relative; z-index: 1; padding: 28px 32px 20px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+    <!-- Loading -->
+    <div v-if="loading" class="py-16 text-center text-muted-foreground text-sm">加载中...</div>
 
-      <!-- Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
-        <div>
-          <div style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(135deg, #e0e0e0 0%, #a0a0b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">UMM</div>
-          <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase;">Unified Multimedia Manager</div>
+    <template v-else>
+      <!-- Hero stat -->
+      <div class="text-center mb-8">
+        <div class="text-5xl font-extrabold tracking-tight text-foreground leading-none">
+          {{ stats.total.toLocaleString() }}
         </div>
-        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.2); font-family: monospace;">v{{ appVersion }}</div>
+        <div class="text-xs text-muted-foreground mt-2 uppercase tracking-widest">总记录</div>
       </div>
 
-      <!-- Loading -->
-      <div v-if="loading" style="flex: 1; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3);">
-        <div style="width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.4); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <!-- Stats row -->
+      <div class="grid grid-cols-3 gap-3 mb-8">
+        <div class="text-center p-4 rounded-xl border border-border bg-card">
+          <Film class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+          <div class="text-xl font-bold text-foreground">{{ stats.movie.toLocaleString() }}</div>
+          <div class="text-xs text-muted-foreground mt-1">电影</div>
+        </div>
+        <div class="text-center p-4 rounded-xl border border-border bg-card">
+          <Tv class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+          <div class="text-xl font-bold text-foreground">{{ stats.tv.toLocaleString() }}</div>
+          <div class="text-xs text-muted-foreground mt-1">剧集</div>
+        </div>
+        <div class="text-center p-4 rounded-xl border border-border bg-card">
+          <Music class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+          <div class="text-xl font-bold text-foreground">{{ stats.music.toLocaleString() }}</div>
+          <div class="text-xs text-muted-foreground mt-1">音乐</div>
+        </div>
       </div>
 
-      <template v-else>
-        <!-- Hero stat -->
-        <div style="text-align: center; margin-bottom: 28px;">
-          <div style="font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.04em; background: linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.6) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            {{ stats.total.toLocaleString() }}
-          </div>
-          <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 6px; letter-spacing: 0.1em; text-transform: uppercase;">总记录</div>
-        </div>
+      <!-- CTA -->
+      <Button @click="openOptionsPage" class="w-full" size="sm">
+        <Settings class="w-4 h-4 mr-1.5" />
+        管理面板
+        <ArrowUpRight class="w-3 h-3 ml-1 opacity-50" />
+      </Button>
+    </template>
 
-        <!-- Stats row -->
-        <div style="display: flex; gap: 10px; margin-bottom: 24px;">
-          <div style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 10px; text-align: center; backdrop-filter: blur(10px);">
-            <Film style="width: 16px; height: 16px; color: rgba(99,102,241,0.7); margin: 0 auto 6px;" />
-            <div style="font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1;">{{ stats.movie.toLocaleString() }}</div>
-            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 4px;">电影</div>
-          </div>
-          <div style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 10px; text-align: center; backdrop-filter: blur(10px);">
-            <Tv style="width: 16px; height: 16px; color: rgba(16,185,129,0.7); margin: 0 auto 6px;" />
-            <div style="font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1;">{{ stats.tv.toLocaleString() }}</div>
-            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 4px;">剧集</div>
-          </div>
-          <div style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 10px; text-align: center; backdrop-filter: blur(10px);">
-            <Music style="width: 16px; height: 16px; color: rgba(245,158,11,0.7); margin: 0 auto 6px;" />
-            <div style="font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1;">{{ stats.music.toLocaleString() }}</div>
-            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 4px;">音乐</div>
-          </div>
-        </div>
-
-        <!-- CTA -->
-        <button
-          @click="() => window.open(chrome.runtime.getURL('options.html'), '_blank')"
-          style="margin-top: auto; width: 100%; padding: 12px 20px; background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.1) 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; backdrop-filter: blur(10px);"
-          onmouseover="this.style.background='linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(16,185,129,0.18) 100%)'; this.style.borderColor='rgba(255,255,255,0.15)'; this.style.color='#fff'"
-          onmouseout="this.style.background='linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.1) 100%)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.color='rgba(255,255,255,0.7)'"
-        >
-          <Settings style="width: 14px; height: 14px;" />
-          管理面板
-          <ArrowUpRight style="width: 12px; height: 12px; opacity: 0.5;" />
-        </button>
-      </template>
-
-      <!-- Footer -->
-      <div style="text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.04);">
-        <span style="font-size: 0.55rem; color: rgba(255,255,255,0.15); letter-spacing: 0.05em;">UMM · Unified Multimedia Manager</span>
-      </div>
+    <!-- Footer -->
+    <div class="mt-6 pt-4 border-t border-border text-center">
+      <span class="text-xs text-muted-foreground">UMM · v{{ appVersion }}</span>
     </div>
   </div>
 </template>

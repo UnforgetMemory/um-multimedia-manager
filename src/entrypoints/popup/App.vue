@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, provide } from 'vue'
+import { ref, provide, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { safeSendMessage } from '@/utils/context'
 
@@ -16,6 +16,28 @@ async function loadData() {
 }
 
 function handleRefresh() { loadData() }
+
+// Theme initialization
+onMounted(() => {
+  try {
+    chrome.storage.local.get(['settings'], (result: any) => {
+      const appearance = result?.settings?.appearance || 'auto'
+      if (appearance === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else if (appearance === 'light') {
+        document.documentElement.classList.remove('dark')
+      } else {
+        // auto: follow system
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.classList.toggle('dark', prefersDark)
+      }
+    })
+  } catch {
+    // Fallback: follow system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    document.documentElement.classList.toggle('dark', prefersDark)
+  }
+})
 
 provide('loading', loading)
 provide('records', records)
