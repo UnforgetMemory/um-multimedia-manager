@@ -63,15 +63,6 @@ const typeLabels: Record<string, string> = {
   book: '书籍',
 }
 
-const platformColors: Record<string, string> = {
-  douban: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
-  imdb: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
-  neodb: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  tmdb: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  javdb: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
-  sehuatang: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
-}
-
 const platformLabels: Record<string, string> = {
   douban: '豆瓣',
   imdb: 'IMDb',
@@ -80,6 +71,20 @@ const platformLabels: Record<string, string> = {
   javdb: 'JavDB',
   sehuatang: '色花堂',
 }
+
+const platformHues: Record<string, number> = {
+  douban: 142,
+  imdb: 45,
+  neodb: 217,
+  tmdb: 271,
+  javdb: 0,
+  sehuatang: 25,
+}
+
+const maxCount = computed(() => {
+  if (platformStats.value.length === 0) return 1
+  return Math.max(...platformStats.value.map(p => p.count))
+})
 
 const statIcons = [Film, Tv, Music, ShieldAlert]
 const statLabels = ['电影', '剧集', '音乐', '成人视频']
@@ -168,35 +173,87 @@ onMounted(loadData)
       <!-- Platform Distribution — Visual Layout -->
       <div>
         <h3 class="font-h2 text-primary-content mb-3">平台分布</h3>
+
+        <!-- Summary bar chart -->
+        <Card class="overflow-hidden mb-4">
+          <div class="p-4">
+            <div class="flex items-end gap-1 h-20">
+              <div
+                v-for="info in platformStats"
+                :key="info.provider"
+                class="flex-1 rounded-t-md transition-all duration-500 relative group cursor-default"
+                :style="{
+                  height: `${Math.max(8, (info.count / maxCount) * 100)}%`,
+                  backgroundColor: `hsl(${platformHues[info.provider] || 0}, 60%, 50%)`,
+                }"
+              >
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {{ info.count.toLocaleString() }}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-end gap-1 mt-1">
+              <div
+                v-for="info in platformStats"
+                :key="info.provider + '-label'"
+                class="flex-1 text-center text-xs text-secondary-content truncate"
+              >
+                {{ platformLabels[info.provider] || info.provider }}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Detailed cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div
             v-for="info in platformStats"
             :key="info.provider"
-            :class="[
-              'flex items-center gap-3 rounded-lg border p-3 transition-colors',
-              platformColors[info.provider] || 'bg-muted/50 text-muted-foreground border-border'
-            ]"
+            class="rounded-lg border border-border bg-card p-4 transition-all hover:shadow-md hover:border-primary/30"
           >
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-              :class="platformColors[info.provider] || 'bg-muted'">
-              {{ (platformLabels[info.provider] || info.provider).charAt(0) }}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate">{{ platformLabels[info.provider] || info.provider }}</div>
-              <div class="flex flex-wrap gap-1 mt-1">
-                <span
-                  v-for="t in info.types"
-                  :key="t.label"
-                  class="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-background/50"
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+                  :style="{ backgroundColor: `hsl(${platformHues[info.provider] || 0}, 60%, 45%)` }"
                 >
-                  {{ t.label }}
-                  <span class="opacity-60">{{ t.count }}</span>
-                </span>
+                  {{ (platformLabels[info.provider] || info.provider).charAt(0) }}
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-primary-content">{{ platformLabels[info.provider] || info.provider }}</div>
+                  <div class="text-xs text-secondary-content">{{ info.count.toLocaleString() }} 条记录</div>
+                </div>
+              </div>
+              <!-- Progress bar -->
+              <div class="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-700"
+                  :style="{
+                    width: `${(info.count / stats.total) * 100}%`,
+                    backgroundColor: `hsl(${platformHues[info.provider] || 0}, 60%, 50%)`,
+                  }"
+                />
               </div>
             </div>
-            <span class="text-lg font-bold tabular-nums shrink-0">{{ info.count.toLocaleString() }}</span>
+            <!-- Type breakdown -->
+            <div class="flex flex-wrap gap-1.5">
+              <span
+                v-for="t in info.types"
+                :key="t.label"
+                class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+                :style="{
+                  borderColor: `hsl(${platformHues[info.provider] || 0}, 40%, 70%)`,
+                  color: `hsl(${platformHues[info.provider] || 0}, 50%, 40%)`,
+                  backgroundColor: `hsl(${platformHues[info.provider] || 0}, 50%, 95%)`,
+                }"
+              >
+                <span class="font-medium">{{ t.label }}</span>
+                <span class="opacity-70">{{ t.count }}</span>
+              </span>
+            </div>
           </div>
         </div>
+
         <div v-if="platformStats.length === 0" class="text-center py-8 text-secondary-content text-sm">
           暂无数据
         </div>
