@@ -38,7 +38,6 @@ const platformStats = computed(() => {
     map[key].count++
     map[key].typeCounts[r.type] = (map[key].typeCounts[r.type] || 0) + 1
   }
-  // Add adult AV sources from jav_ids store
   for (const item of adultAvItems.value) {
     const key = item.source
     if (!map[key]) map[key] = { count: 0, typeCounts: {} }
@@ -56,30 +55,10 @@ const platformStats = computed(() => {
     .sort((a, b) => b.count - a.count)
 })
 
-const typeLabels: Record<string, string> = {
-  movie: '电影',
-  tv: '剧集',
-  music: '音乐',
-  book: '书籍',
-}
+const typeLabels: Record<string, string> = { movie: '电影', tv: '剧集', music: '音乐', book: '书籍' }
+const platformLabels: Record<string, string> = { douban: '豆瓣', imdb: 'IMDb', neodb: 'NeoDB', tmdb: 'TMDB', javdb: 'JavDB', sehuatang: '色花堂' }
 
-const platformLabels: Record<string, string> = {
-  douban: '豆瓣',
-  imdb: 'IMDb',
-  neodb: 'NeoDB',
-  tmdb: 'TMDB',
-  javdb: 'JavDB',
-  sehuatang: '色花堂',
-}
-
-const platformHues: Record<string, number> = {
-  douban: 142,
-  imdb: 45,
-  neodb: 217,
-  tmdb: 271,
-  javdb: 0,
-  sehuatang: 25,
-}
+const platformHues: Record<string, number> = { douban: 142, imdb: 45, neodb: 217, tmdb: 271, javdb: 0, sehuatang: 25 }
 
 const maxCount = computed(() => {
   if (platformStats.value.length === 0) return 1
@@ -89,6 +68,17 @@ const maxCount = computed(() => {
 const statIcons = [Film, Tv, Music, ShieldAlert]
 const statLabels = ['电影', '剧集', '音乐', '成人视频']
 const statKeys = ['movie', 'tv', 'music', 'jav'] as const
+
+function platformColor(hue: number, variant: 'bar' | 'chip-bg' | 'chip-text' | 'chip-border' | 'icon'): string {
+  const isDark = document.documentElement.classList.contains('dark')
+  switch (variant) {
+    case 'bar': return `hsl(${hue}, 55%, ${isDark ? '50%' : '45%'})`
+    case 'icon': return `hsl(${hue}, 55%, ${isDark ? '45%' : '40%'})`
+    case 'chip-bg': return isDark ? `hsl(${hue}, 30%, 15%)` : `hsl(${hue}, 40%, 95%)`
+    case 'chip-text': return isDark ? `hsl(${hue}, 50%, 75%)` : `hsl(${hue}, 45%, 35%)`
+    case 'chip-border': return isDark ? `hsl(${hue}, 25%, 25%)` : `hsl(${hue}, 35%, 80%)`
+  }
+}
 
 async function loadData() {
   if (loading.value) return
@@ -103,7 +93,6 @@ async function loadData() {
     records.value = recordsRes.records
     if (adultAvRes?.success) adultAvItems.value = adultAvRes.items || []
     dataReady.value = true
-    dataReady.value = true
   } catch {
     records.value = []
     loadError.value = '数据加载失败，请重试'
@@ -116,7 +105,8 @@ onMounted(loadData)
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+    <!-- Header -->
     <div class="flex items-center justify-between">
       <h2 class="font-h1 text-primary-content">记录概览</h2>
       <Button variant="ghost" size="sm" @click="loadData" :disabled="loading">
@@ -126,8 +116,8 @@ onMounted(loadData)
 
     <!-- Skeleton -->
     <div v-if="!dataReady && !loadError" class="space-y-6">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div v-for="i in 4" :key="i" class="h-24 bg-muted rounded-xl animate-pulse"></div>
+      <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
+        <div v-for="i in 4" :key="i" class="h-28 bg-muted rounded-xl animate-pulse"></div>
       </div>
       <div class="h-48 bg-muted rounded-xl animate-pulse"></div>
     </div>
@@ -147,22 +137,22 @@ onMounted(loadData)
     <!-- Content -->
     <template v-else>
       <!-- Stats Grid -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card v-for="(key, i) in statKeys" :key="key" class="p-4 text-center overflow-hidden">
-          <component :is="statIcons[i]" class="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
-          <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate">
+      <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
+        <Card v-for="(key, i) in statKeys" :key="key" class="text-center overflow-hidden" :style="{ padding: 'var(--card-padding)' }">
+          <component :is="statIcons[i]" class="mx-auto mb-2 text-secondary-content" :style="{ width: 'calc(1.25rem * var(--font-scale, 1))', height: 'calc(1.25rem * var(--font-scale, 1))' }" />
+          <div class="font-display text-primary-content truncate">
             {{ stats[key].toLocaleString() }}
           </div>
-          <div class="text-xs text-secondary-content mt-1">{{ statLabels[i] }}</div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ statLabels[i] }}</div>
         </Card>
       </div>
 
       <!-- Total -->
       <Card class="overflow-hidden">
-        <div class="flex items-center justify-between p-4">
+        <div class="flex items-center justify-between" :style="{ padding: 'var(--card-padding)' }">
           <div class="flex items-center gap-2">
-            <Database class="w-4 h-4 text-muted-foreground" />
-            <span class="text-sm font-medium text-secondary-content">总记录</span>
+            <Database class="w-4 h-4 text-secondary-content" />
+            <span class="font-body font-medium text-secondary-content">总记录</span>
           </div>
           <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate">
             {{ stats.total.toLocaleString() }}
@@ -170,21 +160,21 @@ onMounted(loadData)
         </div>
       </Card>
 
-      <!-- Platform Distribution — Visual Layout -->
+      <!-- Platform Distribution -->
       <div>
-        <h3 class="font-h2 text-primary-content mb-3">平台分布</h3>
+        <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">平台分布</h3>
 
         <!-- Summary bar chart -->
-        <Card class="overflow-hidden mb-4">
-          <div class="p-4">
-            <div class="flex items-end gap-1 h-20">
+        <Card class="overflow-hidden" :style="{ marginBottom: 'var(--space-4)' }">
+          <div :style="{ padding: 'var(--card-padding)' }">
+            <div class="flex items-end" :style="{ gap: 'var(--space-1)', height: '5rem' }">
               <div
                 v-for="info in platformStats"
                 :key="info.provider"
                 class="flex-1 rounded-t-md transition-all duration-500 relative group cursor-default"
                 :style="{
                   height: `${Math.max(8, (info.count / maxCount) * 100)}%`,
-                  backgroundColor: `hsl(${platformHues[info.provider] || 0}, 60%, 50%)`,
+                  backgroundColor: platformColor(platformHues[info.provider] || 0, 'bar'),
                 }"
               >
                 <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -192,11 +182,11 @@ onMounted(loadData)
                 </div>
               </div>
             </div>
-            <div class="flex items-end gap-1 mt-1">
+            <div class="flex items-end" :style="{ gap: 'var(--space-1)', marginTop: 'var(--space-1)' }">
               <div
                 v-for="info in platformStats"
                 :key="info.provider + '-label'"
-                class="flex-1 text-center text-xs text-secondary-content truncate"
+                class="flex-1 text-center font-caption text-secondary-content truncate"
               >
                 {{ platformLabels[info.provider] || info.provider }}
               </div>
@@ -205,46 +195,48 @@ onMounted(loadData)
         </Card>
 
         <!-- Detailed cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2" :style="{ gap: 'var(--space-3)' }">
           <div
             v-for="info in platformStats"
             :key="info.provider"
-            class="rounded-lg border border-border bg-card p-4 transition-all hover:shadow-md hover:border-primary/30"
+            class="rounded-xl border border-border bg-card transition-all hover:shadow-md hover:border-primary/30"
+            :style="{ padding: 'var(--card-padding)' }"
           >
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-2">
+            <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
+              <div class="flex items-center" :style="{ gap: 'var(--space-3)' }">
                 <div
-                  class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  :style="{ backgroundColor: `hsl(${platformHues[info.provider] || 0}, 60%, 45%)` }"
+                  class="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
+                  :style="{ backgroundColor: platformColor(platformHues[info.provider] || 0, 'icon') }"
                 >
                   {{ (platformLabels[info.provider] || info.provider).charAt(0) }}
                 </div>
                 <div>
-                  <div class="text-sm font-semibold text-primary-content">{{ platformLabels[info.provider] || info.provider }}</div>
-                  <div class="text-xs text-secondary-content">{{ info.count.toLocaleString() }} 条记录</div>
+                  <div class="font-body font-semibold text-primary-content">{{ platformLabels[info.provider] || info.provider }}</div>
+                  <div class="font-caption text-secondary-content">{{ info.count.toLocaleString() }} 条记录</div>
                 </div>
               </div>
               <!-- Progress bar -->
-              <div class="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div class="w-20 rounded-full bg-muted overflow-hidden" :style="{ height: '6px' }">
                 <div
                   class="h-full rounded-full transition-all duration-700"
                   :style="{
                     width: `${(info.count / stats.total) * 100}%`,
-                    backgroundColor: `hsl(${platformHues[info.provider] || 0}, 60%, 50%)`,
+                    backgroundColor: platformColor(platformHues[info.provider] || 0, 'bar'),
                   }"
                 />
               </div>
             </div>
-            <!-- Type breakdown -->
-            <div class="flex flex-wrap gap-1.5">
+            <!-- Type breakdown chips -->
+            <div class="flex flex-wrap" :style="{ gap: 'var(--space-2)' }">
               <span
                 v-for="t in info.types"
                 :key="t.label"
-                class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+                class="inline-flex items-center gap-1 rounded-full border font-caption"
                 :style="{
-                  borderColor: `hsl(${platformHues[info.provider] || 0}, 40%, 70%)`,
-                  color: `hsl(${platformHues[info.provider] || 0}, 50%, 40%)`,
-                  backgroundColor: `hsl(${platformHues[info.provider] || 0}, 50%, 95%)`,
+                  padding: 'var(--space-1) var(--space-3)',
+                  borderColor: platformColor(platformHues[info.provider] || 0, 'chip-border'),
+                  color: platformColor(platformHues[info.provider] || 0, 'chip-text'),
+                  backgroundColor: platformColor(platformHues[info.provider] || 0, 'chip-bg'),
                 }"
               >
                 <span class="font-medium">{{ t.label }}</span>
@@ -254,7 +246,7 @@ onMounted(loadData)
           </div>
         </div>
 
-        <div v-if="platformStats.length === 0" class="text-center py-8 text-secondary-content text-sm">
+        <div v-if="platformStats.length === 0" class="py-8 text-center font-body text-secondary-content">
           暂无数据
         </div>
       </div>
