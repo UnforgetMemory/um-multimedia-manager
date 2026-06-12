@@ -3,7 +3,7 @@
  * 功能：替换原始帖子列表为卡片网格预览，支持磁力一键复制
  */
 
-import { SehuatangStore } from '@/features/sehuatang'
+import { AdultAvStore } from '@/features/adult-av'
 import { t, initI18n } from '../i18n'
 import { showManualAddPanel } from '../ui/manual-add-panel'
 import { showCheckViewedPanel } from '../ui/check-viewed-panel'
@@ -24,7 +24,7 @@ function updateHeaderInfo(headerEl: HTMLElement) {
   const infoEl = headerEl.querySelector('.umm-header-info') as HTMLElement
   const btnEl = headerEl.querySelector('.umm-copy-btn') as HTMLButtonElement
   if (infoEl) {
-    SehuatangStore.getAll().then(items => {
+    AdultAvStore.getAll().then((items: any[]) => {
       infoEl.textContent = t('Header Info', {
         hidden: String(0),
         total: String(items.length),
@@ -66,7 +66,7 @@ function createCard(info: ThreadInfo, container: HTMLElement, headerEl: HTMLElem
   container.appendChild(card)
 
   if (info.avId) {
-    SehuatangStore.has(info.avId).then(viewed => {
+    AdultAvStore.has(info.avId).then((viewed: boolean) => {
       if (viewed) card.classList.add('umm-viewed')
     })
   }
@@ -93,7 +93,7 @@ function createCard(info: ThreadInfo, container: HTMLElement, headerEl: HTMLElem
       a.onclick = (e) => {
         e.preventDefault()
         navigator.clipboard.writeText(magnetLink)
-        if (info.avId) SehuatangStore.add(info.avId, 0)
+        if (info.avId) AdultAvStore.add('sehuatang', info.avId, 0, info.url)
         card.classList.add('umm-viewed')
       }
       card.querySelector('.umm-card-links')?.appendChild(a)
@@ -192,7 +192,7 @@ function injectHeader(): HTMLElement {
       links.forEach(l => {
         const card = l.closest('.umm-card')
         const avid = card?.getAttribute('data-avid')
-        if (avid) SehuatangStore.add(avid, 0)
+        if (avid) AdultAvStore.add('sehuatang', avid, 0)
         card?.classList.add('umm-viewed')
       })
     }

@@ -1,4 +1,4 @@
-import type { SehuatangAvId } from '@/types'
+import type { AdultAvId } from '@/types'
 
 export const SEHUATANG_STORE_NAME = 'sehuatang_avids' as const
 
@@ -21,9 +21,11 @@ export function createAvId(
   id: string,
   rating: number = 0,
   time?: string
-): SehuatangAvId {
+): AdultAvId {
   return {
+    source: 'sehuatang',
     id: normalizeAvId(id),
+    url: '',
     rating: Math.max(0, Math.min(10, Math.round(rating))),
     updatedAt: normalizeTime(time),
   }

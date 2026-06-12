@@ -22,7 +22,7 @@ import type { StoreRecord, PtIdCacheEntry } from '@/types'
 import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/features/migration/models'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 8
+export const DB_VERSION = 9
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
@@ -32,7 +32,7 @@ export const STORE_NAMES = {
   TTL_CACHE: 'ttl_cache',
   SYNC_LOGS: 'sync_logs',
   PT_ID_CACHE: 'pt_id_cache',
-  SEHUATANG_AVIDS: 'sehuatang_avids',
+  JAV_IDS: 'jav_ids',
 } as const
 
 /** All per-platform record store names */
@@ -100,12 +100,21 @@ class MediaDatabase {
           }
         }
 
-        // v7→v8: add sehuatang_avids store
+        // v7→v8: add sehuatang_avids store (legacy name)
         if (oldVersion < 8) {
-          if (!db.objectStoreNames.contains(STORE_NAMES.SEHUATANG_AVIDS)) {
-            const avStore = db.createObjectStore(STORE_NAMES.SEHUATANG_AVIDS)
+          if (!db.objectStoreNames.contains('sehuatang_avids')) {
+            const avStore = db.createObjectStore('sehuatang_avids')
             avStore.createIndex('updatedAt', 'updatedAt', { unique: false })
             console.log('[DB] Added sehuatang_avids store')
+          }
+        }
+
+        // v8→v9: rename sehuatang_avids → jav_ids, migrate data
+        if (oldVersion < 9) {
+          if (!db.objectStoreNames.contains(STORE_NAMES.JAV_IDS)) {
+            const avStore = db.createObjectStore(STORE_NAMES.JAV_IDS)
+            avStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+            console.log('[DB] Created jav_ids store')
           }
         }
 

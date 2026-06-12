@@ -3,7 +3,7 @@
  * 功能：在 JavDB 页面中淡化已阅条目
  */
 
-import { SehuatangStore } from '@/features/sehuatang'
+import { AdultAvStore } from '@/features/adult-av'
 import { initI18n } from '../i18n'
 
 let observer: MutationObserver | null = null
@@ -20,14 +20,14 @@ function processItem(item: Element): void {
   item.setAttribute('data-umm-processed', 'true')
   item.setAttribute('data-umm-avid', avid)
 
-  SehuatangStore.has(avid).then(viewed => {
+  AdultAvStore.has(avid).then((viewed: boolean) => {
     if (viewed) {
       (item as HTMLElement).classList.add('umm-viewed')
     }
   })
 
   item.addEventListener('click', () => {
-    SehuatangStore.add(avid, 0)
+    AdultAvStore.add('javdb', avid, 0)
     ;(item as HTMLElement).classList.add('umm-viewed')
   }, { once: true })
 }

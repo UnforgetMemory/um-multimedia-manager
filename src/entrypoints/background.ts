@@ -18,7 +18,7 @@ const ALLOWED_DB_STORES = new Set<string>([
   ...RECORD_STORES,
   STORE_NAMES.TTL_CACHE,
   STORE_NAMES.PT_ID_CACHE,
-  STORE_NAMES.SEHUATANG_AVIDS,
+  STORE_NAMES.JAV_IDS,
 ])
 
 function isAllowedStore(storeName: string): boolean {
@@ -30,8 +30,8 @@ import { calculateStoreHash } from '@/utils/hash-utils'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
-import { SEHUATANG_STORE_NAME, createAvId, normalizeAvId } from '@/features/sehuatang/models'
-import type { SehuatangAvId } from '@/types'
+import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
+import type { AdultAvId } from '@/types'
 
 /** Escape HTML special characters — pure regex, no DOM element creation */
 function escapeHtml(text: string): string {
@@ -444,57 +444,146 @@ export default defineBackground({
             await handleNeoDBPushRating(message.payload, sendResponse)
             break
 
-          // ==================== Sehuatang AV ID Operations ====================
-          case 'SEHUATANG_CHECK_VIEWED': {
+          // ==================== Adult AV ID Operations ====================
+          case 'ADULT_AV_CHECK': {
             const { id } = message.payload
             if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
+            // Two-level matching: exact → prefix (handles UC/C suffix variants)
             const cleanId = normalizeAvId(id)
-            const record = await mediaDB.get(SEHUATANG_STORE_NAME, cleanId)
-            sendResponse({ success: true, exists: !!record, record })
+            const baseId = cleanId.replace(/-(UC|C|uncensored|censored)$/i, '')
+            const knownSources = ['javdb', 'sehuatang']
+            let found: any = null
+            // Level 1: exact match
+            for (const source of knownSources) {
+              const key = `${source}::${cleanId}`
+              const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
+              if (record) { found = { key, record }; break }
+            }
+            // Level 2: prefix match (handles UC/C variants)
+            if (!found && cleanId !== baseId) {
+              for (const source of knownSources) {
+                const key = `${source}::${baseId}`
+                const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
+                if (record) { found = { key, record }; break }
+              }
+            }
+            sendResponse({ success: true, exists: !!found, record: found?.record })
             break
           }
-          case 'SEHUATANG_ADD': {
-            const { id, rating = 0 } = message.payload
-            if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
-            const avId = createAvId(id, rating)
-            await mediaDB.put(SEHUATANG_STORE_NAME, avId.id, {
-              url: '',
+          case 'ADULT_AV_ADD': {
+            const { source, id, rating = 0, url = '' } = message.payload
+            if (!id || !source) { sendResponse({ success: false, error: 'Missing source or id' }); break }
+            const key = `${source}::${normalizeAvId(id)}`
+            await mediaDB.put(JAV_IDS_STORE_NAME, key, {
+              url,
               status: 2,
-              rating: avId.rating,
-              updatedAt: avId.updatedAt,
+              rating: Math.max(0, Math.min(10, Math.round(rating))),
+              updatedAt: new Date().toISOString(),
               linkedIds: {},
-            } as any)
+            })
             sendResponse({ success: true })
             break
           }
-          case 'SEHUATANG_BATCH_ADD': {
-            const { items } = message.payload
-            if (!Array.isArray(items) || items.length === 0) {
-              sendResponse({ success: false, error: 'Invalid items' }); break
+          case 'ADULT_AV_BATCH_ADD': {
+            const { source, items } = message.payload
+            if (!source || !Array.isArray(items) || items.length === 0) {
+              sendResponse({ success: false, error: 'Invalid payload' }); break
             }
             let addedCount = 0
             for (const item of items) {
               if (!item.id) continue
-              const avId = createAvId(item.id, item.rating, item.updatedAt)
-              await mediaDB.put(SEHUATANG_STORE_NAME, avId.id, {
-                url: '',
+              const key = `${source}::${normalizeAvId(item.id)}`
+              const existing = await mediaDB.get(JAV_IDS_STORE_NAME, key)
+              await mediaDB.put(JAV_IDS_STORE_NAME, key, {
+                url: item.url || existing?.url || '',
                 status: 2,
-                rating: avId.rating,
-                updatedAt: avId.updatedAt,
-                linkedIds: {},
-              } as any)
+                rating: item.rating ?? (existing as any)?.rating ?? 0,
+                updatedAt: item.updatedAt || new Date().toISOString(),
+                linkedIds: existing?.linkedIds || {},
+              })
               addedCount++
             }
             sendResponse({ success: true, addedCount })
             break
           }
+          case 'ADULT_AV_GET_ALL': {
+            const { source } = message.payload || {}
+            let entries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
+            if (source) {
+              entries = entries.filter(e => e.key.startsWith(`${source}::`))
+            }
+            const items: AdultAvId[] = entries.map(e => {
+              const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
+              const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
+              return {
+                source: s,
+                id: avId,
+                url: e.record.url || '',
+                rating: (e.record as any).rating || e.record.rating || 0,
+                updatedAt: e.record.updatedAt,
+              }
+            })
+            sendResponse({ success: true, items })
+            break
+          }
+
+          // Legacy handlers (kept for backward compatibility, delegate to ADULT_AV_*)
+          case 'SEHUATANG_CHECK_VIEWED': {
+            const { id: legacyId } = message.payload
+            if (!legacyId) { sendResponse({ success: false, error: 'Missing id' }); break }
+            const legacyKey = `sehuatang::${normalizeAvId(legacyId)}`
+            const legacyRecord = await mediaDB.get(JAV_IDS_STORE_NAME, legacyKey)
+            sendResponse({ success: true, exists: !!legacyRecord, record: legacyRecord })
+            break
+          }
+          case 'SEHUATANG_ADD': {
+            const { id: legacyAddId, rating: legacyRating = 0 } = message.payload
+            if (!legacyAddId) { sendResponse({ success: false, error: 'Missing id' }); break }
+            const legacyAddKey = `sehuatang::${normalizeAvId(legacyAddId)}`
+            await mediaDB.put(JAV_IDS_STORE_NAME, legacyAddKey, {
+              url: '',
+              status: 2,
+              rating: legacyRating,
+              updatedAt: new Date().toISOString(),
+              linkedIds: {},
+            })
+            sendResponse({ success: true })
+            break
+          }
+          case 'SEHUATANG_BATCH_ADD': {
+            const { items: legacyItems } = message.payload
+            if (!Array.isArray(legacyItems) || legacyItems.length === 0) {
+              sendResponse({ success: false, error: 'Invalid items' }); break
+            }
+            let legacyAddedCount = 0
+            for (const item of legacyItems) {
+              if (!item.id) continue
+              const key = `sehuatang::${normalizeAvId(item.id)}`
+              await mediaDB.put(JAV_IDS_STORE_NAME, key, {
+                url: '',
+                status: 2,
+                rating: item.rating || 0,
+                updatedAt: item.updatedAt || new Date().toISOString(),
+                linkedIds: {},
+              })
+              legacyAddedCount++
+            }
+            sendResponse({ success: true, addedCount: legacyAddedCount })
+            break
+          }
           case 'SEHUATANG_GET_ALL': {
-            const entries = await mediaDB.getAll(SEHUATANG_STORE_NAME)
-            const items: SehuatangAvId[] = entries.map(e => ({
-              id: e.key,
-              rating: (e.record as any).rating || 0,
-              updatedAt: e.record.updatedAt,
-            }))
+            const entries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
+            const items: AdultAvId[] = entries.map(e => {
+              const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
+              const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
+              return {
+                source: s,
+                id: avId,
+                url: e.record.url || '',
+                rating: (e.record as any).rating || e.record.rating || 0,
+                updatedAt: e.record.updatedAt,
+              }
+            })
             sendResponse({ success: true, items })
             break
           }

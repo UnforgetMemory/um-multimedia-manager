@@ -2,7 +2,7 @@
  * 查询已阅状态面板（可拖拽）
  */
 
-import { SehuatangStore } from '@/features/sehuatang'
+import { AdultAvStore } from '@/features/adult-av'
 import { t } from '../i18n'
 
 const PANEL_ID = 'umm-check-viewed-panel'
@@ -47,7 +47,7 @@ export function showCheckViewedPanel(): void {
     const avid = input.value.trim().toUpperCase()
     if (!avid) return
 
-    const items = await SehuatangStore.getAll()
+    const items = await AdultAvStore.getAll()
     const found = items.find(r => r.id === avid)
 
     resultDiv.innerHTML = ''
