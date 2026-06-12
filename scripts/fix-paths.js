@@ -64,7 +64,7 @@ try {
     // Fix Vite's __vite__mapDeps lazy import paths: "./X.js" -> "./chunks/X.js"
     // Paths are like "./RecordsPage-CF_MfgH0.js" — resolve relative to chunks/ since
     // Chrome resolves ES module dynamic imports relative to the document URL, not the script URL.
-    content = content.replace(/"\.\/(.*?)\.js"/g, (match, name) => {
+    content = content.replace(/"\.\/(?!chunks\/)(.*?)\.js"/g, (match, name) => {
       // Skip virtual/plugin imports
       if (name.startsWith('_virtual_') || name.includes('wxt-plugins')) return match
       return `"./chunks/${name}.js"`
