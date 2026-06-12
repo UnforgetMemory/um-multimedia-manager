@@ -46,59 +46,59 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex items-center justify-between px-5 pt-4 pb-2">
       <h1 class="text-lg font-bold tracking-tight">UMManager</h1>
-      <span class="text-xs text-muted-foreground">v{{ appVersion }}</span>
+      <span class="text-xs text-secondary-content">v{{ appVersion }}</span>
     </div>
 
     <Separator />
 
-    <!-- Content — renders immediately, numbers update when data arrives -->
+    <!-- Content -->
     <div class="flex-1 px-5 py-4 overflow-y-auto">
       <!-- Stats Grid -->
       <div class="grid grid-cols-2 gap-3 mb-4">
-        <Card class="p-3 text-center">
+        <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
-            <Film class="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
-            <div class="text-2xl font-bold tracking-tight" :class="{ 'animate-pulse': !dataReady }">
+            <Film class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.movie.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-muted-foreground mt-1">电影</div>
+            <div class="text-xs text-secondary-content mt-1">电影</div>
           </CardContent>
         </Card>
-        <Card class="p-3 text-center">
+        <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
-            <Tv class="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
-            <div class="text-2xl font-bold tracking-tight" :class="{ 'animate-pulse': !dataReady }">
+            <Tv class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.tv.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-muted-foreground mt-1">剧集</div>
+            <div class="text-xs text-secondary-content mt-1">剧集</div>
           </CardContent>
         </Card>
-        <Card class="p-3 text-center">
+        <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
-            <Music class="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
-            <div class="text-2xl font-bold tracking-tight" :class="{ 'animate-pulse': !dataReady }">
+            <Music class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.music.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-muted-foreground mt-1">音乐</div>
+            <div class="text-xs text-secondary-content mt-1">音乐</div>
           </CardContent>
         </Card>
-        <Card class="p-3 text-center">
+        <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
-            <ShieldAlert class="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
-            <div class="text-2xl font-bold tracking-tight" :class="{ 'animate-pulse': !dataReady }">
+            <ShieldAlert class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? javCount.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-muted-foreground mt-1">成人视频</div>
+            <div class="text-xs text-secondary-content mt-1">成人视频</div>
           </CardContent>
         </Card>
       </div>
 
       <!-- Total -->
-      <Card class="mb-4">
+      <Card class="mb-4 overflow-hidden">
         <CardContent class="flex items-center justify-between py-3 px-5">
-          <span class="text-sm font-medium text-muted-foreground">总记录</span>
-          <span class="text-xl font-bold tracking-tight" :class="{ 'animate-pulse': !dataReady }">
-            {{ dataReady ? stats.total.toLocaleString() : '—' }}
+          <span class="text-sm font-medium text-secondary-content">总记录</span>
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
+            {{ dataReady ? (stats.total + javCount).toLocaleString() : '—' }}
           </span>
         </CardContent>
       </Card>

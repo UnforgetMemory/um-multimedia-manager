@@ -61,46 +61,46 @@
   --popup-max-width: clamp(320px, 280px + 8vw, 800px);
 }
 
-/* Font utility classes */
+/* Font utility classes — respect --font-scale for density modes */
 .font-display {
-  font-size: var(--font-display-size);
+  font-size: calc(var(--font-display-size) * var(--font-scale, 1));
   font-weight: var(--font-display-weight);
   line-height: var(--font-display-line-height);
 }
 
 .font-h1 {
-  font-size: var(--font-h1-size);
+  font-size: calc(var(--font-h1-size) * var(--font-scale, 1));
   font-weight: var(--font-h1-weight);
   line-height: var(--font-h1-line-height);
 }
 
 .font-h2 {
-  font-size: var(--font-h2-size);
+  font-size: calc(var(--font-h2-size) * var(--font-scale, 1));
   font-weight: var(--font-h2-weight);
   line-height: var(--font-h2-line-height);
 }
 
 .font-h3 {
-  font-size: var(--font-h3-size);
+  font-size: calc(var(--font-h3-size) * var(--font-scale, 1));
   font-weight: var(--font-h3-weight);
   line-height: var(--font-h3-line-height);
 }
 
 .font-body {
-  font-size: var(--font-body-size);
+  font-size: calc(var(--font-body-size) * var(--font-scale, 1));
   font-weight: var(--font-body-weight);
   line-height: var(--font-body-line-height);
 }
 
 .font-caption {
-  font-size: var(--font-caption-size);
+  font-size: calc(var(--font-caption-size) * var(--font-scale, 1));
   font-weight: var(--font-caption-weight);
   line-height: var(--font-caption-line-height);
 }
 
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: var(--font-mono-size);
+  font-size: calc(var(--font-mono-size) * var(--font-scale, 1));
   font-weight: var(--font-mono-weight);
   line-height: var(--font-mono-line-height);
 }
