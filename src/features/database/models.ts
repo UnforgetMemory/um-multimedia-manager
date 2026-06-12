@@ -22,7 +22,7 @@ import type { StoreRecord, PtIdCacheEntry } from '@/types'
 import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/features/migration/models'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 7
+export const DB_VERSION = 8
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
@@ -32,6 +32,7 @@ export const STORE_NAMES = {
   TTL_CACHE: 'ttl_cache',
   SYNC_LOGS: 'sync_logs',
   PT_ID_CACHE: 'pt_id_cache',
+  SEHUATANG_AVIDS: 'sehuatang_avids',
 } as const
 
 /** All per-platform record store names */
@@ -40,6 +41,7 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.IMDB,
   STORE_NAMES.NEODB,
   STORE_NAMES.TMDB,
+  STORE_NAMES.SEHUATANG_AVIDS,
 ]
 
 /** Helper: get the store name for a platform */
@@ -96,6 +98,15 @@ class MediaDatabase {
             const ptCache = db.createObjectStore(STORE_NAMES.PT_ID_CACHE)
             ptCache.createIndex('updatedAt', 'updatedAt', { unique: false })
             console.log('[DB] Added pt_id_cache store')
+          }
+        }
+
+        // v7→v8: add sehuatang_avids store
+        if (oldVersion < 8) {
+          if (!db.objectStoreNames.contains(STORE_NAMES.SEHUATANG_AVIDS)) {
+            const avStore = db.createObjectStore(STORE_NAMES.SEHUATANG_AVIDS)
+            avStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+            console.log('[DB] Added sehuatang_avids store')
           }
         }
 

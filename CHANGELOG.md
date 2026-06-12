@@ -2,6 +2,25 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [3.0.0] - 2026-06-12
+
+### Added
+
+- **色花堂列表页预览**: 新增 sehuatang.net/sehuatang.org 论坛列表页处理器，替换原始帖子列表为卡片网格预览，支持封面图片懒加载、磁力链接一键复制、已阅条目淡化
+- **JavDB 已阅淡化**: 新增 javdb.com 增强器，自动淡化已阅 AV 条目（灰度 + 透明度），点击可标记为已阅
+- **AV ID 数据存储**: 新增 `sehuatang_avids` IndexedDB store（v8 schema），存储 V2 格式 AV ID 记录（id/rating/updatedAt），支持批量导入 JSON
+- **手动添加面板**: 新增浮动面板，支持手动输入 AV ID 或 JSON 数组批量添加已阅记录
+- **查询已阅面板**: 新增可拖拽面板，输入 AV ID 查询已阅状态、评分和时间
+- **轻量 i18n 模块**: 新增 content script 国际化支持（zh-CN/en-US/zh-HK/zh-TW），无需外部依赖
+- **Background 消息处理**: 新增 `SEHUATANG_CHECK_VIEWED` / `SEHUATANG_ADD` / `SEHUATANG_BATCH_ADD` / `SEHUATANG_GET_ALL` 消息类型
+- **Host 权限扩展**: 新增 sehuatang.net/sehuatang.org/javdb.com 域名权限
+
+### Changed
+
+- **IndexedDB 升级**: DB_VERSION 7→8，新增 `sehuatang_avids` object store（带 updatedAt 索引）
+- **RECORD_STORES 扩展**: 新增 `sehuatang_avids` 到记录存储列表
+- **版本更新**: 2.0.0 → 3.0.0
+
 ## [2.0.0] - 2026-06-11
 
 ### Added

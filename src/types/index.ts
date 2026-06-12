@@ -28,7 +28,7 @@ export function makeRecordKey(type: string, providerId: string): string {
 }
 
 /** Valid record store names */
-export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records'
+export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'sehuatang_avids'
 
 // ==================== URL Identity ====================
 
@@ -96,6 +96,15 @@ export interface PtIdCacheEntry {
   schemaVersion?: number  // Cache entry schema version (0 or undefined = legacy)
 }
 
+// ==================== Sehuatang AV ID ====================
+
+/** Sehuatang/JavDB viewed AV ID record (V2 format) */
+export interface SehuatangAvId {
+  id: string           // AV ID uppercase, e.g. "ABP-123"
+  rating: number       // 0-10
+  updatedAt: string    // ISO 8601
+}
+
 // ==================== Messages ====================
 
 export type MessageType =
@@ -119,6 +128,10 @@ export type MessageType =
   | 'GET_STATISTICS'
   | 'HEALTH_CHECK'
   | 'GET_MIGRATION_STATUS'
+  | 'SEHUATANG_CHECK_VIEWED'
+  | 'SEHUATANG_BATCH_ADD'
+  | 'SEHUATANG_ADD'
+  | 'SEHUATANG_GET_ALL'
 
 export interface MessagePayloadMap {
   SHOW_TOAST: { type: ToastType; title: string; message?: string }
@@ -141,6 +154,10 @@ export interface MessagePayloadMap {
   GET_STATISTICS: void
   HEALTH_CHECK: void
   GET_MIGRATION_STATUS: void
+  SEHUATANG_CHECK_VIEWED: { id: string }
+  SEHUATANG_BATCH_ADD: { items: SehuatangAvId[] }
+  SEHUATANG_ADD: { id: string; rating?: number }
+  SEHUATANG_GET_ALL: void
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {

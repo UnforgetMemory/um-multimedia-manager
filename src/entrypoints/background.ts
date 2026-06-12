@@ -18,6 +18,7 @@ const ALLOWED_DB_STORES = new Set<string>([
   ...RECORD_STORES,
   STORE_NAMES.TTL_CACHE,
   STORE_NAMES.PT_ID_CACHE,
+  STORE_NAMES.SEHUATANG_AVIDS,
 ])
 
 function isAllowedStore(storeName: string): boolean {
@@ -29,6 +30,8 @@ import { calculateStoreHash } from '@/utils/hash-utils'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
+import { SEHUATANG_STORE_NAME, createAvId, normalizeAvId } from '@/features/sehuatang/models'
+import type { SehuatangAvId } from '@/types'
 
 /** Escape HTML special characters — pure regex, no DOM element creation */
 function escapeHtml(text: string): string {
@@ -440,6 +443,61 @@ export default defineBackground({
           case 'NEODB_PUSH_RATING':
             await handleNeoDBPushRating(message.payload, sendResponse)
             break
+
+          // ==================== Sehuatang AV ID Operations ====================
+          case 'SEHUATANG_CHECK_VIEWED': {
+            const { id } = message.payload
+            if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
+            const cleanId = normalizeAvId(id)
+            const record = await mediaDB.get(SEHUATANG_STORE_NAME, cleanId)
+            sendResponse({ success: true, exists: !!record, record })
+            break
+          }
+          case 'SEHUATANG_ADD': {
+            const { id, rating = 0 } = message.payload
+            if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
+            const avId = createAvId(id, rating)
+            await mediaDB.put(SEHUATANG_STORE_NAME, avId.id, {
+              url: '',
+              status: 2,
+              rating: avId.rating,
+              updatedAt: avId.updatedAt,
+              linkedIds: {},
+            } as any)
+            sendResponse({ success: true })
+            break
+          }
+          case 'SEHUATANG_BATCH_ADD': {
+            const { items } = message.payload
+            if (!Array.isArray(items) || items.length === 0) {
+              sendResponse({ success: false, error: 'Invalid items' }); break
+            }
+            let addedCount = 0
+            for (const item of items) {
+              if (!item.id) continue
+              const avId = createAvId(item.id, item.rating, item.updatedAt)
+              await mediaDB.put(SEHUATANG_STORE_NAME, avId.id, {
+                url: '',
+                status: 2,
+                rating: avId.rating,
+                updatedAt: avId.updatedAt,
+                linkedIds: {},
+              } as any)
+              addedCount++
+            }
+            sendResponse({ success: true, addedCount })
+            break
+          }
+          case 'SEHUATANG_GET_ALL': {
+            const entries = await mediaDB.getAll(SEHUATANG_STORE_NAME)
+            const items: SehuatangAvId[] = entries.map(e => ({
+              id: e.key,
+              rating: (e.record as any).rating || 0,
+              updatedAt: e.record.updatedAt,
+            }))
+            sendResponse({ success: true, items })
+            break
+          }
 
           default:
             debugLog('Unknown message type:', message.type)

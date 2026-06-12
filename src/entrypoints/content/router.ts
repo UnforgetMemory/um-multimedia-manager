@@ -12,6 +12,8 @@ import { startSearchEnhancer } from './enhancers/douban-search'
 import { PTDimmer } from './enhancers/pt-dimmer'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
 import { handlePTDetailPage } from './handlers/pt-detail'
+import { handleSehuatangListPage } from './handlers/sehuatang'
+import { handleJavDBPage } from './handlers/javdb'
 
 // PTDimmer singleton — reused across SPA navigations to avoid leaking observers
 let ptdimmerInstance: PTDimmer | null = null
@@ -125,6 +127,23 @@ const ROUTES: RouteRule[] = [
       if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer()
       ptdimmerInstance.cleanup()
       await ptdimmerInstance.runFor(location.href)
+    },
+  },
+
+  // JavDB 已阅淡化
+  {
+    match: (url) => url.includes('javdb.com'),
+    handler: async () => {
+      await handleJavDBPage()
+    },
+  },
+
+  // 色花堂论坛列表页
+  {
+    match: (url) =>
+      (url.includes('sehuatang.net/forum') || url.includes('sehuatang.org/forum')),
+    handler: async () => {
+      await handleSehuatangListPage()
     },
   },
 ]

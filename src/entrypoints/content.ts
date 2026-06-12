@@ -71,7 +71,12 @@ export default defineContentScript({
     '*://www.haidan.cc/torrents.php*',
     '*://www.haidan.cc/videos.php*',
     '*://www.haidan.cc/details.php*',
-    '*://web5.mukaku.com/*'
+    '*://web5.mukaku.com/*',
+    '*://www.sehuatang.net/forum*',
+    '*://www.sehuatang.org/forum*',
+    '*://sehuatang.net/forum*',
+    '*://sehuatang.org/forum*',
+    '*://javdb.com/*'
   ],
   runAt: 'document_idle',
 
