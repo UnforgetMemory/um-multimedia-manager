@@ -9,6 +9,10 @@ function applyAppearance(appearance: string) {
     document.documentElement.classList.add('dark')
   } else if (appearance === 'light') {
     document.documentElement.classList.remove('dark')
+  } else {
+    // 'auto': follow system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    document.documentElement.classList.toggle('dark', prefersDark)
   }
 }
 
