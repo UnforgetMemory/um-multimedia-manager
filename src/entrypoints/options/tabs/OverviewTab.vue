@@ -137,31 +137,29 @@ const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五'
 
 const weeklyStats = computed(() => {
   const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const dayMs = 86400000
-  const days: { date: string; dateStr: string; weekday: string; total: number; items: { source: string; label: string; count: number }[] }[] = []
+  const days: { date: string; dateStr: string; weekday: string; total: number; items: { source: string; label: string; count: number }[]; isToday: boolean }[] = []
   let weekTotal = 0
 
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getTime() - i * dayMs)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const dateStr = `${d.getMonth() + 1}/${d.getDate()}`
+    const isToday = key === todayKey
 
     const sourceCounts: Record<string, number> = {}
     for (const r of records.value) {
       if (!r.updatedAt) continue
       const rd = new Date(r.updatedAt)
       const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
-      if (rKey === key) {
-        sourceCounts[r.provider] = (sourceCounts[r.provider] || 0) + 1
-      }
+      if (rKey === key) sourceCounts[r.provider] = (sourceCounts[r.provider] || 0) + 1
     }
     for (const item of adultAvItems.value) {
       if (!item.updatedAt) continue
       const rd = new Date(item.updatedAt)
       const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
-      if (rKey === key) {
-        sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1
-      }
+      if (rKey === key) sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1
     }
 
     const total = Object.values(sourceCounts).reduce((a, b) => a + b, 0)
@@ -171,10 +169,14 @@ const weeklyStats = computed(() => {
       .map(([source, count]) => ({ source, label: platformLabels[source] || source, count }))
       .sort((a, b) => b.count - a.count)
 
-    days.push({ date: key, dateStr, weekday: weekdayNames[d.getDay()], total, items })
+    days.push({ date: key, dateStr, weekday: weekdayNames[d.getDay()], total, items, isToday })
   }
 
-  return { days, total: weekTotal }
+  const maxDaily = Math.max(1, ...days.map(d => d.total))
+  const avgDaily = Math.round(weekTotal / 7)
+  const peakDay = days.reduce((max, d) => d.total > max.total ? d : max, days[0]).weekday
+
+  return { days, total: weekTotal, maxDaily, avgDaily, peakDay }
 })
 
 // Tooltip positioning
@@ -353,40 +355,100 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
 
       <!-- Tab: Weekly Detail -->
       <div v-if="activeOverviewTab === 'weekly'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
-      <!-- Last 7 Days Detail -->
+      <!-- Weekly Summary Stats -->
+      <div class="grid grid-cols-3" :style="{ gap: 'var(--space-3)' }">
+        <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
+          <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
+            {{ weeklyStats.total }}
+          </div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">本周总计</div>
+        </Card>
+        <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
+          <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
+            {{ weeklyStats.avgDaily }}
+          </div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">日均</div>
+        </Card>
+        <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
+          <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
+            {{ weeklyStats.peakDay }}
+          </div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">峰值日</div>
+        </Card>
+      </div>
+
+      <!-- Daily Bar Chart -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
-          <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
-            <h3 class="font-h2 text-primary-content">最近一周</h3>
-            <span class="font-caption text-secondary-content">{{ weeklyStats.total }} 条记录</span>
-          </div>
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }">
+          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">每日记录</h3>
+          <div class="flex items-end" :style="{ gap: 'var(--space-2)', height: '6rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
-              class="flex items-center rounded-lg hover:bg-muted/50 transition-colors"
-              :style="{ gap: 'var(--space-3)', padding: 'var(--space-2)' }">
-              <div class="w-10 text-center shrink-0">
-                <div class="font-body font-semibold text-primary-content">{{ day.weekday }}</div>
-                <div class="font-caption text-secondary-content">{{ day.dateStr }}</div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center flex-wrap" :style="{ gap: 'var(--space-1)' }">
-                  <span v-for="(item, i) in day.items" :key="i"
-                    class="inline-flex items-center gap-0.5 rounded-full border font-caption"
-                    :style="{
-                      padding: 'var(--space-1) var(--space-2)',
-                      fontSize: 'calc(0.7rem * var(--font-scale, 1))',
-                      borderColor: platformColor(platformHues[item.source] || 0, 'chip-border'),
-                      color: platformColor(platformHues[item.source] || 0, 'chip-text'),
-                      backgroundColor: platformColor(platformHues[item.source] || 0, 'chip-bg'),
-                    }">
-                    <span class="font-medium">{{ item.label }}</span>
-                    <span class="opacity-70">{{ item.count }}</span>
-                  </span>
+              class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)' }">
+              <!-- Bar -->
+              <div class="w-full rounded-t-md transition-all duration-300 relative group cursor-default"
+                :style="{
+                  height: `${Math.max(4, (day.total / weeklyStats.maxDaily) * 100)}%`,
+                  backgroundColor: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                  minHeight: day.total > 0 ? '8px' : '4px',
+                }">
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {{ day.total }}
                 </div>
               </div>
-              <div class="font-bold tabular-nums text-primary-content shrink-nowrap" :style="{ fontSize: 'calc(0.875rem * var(--font-scale, 1))' }">
-                {{ day.total }}
+              <!-- Label -->
+              <div class="text-center">
+                <div class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">{{ day.weekday }}</div>
+                <div class="font-caption" :style="{ fontSize: '9px', color: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }">{{ day.dateStr }}</div>
               </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Daily Detail List -->
+      <Card>
+        <div :style="{ padding: 'var(--card-padding)' }">
+          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">每日详情</h3>
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }">
+            <div v-for="day in weeklyStats.days" :key="day.date"
+              class="rounded-xl border transition-all"
+              :class="day.isToday ? 'border-primary/30 bg-primary/5' : 'border-border hover:border-muted'"
+              :style="{ padding: 'var(--space-3)' }">
+              <!-- Day header -->
+              <div class="flex items-center justify-between" :style="{ marginBottom: day.items.length > 0 ? 'var(--space-2)' : '0' }">
+                <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                    :style="{
+                      backgroundColor: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                      color: day.isToday ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                    }">
+                    {{ day.weekday.charAt(1) }}
+                  </div>
+                  <div>
+                    <div class="font-body font-semibold text-primary-content">{{ day.weekday }}</div>
+                    <div class="font-caption text-secondary-content">{{ day.dateStr }}</div>
+                  </div>
+                </div>
+                <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1rem * var(--font-scale, 1))' }">
+                  {{ day.total }}
+                </div>
+              </div>
+              <!-- Source chips -->
+              <div v-if="day.items.length > 0" class="flex flex-wrap" :style="{ gap: 'var(--space-1)' }">
+                <span v-for="(item, i) in day.items" :key="i"
+                  class="inline-flex items-center gap-1 rounded-full border font-caption"
+                  :style="{
+                    padding: 'var(--space-1) var(--space-2)',
+                    fontSize: 'calc(0.7rem * var(--font-scale, 1))',
+                    borderColor: platformColor(platformHues[item.source] || 0, 'chip-border'),
+                    color: platformColor(platformHues[item.source] || 0, 'chip-text'),
+                    backgroundColor: platformColor(platformHues[item.source] || 0, 'chip-bg'),
+                  }">
+                  <span class="font-medium">{{ item.label }}</span>
+                  <span class="opacity-70">{{ item.count }}</span>
+                </span>
+              </div>
+              <div v-else class="font-caption text-secondary-content" :style="{ fontSize: '11px' }">无记录</div>
             </div>
           </div>
         </div>
