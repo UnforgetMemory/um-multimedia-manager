@@ -268,16 +268,16 @@ const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
     <!-- Content -->
     <template v-else>
       <!-- Sub-tabs -->
-      <div class="flex border-b border-border" :style="{ gap: 'var(--space-1)' }">
+      <div class="flex p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
         <button
           v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'distribution' as const, label: '分布' }]"
           :key="tab.id"
           @click="activeOverviewTab = tab.id"
           :class="[
-            'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+            'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
             activeOverviewTab === tab.id
-              ? 'border-primary text-primary-content'
-              : 'border-transparent text-secondary-content hover:text-primary-content hover:border-muted'
+              ? 'bg-background text-primary-content shadow-sm'
+              : 'text-secondary-content hover:text-primary-content hover:bg-background/50'
           ]"
         >
           {{ tab.label }}

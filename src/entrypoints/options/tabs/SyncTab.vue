@@ -16,16 +16,16 @@ const subTabs = [
   <div class="space-y-[var(--section-gap)]">
     <h2 class="font-h1 text-primary-content">数据同步</h2>
 
-    <div class="flex gap-2 border-b border-border pb-2">
+    <div class="flex p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
       <button
         v-for="tab in subTabs"
         :key="tab.id"
         @click="activeSubTab = tab.id"
         :class="[
-          'px-4 py-2 text-sm font-medium rounded-t-md transition-colors',
+          'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
           activeSubTab === tab.id
-            ? 'bg-primary text-primary-foreground'
-            : 'text-secondary-content hover:bg-muted'
+            ? 'bg-background text-primary-content shadow-sm'
+            : 'text-secondary-content hover:text-primary-content hover:bg-background/50'
         ]"
       >
         {{ tab.label }}

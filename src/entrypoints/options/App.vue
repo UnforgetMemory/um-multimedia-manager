@@ -82,7 +82,7 @@ function navigateTo(path: string) {
             :style="{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--font-body-size)' }"
           >
             <component :is="tab.icon" class="h-4 w-4 shrink-0" />
-            <span class="truncate">{{ tab.label }}</span>
+            <span>{{ tab.label }}</span>
           </button>
         </div>
 
