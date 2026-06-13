@@ -133,6 +133,50 @@ function heatmapColor(level: number): string {
   return `hsl(142, ${35 + level * 5}%, ${70 - level * 6}%)`
 }
 
+const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+const weeklyStats = computed(() => {
+  const now = new Date()
+  const dayMs = 86400000
+  const days: { date: string; dateStr: string; weekday: string; total: number; items: { source: string; label: string; count: number }[] }[] = []
+  let weekTotal = 0
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * dayMs)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const dateStr = `${d.getMonth() + 1}/${d.getDate()}`
+
+    const sourceCounts: Record<string, number> = {}
+    for (const r of records.value) {
+      if (!r.updatedAt) continue
+      const rd = new Date(r.updatedAt)
+      const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
+      if (rKey === key) {
+        sourceCounts[r.provider] = (sourceCounts[r.provider] || 0) + 1
+      }
+    }
+    for (const item of adultAvItems.value) {
+      if (!item.updatedAt) continue
+      const rd = new Date(item.updatedAt)
+      const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
+      if (rKey === key) {
+        sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1
+      }
+    }
+
+    const total = Object.values(sourceCounts).reduce((a, b) => a + b, 0)
+    weekTotal += total
+
+    const items = Object.entries(sourceCounts)
+      .map(([source, count]) => ({ source, label: platformLabels[source] || source, count }))
+      .sort((a, b) => b.count - a.count)
+
+    days.push({ date: key, dateStr, weekday: weekdayNames[d.getDay()], total, items })
+  }
+
+  return { days, total: weekTotal }
+})
+
 // Tooltip positioning
 const tooltipData = ref<{ show: boolean; x: number; y: number; text: string }>({ show: false, x: 0, y: 0, text: '' })
 
@@ -281,6 +325,42 @@ onMounted(loadData)
               :style="{ width: '12px', height: '12px', backgroundColor: heatmapColor(i - 1) }"
             />
             <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">多</span>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Last 7 Days Detail -->
+      <Card>
+        <div :style="{ padding: 'var(--card-padding)' }">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-h2 text-primary-content">最近一周</h3>
+            <span class="font-caption text-secondary-content">{{ weeklyStats.total }} 条记录</span>
+          </div>
+          <div class="space-y-2">
+            <div v-for="day in weeklyStats.days" :key="day.date"
+              class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+              <div class="w-10 text-center shrink-0">
+                <div class="font-body font-semibold text-primary-content">{{ day.weekday }}</div>
+                <div class="font-caption text-secondary-content">{{ day.dateStr }}</div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span v-for="(item, i) in day.items" :key="i"
+                    class="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full border"
+                    :style="{
+                      borderColor: `hsl(${platformHues[item.source] || 0}, 30%, 70%)`,
+                      color: `hsl(${platformHues[item.source] || 0}, 40%, 40%)`,
+                      backgroundColor: `hsl(${platformHues[item.source] || 0}, 30%, 95%)`,
+                    }">
+                    <span class="font-medium">{{ item.label }}</span>
+                    <span class="opacity-70">{{ item.count }}</span>
+                  </span>
+                </div>
+              </div>
+              <div class="text-sm font-bold tabular-nums text-primary-content shrink-0">
+                {{ day.total }}
+              </div>
+            </div>
           </div>
         </div>
       </Card>
