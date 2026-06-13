@@ -48,6 +48,20 @@ function applyAll() {
 
 export function useTheme() {
   onMounted(() => {
+    // 1. Try sync read from localStorage first
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as AppearanceState
+        if (saved) {
+          theme.value = saved.theme || 'auto'
+          fontSize.value = saved.fontSize || 'default'
+          density.value = saved.density || 'default'
+        }
+      }
+    } catch { /* ignore */ }
+
+    // 2. Async read from chrome.storage (authoritative source)
     try {
       chrome.storage.local.get([STORAGE_KEY], (result: any) => {
         const saved = result[STORAGE_KEY] as AppearanceState | undefined
@@ -57,6 +71,12 @@ export function useTheme() {
           density.value = saved.density || 'default'
         }
         applyAll()
+        // Sync localStorage cache
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          theme: theme.value,
+          fontSize: fontSize.value,
+          density: density.value,
+        }))
       })
     } catch {
       applyAll()
@@ -88,14 +108,15 @@ export function useTheme() {
 
   watch([theme, fontSize, density], () => {
     applyAll()
+    const state = {
+      theme: theme.value,
+      fontSize: fontSize.value,
+      density: density.value,
+    }
     try {
-      chrome.storage.local.set({
-        [STORAGE_KEY]: {
-          theme: theme.value,
-          fontSize: fontSize.value,
-          density: density.value,
-        },
-      })
+      // Write to both chrome.storage (cross-context) and localStorage (sync read)
+      chrome.storage.local.set({ [STORAGE_KEY]: state })
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch { /* silent */ }
   })
 

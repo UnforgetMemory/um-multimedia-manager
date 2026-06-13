@@ -10,11 +10,29 @@ function applyAppearance(appearance: string) {
   } else if (appearance === 'light') {
     document.documentElement.classList.remove('dark')
   }
-  // 'auto' case handled by CSS @media in index.html
 }
 
-// Read stored theme on mount
+// Sync read from localStorage (instant, no flash)
+function readThemeSync(): string | null {
+  try {
+    const raw = localStorage.getItem(APPEARANCE_KEY)
+    if (raw) {
+      const saved = JSON.parse(raw)
+      return saved?.theme || null
+    }
+  } catch { /* ignore */ }
+  return null
+}
+
+// Apply theme on mount — sync first, then async fallback
 onMounted(() => {
+  // 1. Instant: read from localStorage (sync)
+  const syncTheme = readThemeSync()
+  if (syncTheme) {
+    applyAppearance(syncTheme)
+  }
+
+  // 2. Fallback: read from chrome.storage (async, in case localStorage is stale)
   try {
     chrome.storage.local.get([APPEARANCE_KEY], (result: any) => {
       const saved = result[APPEARANCE_KEY]
@@ -22,15 +40,17 @@ onMounted(() => {
         applyAppearance(saved.theme)
       }
     })
-  } catch { /* fallback: CSS @media handles auto */ }
+  } catch { /* ignore */ }
 
-  // Listen for theme changes from options page
+  // 3. Listen for live changes from options page
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return
     if (changes[APPEARANCE_KEY]) {
       const saved = changes[APPEARANCE_KEY].newValue
       if (saved?.theme) {
         applyAppearance(saved.theme)
+        // Update localStorage cache
+        localStorage.setItem(APPEARANCE_KEY, JSON.stringify(saved))
       }
     }
   })
