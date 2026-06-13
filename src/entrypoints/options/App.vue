@@ -50,7 +50,6 @@ function navigateTo(path: string) {
     <!-- Sidebar -->
     <Transition name="slide">
       <nav
-        v-show="sidebarOpen || undefined"
         :class="[
           'fixed xl:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col shrink-0 transition-transform duration-300',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0',
