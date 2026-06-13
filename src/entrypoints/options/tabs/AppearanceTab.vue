@@ -47,7 +47,7 @@ const densityOptions = [
             ]"
           >
             <component :is="opt.icon" class="w-5 h-5" :class="theme === opt.value ? 'text-primary' : 'text-muted-foreground'" />
-            <span class="text-sm font-medium">{{ opt.label }}</span>
+            <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
           </button>
         </div>
       </CardContent>
@@ -71,8 +71,8 @@ const densityOptions = [
                 : 'border-border hover:border-primary/50'
             ]"
           >
-            <span class="text-sm font-medium">{{ opt.label }}</span>
-            <span class="text-xs text-muted-foreground">{{ opt.desc }}</span>
+            <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
+            <span class="text-xs-scaled text-muted-foreground">{{ opt.desc }}</span>
           </button>
         </div>
       </CardContent>
@@ -96,8 +96,8 @@ const densityOptions = [
                 : 'border-border hover:border-primary/50'
             ]"
           >
-            <span class="text-sm font-medium">{{ opt.label }}</span>
-            <span class="text-xs text-muted-foreground">{{ opt.desc }}</span>
+            <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
+            <span class="text-xs-scaled text-muted-foreground">{{ opt.desc }}</span>
           </button>
         </div>
       </CardContent>

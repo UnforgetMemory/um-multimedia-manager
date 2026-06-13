@@ -46,7 +46,7 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex items-center justify-between px-5 pt-4 pb-2">
       <h1 class="text-lg font-bold tracking-tight">UMManager</h1>
-      <span class="text-xs text-secondary-content">v{{ appVersion }}</span>
+      <span class="text-xs-scaled text-secondary-content">v{{ appVersion }}</span>
     </div>
 
     <Separator />
@@ -61,7 +61,7 @@ onMounted(() => {
             <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.movie.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-secondary-content mt-1">电影</div>
+            <div class="text-xs-scaled text-secondary-content mt-1">电影</div>
           </CardContent>
         </Card>
         <Card class="p-3 text-center overflow-hidden">
@@ -70,7 +70,7 @@ onMounted(() => {
             <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.tv.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-secondary-content mt-1">剧集</div>
+            <div class="text-xs-scaled text-secondary-content mt-1">剧集</div>
           </CardContent>
         </Card>
         <Card class="p-3 text-center overflow-hidden">
@@ -79,7 +79,7 @@ onMounted(() => {
             <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.music.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-secondary-content mt-1">音乐</div>
+            <div class="text-xs-scaled text-secondary-content mt-1">音乐</div>
           </CardContent>
         </Card>
         <Card class="p-3 text-center overflow-hidden">
@@ -88,7 +88,7 @@ onMounted(() => {
             <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? javCount.toLocaleString() : '—' }}
             </div>
-            <div class="text-xs text-secondary-content mt-1">成人视频</div>
+            <div class="text-xs-scaled text-secondary-content mt-1">成人视频</div>
           </CardContent>
         </Card>
       </div>
@@ -96,7 +96,7 @@ onMounted(() => {
       <!-- Total -->
       <Card class="mb-4 overflow-hidden">
         <CardContent class="flex items-center justify-between py-3 px-5">
-          <span class="text-sm font-medium text-secondary-content">总记录</span>
+          <span class="text-sm-scaled font-medium text-secondary-content">总记录</span>
           <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
             {{ dataReady ? (stats.total + javCount).toLocaleString() : '—' }}
           </span>

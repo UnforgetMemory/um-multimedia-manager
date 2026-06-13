@@ -109,3 +109,9 @@
 .text-primary-content { color: hsl(var(--foreground)); }
 .text-secondary-content { color: hsl(var(--muted-foreground)); }
 .text-tertiary-content { color: hsl(var(--muted-foreground) / 0.6); }
+
+/* Scaled text sizes — respect --font-scale for density modes */
+.text-xs-scaled { font-size: calc(0.75rem * var(--font-scale, 1)); line-height: 1rem; }
+.text-sm-scaled { font-size: calc(0.875rem * var(--font-scale, 1)); line-height: 1.25rem; }
+.text-base-scaled { font-size: calc(1rem * var(--font-scale, 1)); line-height: 1.5rem; }
+.text-lg-scaled { font-size: calc(1.125rem * var(--font-scale, 1)); line-height: 1.75rem; }

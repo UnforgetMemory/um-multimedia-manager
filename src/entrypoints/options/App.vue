@@ -59,7 +59,7 @@ function navigateTo(path: string) {
         <!-- Sidebar header -->
         <div class="flex items-center justify-between px-5 mb-6">
           <div>
-            <h1 class="text-base font-bold tracking-tight text-primary-content">UMManager</h1>
+            <h1 class="text-base-scaled font-bold tracking-tight text-primary-content">UMManager</h1>
             <span class="font-caption text-secondary-content">v{{ appVersion }}</span>
           </div>
           <button @click="sidebarOpen = false" class="xl:hidden p-1 rounded-md hover:bg-muted">

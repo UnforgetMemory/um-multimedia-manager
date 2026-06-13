@@ -96,7 +96,7 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
     <div class="space-y-4 p-[var(--card-padding)] border border-border rounded-lg">
       <div><Label>选择平台</Label><Select v-model="linkedSelectedPlatform" class="mt-2"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="p in PLATFORM_OPTIONS" :key="p.value" :value="p.value">{{ p.label }}</SelectItem></SelectContent></Select></div>
       <div><Label>媒体类型</Label><Select v-model="linkedSelectedDomain" class="mt-2"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="movie">电影</SelectItem><SelectItem value="tv">剧集</SelectItem><SelectItem value="music">音乐</SelectItem></SelectContent></Select></div>
-      <div><Label>平台 ID 或 URL</Label><Input v-model="linkedInput" placeholder="例如: 35401245 或 URL" class="mt-2" /><p class="text-xs text-muted-foreground mt-2">支持豆瓣、IMDb、NeoDB、TMDB 的 ID 或完整 URL</p></div>
+      <div><Label>平台 ID 或 URL</Label><Input v-model="linkedInput" placeholder="例如: 35401245 或 URL" class="mt-2" /><p class="text-xs-scaled text-muted-foreground mt-2">支持豆瓣、IMDb、NeoDB、TMDB 的 ID 或完整 URL</p></div>
     </div>
 
     <Alert v-if="isLinkedQuerying"><RefreshCw class="h-4 w-4 animate-spin" /><AlertTitle>查询中...</AlertTitle></Alert>
@@ -116,7 +116,7 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
         <div class="space-y-3">
           <div v-for="(item, i) in linkedQueryResult.linked" :key="i" class="p-3 border border-border rounded-lg" :class="{ 'bg-muted/20': item.status === -1 }">
             <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2"><Badge variant="secondary" class="text-xs">{{ getPlatformLabel(item.provider) }}</Badge><span class="text-xs text-secondary-content">{{ item.type }}</span></div>
+              <div class="flex items-center gap-2"><Badge variant="secondary" class="text-xs">{{ getPlatformLabel(item.provider) }}</Badge><span class="text-xs-scaled text-secondary-content">{{ item.type }}</span></div>
               <Badge :style="{ backgroundColor: getStatusColor(item.status), color: 'white' }" class="text-xs">{{ getStatusText(item.status, item.type) }}</Badge>
             </div>
             <div class="space-y-1 text-sm">

@@ -189,7 +189,7 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
             <div class="flex items-center gap-2"><strong>平台:</strong><Badge variant="outline" class="text-xs">{{ parseResult.provider }} / {{ parseResult.type }}</Badge></div>
             <div><strong>ID:</strong> {{ parseResult.providerId }}</div>
           </div>
-          <div v-else class="text-sm text-destructive">{{ parseResult.error }}</div>
+          <div v-else class="text-sm-scaled text-destructive">{{ parseResult.error }}</div>
         </AlertDescription>
       </Alert>
 
