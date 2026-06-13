@@ -408,47 +408,52 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
       <!-- Daily Detail List -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
-          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">每日详情</h3>
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }">
+          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-4)' }">每日详情</h3>
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
               class="rounded-xl border transition-all"
-              :class="day.isToday ? 'border-primary/30 bg-primary/5' : 'border-border hover:border-muted'"
-              :style="{ padding: 'var(--space-3)' }">
-              <!-- Day header -->
-              <div class="flex items-center justify-between" :style="{ marginBottom: day.items.length > 0 ? 'var(--space-2)' : '0' }">
-                <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+              :class="day.isToday ? 'border-primary/30 bg-primary/[0.03] shadow-sm' : 'border-border hover:border-muted hover:shadow-sm'"
+              :style="{ padding: 'var(--card-padding)' }">
+              <!-- Day header row -->
+              <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
+                <div class="flex items-center" :style="{ gap: 'var(--space-3)' }">
+                  <!-- Day badge -->
+                  <div class="w-10 h-10 rounded-xl flex flex-col items-center justify-center"
                     :style="{
                       backgroundColor: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
                       color: day.isToday ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
                     }">
-                    {{ day.weekday.charAt(1) }}
+                    <span class="font-bold leading-none" :style="{ fontSize: 'calc(0.9rem * var(--font-scale, 1))' }">{{ day.weekday.charAt(1) }}</span>
+                    <span class="leading-none" :style="{ fontSize: 'calc(0.55rem * var(--font-scale, 1))', opacity: 0.7 }">{{ day.dateStr }}</span>
                   </div>
                   <div>
                     <div class="font-body font-semibold text-primary-content">{{ day.weekday }}</div>
                     <div class="font-caption text-secondary-content">{{ day.dateStr }}</div>
                   </div>
                 </div>
-                <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1rem * var(--font-scale, 1))' }">
-                  {{ day.total }}
+                <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
+                  <span v-if="day.isToday" class="text-xs-scaled font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">今天</span>
+                  <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.125rem * var(--font-scale, 1))' }">
+                    {{ day.total }}
+                  </div>
                 </div>
               </div>
-              <!-- Source chips -->
-              <div v-if="day.items.length > 0" class="flex flex-wrap" :style="{ gap: 'var(--space-1)' }">
-                <span v-for="(item, i) in day.items" :key="i"
-                  class="inline-flex items-center gap-1 rounded-full border font-caption"
-                  :style="{
-                    padding: 'var(--space-1) var(--space-2)',
-                    fontSize: 'calc(0.7rem * var(--font-scale, 1))',
-                    borderColor: platformColor(platformHues[item.source] || 0, 'chip-border'),
-                    color: platformColor(platformHues[item.source] || 0, 'chip-text'),
-                    backgroundColor: platformColor(platformHues[item.source] || 0, 'chip-bg'),
-                  }">
-                  <span class="font-medium">{{ item.label }}</span>
-                  <span class="opacity-70">{{ item.count }}</span>
-                </span>
+
+              <!-- Source breakdown with mini progress bars -->
+              <div v-if="day.items.length > 0" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }">
+                <div v-for="(item, i) in day.items" :key="i" class="flex items-center" :style="{ gap: 'var(--space-2)' }">
+                  <span class="font-body text-secondary-content shrink-0" :style="{ width: '48px', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.label }}</span>
+                  <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500"
+                      :style="{
+                        width: `${(item.count / day.total) * 100}%`,
+                        backgroundColor: platformColor(platformHues[item.source] || 0, 'bar'),
+                      }" />
+                  </div>
+                  <span class="font-body font-medium tabular-nums text-primary-content shrink-0" :style="{ width: '32px', textAlign: 'right', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.count }}</span>
+                </div>
               </div>
-              <div v-else class="font-caption text-secondary-content" :style="{ fontSize: '11px' }">无记录</div>
+              <div v-else class="py-2 text-center font-caption text-secondary-content" :style="{ fontSize: '11px' }">无记录</div>
             </div>
           </div>
         </div>
