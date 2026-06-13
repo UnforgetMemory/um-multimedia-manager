@@ -12,6 +12,7 @@ interface DisplayRecord {
   providerId: string
   rating: number
   status: number
+  updatedAt: string
 }
 
 const loading = ref(false)
@@ -64,6 +65,64 @@ const maxCount = computed(() => {
   if (platformStats.value.length === 0) return 1
   return Math.max(...platformStats.value.map(p => p.count))
 })
+
+// Calendar heatmap data — last 90 days
+const calendarData = computed(() => {
+  const now = new Date()
+  const dayMs = 86400000
+  const days = 90
+  const map: Record<string, number> = {}
+
+  for (const r of records.value) {
+    if (!r.updatedAt) continue
+    const d = new Date(r.updatedAt)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    map[key] = (map[key] || 0) + 1
+  }
+  for (const item of adultAvItems.value) {
+    if (!item.updatedAt) continue
+    const d = new Date(item.updatedAt)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    map[key] = (map[key] || 0) + 1
+  }
+
+  const maxDaily = Math.max(1, ...Object.values(map))
+  const weeks: { date: Date; count: number; level: number }[][] = []
+  let currentWeek: { date: Date; count: number; level: number }[] = []
+
+  // Start from the oldest Sunday
+  const startDate = new Date(now.getTime() - (days - 1) * dayMs)
+  const startDay = startDate.getDay()
+  startDate.setDate(startDate.getDate() - startDay)
+
+  for (let i = 0; i < days + startDay; i++) {
+    const d = new Date(startDate.getTime() + i * dayMs)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const count = map[key] || 0
+    const level = count === 0 ? 0 : Math.min(4, Math.ceil((count / maxDaily) * 4))
+    currentWeek.push({ date: d, count, level })
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek)
+      currentWeek = []
+    }
+  }
+  if (currentWeek.length > 0) weeks.push(currentWeek)
+
+  // Month labels
+  const monthLabels: { week: number; label: string }[] = []
+  let lastMonth = -1
+  weeks.forEach((week, i) => {
+    const month = week[0].date.getMonth()
+    if (month !== lastMonth) {
+      monthLabels.push({ week: i, label: week[0].date.toLocaleDateString('zh-CN', { month: 'short' }) })
+      lastMonth = month
+    }
+  })
+
+  return { weeks, monthLabels, maxDaily }
+})
+
+const dayLabels = ['', '一', '', '三', '', '五', '']
 
 const statIcons = [Film, Tv, Music, ShieldAlert]
 const statLabels = ['电影', '剧集', '音乐', '成人视频']
@@ -157,6 +216,55 @@ onMounted(loadData)
           <span class="font-bold tracking-tight text-primary-content tabular-nums whitespace-nowrap" :style="{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }">
             {{ stats.total.toLocaleString() }}
           </span>
+        </div>
+      </Card>
+
+      <!-- Calendar Heatmap -->
+      <Card>
+        <div :style="{ padding: 'var(--card-padding)' }">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-h2 text-primary-content">活跃度</h3>
+            <span class="font-caption text-secondary-content">最近 90 天</span>
+          </div>
+          <div class="overflow-x-auto">
+            <div class="inline-flex" :style="{ gap: '3px' }">
+              <!-- Day labels -->
+              <div class="flex flex-col" :style="{ gap: '3px', marginRight: '4px' }">
+                <div v-for="(label, i) in dayLabels" :key="i"
+                  class="font-caption text-secondary-content"
+                  :style="{ width: '14px', height: '14px', fontSize: '9px', lineHeight: '14px', textAlign: 'right' }">
+                  {{ label }}
+                </div>
+              </div>
+              <!-- Weeks -->
+              <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '3px' }">
+                <div v-for="(day, di) in week" :key="di"
+                  class="rounded-sm transition-colors cursor-default group relative"
+                  :style="{
+                    width: '14px', height: '14px',
+                    backgroundColor: day.level === 0
+                      ? 'hsl(var(--muted))'
+                      : `hsl(142, ${40 + day.level * 10}%, ${65 - day.level * 10}%)`,
+                  }"
+                >
+                  <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-primary-content bg-popover border border-border rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-sm">
+                    {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Legend -->
+            <div class="flex items-center gap-1.5 mt-2 justify-end">
+              <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">少</span>
+              <div v-for="i in 5" :key="i" class="rounded-sm"
+                :style="{
+                  width: '10px', height: '10px',
+                  backgroundColor: i === 1 ? 'hsl(var(--muted))' : `hsl(142, ${40 + (i-1) * 10}%, ${65 - (i-1) * 10}%)`,
+                }"
+              />
+              <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">多</span>
+            </div>
+          </div>
         </div>
       </Card>
 
