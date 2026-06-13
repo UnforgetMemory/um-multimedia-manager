@@ -232,7 +232,7 @@ async function loadData() {
 
 onMounted(loadData)
 
-const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
+const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
 </script>
 
 <template>
@@ -270,7 +270,7 @@ const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
       <!-- Sub-tabs -->
       <div class="flex p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
         <button
-          v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'distribution' as const, label: '分布' }]"
+          v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'weekly' as const, label: '最近一周' }, { id: 'platform' as const, label: '平台分布' }]"
           :key="tab.id"
           @click="activeOverviewTab = tab.id"
           :class="[
@@ -351,8 +351,8 @@ const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
       </Card>
       </div><!-- end overview tab -->
 
-      <!-- Tab: Distribution (Weekly + Platform) -->
-      <div v-if="activeOverviewTab === 'distribution'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+      <!-- Tab: Weekly Detail -->
+      <div v-if="activeOverviewTab === 'weekly'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
       <!-- Last 7 Days Detail -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
@@ -391,7 +391,10 @@ const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
           </div>
         </div>
       </Card>
+      </div><!-- end weekly tab -->
 
+      <!-- Tab: Platform Distribution -->
+      <div v-if="activeOverviewTab === 'platform'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
       <!-- Platform Distribution -->
       <div>
         <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">平台分布</h3>
@@ -482,7 +485,7 @@ const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
           暂无数据
         </div>
       </div>
-      </div><!-- end distribution tab -->
+      </div><!-- end platform tab -->
     </template>
 
     <!-- Fixed-position tooltip (renders outside all overflow contexts) -->
