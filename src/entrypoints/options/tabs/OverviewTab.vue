@@ -124,6 +124,17 @@ const calendarData = computed(() => {
 
 const dayLabels = ['', '一', '', '三', '', '五', '']
 
+function heatmapColor(level: number): string {
+  const isDark = document.documentElement.classList.contains('dark')
+  if (level === 0) return 'hsl(var(--muted))'
+  if (isDark) {
+    // Dark theme: brighter greens on dark background
+    return `hsl(142, ${40 + level * 5}%, ${20 + level * 5}%)`
+  }
+  // Light theme: deeper greens on light background
+  return `hsl(142, ${35 + level * 5}%, ${70 - level * 6}%)`
+}
+
 const statIcons = [Film, Tv, Music, ShieldAlert]
 const statLabels = ['电影', '剧集', '音乐', '成人视频']
 const statKeys = ['movie', 'tv', 'music', 'jav'] as const
@@ -242,9 +253,7 @@ onMounted(loadData)
                   class="rounded-sm transition-colors cursor-default group relative"
                   :style="{
                     width: '14px', height: '14px',
-                    backgroundColor: day.level === 0
-                      ? 'hsl(var(--muted))'
-                      : `hsl(142, ${35 + day.level * 5}%, ${70 - day.level * 6}%)`,
+                    backgroundColor: heatmapColor(day.level),
                   }"
                 >
                   <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-primary-content bg-popover border border-border rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-sm">
@@ -256,11 +265,10 @@ onMounted(loadData)
             <!-- Legend: 9 levels -->
             <div class="flex items-center gap-1 mt-2 justify-end">
               <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">少</span>
-              <div class="rounded-sm" :style="{ width: '10px', height: '10px', backgroundColor: 'hsl(var(--muted))' }" />
-              <div v-for="i in 8" :key="i" class="rounded-sm"
+              <div v-for="i in 9" :key="i" class="rounded-sm"
                 :style="{
                   width: '10px', height: '10px',
-                  backgroundColor: `hsl(142, ${35 + i * 5}%, ${70 - i * 6}%)`,
+                  backgroundColor: heatmapColor(i - 1),
                 }"
               />
               <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">多</span>
