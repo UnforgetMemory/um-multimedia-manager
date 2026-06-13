@@ -237,9 +237,9 @@ onMounted(loadData)
             <h3 class="font-h2 text-primary-content">活跃度</h3>
             <span class="font-caption text-secondary-content">最近 90 天</span>
           </div>
-          <!-- Heatmap grid -->
-          <div class="overflow-x-auto pb-2 -mb-2">
-            <div class="flex" :style="{ gap: '4px', minWidth: 'min-content' }">
+          <!-- Heatmap grid — rtl so scrollbar starts from right (latest data) -->
+          <div class="overflow-x-auto pb-2 -mb-2" style="direction: rtl;">
+            <div class="flex" :style="{ gap: '4px', minWidth: 'min-content', direction: 'ltr' }">
               <!-- Day labels -->
               <div class="flex flex-col" :style="{ gap: '4px', marginRight: '6px' }">
                 <div v-for="(label, i) in dayLabels" :key="i"
