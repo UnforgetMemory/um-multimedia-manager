@@ -231,6 +231,8 @@ async function loadData() {
 }
 
 onMounted(loadData)
+
+const activeOverviewTab = ref<'overview' | 'distribution'>('overview')
 </script>
 
 <template>
@@ -265,8 +267,27 @@ onMounted(loadData)
 
     <!-- Content -->
     <template v-else>
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
+      <!-- Sub-tabs -->
+      <div class="flex border-b border-border" :style="{ gap: 'var(--space-1)' }">
+        <button
+          v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'distribution' as const, label: '分布' }]"
+          :key="tab.id"
+          @click="activeOverviewTab = tab.id"
+          :class="[
+            'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+            activeOverviewTab === tab.id
+              ? 'border-primary text-primary-content'
+              : 'border-transparent text-secondary-content hover:text-primary-content hover:border-muted'
+          ]"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <!-- Tab: Overview (Stats + Heatmap) -->
+      <div v-if="activeOverviewTab === 'overview'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
         <Card v-for="(key, i) in statKeys" :key="key" class="text-center" :style="{ padding: 'var(--card-padding)', minWidth: 0 }">
           <component :is="statIcons[i]" class="mx-auto mb-2 text-secondary-content" :style="{ width: 'calc(1.25rem * var(--font-scale, 1))', height: 'calc(1.25rem * var(--font-scale, 1))' }" />
           <div class="font-bold tracking-tight text-primary-content tabular-nums whitespace-nowrap" :style="{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }">
@@ -328,7 +349,10 @@ onMounted(loadData)
           </div>
         </div>
       </Card>
+      </div><!-- end overview tab -->
 
+      <!-- Tab: Distribution (Weekly + Platform) -->
+      <div v-if="activeOverviewTab === 'distribution'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
       <!-- Last 7 Days Detail -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
@@ -458,6 +482,7 @@ onMounted(loadData)
           暂无数据
         </div>
       </div>
+      </div><!-- end distribution tab -->
     </template>
 
     <!-- Fixed-position tooltip (renders outside all overflow contexts) -->
