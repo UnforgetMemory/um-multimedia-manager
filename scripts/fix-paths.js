@@ -4,9 +4,8 @@
  */
 
 import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { dirname } from 'path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -44,41 +43,6 @@ htmlFiles.forEach(file => {
 })
 
 console.log('[PostBuild] Done!')
-
-// ==================== Fix static imports in ALL chunks ====================
-// Chrome resolves ES module imports relative to the document URL, not the script URL.
-// Options page chunks are at chunks/options-*.js but imports like "./style-X.js"
-// resolve to chrome-extension://ID/style-X.js (root) instead of chunks/style-X.js.
-
-console.log('[PostBuild] Fixing static imports in chunks...')
-
-import { readdirSync } from 'fs'
-
-try {
-  const chunksDir = join(distDir, 'chunks')
-  const chunkFiles = readdirSync(chunksDir).filter(f => f.endsWith('.js') && !f.startsWith('_virtual_'))
-
-  for (const chunkFile of chunkFiles) {
-    const chunkPath = join(chunksDir, chunkFile)
-    let content = readFileSync(chunkPath, 'utf-8')
-    let changed = false
-
-    // Fix static imports: from"./X.js" -> from"./chunks/X.js"
-    // Only if path doesn't already start with "chunks/"
-    const newContent = content.replace(/from"\.\/(?!chunks\/)(.*?)\.js"/g, (match, name) => {
-      if (name.startsWith('_virtual_') || name.includes('wxt-plugins')) return match
-      changed = true
-      return `from"./chunks/${name}.js"`
-    })
-
-    if (changed) {
-      writeFileSync(chunkPath, newContent, 'utf-8')
-      console.log(`[PostBuild] ✓ Fixed imports in ${chunkFile}`)
-    }
-  }
-} catch (error) {
-  console.error('[PostBuild] ✗ Failed to fix chunk imports:', error.message)
-}
 
 // ==================== Fix manifest: set options_ui.open_in_tab = true ====================
 // WXT 0.20.26 defaults open_in_tab to false regardless of config.

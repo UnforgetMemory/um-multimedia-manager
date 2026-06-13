@@ -2,6 +2,20 @@
 
 All notable changes to the UMM (um-multimedia-manager) project are documented here.
 
+## [3.1.0] - 2026-06-13
+
+### Fixed
+
+- **ERR_FILE_NOT_FOUND 修复**: 移除 fix-paths.js 中错误的对所有 chunk 添加 `chunks/` 前缀的逻辑（导致 `chunks/chunks/X.js` 双前缀 404），保留正确的 HTML 路径修复和 crossorigin 移除
+- **柱状图高度渲染修复**: 修复最近一周每日记录柱状图百分比高度在 flex 布局中退化为 auto 的问题，通过外层 `stretch` + `height: 100%` + flex-1 wrapper 建立确定的高度引用链
+- **XSS 安全加固**: `sehuatang.ts` 中 `card.innerHTML` 的 URL 注入点加上 `escapeHtml()` 防护
+
+### Changed
+
+- **移除未使用的 downloads 权限**: `wxt.config.ts` 清理不再使用的 `"downloads"` 声明
+- **.gitignore 优化**: `docs/` 模式替换为 `docs/_generated/`，避免遮蔽已追踪的文档目录
+- **代码整洁**: `fix-paths.js` 合并 path 模块导入语句
+
 ## [3.0.0] - 2026-06-12
 
 ### Added
@@ -32,23 +46,6 @@ All notable changes to the UMM (um-multimedia-manager) project are documented he
 
 - **Popup 空白页**: 根因是 `fix-paths.js` 的正则 `/"\.\/(.*?)\.js"/g` 同时匹配静态和动态导入，给已正确解析的静态导入添加了 `chunks/` 前缀，导致双倍路径（`chunks/chunks/X.js` → 404）。修复：移除整个动态导入重写段落
 - **Options Page 入口**: WXT 0.20.26 忽略 `open_in_tab` 配置，默认为 `false`。修复：在 fix-paths.js 中补丁 manifest.json
-
-### Added
-
-- **色花堂列表页预览**: 新增 sehuatang.net/sehuatang.org 论坛列表页处理器，替换原始帖子列表为卡片网格预览，支持封面图片懒加载、磁力链接一键复制、已阅条目淡化
-- **JavDB 已阅淡化**: 新增 javdb.com 增强器，自动淡化已阅 AV 条目（灰度 + 透明度），点击可标记为已阅
-- **AV ID 数据存储**: 新增 `sehuatang_avids` IndexedDB store（v8 schema），存储 V2 格式 AV ID 记录（id/rating/updatedAt），支持批量导入 JSON
-- **手动添加面板**: 新增浮动面板，支持手动输入 AV ID 或 JSON 数组批量添加已阅记录
-- **查询已阅面板**: 新增可拖拽面板，输入 AV ID 查询已阅状态、评分和时间
-- **轻量 i18n 模块**: 新增 content script 国际化支持（zh-CN/en-US/zh-HK/zh-TW），无需外部依赖
-- **Background 消息处理**: 新增 `SEHUATANG_CHECK_VIEWED` / `SEHUATANG_ADD` / `SEHUATANG_BATCH_ADD` / `SEHUATANG_GET_ALL` 消息类型
-- **Host 权限扩展**: 新增 sehuatang.net/sehuatang.org/javdb.com 域名权限
-
-### Changed
-
-- **IndexedDB 升级**: DB_VERSION 7→8，新增 `sehuatang_avids` object store（带 updatedAt 索引）
-- **RECORD_STORES 扩展**: 新增 `sehuatang_avids` 到记录存储列表
-- **版本更新**: 2.0.0 → 3.0.0
 
 ## [2.0.0] - 2026-06-11
 

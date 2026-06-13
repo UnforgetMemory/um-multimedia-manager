@@ -391,19 +391,21 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
           <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">每日记录</h3>
-          <div class="flex items-end" :style="{ gap: 'var(--space-2)', height: '8rem' }">
+          <div class="flex" :style="{ gap: 'var(--space-2)', height: '8rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
-              class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)' }">
-              <!-- Bar — log scale for maximum differentiation of small values -->
-              <div class="w-full rounded-t-lg transition-all duration-300 relative group cursor-default"
-                :style="{
-                  height: `${Math.max(10, (Math.log(day.total + 1) / Math.log(weeklyStats.maxDaily + 1)) * 100)}%`,
-                  backgroundColor: day.isToday ? 'hsl(var(--primary))' : barColor(day.total, weeklyStats.maxDaily),
-                  minHeight: '10px',
-                  opacity: day.total === 0 ? 0.3 : 1,
-                }">
-                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs-scaled font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {{ day.total }}
+              class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)', height: '100%' }">
+              <!-- Bar — log scale, flex-1 wrapper provides definite height for percentage -->
+              <div class="flex-1 w-full flex flex-col justify-end min-h-0">
+                <div class="w-full rounded-t-lg transition-all duration-300 relative group cursor-default"
+                  :style="{
+                    height: `${Math.max(10, (Math.log(day.total + 1) / Math.log(weeklyStats.maxDaily + 1)) * 100)}%`,
+                    backgroundColor: day.isToday ? 'hsl(var(--primary))' : barColor(day.total, weeklyStats.maxDaily),
+                    minHeight: '10px',
+                    opacity: day.total === 0 ? 0.3 : 1,
+                  }">
+                  <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs-scaled font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    {{ day.total }}
+                  </div>
                 </div>
               </div>
               <!-- Label -->

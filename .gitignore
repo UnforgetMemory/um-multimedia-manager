@@ -57,7 +57,7 @@ review_diff*.txt
 
 # AI-generated documentation and test artifacts
 test-results/
-docs/
+docs/_generated/
 
 # Data export/import temporary directories
 data-exports/
