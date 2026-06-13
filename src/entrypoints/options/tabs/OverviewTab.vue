@@ -99,7 +99,7 @@ const calendarData = computed(() => {
     const d = new Date(startDate.getTime() + i * dayMs)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const count = map[key] || 0
-    const level = count === 0 ? 0 : Math.min(4, Math.ceil((count / maxDaily) * 4))
+    const level = count === 0 ? 0 : Math.min(8, Math.ceil((count / maxDaily) * 8))
     currentWeek.push({ date: d, count, level })
     if (currentWeek.length === 7) {
       weeks.push(currentWeek)
@@ -244,7 +244,7 @@ onMounted(loadData)
                     width: '14px', height: '14px',
                     backgroundColor: day.level === 0
                       ? 'hsl(var(--muted))'
-                      : `hsl(142, ${40 + day.level * 10}%, ${65 - day.level * 10}%)`,
+                      : `hsl(142, ${35 + day.level * 5}%, ${70 - day.level * 6}%)`,
                   }"
                 >
                   <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-primary-content bg-popover border border-border rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-sm">
@@ -253,13 +253,14 @@ onMounted(loadData)
                 </div>
               </div>
             </div>
-            <!-- Legend -->
-            <div class="flex items-center gap-1.5 mt-2 justify-end">
+            <!-- Legend: 9 levels -->
+            <div class="flex items-center gap-1 mt-2 justify-end">
               <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">少</span>
-              <div v-for="i in 5" :key="i" class="rounded-sm"
+              <div class="rounded-sm" :style="{ width: '10px', height: '10px', backgroundColor: 'hsl(var(--muted))' }" />
+              <div v-for="i in 8" :key="i" class="rounded-sm"
                 :style="{
                   width: '10px', height: '10px',
-                  backgroundColor: i === 1 ? 'hsl(var(--muted))' : `hsl(142, ${40 + (i-1) * 10}%, ${65 - (i-1) * 10}%)`,
+                  backgroundColor: `hsl(142, ${35 + i * 5}%, ${70 - i * 6}%)`,
                 }"
               />
               <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">多</span>
