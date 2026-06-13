@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
-import { Database, Star, Link, RefreshCw, Settings, Palette } from 'lucide-vue-next'
+import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 
 useTheme()
+
+const sidebarOpen = ref(false)
 
 const appVersion = computed(() => {
   try { return chrome.runtime.getManifest().version } catch { return '3.0.0' }
@@ -29,75 +31,105 @@ const currentTab = computed(() => {
 
 function navigateTo(path: string) {
   router.push(path)
+  sidebarOpen.value = false
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground">
-    <!-- Header -->
-    <header class="border-b border-border" :style="{ padding: 'var(--space-4) var(--page-margin)' }">
-      <div class="mx-auto flex items-center justify-between" style="max-width: 1440px;">
-        <h1 class="font-h1 tracking-tight">UMManager</h1>
-        <span class="font-caption text-secondary-content">v{{ appVersion }}</span>
-      </div>
-    </header>
+  <div class="min-h-screen bg-background text-foreground flex">
+    <!-- Sidebar — persistent on xl+, drawer on smaller -->
+    <!-- Mobile drawer overlay -->
+    <Transition name="fade">
+      <div
+        v-if="sidebarOpen"
+        class="xl:hidden fixed inset-0 bg-black/50 z-40"
+        @click="sidebarOpen = false"
+      />
+    </Transition>
 
-    <div class="mx-auto flex" style="max-width: 1440px;">
-      <!-- Sidebar (xl+) -->
-      <nav class="w-60 shrink-0 border-r border-border hidden xl:block" :style="{ padding: 'var(--space-4)' }">
-        <div class="space-y-1">
+    <!-- Sidebar -->
+    <Transition name="slide">
+      <nav
+        v-show="sidebarOpen || undefined"
+        :class="[
+          'fixed xl:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col shrink-0 transition-transform duration-300',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0',
+        ]"
+        :style="{ paddingTop: 'var(--space-5)', paddingBottom: 'var(--space-5)' }"
+      >
+        <!-- Sidebar header -->
+        <div class="flex items-center justify-between px-5 mb-6">
+          <div>
+            <h1 class="text-base font-bold tracking-tight text-primary-content">UMManager</h1>
+            <span class="font-caption text-secondary-content">v{{ appVersion }}</span>
+          </div>
+          <button @click="sidebarOpen = false" class="xl:hidden p-1 rounded-md hover:bg-muted">
+            <X class="w-4 h-4 text-secondary-content" />
+          </button>
+        </div>
+
+        <!-- Nav items -->
+        <div class="flex-1 px-3 space-y-1">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             @click="navigateTo(tab.route)"
             :class="[
-              'w-full flex items-center gap-3 rounded-md font-medium transition-colors',
+              'w-full flex items-center gap-3 rounded-lg font-medium transition-all duration-200',
               currentTab === tab.id
-                ? 'bg-primary text-primary-foreground'
-                : 'text-secondary-content hover:bg-muted hover:text-primary-content'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-secondary-content hover:bg-muted hover:text-primary-content',
             ]"
             :style="{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--font-body-size)' }"
           >
-            <component :is="tab.icon" class="h-4 w-4" />
-            {{ tab.label }}
+            <component :is="tab.icon" class="h-4 w-4 shrink-0" />
+            <span class="truncate">{{ tab.label }}</span>
           </button>
         </div>
-      </nav>
 
-      <!-- Bottom nav (sm–lg) -->
-      <nav class="xl:hidden fixed bottom-0 left-0 right-0 border-t border-border bg-background z-50" :style="{ padding: '0 var(--page-margin)' }">
-        <div class="flex justify-around py-2">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            @click="navigateTo(tab.route)"
-            :class="[
-              'flex flex-col items-center gap-1 font-medium transition-colors',
-              currentTab === tab.id ? 'text-primary' : 'text-secondary-content'
-            ]"
-            :style="{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--font-caption-size)' }"
-          >
-            <component :is="tab.icon" class="h-4 w-4" />
-            {{ tab.label }}
-          </button>
+        <!-- Sidebar footer -->
+        <div class="px-5 pt-4 border-t border-border">
+          <span class="font-caption text-tertiary-content">UMManager · v{{ appVersion }}</span>
         </div>
       </nav>
+    </Transition>
 
-      <!-- Content -->
-      <main class="flex-1 pb-20 xl:pb-0" :style="{ padding: 'var(--card-padding)' }">
-        <RouterView v-slot="{ Component }">
-          <Suspense>
-            <component :is="Component" />
-            <template #fallback>
-              <div class="space-y-4 animate-pulse">
-                <div class="h-8 bg-muted rounded w-1/3"></div>
-                <div class="h-4 bg-muted rounded w-2/3"></div>
-                <div class="h-48 bg-muted rounded"></div>
-              </div>
-            </template>
-          </Suspense>
-        </RouterView>
+    <!-- Main content area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Top bar -->
+      <header class="border-b border-border shrink-0" :style="{ padding: 'var(--space-3) var(--page-margin)' }">
+        <div class="flex items-center gap-3">
+          <button @click="sidebarOpen = !sidebarOpen" class="xl:hidden p-1.5 rounded-md hover:bg-muted">
+            <Menu class="w-5 h-5 text-secondary-content" />
+          </button>
+          <h2 class="font-h2 text-primary-content truncate">{{ tabs.find(t => t.id === currentTab)?.label || '概览' }}</h2>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <main class="flex-1 overflow-y-auto" :style="{ padding: 'var(--card-padding)' }">
+        <div class="mx-auto" style="max-width: 1200px;">
+          <RouterView v-slot="{ Component }">
+            <Suspense>
+              <component :is="Component" />
+              <template #fallback>
+                <div class="space-y-4 animate-pulse">
+                  <div class="h-8 bg-muted rounded w-1/3"></div>
+                  <div class="h-4 bg-muted rounded w-2/3"></div>
+                  <div class="h-48 bg-muted rounded"></div>
+                </div>
+              </template>
+            </Suspense>
+          </RouterView>
+        </div>
       </main>
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+.slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+.slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+</style>

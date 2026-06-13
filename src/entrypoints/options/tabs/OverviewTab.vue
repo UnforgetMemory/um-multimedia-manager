@@ -140,7 +140,7 @@ onMounted(loadData)
       <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
         <Card v-for="(key, i) in statKeys" :key="key" class="text-center overflow-hidden" :style="{ padding: 'var(--card-padding)' }">
           <component :is="statIcons[i]" class="mx-auto mb-2 text-secondary-content" :style="{ width: 'calc(1.25rem * var(--font-scale, 1))', height: 'calc(1.25rem * var(--font-scale, 1))' }" />
-          <div class="font-display text-primary-content truncate">
+          <div class="font-display text-primary-content tabular-nums whitespace-nowrap">
             {{ stats[key].toLocaleString() }}
           </div>
           <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ statLabels[i] }}</div>
@@ -154,7 +154,7 @@ onMounted(loadData)
             <Database class="w-4 h-4 text-secondary-content" />
             <span class="font-body font-medium text-secondary-content">总记录</span>
           </div>
-          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate">
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content tabular-nums whitespace-nowrap">
             {{ stats.total.toLocaleString() }}
           </span>
         </div>
