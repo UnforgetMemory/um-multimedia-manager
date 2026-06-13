@@ -14,8 +14,6 @@ const subTabs = [
 
 <template>
   <div class="space-y-[var(--section-gap)]">
-    <h2 class="font-h1 text-primary-content">数据同步</h2>
-
     <div class="flex p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
       <button
         v-for="tab in subTabs"

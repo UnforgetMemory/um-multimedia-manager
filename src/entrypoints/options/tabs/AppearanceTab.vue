@@ -26,8 +26,6 @@ const densityOptions = [
 
 <template>
   <div class="space-y-6">
-    <h2 class="font-h1 text-primary-content">外观设置</h2>
-
     <!-- Theme -->
     <Card>
       <CardHeader class="pb-3">

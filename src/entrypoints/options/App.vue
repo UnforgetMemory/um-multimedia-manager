@@ -86,10 +86,6 @@ function navigateTo(path: string) {
           </button>
         </div>
 
-        <!-- Sidebar footer -->
-        <div class="px-5 pt-4 border-t border-border">
-          <span class="font-caption text-tertiary-content">UMManager · v{{ appVersion }}</span>
-        </div>
       </nav>
     </Transition>
 

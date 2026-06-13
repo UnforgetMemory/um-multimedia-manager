@@ -54,8 +54,6 @@ watch([debugEnabled, logLevel], async ([e, l]) => {
 
 <template>
   <div class="space-y-[var(--section-gap)]">
-    <h2 class="font-h1 text-primary-content">设置</h2>
-
     <div class="space-y-4">
       <h3 class="font-h2 text-primary-content">NeoDB 配置</h3>
       <div><Label>API Token</Label><Input v-model="neodbToken" type="password" placeholder="请输入 NeoDB API Token" class="mt-2" /><p class="font-caption text-secondary-content mt-2">用于同步评分到 NeoDB</p></div>

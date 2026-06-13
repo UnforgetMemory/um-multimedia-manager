@@ -153,8 +153,6 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
 
 <template>
   <div class="space-y-[var(--section-gap)]">
-    <h2 class="font-h1 text-primary-content">评分管理</h2>
-
     <div class="space-y-4 p-[var(--card-padding)] border border-border rounded-lg">
       <div>
         <Label>选择平台</Label>

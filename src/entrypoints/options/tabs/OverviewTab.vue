@@ -250,13 +250,6 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
 
 <template>
   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
-    <!-- Header -->
-    <div class="flex items-center justify-end">
-      <Button variant="ghost" size="sm" @click="loadData" :disabled="loading">
-        <RefreshCw :class="['h-4 w-4', loading && 'animate-spin']" />
-      </Button>
-    </div>
-
     <!-- Skeleton -->
     <div v-if="!dataReady && !loadError" class="space-y-6">
       <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">

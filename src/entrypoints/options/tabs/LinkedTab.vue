@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Link, RefreshCw, Star } from 'lucide-vue-next'
+import { RefreshCw, Star } from 'lucide-vue-next'
 
 const PLATFORM_OPTIONS = [
   { value: 'douban', label: '豆瓣' }, { value: 'imdb', label: 'IMDb' },
@@ -91,8 +91,6 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
 
 <template>
   <div class="space-y-[var(--section-gap)]">
-    <h2 class="font-h1 text-primary-content flex items-center gap-2"><Link class="h-5 w-5" />关联查询</h2>
-
     <div class="space-y-4 p-[var(--card-padding)] border border-border rounded-lg">
       <div><Label>选择平台</Label><Select v-model="linkedSelectedPlatform" class="mt-2"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="p in PLATFORM_OPTIONS" :key="p.value" :value="p.value">{{ p.label }}</SelectItem></SelectContent></Select></div>
       <div><Label>媒体类型</Label><Select v-model="linkedSelectedDomain" class="mt-2"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="movie">电影</SelectItem><SelectItem value="tv">剧集</SelectItem><SelectItem value="music">音乐</SelectItem></SelectContent></Select></div>
