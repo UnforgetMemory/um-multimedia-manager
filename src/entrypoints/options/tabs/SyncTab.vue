@@ -36,7 +36,11 @@ const subTabs = [
       <WebDAVTab v-if="activeSubTab === 'webdav'" />
       <ImportExportTab v-else-if="activeSubTab === 'import-export'" />
       <template #fallback>
-        <div class="py-8 text-center text-secondary-content font-body">加载中...</div>
+        <div class="space-y-4">
+          <div class="h-8 bg-muted rounded-lg animate-pulse w-1/3"></div>
+          <div class="h-4 bg-muted rounded-lg animate-pulse w-2/3"></div>
+          <div class="h-32 bg-muted rounded-xl animate-pulse"></div>
+        </div>
       </template>
     </Suspense>
   </div>
