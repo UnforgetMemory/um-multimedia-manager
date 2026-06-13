@@ -133,6 +133,17 @@ function heatmapColor(level: number): string {
   return `hsl(142, ${35 + level * 5}%, ${70 - level * 6}%)`
 }
 
+function barColor(count: number, maxCount: number): string {
+  const isDark = document.documentElement.classList.contains('dark')
+  if (count === 0) return 'hsl(var(--muted))'
+  const ratio = count / maxCount
+  const level = Math.min(5, Math.ceil(ratio * 5))
+  if (isDark) {
+    return `hsl(210, ${30 + level * 8}%, ${25 + level * 6}%)`
+  }
+  return `hsl(210, ${35 + level * 7}%, ${75 - level * 8}%)`
+}
+
 const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 const weeklyStats = computed(() => {
@@ -381,17 +392,18 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
           <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">每日记录</h3>
-          <div class="flex items-end" :style="{ gap: 'var(--space-2)', height: '6rem' }">
+          <div class="flex items-end" :style="{ gap: 'var(--space-2)', height: '8rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
               class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)' }">
               <!-- Bar -->
-              <div class="w-full rounded-t-md transition-all duration-300 relative group cursor-default"
+              <div class="w-full rounded-t-lg transition-all duration-300 relative group cursor-default"
                 :style="{
                   height: `${Math.max(4, (day.total / weeklyStats.maxDaily) * 100)}%`,
-                  backgroundColor: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                  backgroundColor: day.isToday ? 'hsl(var(--primary))' : barColor(day.total, weeklyStats.maxDaily),
                   minHeight: day.total > 0 ? '8px' : '4px',
+                  opacity: day.total === 0 ? 0.3 : 1,
                 }">
-                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs-scaled font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {{ day.total }}
                 </div>
               </div>
