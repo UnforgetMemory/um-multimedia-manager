@@ -12,10 +12,12 @@
       --section-gap: 24px;
       --card-padding: 16px;
     }
-    /* System dark mode: apply immediately via CSS (no JS needed) */
+    /* System dark mode: apply immediately via CSS */
     @media (prefers-color-scheme: dark) {
       html:not([data-theme="light"]) { color-scheme: dark; }
     }
+    /* Popup: no transition — instant theme switch to prevent flash */
+    *, *::before, *::after { transition: none !important; }
   </style>
 </head>
 <body>
