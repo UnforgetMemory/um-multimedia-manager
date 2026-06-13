@@ -12,12 +12,26 @@
       --section-gap: 24px;
       --card-padding: 16px;
     }
-    /* Apply dark theme immediately to avoid flash */
-    @media (prefers-color-scheme: dark) {
-      html { color-scheme: dark; }
-      html:not(.light) { }
-    }
   </style>
+  <script>
+    // Apply theme BEFORE Vue mounts to prevent light→dark flash
+    // 1. Check system preference immediately (sync)
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+    // 2. Read stored setting and override (async but fast)
+    try {
+      chrome.storage.local.get(['settings'], function(result) {
+        var appearance = (result && result.settings && result.settings.appearance) || 'auto';
+        if (appearance === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else if (appearance === 'light') {
+          document.documentElement.classList.remove('dark');
+        }
+        // 'auto' case already handled by matchMedia above
+      });
+    } catch(e) {}
+  </script>
 </head>
 <body>
   <div id="app"></div>
