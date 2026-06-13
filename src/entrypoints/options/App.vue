@@ -36,7 +36,7 @@ function navigateTo(path: string) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground flex">
+  <div class="h-screen bg-background text-foreground flex overflow-hidden">
     <!-- Sidebar — persistent on xl+, drawer on smaller -->
     <!-- Mobile drawer overlay -->
     <Transition name="fade">
