@@ -95,18 +95,13 @@ function navigateTo(path: string) {
 
     <!-- Main content area -->
     <div class="flex-1 flex flex-col min-w-0">
-      <!-- Top bar -->
-      <header class="border-b border-border shrink-0" :style="{ padding: 'var(--space-3) var(--page-margin)' }">
-        <div class="flex items-center gap-3">
-          <button @click="sidebarOpen = !sidebarOpen" class="xl:hidden p-1.5 rounded-md hover:bg-muted">
-            <Menu class="w-5 h-5 text-secondary-content" />
-          </button>
-          <h2 class="font-h2 text-primary-content truncate">{{ tabs.find(t => t.id === currentTab)?.label || '概览' }}</h2>
-        </div>
-      </header>
+      <!-- Mobile menu button -->
+      <button @click="sidebarOpen = !sidebarOpen" class="xl:hidden fixed top-3 left-3 z-30 p-2 rounded-lg bg-card border border-border shadow-sm hover:bg-muted transition-colors">
+        <Menu class="w-4 h-4 text-secondary-content" />
+      </button>
 
       <!-- Page content -->
-      <main class="flex-1 overflow-y-auto" :style="{ padding: 'var(--card-padding)' }">
+      <main class="flex-1 overflow-y-auto" :style="{ padding: 'var(--card-padding)', paddingTop: 'calc(var(--card-padding) + 40px)' }">
         <div class="mx-auto" style="max-width: 1200px;">
           <RouterView v-slot="{ Component }">
             <Suspense>

@@ -251,8 +251,7 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
 <template>
   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h2 class="font-h1 text-primary-content">记录概览</h2>
+    <div class="flex items-center justify-end">
       <Button variant="ghost" size="sm" @click="loadData" :disabled="loading">
         <RefreshCw :class="['h-4 w-4', loading && 'animate-spin']" />
       </Button>
