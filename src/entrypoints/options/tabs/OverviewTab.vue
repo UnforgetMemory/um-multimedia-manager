@@ -292,7 +292,7 @@ onMounted(loadData)
       <!-- Calendar Heatmap -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
             <h3 class="font-h2 text-primary-content">活跃度</h3>
             <span class="font-caption text-secondary-content">最近 90 天</span>
           </div>
@@ -319,7 +319,7 @@ onMounted(loadData)
             </div>
           </div>
           <!-- Legend -->
-          <div class="flex items-center gap-1.5 mt-3 justify-end">
+          <div class="flex items-center justify-end" :style="{ gap: 'var(--space-1)', marginTop: 'var(--space-3)' }">
             <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">少</span>
             <div v-for="i in 9" :key="i" class="rounded-sm"
               :style="{ width: '12px', height: '12px', backgroundColor: heatmapColor(i - 1) }"
@@ -332,32 +332,35 @@ onMounted(loadData)
       <!-- Last 7 Days Detail -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
             <h3 class="font-h2 text-primary-content">最近一周</h3>
             <span class="font-caption text-secondary-content">{{ weeklyStats.total }} 条记录</span>
           </div>
-          <div class="space-y-2">
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
-              class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+              class="flex items-center rounded-lg hover:bg-muted/50 transition-colors"
+              :style="{ gap: 'var(--space-3)', padding: 'var(--space-2)' }">
               <div class="w-10 text-center shrink-0">
                 <div class="font-body font-semibold text-primary-content">{{ day.weekday }}</div>
                 <div class="font-caption text-secondary-content">{{ day.dateStr }}</div>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-1.5 flex-wrap">
+                <div class="flex items-center flex-wrap" :style="{ gap: 'var(--space-1)' }">
                   <span v-for="(item, i) in day.items" :key="i"
-                    class="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full border"
+                    class="inline-flex items-center gap-0.5 rounded-full border font-caption"
                     :style="{
-                      borderColor: `hsl(${platformHues[item.source] || 0}, 30%, 70%)`,
-                      color: `hsl(${platformHues[item.source] || 0}, 40%, 40%)`,
-                      backgroundColor: `hsl(${platformHues[item.source] || 0}, 30%, 95%)`,
+                      padding: 'var(--space-1) var(--space-2)',
+                      fontSize: 'calc(0.7rem * var(--font-scale, 1))',
+                      borderColor: platformColor(platformHues[item.source] || 0, 'chip-border'),
+                      color: platformColor(platformHues[item.source] || 0, 'chip-text'),
+                      backgroundColor: platformColor(platformHues[item.source] || 0, 'chip-bg'),
                     }">
                     <span class="font-medium">{{ item.label }}</span>
                     <span class="opacity-70">{{ item.count }}</span>
                   </span>
                 </div>
               </div>
-              <div class="text-sm font-bold tabular-nums text-primary-content shrink-0">
+              <div class="font-bold tabular-nums text-primary-content shrink-nowrap" :style="{ fontSize: 'calc(0.875rem * var(--font-scale, 1))' }">
                 {{ day.total }}
               </div>
             </div>
