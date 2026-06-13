@@ -237,43 +237,35 @@ onMounted(loadData)
             <h3 class="font-h2 text-primary-content">活跃度</h3>
             <span class="font-caption text-secondary-content">最近 90 天</span>
           </div>
-          <div class="overflow-x-auto">
-            <div class="inline-flex" :style="{ gap: '3px' }">
-              <!-- Day labels -->
-              <div class="flex flex-col" :style="{ gap: '3px', marginRight: '4px' }">
-                <div v-for="(label, i) in dayLabels" :key="i"
-                  class="font-caption text-secondary-content"
-                  :style="{ width: '14px', height: '14px', fontSize: '9px', lineHeight: '14px', textAlign: 'right' }">
-                  {{ label }}
-                </div>
+          <!-- Heatmap grid -->
+          <div class="flex" :style="{ gap: '4px' }">
+            <!-- Day labels -->
+            <div class="flex flex-col" :style="{ gap: '4px', marginRight: '6px' }">
+              <div v-for="(label, i) in dayLabels" :key="i"
+                class="font-caption text-secondary-content"
+                :style="{ width: '16px', height: '18px', fontSize: '9px', lineHeight: '18px', textAlign: 'right' }">
+                {{ label }}
               </div>
-              <!-- Weeks -->
-              <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '3px' }">
-                <div v-for="(day, di) in week" :key="di"
-                  class="rounded-sm transition-colors cursor-default group"
-                  :style="{
-                    width: '14px', height: '14px',
-                    backgroundColor: heatmapColor(day.level),
-                  }"
-                >
-                  <div class="fixed z-50 text-xs text-primary-content bg-popover border border-border rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-sm"
-                    style="bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);">
-                    {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
-                  </div>
+            </div>
+            <!-- Weeks -->
+            <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '4px' }">
+              <div v-for="(day, di) in week" :key="di"
+                class="heatmap-cell relative rounded-sm cursor-default"
+                :style="{ backgroundColor: heatmapColor(day.level) }"
+              >
+                <div class="heatmap-tooltip">
+                  {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
                 </div>
               </div>
             </div>
-            <!-- Legend: 9 levels -->
-            <div class="flex items-center gap-1 mt-2 justify-end">
-              <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">少</span>
-              <div v-for="i in 9" :key="i" class="rounded-sm"
-                :style="{
-                  width: '10px', height: '10px',
-                  backgroundColor: heatmapColor(i - 1),
-                }"
-              />
-              <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">多</span>
-            </div>
+          </div>
+          <!-- Legend -->
+          <div class="flex items-center gap-1.5 mt-3 justify-end">
+            <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">少</span>
+            <div v-for="i in 9" :key="i" class="rounded-sm"
+              :style="{ width: '12px', height: '12px', backgroundColor: heatmapColor(i - 1) }"
+            />
+            <span class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">多</span>
           </div>
         </div>
       </Card>
@@ -371,3 +363,38 @@ onMounted(loadData)
     </template>
   </div>
 </template>
+
+<style scoped>
+.heatmap-cell {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.heatmap-cell:hover {
+  transform: scale(1.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+.heatmap-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.heatmap-cell:hover .heatmap-tooltip {
+  opacity: 1;
+}
+</style>
