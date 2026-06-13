@@ -250,13 +250,14 @@ onMounted(loadData)
               <!-- Weeks -->
               <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '3px' }">
                 <div v-for="(day, di) in week" :key="di"
-                  class="rounded-sm transition-colors cursor-default group relative"
+                  class="rounded-sm transition-colors cursor-default group"
                   :style="{
                     width: '14px', height: '14px',
                     backgroundColor: heatmapColor(day.level),
                   }"
                 >
-                  <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-primary-content bg-popover border border-border rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-sm">
+                  <div class="fixed z-50 text-xs text-primary-content bg-popover border border-border rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-sm"
+                    style="bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);">
                     {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
                   </div>
                 </div>
