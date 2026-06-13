@@ -21,7 +21,7 @@ function readThemeSync(): string | null {
   try {
     const raw = localStorage.getItem(APPEARANCE_KEY)
     if (raw) {
-      const saved = JSON.parse(raw)
+      const saved = JSON.parse(raw) as { theme?: string }
       return saved?.theme || null
     }
   } catch { /* ignore */ }
@@ -50,10 +50,9 @@ onMounted(() => {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return
     if (changes[APPEARANCE_KEY]) {
-      const saved = changes[APPEARANCE_KEY].newValue
+      const saved = changes[APPEARANCE_KEY].newValue as { theme?: string } | undefined
       if (saved?.theme) {
         applyAppearance(saved.theme)
-        // Update localStorage cache
         localStorage.setItem(APPEARANCE_KEY, JSON.stringify(saved))
       }
     }

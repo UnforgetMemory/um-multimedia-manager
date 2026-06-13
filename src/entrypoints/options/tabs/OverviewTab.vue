@@ -128,11 +128,26 @@ function heatmapColor(level: number): string {
   const isDark = document.documentElement.classList.contains('dark')
   if (level === 0) return 'hsl(var(--muted))'
   if (isDark) {
-    // Dark theme: brighter greens on dark background
     return `hsl(142, ${40 + level * 5}%, ${20 + level * 5}%)`
   }
-  // Light theme: deeper greens on light background
   return `hsl(142, ${35 + level * 5}%, ${70 - level * 6}%)`
+}
+
+// Tooltip positioning
+const tooltipData = ref<{ show: boolean; x: number; y: number; text: string }>({ show: false, x: 0, y: 0, text: '' })
+
+function showTooltip(e: MouseEvent, day: { date: Date; count: number }) {
+  const rect = (e.target as HTMLElement).getBoundingClientRect()
+  tooltipData.value = {
+    show: true,
+    x: rect.left + rect.width / 2,
+    y: rect.top - 8,
+    text: `${day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}: ${day.count} 条`,
+  }
+}
+
+function hideTooltip() {
+  tooltipData.value.show = false
 }
 
 const statIcons = [Film, Tv, Music, ShieldAlert]
@@ -251,13 +266,11 @@ onMounted(loadData)
               <!-- Weeks -->
               <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '4px' }">
                 <div v-for="(day, di) in week" :key="di"
-                  class="heatmap-cell relative rounded-sm cursor-default"
+                  class="heatmap-cell rounded-sm cursor-default"
                   :style="{ backgroundColor: heatmapColor(day.level) }"
-                >
-                  <div class="heatmap-tooltip">
-                    {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
-                  </div>
-                </div>
+                  @mouseenter="(e: MouseEvent) => showTooltip(e, day)"
+                  @mouseleave="hideTooltip"
+                />
               </div>
             </div>
           </div>
@@ -277,7 +290,7 @@ onMounted(loadData)
         <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">平台分布</h3>
 
         <!-- Summary bar chart -->
-        <Card class="overflow-hidden" :style="{ marginBottom: 'var(--space-4)' }">
+        <Card :style="{ marginBottom: 'var(--space-4)' }">
           <div :style="{ padding: 'var(--card-padding)' }">
             <div class="flex items-end" :style="{ gap: 'var(--space-1)', height: '5rem' }">
               <div
@@ -363,6 +376,24 @@ onMounted(loadData)
         </div>
       </div>
     </template>
+
+    <!-- Fixed-position tooltip (renders outside all overflow contexts) -->
+    <Teleport to="body">
+      <div
+        v-if="tooltipData.show"
+        class="fixed z-[9999] px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none shadow-lg"
+        :style="{
+          left: tooltipData.x + 'px',
+          top: tooltipData.y + 'px',
+          transform: 'translate(-50%, -100%)',
+          background: 'hsl(var(--popover))',
+          color: 'hsl(var(--popover-foreground))',
+          border: '1px solid hsl(var(--border))',
+        }"
+      >
+        {{ tooltipData.text }}
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -377,26 +408,5 @@ onMounted(loadData)
   transform: scale(1.4);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
-}
-.heatmap-tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 50;
-  background: hsl(var(--popover));
-  color: hsl(var(--popover-foreground));
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-.heatmap-cell:hover .heatmap-tooltip {
-  opacity: 1;
 }
 </style>
