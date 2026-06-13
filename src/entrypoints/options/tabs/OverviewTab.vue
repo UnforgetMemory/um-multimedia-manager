@@ -394,12 +394,12 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
           <div class="flex items-end" :style="{ gap: 'var(--space-2)', height: '8rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
               class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)' }">
-              <!-- Bar — sqrt scale for better visibility of small values -->
+              <!-- Bar — log scale for maximum differentiation of small values -->
               <div class="w-full rounded-t-lg transition-all duration-300 relative group cursor-default"
                 :style="{
-                  height: `${Math.max(8, Math.sqrt(day.total / weeklyStats.maxDaily) * 100)}%`,
+                  height: `${Math.max(10, (Math.log(day.total + 1) / Math.log(weeklyStats.maxDaily + 1)) * 100)}%`,
                   backgroundColor: day.isToday ? 'hsl(var(--primary))' : barColor(day.total, weeklyStats.maxDaily),
-                  minHeight: '8px',
+                  minHeight: '10px',
                   opacity: day.total === 0 ? 0.3 : 1,
                 }">
                 <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs-scaled font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
