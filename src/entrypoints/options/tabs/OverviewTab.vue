@@ -238,23 +238,25 @@ onMounted(loadData)
             <span class="font-caption text-secondary-content">最近 90 天</span>
           </div>
           <!-- Heatmap grid -->
-          <div class="flex" :style="{ gap: '4px' }">
-            <!-- Day labels -->
-            <div class="flex flex-col" :style="{ gap: '4px', marginRight: '6px' }">
-              <div v-for="(label, i) in dayLabels" :key="i"
-                class="font-caption text-secondary-content"
-                :style="{ width: '16px', height: '18px', fontSize: '9px', lineHeight: '18px', textAlign: 'right' }">
-                {{ label }}
+          <div class="overflow-x-auto pb-2 -mb-2">
+            <div class="flex" :style="{ gap: '4px', minWidth: 'min-content' }">
+              <!-- Day labels -->
+              <div class="flex flex-col" :style="{ gap: '4px', marginRight: '6px' }">
+                <div v-for="(label, i) in dayLabels" :key="i"
+                  class="font-caption text-secondary-content"
+                  :style="{ width: '16px', height: '18px', fontSize: '9px', lineHeight: '18px', textAlign: 'right' }">
+                  {{ label }}
+                </div>
               </div>
-            </div>
-            <!-- Weeks -->
-            <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '4px' }">
-              <div v-for="(day, di) in week" :key="di"
-                class="heatmap-cell relative rounded-sm cursor-default"
-                :style="{ backgroundColor: heatmapColor(day.level) }"
-              >
-                <div class="heatmap-tooltip">
-                  {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
+              <!-- Weeks -->
+              <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="flex flex-col" :style="{ gap: '4px' }">
+                <div v-for="(day, di) in week" :key="di"
+                  class="heatmap-cell relative rounded-sm cursor-default"
+                  :style="{ backgroundColor: heatmapColor(day.level) }"
+                >
+                  <div class="heatmap-tooltip">
+                    {{ day.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}: {{ day.count }} 条
+                  </div>
                 </div>
               </div>
             </div>
