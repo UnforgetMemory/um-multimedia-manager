@@ -58,7 +58,7 @@ onMounted(() => {
         <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
             <Film class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
-            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate tabular-nums" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.movie.toLocaleString() : '—' }}
             </div>
             <div class="text-xs-scaled text-secondary-content mt-1">电影</div>
@@ -67,7 +67,7 @@ onMounted(() => {
         <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
             <Tv class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
-            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate tabular-nums" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.tv.toLocaleString() : '—' }}
             </div>
             <div class="text-xs-scaled text-secondary-content mt-1">剧集</div>
@@ -76,7 +76,7 @@ onMounted(() => {
         <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
             <Music class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
-            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate tabular-nums" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? stats.music.toLocaleString() : '—' }}
             </div>
             <div class="text-xs-scaled text-secondary-content mt-1">音乐</div>
@@ -85,7 +85,7 @@ onMounted(() => {
         <Card class="p-3 text-center overflow-hidden">
           <CardContent class="p-0">
             <ShieldAlert class="w-5 h-5 mx-auto mb-1.5 text-secondary-content" />
-            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
+            <div class="text-xl sm:text-2xl font-bold tracking-tight text-primary-content truncate tabular-nums" :class="{ 'animate-pulse': !dataReady }">
               {{ dataReady ? javCount.toLocaleString() : '—' }}
             </div>
             <div class="text-xs-scaled text-secondary-content mt-1">成人视频</div>
@@ -97,7 +97,7 @@ onMounted(() => {
       <Card class="mb-4 overflow-hidden">
         <CardContent class="flex items-center justify-between py-3 px-5">
           <span class="text-sm-scaled font-medium text-secondary-content">总记录</span>
-          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate" :class="{ 'animate-pulse': !dataReady }">
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate tabular-nums" :class="{ 'animate-pulse': !dataReady }">
             {{ dataReady ? (stats.total + javCount).toLocaleString() : '—' }}
           </span>
         </CardContent>

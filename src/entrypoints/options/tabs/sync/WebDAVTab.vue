@@ -9,11 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { RefreshCw, Download, Upload } from 'lucide-vue-next'
 import { useConfirmDialog } from '@/entrypoints/popup/useConfirmDialog'
+import { useToast } from '@/composables/useToast'
 
-function showPageToast(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) {
-  try { chrome.runtime.sendMessage({ type: 'SHOW_TOAST', payload: { type, title, message } }, () => { void chrome.runtime.lastError }) } catch { /* silent */ }
-}
-
+const toast = useToast()
 const { showConfirmDialog } = useConfirmDialog()
 
 const webdavConfig = ref({ url: '', username: '', password: '' })
@@ -29,43 +27,75 @@ onMounted(async () => {
 })
 
 async function saveConfig() {
-  if (webdavConfig.value.url && !webdavConfig.value.url.startsWith('https://')) { await showPageToast('error', 'URL 必须使用 HTTPS'); return }
+  if (webdavConfig.value.url && !webdavConfig.value.url.startsWith('https://')) { toast.error('URL 必须使用 HTTPS'); return }
   try {
     await Store.updateSettings({ webdavUrl: webdavConfig.value.url, webdavUsername: webdavConfig.value.username, webdavPassword: webdavConfig.value.password })
     isConfigSaved.value = true
-    await showPageToast('success', '配置已保存')
-  } catch (e) { isConfigSaved.value = false; await showPageToast('error', '保存失败', String(e)) }
+    toast.success('配置已保存')
+  } catch (e) { isConfigSaved.value = false; toast.error('保存失败', String(e)) }
 }
 
 async function testConnection() {
-  if (!webdavConfig.value.url) { await showPageToast('error', '请输入 WebDAV URL'); return }
-  if (!webdavConfig.value.url.startsWith('https://')) { await showPageToast('error', 'URL 必须使用 HTTPS'); return }
+  if (!webdavConfig.value.url) { toast.error('请输入 WebDAV URL'); return }
+  if (!webdavConfig.value.url.startsWith('https://')) { toast.error('URL 必须使用 HTTPS'); return }
   const result = await safeSendMessage({ type: 'WEBDAV_TEST', payload: webdavConfig.value }, { timeout: 10000 })
-  if (result?.success) await showPageToast('success', '连接成功') ; else await showPageToast('error', '连接失败', result?.message)
+  if (result?.success) toast.success('连接成功'); else toast.error('连接失败', result?.message)
 }
 
 async function syncCloud() {
-  if (!isConfigSaved.value) { await showPageToast('error', '请先保存配置'); return }
-  showConfirmDialog({ title: '智能合并同步', description: '对比本地和云端数据，自动同步有变化的部分', icon: RefreshCw, confirmText: '开始同步', action: async () => {
-    loading.value.sync = true
-    try { const r = await safeSendMessage({ type: 'WEBDAV_SYNC' }, { timeout: 30000 }); if (r?.success) await showPageToast('success', '同步成功', r.message); else await showPageToast('error', '同步失败', r?.message) } catch (e) { await showPageToast('error', '同步失败', String(e)) } finally { loading.value.sync = false }
-  }})
+  if (!isConfigSaved.value) { toast.error('请先保存配置'); return }
+  showConfirmDialog({
+    title: '智能合并同步',
+    description: '对比本地和云端数据，自动同步有变化的部分',
+    icon: RefreshCw,
+    confirmText: '开始同步',
+    action: async () => {
+      loading.value.sync = true
+      try {
+        const r = await safeSendMessage({ type: 'WEBDAV_SYNC' }, { timeout: 30000 })
+        if (r?.success) toast.success('同步成功', r.message)
+        else toast.error('同步失败', r?.message)
+      } catch (e) { toast.error('同步失败', String(e)) } finally { loading.value.sync = false }
+    },
+  })
 }
 
 async function downloadCloud() {
-  if (!isConfigSaved.value) { await showPageToast('error', '请先保存配置'); return }
-  showConfirmDialog({ title: '云端覆盖本地', description: '用云端数据完全覆盖本地数据', warning: '此操作不可逆', icon: Download, confirmText: '确认覆盖', action: async () => {
-    loading.value.download = true
-    try { const r = await safeSendMessage({ type: 'WEBDAV_DOWNLOAD' }, { timeout: 30000 }); if (r?.success) await showPageToast('success', '下载成功', r.message); else await showPageToast('error', '下载失败', r?.message) } catch (e) { await showPageToast('error', '下载失败', String(e)) } finally { loading.value.download = false }
-  }})
+  if (!isConfigSaved.value) { toast.error('请先保存配置'); return }
+  showConfirmDialog({
+    title: '云端覆盖本地',
+    description: '用云端数据完全覆盖本地数据',
+    warning: '此操作不可逆',
+    icon: Download,
+    confirmText: '确认覆盖',
+    action: async () => {
+      loading.value.download = true
+      try {
+        const r = await safeSendMessage({ type: 'WEBDAV_DOWNLOAD' }, { timeout: 30000 })
+        if (r?.success) toast.success('下载成功', r.message)
+        else toast.error('下载失败', r?.message)
+      } catch (e) { toast.error('下载失败', String(e)) } finally { loading.value.download = false }
+    },
+  })
 }
 
 async function uploadCloud() {
-  if (!isConfigSaved.value) { await showPageToast('error', '请先保存配置'); return }
-  showConfirmDialog({ title: '本地覆盖云端', description: '用本地数据完全覆盖云端数据', warning: '此操作不可逆', icon: Upload, confirmText: '确认覆盖', action: async () => {
-    loading.value.upload = true
-    try { const r = await safeSendMessage({ type: 'WEBDAV_UPLOAD' }, { timeout: 30000 }); if (r?.success) await showPageToast('success', '上传成功', r.message); else await showPageToast('error', '上传失败', r?.message) } catch (e) { await showPageToast('error', '上传失败', String(e)) } finally { loading.value.upload = false }
-  }})
+  if (!isConfigSaved.value) { toast.error('请先保存配置'); return }
+  showConfirmDialog({
+    title: '本地覆盖云端',
+    description: '用本地数据完全覆盖云端数据',
+    warning: '此操作不可逆',
+    icon: Upload,
+    confirmText: '确认覆盖',
+    action: async () => {
+      loading.value.upload = true
+      try {
+        const r = await safeSendMessage({ type: 'WEBDAV_UPLOAD' }, { timeout: 30000 })
+        if (r?.success) toast.success('上传成功', r.message)
+        else toast.error('上传失败', r?.message)
+      } catch (e) { toast.error('上传失败', String(e)) } finally { loading.value.upload = false }
+    },
+  })
 }
 </script>
 

@@ -4,11 +4,9 @@ import { safeSendMessage } from '@/utils/context'
 import { Button } from '@/components/ui/button'
 import { Download, Upload, RefreshCw } from 'lucide-vue-next'
 import { useConfirmDialog } from '@/entrypoints/popup/useConfirmDialog'
+import { useToast } from '@/composables/useToast'
 
-function showPageToast(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) {
-  try { chrome.runtime.sendMessage({ type: 'SHOW_TOAST', payload: { type, title, message } }, () => { void chrome.runtime.lastError }) } catch { /* silent */ }
-}
-
+const toast = useToast()
 const { showConfirmDialog } = useConfirmDialog()
 const isExporting = ref(false)
 const isImporting = ref(false)
@@ -22,8 +20,8 @@ async function exportData() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
-    await showPageToast('success', '导出成功！')
-  } catch (e) { await showPageToast('error', '导出失败', String(e)) } finally { isExporting.value = false }
+    toast.success('导出成功！')
+  } catch (e) { toast.error('导出失败', String(e)) } finally { isExporting.value = false }
 }
 
 function triggerImport() {
@@ -36,23 +34,31 @@ function triggerImport() {
         const payload = JSON.parse(event.target?.result as string)
         let recordCount = 0
         if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
-        showConfirmDialog({ title: '导入数据', description: `即将导入 ${recordCount.toLocaleString()} 条记录`, warning: '相同 ID 的记录将被覆盖', details: `文件名: ${file.name}`, icon: Upload, confirmText: '开始导入', action: async () => {
-          isImporting.value = true
-          try {
-            let importPayload = payload
-            if (payload.datasets && !payload.stores) {
-              const stores: Record<string, Record<string, any>> = {}
-              for (const provider of ['douban', 'imdb', 'neodb', 'tmdb']) {
-                const sn = `${provider}_records`
-                if (payload.datasets[provider]) { stores[sn] = {}; for (const type of Object.keys(payload.datasets[provider])) { for (const r of payload.datasets[provider][type]) { stores[sn][`${type}::${r.providerId || r.id}`] = { url: r.url || '', status: r.status ?? 1, rating: r.rating ?? null, updatedAt: r.updatedAt || new Date().toISOString(), linkedIds: r.linkedIds || {} } } } }
+        showConfirmDialog({
+          title: '导入数据',
+          description: `即将导入 ${recordCount.toLocaleString()} 条记录`,
+          warning: '相同 ID 的记录将被覆盖',
+          details: `文件名: ${file.name}`,
+          icon: Upload,
+          confirmText: '开始导入',
+          action: async () => {
+            isImporting.value = true
+            try {
+              let importPayload = payload
+              if (payload.datasets && !payload.stores) {
+                const stores: Record<string, Record<string, any>> = {}
+                for (const provider of ['douban', 'imdb', 'neodb', 'tmdb']) {
+                  const sn = `${provider}_records`
+                  if (payload.datasets[provider]) { stores[sn] = {}; for (const type of Object.keys(payload.datasets[provider])) { for (const r of payload.datasets[provider][type]) { stores[sn][`${type}::${r.providerId || r.id}`] = { url: r.url || '', status: r.status ?? 1, rating: r.rating ?? null, updatedAt: r.updatedAt || new Date().toISOString(), linkedIds: r.linkedIds || {} } } } }
+                }
+                importPayload = { stores }
               }
-              importPayload = { stores }
-            }
-            await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
-            await showPageToast('success', '导入成功')
-          } catch (e) { await showPageToast('error', '导入失败', String(e)) } finally { isImporting.value = false }
-        }})
-      } catch (e) { await showPageToast('error', '文件解析失败', String(e)) }
+              await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
+              toast.success('导入成功')
+            } catch (e) { toast.error('导入失败', String(e)) } finally { isImporting.value = false }
+          },
+        })
+      } catch (e) { toast.error('文件解析失败', String(e)) }
     }
     reader.readAsText(file)
   }

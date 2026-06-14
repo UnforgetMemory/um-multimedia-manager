@@ -57,9 +57,9 @@ const platformStats = computed(() => {
 })
 
 const typeLabels: Record<string, string> = { movie: '电影', tv: '剧集', music: '音乐', book: '书籍' }
-const platformLabels: Record<string, string> = { douban: '豆瓣', imdb: 'IMDb', neodb: 'NeoDB', tmdb: 'TMDB', javdb: 'JavDB', sehuatang: '色花堂' }
+const platformLabels: Record<string, string> = { douban: '豆瓣', imdb: 'IMDb', neodb: 'NeoDB', tmdb: 'TMDB', javdb: 'JavDB', sehuatang: '色花堂', local: '本地' }
 
-const platformHues: Record<string, number> = { douban: 142, imdb: 45, neodb: 217, tmdb: 271, javdb: 0, sehuatang: 25 }
+const platformHues: Record<string, number> = { douban: 142, imdb: 45, neodb: 217, tmdb: 271, javdb: 0, sehuatang: 25, local: 200 }
 
 const maxCount = computed(() => {
   if (platformStats.value.length === 0) return 1
@@ -272,21 +272,26 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
 
     <!-- Content -->
     <template v-else>
-      <!-- Sub-tabs -->
-      <div class="flex p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
-        <button
-          v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'weekly' as const, label: '最近一周' }, { id: 'platform' as const, label: '平台分布' }]"
-          :key="tab.id"
-          @click="activeOverviewTab = tab.id"
-          :class="[
-            'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-            activeOverviewTab === tab.id
-              ? 'bg-background text-primary-content shadow-sm'
-              : 'text-secondary-content hover:text-primary-content hover:bg-background/50'
-          ]"
-        >
-          {{ tab.label }}
-        </button>
+      <!-- Sub-tabs with refresh -->
+      <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
+        <div class="flex flex-1 p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
+          <button
+            v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'weekly' as const, label: '最近一周' }, { id: 'platform' as const, label: '平台分布' }]"
+            :key="tab.id"
+            @click="activeOverviewTab = tab.id"
+            :class="[
+              'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+              activeOverviewTab === tab.id
+                ? 'bg-background text-primary-content shadow-sm'
+                : 'text-secondary-content hover:text-primary-content hover:bg-background/50'
+            ]"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+        <Button variant="ghost" size="sm" @click="loadData" :disabled="loading">
+          <RefreshCw :class="['h-4 w-4', loading && 'animate-spin']" />
+        </Button>
       </div>
 
       <!-- Tab: Overview (Stats + Heatmap) -->
@@ -485,7 +490,7 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
                   backgroundColor: platformColor(platformHues[info.provider] || 0, 'bar'),
                 }"
               >
-                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap tabular-nums">
                   {{ info.count.toLocaleString() }}
                 </div>
               </div>
@@ -520,7 +525,7 @@ const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
                 </div>
                 <div>
                   <div class="font-body font-semibold text-primary-content">{{ platformLabels[info.provider] || info.provider }}</div>
-                  <div class="font-caption text-secondary-content">{{ info.count.toLocaleString() }} 条记录</div>
+                  <div class="font-caption text-secondary-content tabular-nums">{{ info.count.toLocaleString() }} 条记录</div>
                 </div>
               </div>
               <!-- Progress bar -->

@@ -28,7 +28,7 @@ export function makeRecordKey(type: string, providerId: string): string {
 }
 
 /** Valid record store names */
-export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'sehuatang_avids'
+export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'jav_ids'
 
 // ==================== URL Identity ====================
 

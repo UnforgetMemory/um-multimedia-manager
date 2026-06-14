@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -114,6 +116,12 @@ function navigateTo(path: string) {
         </div>
       </main>
     </div>
+
+    <!-- Global Confirm Dialog -->
+    <ConfirmDialog />
+
+    <!-- Toast Notifications -->
+    <ToastContainer />
   </div>
 </template>
 

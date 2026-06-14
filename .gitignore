@@ -81,3 +81,30 @@ playwright-report/
 # OpenCode agent sessions
 .omo/
 .opencode/
+
+# Environment variable variants (Vite/Node conventions)
+.env.development
+.env.production
+.env.staging
+.env.test
+
+# Package manager configs (may contain auth tokens)
+.npmrc
+.yarnrc
+.yarnrc.yml
+pnpm-workspace.yaml
+
+# Archive and extension build outputs
+*.tgz
+*.zip
+*.crx
+*.xpi
+
+# Build tool caches (defensive)
+.turbo/
+.parcel-cache/
+.webpack/
+.output/
+
+# AI agent ephemeral docs
+docs/superpowers/

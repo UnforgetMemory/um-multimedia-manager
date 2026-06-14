@@ -1004,7 +1004,8 @@ function setupContextInvalidationListener() {
 
 // ==================== 消息监听器（接收来自 Popup/Background 的 Toast 请求）====================
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return false
   if (message.type === 'SHOW_TOAST') {
     const { type, title, message: msg } = message.payload
     

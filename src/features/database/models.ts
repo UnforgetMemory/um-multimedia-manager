@@ -561,7 +561,7 @@ class MediaDatabase {
 
   // ==================== Bulk Operations ====================
 
-  /** Get all records from all record stores (for export). */
+  /** Get all records from all record stores + jav_ids (for export). */
   async getAllStores(): Promise<Record<string, Record<string, StoreRecord>>> {
     const result: Record<string, Record<string, StoreRecord>> = {}
 
@@ -572,6 +572,16 @@ class MediaDatabase {
         map[entry.key] = entry.record
       }
       result[storeName] = map
+    }
+
+    // Include jav_ids store (not in RECORD_STORES but needs export support)
+    const javEntries = await this.getAll(STORE_NAMES.JAV_IDS)
+    if (javEntries.length > 0) {
+      const javMap: Record<string, StoreRecord> = {}
+      for (const entry of javEntries) {
+        javMap[entry.key] = entry.record
+      }
+      result[STORE_NAMES.JAV_IDS] = javMap
     }
 
     return result

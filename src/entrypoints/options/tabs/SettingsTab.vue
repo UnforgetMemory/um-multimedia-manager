@@ -7,10 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/composables/useToast'
 
-function showPageToast(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) {
-  try { chrome.runtime.sendMessage({ type: 'SHOW_TOAST', payload: { type, title, message } }, () => { void chrome.runtime.lastError }) } catch { /* silent */ }
-}
+const toast = useToast()
 
 const neodbToken = ref('')
 const autoSyncNeoDB = ref(false)
@@ -38,17 +37,17 @@ onMounted(async () => {
 })
 
 async function saveNeoDBToken() {
-  try { await Store.updateSettings({ neodbToken: neodbToken.value.trim() }); await showPageToast('success', 'NeoDB Token 已保存') } catch (e) { await showPageToast('error', '保存失败', String(e)) }
+  try { await Store.updateSettings({ neodbToken: neodbToken.value.trim() }); toast.success('NeoDB Token 已保存') } catch (e) { toast.error('保存失败', String(e)) }
 }
 
 watch(autoSyncNeoDB, async (v) => {
   if (!autoSyncInitialized) return
-  try { await Store.updateSettings({ autoSyncNeoDB: v }); await showPageToast('info', v ? '已开启自动同步到 NeoDB' : '已关闭自动同步到 NeoDB') } catch (e) { await showPageToast('error', '保存失败', String(e)) }
+  try { await Store.updateSettings({ autoSyncNeoDB: v }); toast.info(v ? '已开启自动同步到 NeoDB' : '已关闭自动同步到 NeoDB') } catch (e) { toast.error('保存失败', String(e)) }
 })
 
 watch([debugEnabled, logLevel], async ([e, l]) => {
   if (!debugInitialized) return
-  try { await Store.updateSettings({ debugEnabled: e, logLevel: l }); await showPageToast('info', e ? `日志已开启: ${l}` : '日志已关闭') } catch (err) { await showPageToast('error', '保存失败', String(err)) }
+  try { await Store.updateSettings({ debugEnabled: e, logLevel: l }); toast.info(e ? `日志已开启: ${l}` : '日志已关闭') } catch (err) { toast.error('保存失败', String(err)) }
 })
 </script>
 

@@ -24,6 +24,7 @@ const ALLOWED_DB_STORES = new Set<string>([
 function isAllowedStore(storeName: string): boolean {
   return ALLOWED_DB_STORES.has(storeName)
 }
+
 import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 import { calculateStoreHash } from '@/utils/hash-utils'
@@ -45,6 +46,9 @@ function escapeHtml(text: string): string {
 import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
 import { settingsCache } from '@/features/settings/cache'
 import { broadcast } from '@/utils/event-bus'
+
+/** Valid toast notification types */
+const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const
 
 export default defineBackground({
   type: 'module',
@@ -323,6 +327,10 @@ export default defineBackground({
             const { storeNames } = message.payload
             const results: Record<string, string[]> = {}
             for (const storeName of storeNames) {
+              if (!isAllowedStore(storeName)) {
+                warnLog(`DB_GET_WATCHED_IDS: skipped disallowed store "${storeName}"`)
+                continue
+              }
               const ids = await mediaDB.getWatchedIds(storeName)
               results[storeName] = Array.from(ids)
             }
@@ -351,13 +359,33 @@ export default defineBackground({
             break
           }
           case 'DB_SYNC_PAGE_RECORD': {
+            const platform = message.payload.platform
+            if (!isAllowedStore(`${platform}_records`)) {
+              sendResponse({ success: false, error: 'Invalid platform' })
+              break
+            }
+            // Validate linked platforms to prevent writing to arbitrary stores
+            const linked = message.payload.linked
+            let linkedInvalid = false
+            if (linked && Array.isArray(linked)) {
+              for (const link of linked) {
+                if (!isAllowedStore(`${link.platform}_records`)) {
+                  linkedInvalid = true
+                  break
+                }
+              }
+            }
+            if (linkedInvalid) {
+              sendResponse({ success: false, error: 'Invalid linked platform' })
+              break
+            }
             const result = await mediaDB.syncPageRecord(
-              message.payload.platform,
+              platform,
               message.payload.key,
               message.payload.record,
-              message.payload.linked
+              linked
             )
-            broadcast('record:updated', { storeName: `${message.payload.platform}_records`, key: message.payload.key })
+            broadcast('record:updated', { storeName: `${platform}_records`, key: message.payload.key })
             sendResponse({ success: true, result })
             break
           }
@@ -497,7 +525,7 @@ export default defineBackground({
               await mediaDB.put(JAV_IDS_STORE_NAME, key, {
                 url: item.url || existing?.url || '',
                 status: 2,
-                rating: item.rating ?? (existing as any)?.rating ?? 0,
+                rating: item.rating ?? existing?.rating ?? 0,
                 updatedAt: item.updatedAt || new Date().toISOString(),
                 linkedIds: existing?.linkedIds || {},
               })
@@ -519,7 +547,7 @@ export default defineBackground({
                 source: s,
                 id: avId,
                 url: e.record.url || '',
-                rating: (e.record as any).rating || e.record.rating || 0,
+                rating: e.record.rating || 0,
                 updatedAt: e.record.updatedAt,
               }
             })
@@ -580,7 +608,7 @@ export default defineBackground({
                 source: s,
                 id: avId,
                 url: e.record.url || '',
-                rating: (e.record as any).rating || e.record.rating || 0,
+                rating: e.record.rating || 0,
                 updatedAt: e.record.updatedAt,
               }
             })
@@ -660,8 +688,8 @@ export default defineBackground({
       // Import each store — put() auto-stamps schemaVersion
       let totalImported = 0
       for (const [storeName, records] of Object.entries(payload.stores)) {
-        // Only import recognized record stores
-        if (!RECORD_STORES.includes(storeName)) continue
+        // Only import recognized record stores + jav_ids
+        if (!RECORD_STORES.includes(storeName) && storeName !== STORE_NAMES.JAV_IDS) continue
         for (const [key, record] of Object.entries(records)) {
           await mediaDB.put(storeName, key, record)
           totalImported++
@@ -729,7 +757,8 @@ export default defineBackground({
           return
         }
 
-        const toastPayload = { type: payload?.type || 'info', title: payload?.title || '', message: payload?.message }
+        const toastType = VALID_TOAST_TYPES.includes(payload?.type) ? payload.type : 'info'
+        const toastPayload = { type: toastType, title: payload?.title || '', message: payload?.message }
 
         // 1) 尝试发送到已加载的内容脚本
         try {
@@ -910,6 +939,22 @@ export default defineBackground({
           hash,
           updatedAt: latestTs || new Date().toISOString(),
           recordCount: entries.length,
+          dataVersion: 1,
+        })
+      }
+      // Include jav_ids store in sync metadata
+      const javEntries = await mediaDB.getAll(STORE_NAMES.JAV_IDS)
+      if (javEntries.length > 0) {
+        const javHash = await calculateStoreHash(javEntries)
+        let latestTs = ''
+        for (const e of javEntries) {
+          if (e.record.updatedAt > latestTs) latestTs = e.record.updatedAt
+        }
+        datasets.push({
+          key: STORE_NAMES.JAV_IDS,
+          hash: javHash,
+          updatedAt: latestTs || new Date().toISOString(),
+          recordCount: javEntries.length,
           dataVersion: 1,
         })
       }

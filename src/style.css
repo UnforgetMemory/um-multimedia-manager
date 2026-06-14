@@ -75,6 +75,48 @@
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
   }
+
+  --animate-in: umm-enter 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-out: umm-exit 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animation utility classes for Select/Dropdown/Dialog components */
+@keyframes umm-enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes umm-exit {
+  from {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-name: umm-enter;
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .animate-out {
+    animation-name: umm-exit;
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .fade-in-0 { --tw-enter-opacity: 0; }
+  .fade-out-0 { --tw-exit-opacity: 0; }
+  .fade-in-80 { --tw-enter-opacity: 0.8; }
+  .fade-out-80 { --tw-exit-opacity: 0.8; }
+  .zoom-in-95 { --tw-enter-scale: 0.95; }
+  .zoom-out-95 { --tw-exit-scale: 0.95; }
+  .slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+  .slide-in-from-bottom-2 { --tw-enter-translate-y: 0.5rem; }
+  .slide-in-from-left-2 { --tw-enter-translate-x: -0.5rem; }
+  .slide-in-from-right-2 { --tw-enter-translate-x: 0.5rem; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 }
 
 @layer base {
@@ -168,6 +210,16 @@
   .theme-ready *::before,
   .theme-ready *::after {
     transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+  }
+
+  /* Exclude Select/Dropdown triggers from theme transition to prevent label flicker.
+     The .theme-ready * selector applies transition to all elements; trigger elements
+     need transition:none to avoid visible text flash during theme color changes. */
+  [data-reka-select-trigger],
+  [role="combobox"],
+  [data-reka-dropdown-menu-trigger],
+  [data-reka-menubar-trigger] {
+    transition: none !important;
   }
 
   /* ✅ 自定义滚动条 - 薄、圆角、主题感知 */

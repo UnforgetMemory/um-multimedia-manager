@@ -6,19 +6,13 @@ import type { StoreRecord } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Star, CheckCircle2, XCircle, Database, RefreshCw } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
+import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
+import { JAV_ID_REGEX, autoDetectPlatform } from '@/features/adult-av/auto-detect'
 
-function showPageToast(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) {
-  try {
-    chrome.runtime.sendMessage(
-      { type: 'SHOW_TOAST', payload: { type, title, message } },
-      () => { void chrome.runtime.lastError }
-    )
-  } catch { /* silent */ }
-}
+const toast = useToast()
 
 interface RatingQueryRecord extends StoreRecord {
   type: string
@@ -31,6 +25,13 @@ const PLATFORM_OPTIONS = [
   { value: 'imdb', label: 'IMDb' },
   { value: 'neodb', label: 'NeoDB' },
   { value: 'tmdb', label: 'TMDB' },
+  { value: 'jav_ids', label: '成人视频' },
+] as const
+
+const JAV_SOURCE_OPTIONS = [
+  { value: 'javdb', label: 'JavDB' },
+  { value: 'sehuatang', label: '色花堂' },
+  { value: 'local', label: '本地' },
 ] as const
 
 const ratingInput = ref('')
@@ -38,8 +39,10 @@ const ratingValue = ref<number | null>(null)
 const ratingComment = ref('')
 const selectedPlatform = ref<string>('douban')
 const selectedDomain = ref<Domain>('movie')
+const selectedJavSource = ref<string>('local')
 const ratingQueryResult = ref<RatingQueryRecord | null>(null)
 const isQuerying = ref(false)
+const hasQueryed = ref(false)
 let queryDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const parseResult = computed(() => {
@@ -67,6 +70,10 @@ function validateAndNormalizeProviderId(provider: Provider, _type: Domain, rawId
     if (/^\d+$/.test(trimmed)) return { valid: true, normalizedId: trimmed }
     return { valid: false, normalizedId: '', error: 'TMDB ID必须是纯数字' }
   }
+  if (provider === 'jav_ids') {
+    if (JAV_ID_REGEX.test(trimmed)) return { valid: true, normalizedId: normalizeAvId(trimmed) }
+    return { valid: false, normalizedId: '', error: '成人视频ID格式无效 (例: FC2-PPV-1234567, ABP-123)' }
+  }
   return { valid: false, normalizedId: '', error: '未知平台' }
 }
 
@@ -76,6 +83,7 @@ function parseRatingInput() {
   const provider = selectedPlatform.value as Provider
   const type = selectedDomain.value
 
+  // URL-based parsing
   const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/)
   if (doubanMatch) {
     const isBook = input.includes('book'); const isMusic = input.includes('music')
@@ -90,6 +98,20 @@ function parseRatingInput() {
   if (tmdbMovieMatch) { const id = tmdbMovieMatch[1]; return { type: 'movie', provider: 'tmdb' as Provider, providerId: id, url: `https://www.themoviedb.org/movie/${id}/`, valid: true } }
   const tmdbTvMatch = input.match(/themoviedb\.org\/tv\/(\d+)/)
   if (tmdbTvMatch) { const id = tmdbTvMatch[1]; return { type: 'tv', provider: 'tmdb' as Provider, providerId: id, url: `https://www.themoviedb.org/tv/${id}/`, valid: true } }
+
+  // Auto-detect jav_id format — only if platform is jav_ids
+  if (provider === 'jav_ids' && JAV_ID_REGEX.test(input)) {
+    const key = `${selectedJavSource.value}::${normalizeAvId(input)}`
+    return { type: 'jav_ids', provider: 'jav_ids' as Provider, providerId: key, url: '', valid: true }
+  }
+
+  // ID-based parsing for jav_ids
+  if (provider === 'jav_ids') {
+    const validation = validateAndNormalizeProviderId(provider, type, input)
+    if (!validation.valid) return { type, provider, providerId: input, url: '', valid: false, error: validation.error }
+    const key = `${selectedJavSource.value}::${validation.normalizedId}`
+    return { type: 'jav_ids', provider: 'jav_ids' as Provider, providerId: key, url: '', valid: true }
+  }
 
   const validation = validateAndNormalizeProviderId(provider, type, input)
   if (!validation.valid) return { type, provider, providerId: input, url: '', valid: false, error: validation.error }
@@ -110,42 +132,69 @@ function getStatusLabel(status: number, type: string): string {
 
 async function queryRecordFromDB() {
   const parsed = parseRatingInput()
-  if (!parsed) { ratingQueryResult.value = null; isQuerying.value = false; return }
+  if (!parsed) { ratingQueryResult.value = null; hasQueryed.value = false; isQuerying.value = false; return }
   isQuerying.value = true
+  hasQueryed.value = false
   try {
-    const storeName = `${parsed.provider}_records`
-    const key = `${parsed.type}::${parsed.providerId}`
-    const record = await Store.dbGet(storeName, key)
-    ratingQueryResult.value = record ? { ...record, type: parsed.type, provider: parsed.provider, providerId: parsed.providerId } : null
-  } catch { ratingQueryResult.value = null } finally { isQuerying.value = false }
+    if (parsed.provider === 'jav_ids') {
+      const record = await Store.dbGet(JAV_IDS_STORE_NAME, parsed.providerId)
+      ratingQueryResult.value = record ? { ...record, type: 'jav_ids', provider: 'jav_ids', providerId: parsed.providerId } : null
+    } else {
+      const storeName = `${parsed.provider}_records`
+      const key = `${parsed.type}::${parsed.providerId}`
+      const record = await Store.dbGet(storeName, key)
+      ratingQueryResult.value = record ? { ...record, type: parsed.type, provider: parsed.provider, providerId: parsed.providerId } : null
+    }
+  } catch { ratingQueryResult.value = null } finally { hasQueryed.value = true; isQuerying.value = false }
+}
+
+function debouncedQuery() {
+  if (isQuerying.value) return
+  if (queryDebounceTimer) clearTimeout(queryDebounceTimer)
+  queryDebounceTimer = setTimeout(() => queryRecordFromDB(), 500)
 }
 
 watch(ratingInput, (v) => {
   const input = v.trim()
-  if (!input) { ratingQueryResult.value = null; return }
-  if (input.includes('douban.com')) { selectedPlatform.value = 'douban'; selectedDomain.value = input.includes('music.douban.com') ? 'music' : 'movie' }
-  else if (input.includes('imdb.com') || /^tt\d+$/i.test(input)) { selectedPlatform.value = 'imdb'; selectedDomain.value = 'movie' }
-  else if (input.includes('neodb.social')) { selectedPlatform.value = 'neodb'; selectedDomain.value = input.includes('/tv/') ? 'tv' : input.includes('/album/') ? 'music' : 'movie' }
-  else if (input.includes('themoviedb.org')) { selectedPlatform.value = 'tmdb'; selectedDomain.value = input.includes('/tv/') ? 'tv' : 'movie' }
-  if (queryDebounceTimer) clearTimeout(queryDebounceTimer)
-  queryDebounceTimer = setTimeout(() => queryRecordFromDB(), 500)
+  if (!input) { ratingQueryResult.value = null; hasQueryed.value = false; return }
+  hasQueryed.value = false
+  ratingQueryResult.value = null
+  autoDetectPlatform(input, selectedPlatform.value, {
+    setPlatform: (p) => { selectedPlatform.value = p },
+    setDomain: (d) => { selectedDomain.value = d as Domain },
+  })
+  debouncedQuery()
 })
 
-watch(selectedDomain, () => { if (ratingInput.value.trim()) queryRecordFromDB() })
+watch(selectedDomain, () => { if (ratingInput.value.trim() && !isQuerying.value) debouncedQuery() })
+watch(selectedJavSource, () => { if (selectedPlatform.value === 'jav_ids' && ratingInput.value.trim() && !isQuerying.value) debouncedQuery() })
+watch(selectedPlatform, () => { if (ratingInput.value.trim() && !isQuerying.value) debouncedQuery() })
 
 async function saveRating() {
-  if (!ratingInput.value.trim()) { await showPageToast('error', '请输入平台 ID/URL'); return }
-  if (!ratingValue.value || ratingValue.value < 1 || ratingValue.value > 10) { await showPageToast('error', '请选择有效的评分(1-10)'); return }
+  if (!ratingInput.value.trim()) { toast.error('请输入平台 ID/URL'); return }
+  if (!ratingValue.value || ratingValue.value < 1 || ratingValue.value > 10) { toast.error('请选择有效的评分(1-10)'); return }
   const parsed = parseRatingInput()
-  if (!parsed) { await showPageToast('error', '无法解析输入的 ID 或 URL'); return }
+  if (!parsed) { toast.error('无法解析输入的 ID 或 URL'); return }
   try {
-    const storeName = `${parsed.provider}_records`
-    const key = `${parsed.type}::${parsed.providerId}`
-    const existing = await Store.dbGet(storeName, key)
-    await Store.dbPut(storeName, key, { url: parsed.url, status: existing?.status ?? 1, rating: ratingValue.value, comment: ratingComment.value || undefined, updatedAt: new Date().toISOString(), linkedIds: existing?.linkedIds ?? {} })
-    await showPageToast('success', `评分已保存(${parsed.provider}/${parsed.providerId})`)
+    if (parsed.provider === 'jav_ids') {
+      const existing = await Store.dbGet(JAV_IDS_STORE_NAME, parsed.providerId)
+      await Store.dbPut(JAV_IDS_STORE_NAME, parsed.providerId, {
+        url: parsed.url || existing?.url || '',
+        status: existing?.status ?? 2,
+        rating: ratingValue.value,
+        comment: ratingComment.value || undefined,
+        updatedAt: new Date().toISOString(),
+        linkedIds: existing?.linkedIds ?? {},
+      })
+    } else {
+      const storeName = `${parsed.provider}_records`
+      const key = `${parsed.type}::${parsed.providerId}`
+      const existing = await Store.dbGet(storeName, key)
+      await Store.dbPut(storeName, key, { url: parsed.url, status: existing?.status ?? 1, rating: ratingValue.value, comment: ratingComment.value || undefined, updatedAt: new Date().toISOString(), linkedIds: existing?.linkedIds ?? {} })
+    }
+    toast.success(`评分已保存(${parsed.provider}/${parsed.providerId})`)
     ratingInput.value = ''; ratingValue.value = null; ratingComment.value = ''; ratingQueryResult.value = null
-  } catch (e) { await showPageToast('error', '保存评分失败', (e as Error).message) }
+  } catch (e) { toast.error('保存评分失败', (e as Error).message) }
 }
 
 onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
@@ -165,7 +214,7 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
       </div>
       <div>
         <Label>媒体类型</Label>
-        <Select v-model="selectedDomain" class="mt-2">
+        <Select v-model="selectedDomain" class="mt-2" :disabled="selectedPlatform === 'jav_ids'">
           <SelectTrigger><SelectValue placeholder="选择类型" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="movie">电影</SelectItem>
@@ -174,47 +223,61 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
           </SelectContent>
         </Select>
       </div>
+      <div v-if="selectedPlatform === 'jav_ids'">
+        <Label>来源</Label>
+        <Select v-model="selectedJavSource" class="mt-2">
+          <SelectTrigger><SelectValue placeholder="选择来源" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="s in JAV_SOURCE_OPTIONS" :key="s.value" :value="s.value">{{ s.label }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div>
-        <Label>平台 ID 或 URL</Label>
-        <Input v-model="ratingInput" placeholder="例如: 1299004 或 URL" class="mt-2" />
+        <Label>{{ selectedPlatform === 'jav_ids' ? '成人视频 ID' : '平台 ID 或 URL' }}</Label>
+        <Input v-model="ratingInput" :placeholder="selectedPlatform === 'jav_ids' ? '例如: FC2-PPV-1234567' : '例如: 1299004 或 URL'" class="mt-2" />
       </div>
 
-      <Alert v-if="ratingInput && !isQuerying" :variant="parseResult?.valid ? 'default' : 'destructive'">
-        <CheckCircle2 v-if="parseResult?.valid" class="h-4 w-4" /><XCircle v-else class="h-4 w-4" />
-        <AlertTitle>{{ parseResult?.valid ? '✅ 解析成功' : '❌ 解析失败' }}</AlertTitle>
-        <AlertDescription v-if="parseResult">
-          <div v-if="parseResult.valid" class="mt-2 space-y-1 text-sm">
-            <div class="flex items-center gap-2"><strong>平台:</strong><Badge variant="outline" class="text-xs">{{ parseResult.provider }} / {{ parseResult.type }}</Badge></div>
-            <div><strong>ID:</strong> {{ parseResult.providerId }}</div>
+      <div class="space-y-2 min-h-[40px]">
+        <!-- Parse result -->
+        <Transition name="fade" mode="out-in">
+          <div v-if="ratingInput && parseResult && parseResult.valid" key="parse-ok" class="flex items-center gap-2 p-2 rounded-md bg-green-50/50 dark:bg-green-950/20 text-xs">
+            <CheckCircle2 class="h-3.5 w-3.5 text-green-500 shrink-0" />
+            <span class="text-green-700 dark:text-green-300">{{ parseResult.provider }} / {{ parseResult.type }}</span>
+            <span class="text-green-600/70 dark:text-green-400/70 font-mono">{{ parseResult.providerId }}</span>
           </div>
-          <div v-else class="text-sm-scaled text-destructive">{{ parseResult.error }}</div>
-        </AlertDescription>
-      </Alert>
-
-      <Alert v-if="isQuerying"><RefreshCw class="h-4 w-4 animate-spin" /><AlertTitle>查询中...</AlertTitle></Alert>
-
-      <Alert v-else-if="ratingQueryResult && ratingQueryResult.status === 2" variant="default">
-        <CheckCircle2 class="h-4 w-4" />
-        <AlertTitle class="font-semibold">✅ {{ ratingQueryResult.type === 'music' ? '已听' : '已看' }}</AlertTitle>
-        <AlertDescription>
-          <div class="mt-2 space-y-1 text-sm">
-            <div v-if="ratingQueryResult.rating" class="flex items-center gap-2"><strong>评分:</strong><Badge variant="default"><Star class="mr-1 h-3 w-3" />{{ ratingQueryResult.rating }}/10</Badge></div>
-            <div v-if="ratingQueryResult.comment" class="flex items-start gap-2"><strong class="shrink-0">评语:</strong><span class="italic">"{{ ratingQueryResult.comment }}"</span></div>
+          <div v-else-if="ratingInput && parseResult && !parseResult.valid" key="parse-err" class="flex items-center gap-2 p-2 rounded-md bg-red-50/50 dark:bg-red-950/20 text-xs">
+            <XCircle class="h-3.5 w-3.5 text-red-500 shrink-0" />
+            <span class="text-red-600 dark:text-red-400">{{ parseResult.error }}</span>
           </div>
-        </AlertDescription>
-      </Alert>
+        </Transition>
 
-      <Alert v-else-if="ratingQueryResult" variant="default">
-        <Database class="h-4 w-4" /><AlertTitle>找到记录</AlertTitle>
-        <AlertDescription>
-          <div class="mt-2 space-y-1 text-sm">
-            <div class="flex items-center gap-2"><strong>状态:</strong><Badge :variant="ratingQueryResult.status === 1 ? 'default' : 'secondary'" class="text-xs">{{ getStatusLabel(ratingQueryResult.status, ratingQueryResult.type) }}</Badge></div>
-            <div v-if="ratingQueryResult.rating" class="flex items-center gap-2"><strong>评分:</strong><Badge variant="outline"><Star class="mr-1 h-3 w-3" />{{ ratingQueryResult.rating }}/10</Badge></div>
+        <!-- Query state -->
+        <Transition name="fade" mode="out-in">
+          <div v-if="isQuerying" key="querying" class="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-xs">
+            <RefreshCw class="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            <span class="text-muted-foreground">查询数据库...</span>
           </div>
-        </AlertDescription>
-      </Alert>
 
-      <Alert v-else-if="ratingInput && !isQuerying"><Database class="h-4 w-4" /><AlertTitle>未找到记录</AlertTitle><AlertDescription>数据库中暂无此记录</AlertDescription></Alert>
+          <div v-else-if="ratingQueryResult && ratingQueryResult.status === 2" key="viewed" class="flex items-center gap-2 p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-xs">
+            <CheckCircle2 class="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+            <span class="text-green-800 dark:text-green-200 font-medium">已{{ ratingQueryResult.type === 'music' ? '听' : '看' }}</span>
+            <span v-if="ratingQueryResult.rating" class="text-green-700 dark:text-green-300">· {{ ratingQueryResult.rating }}/10</span>
+            <span v-if="ratingQueryResult.comment" class="text-green-600/70 dark:text-green-400/70 italic">· "{{ ratingQueryResult.comment }}"</span>
+          </div>
+
+          <div v-else-if="ratingQueryResult" key="found" class="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs">
+            <Database class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span class="text-blue-800 dark:text-blue-200 font-medium">已收录</span>
+            <span class="text-blue-700 dark:text-blue-300">· {{ getStatusLabel(ratingQueryResult.status, ratingQueryResult.type) }}</span>
+            <span v-if="ratingQueryResult.rating" class="text-blue-600 dark:text-blue-300">· {{ ratingQueryResult.rating }}/10</span>
+          </div>
+
+          <div v-else-if="ratingInput && hasQueryed && !isQuerying" key="notfound" class="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-dashed border-muted-foreground/20 text-xs">
+            <Database class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span class="text-muted-foreground">数据库中暂无此记录</span>
+          </div>
+        </Transition>
+      </div>
 
       <div>
         <Label>评分 (1-10)</Label>
@@ -232,3 +295,18 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+</style>

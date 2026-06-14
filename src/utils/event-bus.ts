@@ -41,7 +41,8 @@ export function subscribe(event: EventType, callback: (data: unknown) => void): 
 export function initEventBus(): void {
   if (initialized) return
   initialized = true
-  chrome.runtime.onMessage.addListener((message: unknown) => {
+  chrome.runtime.onMessage.addListener((message: unknown, sender: chrome.runtime.MessageSender) => {
+    if (sender.id !== chrome.runtime.id) return
     const msg = message as EventBusMessage
     if (msg.type !== 'EVENT_BUS') return
     const callbacks = subscribers.get(msg.event)
