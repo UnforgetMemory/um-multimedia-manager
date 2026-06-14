@@ -105,6 +105,6 @@ pnpm-workspace.yaml
 .parcel-cache/
 .webpack/
 .output/
-
+*.tsbuildinfo
 # AI agent ephemeral docs
 docs/superpowers/

@@ -12,7 +12,7 @@ import type { StoreRecord } from '@/types'
 import { initRouter, hasMatchingRoute } from './content/router'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
-import { escapeHtml } from './content/utils/dom'
+import { startRatingObserver, cleanupRatingObserver, setNeoDBInjector } from './content/observers/rating'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
@@ -195,6 +195,7 @@ export default defineContentScript({
         infoLog('Theme observer started')
 
         // ✅ 监听豆瓣评分变化
+        setNeoDBInjector(injectNeoDBPushButtons)
         startRatingObserver()
         infoLog('Rating observer started')
 
@@ -209,7 +210,7 @@ export default defineContentScript({
             if (mq.removeEventListener) mq.removeEventListener('change', themeChangeListener)
             else if (mq.removeListener) mq.removeListener(themeChangeListener)
           }
-          if (ratingObserver) { ratingObserver.disconnect(); ratingObserver = null }
+          cleanupRatingObserver()
           debugLog('Page cleanup completed')
         })
 
@@ -258,79 +259,6 @@ function isDoubanDetailPage(): boolean {
     (window.location.hostname === 'movie.douban.com' || window.location.hostname === 'music.douban.com') &&
     window.location.pathname.includes('/subject/')
   )
-}
-
-/**
- * 处理豆瓣详情页面 - 检测状态并注入按钮
- * @deprecated 已由路由器统一处理，保留供将来参考
- */
-void handleDoubanDetailPage
-async function handleDoubanDetailPage() {
-  if (!currentIdentity) return
-  
-  // 等待 #interest_sect_level 元素加载
-  await waitForElement('#interest_sect_level', 5000)
-  
-  // 扫描页面状态（检测"我看过"或"我听过"）
-  const pageState = scanDoubanPageStatus()
-  
-  // 获取本地记录状态
-  const localRecord = currentRecord
-  const isLocalDone = localRecord?.status === 2  // 2 = 已看/已听
-  const isPageDone = pageState.status === 'done'
-  
-  // 合并状态：页面状态优先，其次本地记录
-  const finalStatus = isPageDone || isLocalDone ? 2 : 0  // 2=已看, 0=未看
-  const finalRating = Utils.clampRating10(
-    isPageDone ? pageState.rating : localRecord?.rating || 0
-  )
-  
-  // 生成备注信息
-  const note = isLocalDone && !isPageDone ? '来自本地缓存' : ''
-  
-  // 渲染状态标签
-  renderDoubanStatusChip(finalStatus, finalRating, note)
-  
-  // 如果页面显示已看/已听，更新本地记录
-  if (isPageDone) {
-    const id = `${currentIdentity.provider}:${currentIdentity.type}:${currentIdentity.providerId}`
-    
-    const recordToSave = {
-      provider: currentIdentity.provider,
-      type: currentIdentity.type,
-      providerId: currentIdentity.providerId,
-      id,  // 添加复合主键
-      url: currentIdentity.url,
-      status: 2,  // 已看
-      rating: pageState.rating,
-      updatedAt: new Date().toISOString(),
-    }
-    
-    debugLog('Saving record:', {
-      id: `${recordToSave.provider}:${recordToSave.type}:${recordToSave.providerId}`,
-      provider: recordToSave.provider,
-      type: recordToSave.type,
-      providerId: recordToSave.providerId,
-      url: recordToSave.url,
-      status: recordToSave.status,
-      rating: recordToSave.rating,
-    })
-    
-    const storeName = `${currentIdentity.provider}_records`
-    const key = `${currentIdentity.type}::${currentIdentity.providerId}`
-    await Store.dbPut(storeName, key, {
-      url: currentIdentity.url,
-      status: 2,
-      rating: pageState.rating,
-      updatedAt: new Date().toISOString(),
-      linkedIds: {},
-    })
-    
-    infoLog('Updated local record from page state')
-  }
-  
-  // 注入 NeoDB 推送按钮
-  injectNeoDBPushButtons()
 }
 
 /**
@@ -393,37 +321,6 @@ function _detectPageTheme(): 'light' | 'dark' {
 
 
 /**
- * 等待元素出现（Promise 版本）
- */
-function waitForElement(selector: string, timeout = 5000): Promise<Element> {
-  return new Promise((resolve, reject) => {
-    const element = document.querySelector(selector)
-    if (element) {
-      resolve(element)
-      return
-    }
-    
-    const observer = new MutationObserver(() => {
-      const element = document.querySelector(selector)
-      if (element) {
-        observer.disconnect()
-        resolve(element)
-      }
-    })
-    
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    })
-    
-    setTimeout(() => {
-      observer.disconnect()
-      reject(new Error(`Timeout waiting for ${selector}`))
-    }, timeout)
-  })
-}
-
-/**
  * 扫描豆瓣页面状态（检测"我看过"或"我听过"）
  */
 function scanDoubanPageStatus(): { status: string; rating: number } {
@@ -471,71 +368,6 @@ function scanDoubanPageStatus(): { status: string; rating: number } {
     status: 'done',
     rating: Utils.clampRating10(stars * 2), // 豆瓣星级转 10 分制
   }
-}
-
-/**
- * 渲染豆瓣状态标签
- */
-function renderDoubanStatusChip(status: number, rating: number, note: string = '') {
-  // 查找锚点元素（标题附近）
-  const anchor = document.querySelector('#content h1') 
-    || document.querySelector('span[property="v:itemreviewed"]')
-  
-  if (!anchor) {
-    debugLog('Could not find anchor element for status chip')
-    return
-  }
-  
-  // 检查是否已存在状态标签
-  const existingChip = anchor.parentElement?.querySelector('.umm-status-chip[data-umm-owner]')
-  
-  // 创建新标签
-  const chip = _createDoubanStatusChip(status, rating, note)
-  chip.dataset.ummOwner = `douban-${currentIdentity?.type}`
-  
-  if (existingChip) {
-    // 替换现有标签
-    existingChip.replaceWith(chip)
-  } else {
-    // 插入到锚点元素之后
-    anchor.insertAdjacentElement('afterend', chip)
-  }
-}
-
-/**
- * 创建豆瓣状态标签（已废弃 - 使用 createDoubanPanel 替代）
- * @deprecated 使用 createDoubanPanel() 代替
- */
-// 保留此函数供将来可能的简单标签场景使用
-void _createDoubanStatusChip
-function _createDoubanStatusChip(status: number, rating: number, note: string = ''): HTMLElement {
-  const chip = document.createElement('div')
-  chip.className = 'umm-status-chip'
-  chip.dataset.status = status === 2 ? 'done' : 'none'
-  
-  const label = status === 2
-    ? (currentIdentity?.type === 'music' ? '✅ 已听' : '✅ 已看')
-    : (currentIdentity?.type === 'music' ? '⏳ 未听' : '⏳ 未看')
-  
-  const ratingText = rating > 0 ? `${Utils.formatRating10(rating)}/10` : ''
-  
-  // XSS 防护：转义所有用户输入
-  const escapedLabel = escapeHtml(label)
-  const escapedRatingText = ratingText ? escapeHtml(ratingText) : ''
-  const escapedNote = note ? escapeHtml(note) : ''
-  
-  chip.innerHTML = `
-    <span class="umm-label">${escapedLabel}</span>
-    ${escapedRatingText ? `<span class="umm-rating">${escapedRatingText}</span>` : ''}
-    ${escapedNote ? `<span class="umm-note">${escapedNote}</span>` : ''}
-  `
-  
-  // 添加 ARIA 属性 - 提升无障碍性
-  chip.setAttribute('role', 'status')
-  chip.setAttribute('aria-live', 'polite')
-  chip.setAttribute('aria-label', `${label}${ratingText ? `, 评分${ratingText}` : ''}${note ? `, ${note}` : ''}`)
-  
-  return chip
 }
 
 /**
@@ -910,85 +742,6 @@ function observeThemeChanges() {
   } else if (mediaQuery.addListener) {
     // 兼容旧版浏览器
     mediaQuery.addListener(themeChangeListener)
-  }
-}
-
-/**
- * 监听豆瓣评分变化（#n_rating），自动更新 NeoDB 推送按钮的评分
- * 实现事件驱动：用户点击星级 → 按钮值同步更新
- */
-let ratingObserver: MutationObserver | null = null
-let lastKnownRating = 0
-let ratingInputCleanup: (() => void) | null = null
-
-function startRatingObserver() {
-  // 只在豆瓣详情页启用
-  if (!isDoubanDetailPage()) return
-
-  const interestSect = document.getElementById('interest_sect_level')
-  if (!interestSect) {
-    // 元素可能还没加载，延迟重试
-    setTimeout(startRatingObserver, 1000)
-    return
-  }
-
-  // 初始化 lastKnownRating
-  const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
-  if (nRatingInput) {
-    lastKnownRating = Number.parseInt(nRatingInput.value, 10) || 0
-  }
-
-  // 断开旧的 observer
-  if (ratingObserver) {
-    ratingObserver.disconnect()
-  }
-
-  // 清理旧的 input 事件监听
-  if (ratingInputCleanup) {
-    ratingInputCleanup()
-    ratingInputCleanup = null
-  }
-
-  ratingObserver = new MutationObserver((() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        const input = document.getElementById('n_rating') as HTMLInputElement | null
-        if (!input) return
-        const newRating = Number.parseInt(input.value, 10) || 0
-        if (newRating !== lastKnownRating) {
-          lastKnownRating = newRating
-          debugLog(`Rating changed from ${lastKnownRating} → ${newRating}, re-rendering NeoDB buttons`)
-          injectNeoDBPushButtons()
-        }
-      }, 200) // 200ms 防抖
-    }
-  })())
-
-  ratingObserver.observe(interestSect, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class', 'value'],
-  })
-
-  // 补充：监听 #n_rating 的 input/change 事件（MutationObserver 无法捕获 property-only 变更）
-  if (nRatingInput) {
-    const handleRatingInput = () => {
-      const newRating = Number.parseInt(nRatingInput.value, 10) || 0
-      if (newRating !== lastKnownRating) {
-        lastKnownRating = newRating
-        debugLog(`Rating input event: ${newRating}, re-rendering NeoDB buttons`)
-        injectNeoDBPushButtons()
-      }
-    }
-    nRatingInput.addEventListener('input', handleRatingInput)
-    nRatingInput.addEventListener('change', handleRatingInput)
-    ratingInputCleanup = () => {
-      nRatingInput.removeEventListener('input', handleRatingInput)
-      nRatingInput.removeEventListener('change', handleRatingInput)
-    }
   }
 }
 

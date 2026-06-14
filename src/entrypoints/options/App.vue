@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
-import { useTheme } from '@/composables/useTheme'
+import { storeToRefs } from 'pinia'
+import { useThemeStore } from '@/stores/theme'
+import { useAppStore } from '@/stores/app'
 import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
@@ -9,13 +11,12 @@ import ToastContainer from '@/components/ToastContainer.vue'
 const router = useRouter()
 const route = useRoute()
 
-useTheme()
+useThemeStore()
+
+const appStore = useAppStore()
+const { appVersion } = storeToRefs(appStore)
 
 const sidebarOpen = ref(false)
-
-const appVersion = computed(() => {
-  try { return chrome.runtime.getManifest().version } catch { return '3.0.0' }
-})
 
 const tabs = [
   { id: 'overview', label: '概览', icon: Database, route: '/overview' },

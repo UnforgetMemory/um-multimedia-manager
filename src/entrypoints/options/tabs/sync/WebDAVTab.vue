@@ -8,11 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { RefreshCw, Download, Upload } from 'lucide-vue-next'
-import { useConfirmDialog } from '@/entrypoints/popup/useConfirmDialog'
+import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
 
 const toast = useToast()
-const { showConfirmDialog } = useConfirmDialog()
+const { show } = useConfirmStore()
 
 const webdavConfig = ref({ url: '', username: '', password: '' })
 const isConfigSaved = ref(false)
@@ -44,7 +44,7 @@ async function testConnection() {
 
 async function syncCloud() {
   if (!isConfigSaved.value) { toast.error('请先保存配置'); return }
-  showConfirmDialog({
+  show({
     title: '智能合并同步',
     description: '对比本地和云端数据，自动同步有变化的部分',
     icon: RefreshCw,
@@ -62,7 +62,7 @@ async function syncCloud() {
 
 async function downloadCloud() {
   if (!isConfigSaved.value) { toast.error('请先保存配置'); return }
-  showConfirmDialog({
+  show({
     title: '云端覆盖本地',
     description: '用云端数据完全覆盖本地数据',
     warning: '此操作不可逆',
@@ -81,7 +81,7 @@ async function downloadCloud() {
 
 async function uploadCloud() {
   if (!isConfigSaved.value) { toast.error('请先保存配置'); return }
-  showConfirmDialog({
+  show({
     title: '本地覆盖云端',
     description: '用本地数据完全覆盖云端数据',
     warning: '此操作不可逆',

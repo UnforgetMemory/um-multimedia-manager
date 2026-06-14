@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { useConfirmDialog } from '@/entrypoints/popup/useConfirmDialog'
+import { useConfirmStore } from '@/stores/confirm'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-vue-next'
 
-const { state, handleConfirmAction } = useConfirmDialog()
+const confirmStore = useConfirmStore()
+const { state } = confirmStore
 </script>
 
 <template>
@@ -28,7 +29,7 @@ const { state, handleConfirmAction } = useConfirmDialog()
 
       <DialogFooter>
         <Button variant="outline" @click="state.open = false" :disabled="state.loading">取消</Button>
-        <Button @click="handleConfirmAction" :disabled="state.loading">
+        <Button @click="confirmStore.confirm" :disabled="state.loading">
           <Loader2 v-if="state.loading" class="mr-2 h-4 w-4 animate-spin" />
           {{ state.confirmText }}
         </Button>

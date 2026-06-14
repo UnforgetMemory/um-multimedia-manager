@@ -3,11 +3,11 @@ import { ref } from 'vue'
 import { safeSendMessage } from '@/utils/context'
 import { Button } from '@/components/ui/button'
 import { Download, Upload, RefreshCw } from 'lucide-vue-next'
-import { useConfirmDialog } from '@/entrypoints/popup/useConfirmDialog'
+import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
 
 const toast = useToast()
-const { showConfirmDialog } = useConfirmDialog()
+const { show } = useConfirmStore()
 const isExporting = ref(false)
 const isImporting = ref(false)
 
@@ -34,7 +34,7 @@ function triggerImport() {
         const payload = JSON.parse(event.target?.result as string)
         let recordCount = 0
         if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
-        showConfirmDialog({
+        show({
           title: '导入数据',
           description: `即将导入 ${recordCount.toLocaleString()} 条记录`,
           warning: '相同 ID 的记录将被覆盖',

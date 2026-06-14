@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { useTheme } from '@/composables/useTheme'
+import { useThemeStore } from '@/stores/theme'
+import { storeToRefs } from 'pinia'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sun, Moon, Monitor } from 'lucide-vue-next'
 
-const { theme, fontSize, density } = useTheme()
+const themeStore = useThemeStore()
+const { theme, fontSize, density } = storeToRefs(themeStore)
 
 const themeOptions = [
   { value: 'light' as const, label: '浅色', icon: Sun },
