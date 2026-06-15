@@ -1,4 +1,8 @@
 <p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/语言-中文-red.svg" alt="中文"></a>
+</p>
+
+<p align="center">
   <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
 </p>
 
@@ -47,15 +51,15 @@
 | | IMDb (www.imdb.com) | Quick panel, status tagging, rating |
 | | NeoDB (neodb.social) | Quick panel, status tagging, metadata fetch |
 | | TMDB (themoviedb.org) | Quick panel, status tagging |
-| **PT Sites (Dimmer)** | M-Team (m-team.cc) | Auto-dim watched items in torrent lists |
-| | Audiences (audiences.me) | Auto-dim watched items in torrent lists |
-| | HDHome (hdhome.org) | Auto-dim watched items in torrent lists |
-| | HDArea (hdarea.club) | Auto-dim watched items in torrent lists |
-| | OurBits (ourbits.club) | Auto-dim watched items in torrent lists |
-| | PTerClub (pterclub.net) | Auto-dim watched items in torrent lists |
-| **Adult Video** | JavDB (javdb.com) | Watch record management |
-| | Sehuatang (sehuatang.net) | Watch record management |
-| **Other** | Mukaku (web5.mukaku.com) | Basic support |
+| **PT Sites (Dimmer)** | M-Team | Auto-dim watched items in torrent lists |
+| | Audiences | Auto-dim watched items in torrent lists |
+| | HDHome | Auto-dim watched items in torrent lists |
+| | HDArea | Auto-dim watched items in torrent lists |
+| | OurBits | Auto-dim watched items in torrent lists |
+| | PTerClub | Auto-dim watched items in torrent lists |
+| **Adult Video** | JavDB | Watch record management |
+| | Sehuatang | Watch record management |
+| **Other** | Mukaku | Basic support |
 
 ---
 

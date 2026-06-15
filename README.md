@@ -1,4 +1,8 @@
 <p align="center">
+  <a href="README.en.md"><img src="https://img.shields.io/badge/lang-English-blue.svg" alt="English"></a>
+</p>
+
+<p align="center">
   <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
 </p>
 
@@ -37,9 +41,9 @@
 |------|------|------|
 | 影视平台 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` | 观影标记与元数据 |
 | 音乐平台 | `music.douban.com` `neodb.social/album` | 收听标记 |
-| PT 站点 | `m-team.cc` `audiences.me` `hdhome.org` `hdarea.club` `ourbits.club` `pterclub.net` | 已看种子自动淡化 |
-| 成人视频 | `javdb.com` `sehuatang.net` | 观看记录管理 |
-| 其他 | `search.douban.com` `mukaku.com` | 搜索增强与记录同步 |
+| PT 站点 | M-Team、Audiences、HDHome、HDArea、OurBits、PTerClub 等 | 已看种子自动淡化 |
+| 成人视频 | JavDB、Sehuatang 等 | 观看记录管理 |
+| 其他 | `search.douban.com`、Mukaku 等 | 搜索增强与记录同步 |
 
 ## 技术栈
 

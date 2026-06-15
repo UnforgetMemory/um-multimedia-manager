@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Docs
 - **README**: 修正项目名称展开为 UM Multimedia Manager（UM 即 UnforgetMemory），之前误写为 "Unified" / "Universal"
 - **README**: 添加项目 Logo，优化布局与排版，统一双语文档风格
+- **README**: 添加中英文 README 之间的语言切换导航链接，支持一键切换语言
 
 ## [3.3.0] - 2026-06-15
 
