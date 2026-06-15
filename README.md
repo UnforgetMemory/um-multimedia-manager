@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <b>UMM (Unified Multimedia Manager)</b> 是一款基于 Manifest V3 的 Chrome 浏览器扩展，帮你统一管理多平台的观影和收听记录。它不仅能跨平台标记"看过/听过"，还能在 PT 站点自动标注已看过的内容，省去反复对照的麻烦。
+  <b>UMM（UM Multimedia Manager，UM 即 UnforgetMemory）</b> 是一款基于 Manifest V3 的 Chrome 浏览器扩展，帮你统一管理多平台的观影和收听记录。它不仅能跨平台标记"看过/听过"，还能在 PT 站点自动标注已看过的内容，省去反复对照的麻烦。
 </p>
 
 ---

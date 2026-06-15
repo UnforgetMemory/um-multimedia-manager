@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
 </p>
 
-<h1 align="center">UMM — Universal Multimedia Manager</h1>
+<h1 align="center">UMM — UM Multimedia Manager</h1>
 
 <p align="center">
   <a href="https://github.com/"><img src="https://img.shields.io/badge/version-3.3.0-blue.svg" alt="Version"></a>
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <b>UMM</b> is a Chrome extension (Manifest V3) that helps you manage your cross-platform watch and listen records. It unifies your movie, TV, and music history across multiple platforms, provides smart PT site dimming for already-watched items, and keeps your data safe with WebDAV cloud backup.
+  <b>UMM</b> (<b>UM Multimedia Manager</b>, where <b>UM</b> stands for <b>UnforgetMemory</b>) is a Chrome extension (Manifest V3) that helps you manage your cross-platform watch and listen records. It unifies your movie, TV, and music history across multiple platforms, provides smart PT site dimming for already-watched items, and keeps your data safe with WebDAV cloud backup.
 </p>
 
 <p align="center">
