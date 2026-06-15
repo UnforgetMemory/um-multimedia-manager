@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **License**: 项目许可证从 MIT 切换为 Apache-2.0 ([LICENSE](LICENSE))
 
+### Docs
+- **README**: 修正项目名称展开为 UM Multimedia Manager（UM 即 UnforgetMemory），之前误写为 "Unified" / "Universal"
+- **README**: 添加项目 Logo，优化布局与排版，统一双语文档风格
+
 ## [3.3.0] - 2026-06-15
 
 ### Architecture
