@@ -1,10 +1,24 @@
-# UMM - Universal Multimedia Manager
+<p align="center">
+  <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
+</p>
 
-[![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)](https://github.com/) [![Chrome](https://img.shields.io/badge/chrome-extension-brightgreen.svg)](https://chrome.google.com/webstore) [![Manifest V3](https://img.shields.io/badge/manifest-v3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/) [![Vue 3](https://img.shields.io/badge/vue-3.5-4FC08D.svg)](https://vuejs.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+<h1 align="center">UMM — Universal Multimedia Manager</h1>
 
-**UMM** is a Chrome extension (Manifest V3) that helps you manage your cross-platform watch and listen records. It unifies your movie, TV, and music history across multiple platforms, provides smart PT site dimming for already-watched items, and keeps your data safe with WebDAV cloud backup.
+<p align="center">
+  <a href="https://github.com/"><img src="https://img.shields.io/badge/version-3.3.0-blue.svg" alt="Version"></a>
+  <a href="https://chrome.google.com/webstore"><img src="https://img.shields.io/badge/chrome-extension-brightgreen.svg" alt="Chrome Extension"></a>
+  <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/manifest-v3-orange.svg" alt="Manifest V3"></a>
+  <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/vue-3.5-4FC08D.svg" alt="Vue 3"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-green.svg" alt="License"></a>
+</p>
 
-Built with **Vue 3 (Composition API)** + **TypeScript** + **WXT** + **Tailwind CSS** + **shadcn/vue**.
+<p align="center">
+  <b>UMM</b> is a Chrome extension (Manifest V3) that helps you manage your cross-platform watch and listen records. It unifies your movie, TV, and music history across multiple platforms, provides smart PT site dimming for already-watched items, and keeps your data safe with WebDAV cloud backup.
+</p>
+
+<p align="center">
+  Built with <b>Vue 3 (Composition API)</b> + <b>TypeScript</b> + <b>WXT</b> + <b>Tailwind CSS</b> + <b>shadcn/vue</b>.
+</p>
 
 ---
 
@@ -397,4 +411,4 @@ um-multimedia-manager/
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.

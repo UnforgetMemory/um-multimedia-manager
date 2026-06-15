@@ -1,11 +1,19 @@
-# UMM — 多媒体管理器
+<p align="center">
+  <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
+</p>
 
-![Version](https://img.shields.io/badge/版本-3.3.0-blue)
-![Chrome](https://img.shields.io/badge/Chrome-88%2B-brightgreen)
-![Manifest](https://img.shields.io/badge/Manifest-V3-orange)
-![License](https://img.shields.io/badge/许可证-MIT-green)
+<h1 align="center">UMM — 多媒体管理器</h1>
 
-**UMM (Unified Multimedia Manager)** 是一款基于 Manifest V3 的 Chrome 浏览器扩展，帮你统一管理多平台的观影和收听记录。它不仅能跨平台标记"看过/听过"，还能在 PT 站点自动标注已看过的内容，省去反复对照的麻烦。
+<p align="center">
+  <a href="https://github.com/"><img src="https://img.shields.io/badge/版本-3.3.0-blue" alt="Version"></a>
+  <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen" alt="Chrome"></a>
+  <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest-V3-orange" alt="Manifest"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-Apache%202.0-green" alt="License"></a>
+</p>
+
+<p align="center">
+  <b>UMM (Unified Multimedia Manager)</b> 是一款基于 Manifest V3 的 Chrome 浏览器扩展，帮你统一管理多平台的观影和收听记录。它不仅能跨平台标记"看过/听过"，还能在 PT 站点自动标注已看过的内容，省去反复对照的麻烦。
+</p>
 
 ---
 
@@ -280,7 +288,7 @@ um-multimedia-manager/
 
 ## 许可
 
-[MIT](LICENSE)
+[Apache 2.0](LICENSE)
 
 ---
 
