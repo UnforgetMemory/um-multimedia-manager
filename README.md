@@ -1,6 +1,6 @@
 # UMM — 多媒体管理器
 
-![Version](https://img.shields.io/badge/版本-1.4.0-blue)
+![Version](https://img.shields.io/badge/版本-3.3.0-blue)
 ![Chrome](https://img.shields.io/badge/Chrome-88%2B-brightgreen)
 ![Manifest](https://img.shields.io/badge/Manifest-V3-orange)
 ![License](https://img.shields.io/badge/许可证-MIT-green)
@@ -19,6 +19,9 @@
 - **🎨 主题切换** — 亮色、暗色、跟随系统，三种主题自由切换
 - **⚡ Service Worker 架构** — 后台 Service Worker 周期性同步、缓存清理，无需保持页面打开
 - **📊 统计看板** — 弹出面板中查看所有记录的统计、搜索和筛选
+- **📝 选项页** — 独立选项页面提供丰富的统计数据、活跃度热力图、平台分布、评分管理和外观定制
+- **🔞 成人视频支持** — 识别并统一管理 JavDB、色花堂等成人视频平台的观看记录
+- **🎨 设计系统** — 统一的设计 tokens、扩展排版系统和字体缩放，让界面更协调
 
 ## 支持的站点
 
@@ -27,6 +30,7 @@
 | 影视平台 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` | 观影标记与元数据 |
 | 音乐平台 | `music.douban.com` `neodb.social/album` | 收听标记 |
 | PT 站点 | `m-team.cc` `audiences.me` `hdhome.org` `hdarea.club` `ourbits.club` `pterclub.net` | 已看种子自动淡化 |
+| 成人视频 | `javdb.com` `sehuatang.net` | 观看记录管理 |
 | 其他 | `search.douban.com` `mukaku.com` | 搜索增强与记录同步 |
 
 ## 技术栈
@@ -184,68 +188,94 @@ npm run dev
 
 ```
 um-multimedia-manager/
-├── wxt.config.ts              # WXT 扩展构建配置
-├── components.json            # shadcn/vue 组件配置
-├── tsconfig.json              # TypeScript 配置
-├── playwright.config.ts       # Playwright E2E 测试配置
-├── icons/                     # 扩展图标
+├── wxt.config.ts                 # WXT 扩展构建配置
+├── components.json               # shadcn/vue 组件配置
+├── tsconfig.json                 # TypeScript 配置
+├── playwright.config.ts          # Playwright E2E 测试配置
+├── icons/                        # 扩展图标
 │   ├── icon-16.png
 │   ├── icon-48.png
 │   └── icon-128.png
 ├── src/
-│   ├── entrypoints/           # WXT 入口点
-│   │   ├── background.ts      # Service Worker（消息路由 + DB + 告警任务）
-│   │   ├── content.ts         # Content Script 主入口
-│   │   └── popup/             # Popup 弹窗 UI
+│   ├── entrypoints/              # WXT 入口点
+│   │   ├── background.ts         # Service Worker（消息路由 + DB + 告警任务）
+│   │   ├── content.ts            # Content Script 主入口
+│   │   ├── popup/                # 弹窗 UI
+│   │   │   ├── main.ts
+│   │   │   ├── App.vue
+│   │   │   ├── pages/            # 弹窗页面
+│   │   │   └── index.html
+│   │   └── options/              # 选项页 UI
 │   │       ├── main.ts
 │   │       ├── App.vue
+│   │       ├── router.ts
+│   │       ├── tabs/             # 选项页标签
+│   │       │   ├── OverviewTab.vue   # 统计概览
+│   │       │   ├── RatingTab.vue     # 评分管理
+│   │       │   ├── LinkedTab.vue     # 关联查询
+│   │       │   ├── SyncTab.vue       # WebDAV 同步
+│   │       │   ├── SettingsTab.vue   # 配置
+│   │       │   └── AppearanceTab.vue # 外观定制
 │   │       └── index.html
-│   ├── content/               # Content Script 业务逻辑
-│   │   ├── router.ts          # URL 路由分发
-│   │   ├── handlers/          # 各平台处理器
-│   │   │   ├── douban.ts      # 豆瓣电影/音乐
-│   │   │   ├── imdb.ts        # IMDb
-│   │   │   ├── neodb.ts       # NeoDB
-│   │   │   ├── mukaku.ts      # Mukaku 同步
-│   │   │   └── pt-detail.ts   # PT 详情页
-│   │   ├── enhancers/         # 页面增强功能
-│   │   │   ├── pt-dimmer.ts   # PT 站点已看淡出
+│   ├── content/                  # Content Script 业务逻辑
+│   │   ├── router.ts             # URL 路由分发
+│   │   ├── handlers/             # 各平台处理器
+│   │   │   ├── douban.ts         # 豆瓣入口
+│   │   │   ├── douban-scanner.ts # 豆瓣页面扫描
+│   │   │   ├── douban-sync.ts    # 豆瓣保存同步
+│   │   │   ├── douban-neodb.ts   # 豆瓣 NeoDB 推送
+│   │   │   ├── douban-toast.ts   # 豆瓣通知
+│   │   │   ├── imdb.ts           # IMDb
+│   │   │   ├── neodb.ts          # NeoDB
+│   │   │   ├── mukaku.ts         # Mukaku 同步
+│   │   │   ├── pt-detail.ts      # PT 详情页
+│   │   │   ├── javdb.ts          # JavDB
+│   │   │   └── sehuatang.ts      # 色花堂
+│   │   ├── enhancers/            # 页面增强功能
+│   │   │   ├── pt-dimmer.ts      # PT 站点已看淡出
 │   │   │   └── douban-search.ts  # 豆瓣搜索增强
-│   │   ├── styles/            # 注入样式
-│   │   └── utils/             # Content Script 工具
-│   ├── shared/                # 共享模块
-│   │   ├── models/            # 数据模型与迁移
-│   │   │   ├── database.ts    # IndexedDB 封装
-│   │   │   ├── identity.ts    # URL 身份识别
-│   │   │   └── migrations.ts  # 数据迁移
-│   │   ├── api/               # 外部 API 客户端
-│   │   │   ├── neodb.ts       # NeoDB API
-│   │   │   └── webdav.ts      # WebDAV 客户端
-│   │   ├── types/             # TypeScript 类型定义
-│   │   ├── utils/             # 通用工具
-│   │   │   ├── logger.ts      # 日志工具
-│   │   │   ├── theme.ts       # 主题管理
-│   │   │   ├── zip-utils.ts   # ZIP 打包
-│   │   │   ├── hash-utils.ts  # 哈希计算
-│   │   │   └── requestQueue.ts# 请求队列
-│   │   ├── config.ts          # 配置常量
-│   │   └── index.ts           # 导出入口
-│   ├── components/            # UI 组件
-│   │   └── ui/                # shadcn/vue 组件
-│   ├── lib/                   # 工具库
-│   └── styles/                # 全局样式
-├── tests/                     # Playwright 测试
-│   ├── unit/                  # 单元测试
-│   └── integration/           # 集成测试
-├── scripts/                   # 构建与维护脚本
-│   ├── package.js             # 版本管理与打包
-│   ├── unpack.js              # 解包扩展
-│   ├── fix-paths.js           # 构建后路径修正
-│   ├── resize-icons.ts        # 图标尺寸调整
-│   ├── data-export.js         # CLI 数据导出
-│   ├── data-import.js         # CLI 数据导入
-│   └── migrate-data.ts        # 数据迁移工具
-└── docs/                      # 文档
+│   │   ├── observers/            # 页面状态观察者
+│   │   │   └── rating.ts         # 评分变化监听
+│   │   ├── i18n/                 # 国际化
+│   │   ├── styles/               # 注入样式
+│   │   └── utils/                # Content Script 工具
+│   ├── features/                 # 业务模块
+│   │   ├── database/             # IndexedDB 封装与数据模型
+│   │   ├── identity/             # URL 身份识别
+│   │   ├── migration/            # 数据迁移
+│   │   ├── neodb/                # NeoDB API 客户端
+│   │   ├── webdav/               # WebDAV 客户端
+│   │   ├── settings/             # 缓存管理
+│   │   └── adult-av/             # 成人视频 ID 识别与存储
+│   ├── stores/                   # Pinia 状态管理
+│   │   ├── app.ts                # 应用级状态
+│   │   ├── theme.ts              # 主题状态
+│   │   └── confirm.ts            # 确认对话框状态
+│   ├── composables/              # Vue composables
+│   │   ├── useStats.ts           # 统计数据计算
+│   │   ├── usePlatformMeta.ts    # 平台元信息
+│   │   └── useToast.ts           # 通知系统
+│   ├── components/               # 通用组件
+│   │   ├── StatCard.vue          # 统计卡片
+│   │   ├── HeatmapCalendar.vue   # 活跃度热力图
+│   │   ├── PlatformDistribution.vue # 平台分布
+│   │   ├── ToastContainer.vue    # 通知容器
+│   │   ├── ConfirmDialog.vue     # 确认对话框
+│   │   └── ui/                   # shadcn/vue 组件
+│   ├── styles/                   # 全局样式
+│   │   ├── design-tokens.css     # 设计系统变量
+│   │   └── typography.css        # 排版系统
+│   └── types/                    # TypeScript 类型定义
+├── scripts/                      # 构建与维护脚本
+│   ├── package.js                # 版本管理与打包
+│   ├── unpack.js                 # 解包扩展
+│   ├── fix-paths.js              # 构建后路径修正
+│   ├── resize-icons.ts           # 图标尺寸调整
+│   ├── data-export.js            # CLI 数据导出
+│   ├── data-import.js            # CLI 数据导入
+│   └── migrate-data.ts           # 数据迁移工具
+├── .omo/                         # 工作计划与规格文档
+└── docs/                         # 文档
 ```
 
 ## 许可

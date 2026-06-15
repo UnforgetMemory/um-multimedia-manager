@@ -1,6 +1,6 @@
 # UMM - Universal Multimedia Manager
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/) [![Chrome](https://img.shields.io/badge/chrome-extension-brightgreen.svg)](https://chrome.google.com/webstore) [![Manifest V3](https://img.shields.io/badge/manifest-v3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/) [![Vue 3](https://img.shields.io/badge/vue-3.5-4FC08D.svg)](https://vuejs.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)](https://github.com/) [![Chrome](https://img.shields.io/badge/chrome-extension-brightgreen.svg)](https://chrome.google.com/webstore) [![Manifest V3](https://img.shields.io/badge/manifest-v3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/) [![Vue 3](https://img.shields.io/badge/vue-3.5-4FC08D.svg)](https://vuejs.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **UMM** is a Chrome extension (Manifest V3) that helps you manage your cross-platform watch and listen records. It unifies your movie, TV, and music history across multiple platforms, provides smart PT site dimming for already-watched items, and keeps your data safe with WebDAV cloud backup.
 
@@ -14,10 +14,13 @@ Built with **Vue 3 (Composition API)** + **TypeScript** + **WXT** + **Tailwind C
 - **Floating Quick Panel** — A draggable overlay appears on supported pages. Mark items as done, want-to-watch, or set a rating in one click.
 - **PT Site Dimmer** — Automatically dims or hides already-watched torrents on supported PT sites. No more accidentally downloading what you have already seen.
 - **Cross-Platform ID Linking** — Link the same item across platforms (Douban ↔ IMDb ↔ NeoDB). If you mark it on one platform, it syncs everywhere.
-- **Rich Popup Dashboard** — View your statistics, browse records by platform, filter by rating, and manage cross-platform links from the extension popup.
+- **Options Page** — Dedicated options page with rich statistics, GitHub-style heatmap, platform distribution, rating management, and appearance customization.
+- **Rich Popup Dashboard** — Compact popup dashboard showing overview stats with a call-to-action to the options page.
 - **NeoDB API Integration** — Auto-fetch metadata and cover images from NeoDB when you tag items.
 - **WebDAV Backup & Restore** — Sync your data to any WebDAV server. Export and import as ZIP archives for offline safekeeping.
-- **Theme Support** — Light, dark, or system-following theme.
+- **Theme Support** — Light, dark, or system-following theme with smooth transitions.
+- **Design System** — Unified design tokens, extended typography system, and font scaling for consistent appearance.
+- **Adult AV Support** — Recognize and manage watch records from JavDB, Sehuatang, and other adult video sources.
 - **Service Worker Architecture** — Background service worker handles IndexedDB operations, alarms, messaging, and periodic tasks efficiently.
 
 ---
@@ -36,6 +39,8 @@ Built with **Vue 3 (Composition API)** + **TypeScript** + **WXT** + **Tailwind C
 | | HDArea (hdarea.club) | Auto-dim watched items in torrent lists |
 | | OurBits (ourbits.club) | Auto-dim watched items in torrent lists |
 | | PTerClub (pterclub.net) | Auto-dim watched items in torrent lists |
+| **Adult Video** | JavDB (javdb.com) | Watch record management |
+| | Sehuatang (sehuatang.net) | Watch record management |
 | **Other** | Mukaku (web5.mukaku.com) | Basic support |
 
 ---
@@ -43,48 +48,54 @@ Built with **Vue 3 (Composition API)** + **TypeScript** + **WXT** + **Tailwind C
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   Popup UI (Vue 3)                   │
-│           Statistics · Browse · Settings              │
-└──────────────────────┬──────────────────────────────┘
-                       │ chrome.runtime.sendMessage
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│            Background Service Worker                  │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │ Message  │  │  NeoDB   │  │ WebDAV Sync/      │  │
+┌──────────────────────────────────────────────────────┐
+│          Options Page (Vue 3)   Popup (Vue 3)         │
+│   Stats · Charts · Settings      Dashboard           │
+└───────────────────────┬──────────────────────────────┘
+                        │ chrome.runtime.sendMessage
+                        ▼
+┌──────────────────────────────────────────────────────┐
+│              Background Service Worker                │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐  │
+│  │ Message  │  │  NeoDB   │  │ WebDAV Sync/       │  │
 │  │ Router   │  │   API    │  │ Backup & Restore   │  │
-│  └──────────┘  └──────────┘  └───────────────────┘  │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │  Alarms  │  │  Notif.  │  │   Data Migrator   │  │
-│  └──────────┘  └──────────┘  └───────────────────┘  │
-└──────────────────────┬──────────────────────────────┘
+│  └──────────┘  └──────────┘  └────────────────────┘  │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐  │
+│  │  Alarms  │  │  Notif.  │  │   Data Migrator    │  │
+│  └──────────┘  └──────────┘  └────────────────────┘  │
+└──────────────────────┬───────────────────────────────┘
                        │ IndexedDB API
                        ▼
-┌─────────────────────────────────────────────────────┐
-│               IndexedDB (umm-media-db)               │
+┌──────────────────────────────────────────────────────┐
+│              IndexedDB (umm-media-db)                 │
 │  douban_records · imdb_records · neodb_records       │
-│  tmdb_records · ttl_cache · sync_logs · pt_id_cache  │
-└─────────────────────────────────────────────────────┘
+│  tmdb_records · jav_records · ttl_cache              │
+│  sync_logs · pt_id_cache · jav_id_cache              │
+└──────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────┐
-│              Content Script (per-page)               │
+┌──────────────────────────────────────────────────────┐
+│              Content Script (per-page)                │
 │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
 │  │ Router   │  │ Handlers │  │ PT Dimmer /       │  │
-│  │          │  │ (douban, │  │ Search Enhancer   │  │
-│  │          │  │  imdb…)  │  │                   │  │
+│  │          │  │ (douban, │  │ Search / Rating   │  │
+│  │          │  │  javdb…) │  │ Observer          │  │
+│  │          │  │          │  │ i18n              │  │
 │  └──────────┘  └──────────┘  └───────────────────┘  │
-└─────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────┘
 ```
 
 ### Key Components
 
-- **Background Service Worker** (`src/entrypoints/background.ts`) — Central message router, IndexedDB singleton connection, alarm-based periodic tasks (shelf cache cleanup), and notification management.
+- **Background Service Worker** (`src/entrypoints/background.ts`) — Central message router, IndexedDB singleton connection, alarm-based periodic tasks (shelf cache cleanup), and notification management. All DB access flows through this layer.
 - **Content Scripts** (`src/entrypoints/content.ts`) — Injected into matched pages. Uses a URL router to dispatch to the correct platform handler, then injects the floating quick panel and status tags.
-- **Popup Dashboard** (`src/entrypoints/popup/`) — Vue 3 application with tabbed views for record overview, platform distribution, rating analysis, linked items, and settings.
+- **Options Page** (`src/entrypoints/options/`) — Full-featured Vue 3 application with sidebar layout, providing statistics dashboard (heatmap, charts, daily/weekly activity), rating management, cross-platform record linking, WebDAV sync, settings, and appearance customization.
+- **Popup Dashboard** (`src/entrypoints/popup/`) — Compact Vue 3 dashboard with overview statistics, serving as a quick-launch entry point to the options page.
 - **PT Dimmer** (`src/content/enhancers/pt-dimmer.ts`) — Observes DOM mutations on PT torrent list pages, fetches watched IDs from IndexedDB with TTL caching, and dims matching rows in real time.
 - **PT Detail Handler** (`src/content/handlers/pt-detail.ts`) — Extracts Douban and IMDb IDs from PT detail pages and caches them to IndexedDB for list-page dimming.
-- **Data Layer** (`src/shared/models/database.ts`) — IndexedDB manager with per-platform object stores, composite keys (`type::providerId`), cross-platform `linkedIds`, and schema version migration (v7).
+- **Douban Handler Suite** (`src/content/handlers/douban-*.ts`) — Split from a monolithic handler into scanner, sync, NeoDB push, and toast notification modules for maintainability.
+- **Data Layer** (`src/features/database/`) — IndexedDB manager with per-platform object stores, composite keys (`type::providerId`), cross-platform `linkedIds`, and schema version migration (v9).
+- **Stores** (`src/stores/`) — Pinia stores for application state (`app`, `theme`, `confirm`) with VueUse integration (`useStorage`, `useMediaQuery`).
+- **Composables** (`src/composables/`) — Shared Vue composition functions for stats computation, platform metadata, and toast notification system.
 
 ---
 
@@ -153,17 +164,20 @@ When browsing supported PT sites, any torrent that matches a watched movie or al
 - Caches watched IDs for 30 seconds for performance.
 - Falls back to PT detail page caches for ID matching.
 
-### Popup Dashboard
+### Popup Dashboard & Options Page
 
-Click the UMM icon in the Chrome toolbar to open the popup.
+Click the UMM icon in the Chrome toolbar to open the popup dashboard showing key statistics at a glance. Click **Open Options Page** for full management capabilities.
+
+The dedicated options page provides:
 
 | Tab | Description |
 |-----|-------------|
-| **Overview** | Total record count, distribution by type (movie/TV/music) |
-| **Platforms** | Record counts broken down by platform |
-| **Ratings** | Filter and browse records by rating |
-| **Linked** | View and manage cross-platform linked records |
-| **Settings** | Configure WebDAV, NeoDB token, theme, and more |
+| **Overview** | Total record count, GitHub-style heatmap, daily activity, platform distribution, and weekly chart |
+| **Rating** | Browse and filter records by rating and source platform |
+| **Linked** | View and manage cross-platform linked records with jav_id support |
+| **Sync** | WebDAV backup/restore and data import/export |
+| **Settings** | Configure NeoDB token, general preferences |
+| **Appearance** | Theme selection (light/dark/system), font scaling |
 
 ### Data Management
 
@@ -255,10 +269,18 @@ Outputs the production build to `dist/`.
 ### Package a Release
 
 ```bash
-npm run package        # auto-bump patch
-npm run package:patch  # explicit patch bump
-npm run package:minor  # minor version bump
-npm run package:major  # major version bump
+npm run package:patch  # patch version bump + build
+npm run package:minor  # minor version bump + build
+npm run package:major  # major version bump + build
+```
+
+### Useful Scripts
+
+```bash
+npm run deps:audit     # Security audit
+npm run data:export    # CLI data export
+npm run data:import    # CLI data import
+npm run resize-icons   # Resize extension icons
 ```
 
 ---
@@ -267,63 +289,90 @@ npm run package:major  # major version bump
 
 ```
 um-multimedia-manager/
-├── wxt.config.ts                # WXT build configuration (Manifest V3)
-├── components.json              # shadcn/vue component configuration
-├── tsconfig.json                # TypeScript configuration
-├── package.json                 # Dependencies and scripts
-├── playwright.config.ts         # Playwright test configuration
-├── icons/                       # Extension icons (16/48/128px)
-├── scripts/                     # Build and packaging utilities
-├── docs/                        # Additional documentation
-├── tests/                       # Playwright test suites
-│   ├── unit/                    # Unit tests
-│   └── integration/             # Integration tests
+├── wxt.config.ts                 # WXT build configuration (Manifest V3)
+├── components.json               # shadcn/vue component configuration
+├── tsconfig.json                 # TypeScript configuration
+├── playwright.config.ts          # Playwright test configuration
+├── icons/                        # Extension icons (16/48/128px)
 ├── src/
-│   ├── entrypoints/             # WXT entry points
-│   │   ├── background.ts        # Service Worker (message routing, DB, alarms)
-│   │   ├── content.ts           # Content script (floating panel, PT dimmer)
-│   │   └── popup/               # Popup UI application
-│   │       ├── main.ts          # Popup entry
-│   │       └── App.vue          # Popup root component
-│   ├── content/                 # Content script logic
-│   │   ├── router.ts            # URL-based platform router
-│   │   ├── handlers/            # Per-platform page handlers
-│   │   │   ├── douban.ts        # Douban movie & music
-│   │   │   ├── imdb.ts          # IMDb
-│   │   │   ├── neodb.ts         # NeoDB
-│   │   │   ├── pt-detail.ts     # PT detail page ID extraction
-│   │   │   └── mukaku.ts        # Mukaku
-│   │   ├── enhancers/           # Content page enhancements
-│   │   │   ├── pt-dimmer.ts     # PT site dimmer
-│   │   │   └── douban-search.ts # Douban search page enhancer
-│   │   ├── styles/              # Injected CSS styles
-│   │   └── utils/               # DOM and toast utilities
-│   ├── shared/                  # Shared across all entry points
-│   │   ├── config.ts            # Constants, keys, dataset definitions
-│   │   ├── index.ts             # Barrel exports
-│   │   ├── types/               # TypeScript type definitions
-│   │   │   ├── index.ts         # Core types (StoreRecord, settings, export)
-│   │   │   └── messages.ts      # Runtime message types
-│   │   ├── api/                 # External API clients
-│   │   │   ├── database.ts      # IndexedDB message-passing API
-│   │   │   ├── neodb.ts         # NeoDB API client
-│   │   │   └── webdav.ts        # WebDAV client (pure HTTP + ZIP)
-│   │   ├── models/              # Data models and persistence
-│   │   │   ├── database.ts      # IndexedDB manager (v7, per-platform stores)
-│   │   │   ├── identity.ts      # URL identity parser
-│   │   │   └── migrations.ts    # Schema migration utilities
-│   │   └── utils/               # Shared utilities
-│   │       ├── context.ts       # Message context helpers
-│   │       ├── hash-utils.ts    # Store hash computation
-│   │       ├── logger.ts        # Logging utilities
-│   │       ├── requestQueue.ts  # Concurrent request limiter
-│   │       ├── theme.ts         # Theme detection
-│   │       └── zip-utils.ts     # ZIP packaging for WebDAV sync
-│   ├── components/              # Vue components (shadcn/vue)
-│   │   └── ui/                  # shadcn/vue UI components
-│   ├── lib/                     # Vue library helpers
-│   └── vite-env.d.ts            # Vite environment types
-└── dist/                        # Build output (gitignored)
+│   ├── entrypoints/              # WXT entry points
+│   │   ├── background.ts         # Service Worker (message routing, DB, alarms)
+│   │   ├── content.ts            # Content script (floating panel, PT dimmer)
+│   │   ├── popup/                # Popup UI application
+│   │   │   ├── main.ts           # Popup entry
+│   │   │   ├── App.vue           # Popup root component
+│   │   │   └── pages/            # Popup pages
+│   │   └── options/              # Options page UI (Vue 3 app)
+│   │       ├── main.ts           # Options entry
+│   │       ├── App.vue           # Options root with sidebar layout
+│   │       ├── router.ts         # Tab-based routing
+│   │       ├── tabs/             # Tab components
+│   │       │   ├── OverviewTab.vue   # Stats, heatmap, charts
+│   │       │   ├── RatingTab.vue     # Rating management
+│   │       │   ├── LinkedTab.vue     # Cross-platform linked records
+│   │       │   ├── SyncTab.vue       # WebDAV sync & import/export
+│   │       │   ├── SettingsTab.vue   # General settings
+│   │       │   └── AppearanceTab.vue # Theme & font scaling
+│   │       └── index.html
+│   ├── content/                  # Content script logic
+│   │   ├── router.ts             # URL-based platform router
+│   │   ├── handlers/             # Per-platform page handlers
+│   │   │   ├── douban.ts         # Douban entry point
+│   │   │   ├── douban-scanner.ts # Douban page scanning
+│   │   │   ├── douban-sync.ts    # Douban save/sync
+│   │   │   ├── douban-neodb.ts   # Douban NeoDB push
+│   │   │   ├── douban-toast.ts   # Douban notifications
+│   │   │   ├── imdb.ts           # IMDb
+│   │   │   ├── neodb.ts          # NeoDB
+│   │   │   ├── mukaku.ts         # Mukaku sync
+│   │   │   ├── pt-detail.ts      # PT detail page ID extraction
+│   │   │   ├── javdb.ts          # JavDB
+│   │   │   └── sehuatang.ts      # Sehuatang
+│   │   ├── enhancers/            # Content page enhancements
+│   │   │   ├── pt-dimmer.ts      # PT site dimmer
+│   │   │   └── douban-search.ts  # Douban search page enhancer
+│   │   ├── observers/            # Page state observers
+│   │   │   └── rating.ts         # Rating change watcher
+│   │   ├── i18n/                 # Internationalization
+│   │   ├── styles/               # Injected CSS styles
+│   │   └── utils/                # DOM and toast utilities
+│   ├── features/                 # Business logic modules
+│   │   ├── database/             # IndexedDB models & CRUD
+│   │   ├── identity/             # URL identity parser
+│   │   ├── migration/            # Schema migration utilities
+│   │   ├── neodb/                # NeoDB API client
+│   │   ├── webdav/               # WebDAV client (pure HTTP + ZIP)
+│   │   ├── settings/             # Cache management
+│   │   └── adult-av/             # Adult video ID recognition & storage
+│   ├── stores/                   # Pinia state management
+│   │   ├── app.ts                # App-level state
+│   │   ├── theme.ts              # Theme state
+│   │   └── confirm.ts            # Confirm dialog state
+│   ├── composables/              # Vue composables
+│   │   ├── useStats.ts           # Stats computation
+│   │   ├── usePlatformMeta.ts    # Platform metadata mapping
+│   │   └── useToast.ts           # Toast notification system
+│   ├── components/               # Shared components
+│   │   ├── StatCard.vue          # Stat card
+│   │   ├── HeatmapCalendar.vue   # Activity heatmap
+│   │   ├── PlatformDistribution.vue # Platform distribution list
+│   │   ├── ToastContainer.vue    # Toast container
+│   │   ├── ConfirmDialog.vue     # Confirm dialog
+│   │   └── ui/                   # shadcn/vue UI components
+│   ├── styles/                   # Global styles
+│   │   ├── design-tokens.css     # Design system tokens
+│   │   └── typography.css        # Typography scales
+│   └── types/                    # TypeScript type definitions
+├── scripts/                      # Build and packaging utilities
+│   ├── package.js                # Version management & packaging
+│   ├── unpack.js                 # Unpack extension
+│   ├── fix-paths.js              # Post-build path fixer
+│   ├── resize-icons.ts           # Icon resizing
+│   ├── data-export.js            # CLI data export
+│   ├── data-import.js            # CLI data import
+│   └── migrate-data.ts           # Data migration tool
+├── .omo/                         # Work plans & spec docs
+└── docs/                         # Additional documentation
 ```
 
 ---
