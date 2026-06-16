@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Store } from '@/features/database'
+import { STORAGE_KEYS } from '@/config'
 import { useI18n } from 'vue-i18n'
 import type { AppSettings } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,8 @@ const LOG_LEVEL_OPTIONS = [
 
 let autoSyncInitialized = false
 let debugInitialized = false
+let syncingFromStorage = false
+let settingsChangedUnsub: (() => void) | null = null
 
 onMounted(async () => {
   const settings = await Store.getSettings()
@@ -36,6 +39,38 @@ onMounted(async () => {
   await nextTick()
   autoSyncInitialized = true
   debugInitialized = true
+
+  // Sync settings across tabs
+  const onChange = async (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (area !== 'local') return
+    const relevant = [STORAGE_KEYS.NEODB_TOKEN, STORAGE_KEYS.AUTO_SYNC_NEO_DB, STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL]
+    if (!relevant.some(k => k in changes)) return
+    syncingFromStorage = true
+    if (STORAGE_KEYS.NEODB_TOKEN in changes) {
+      const v = changes[STORAGE_KEYS.NEODB_TOKEN].newValue
+      neodbToken.value = (typeof v === 'string' ? v : '')
+    }
+    if (STORAGE_KEYS.AUTO_SYNC_NEO_DB in changes) {
+      const v = changes[STORAGE_KEYS.AUTO_SYNC_NEO_DB].newValue
+      autoSyncNeoDB.value = (typeof v === 'boolean' ? v : false)
+    }
+    if (STORAGE_KEYS.DEBUG_ENABLED in changes) {
+      const v = changes[STORAGE_KEYS.DEBUG_ENABLED].newValue
+      debugEnabled.value = (typeof v === 'boolean' ? v : false)
+    }
+    if (STORAGE_KEYS.LOG_LEVEL in changes) {
+      const v = changes[STORAGE_KEYS.LOG_LEVEL].newValue
+      logLevel.value = (v === 'debug' || v === 'info' || v === 'warn' || v === 'error' ? v : 'info')
+    }
+    await nextTick()
+    syncingFromStorage = false
+  }
+  chrome.storage.onChanged.addListener(onChange)
+  settingsChangedUnsub = () => { chrome.storage.onChanged.removeListener(onChange) }
+})
+
+onUnmounted(() => {
+  settingsChangedUnsub?.()
 })
 
 async function saveNeoDBToken() {
@@ -43,12 +78,12 @@ async function saveNeoDBToken() {
 }
 
 watch(autoSyncNeoDB, async (v) => {
-  if (!autoSyncInitialized) return
+  if (!autoSyncInitialized || syncingFromStorage) return
   try { await Store.updateSettings({ autoSyncNeoDB: v }); toast.info(v ? t('toast.autoSyncEnabled') : t('toast.autoSyncDisabled')) } catch (e) { toast.error(t('toast.saveFailed'), String(e)) }
 })
 
 watch([debugEnabled, logLevel], async ([e, l]) => {
-  if (!debugInitialized) return
+  if (!debugInitialized || syncingFromStorage) return
   try { await Store.updateSettings({ debugEnabled: e, logLevel: l }); toast.info(e ? t('toast.logEnabled', { level: l }) : t('toast.logDisabled')) } catch (err) { toast.error(t('toast.saveFailed'), String(err)) }
 })
 </script>

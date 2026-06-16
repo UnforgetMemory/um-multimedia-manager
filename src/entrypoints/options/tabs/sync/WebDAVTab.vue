@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Store } from '@/features/database'
+import { STORAGE_KEYS } from '@/config'
 import { safeSendMessage } from '@/utils/context'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
@@ -22,10 +23,33 @@ const loading = ref({ sync: false, download: false, upload: false })
 
 const isAnyRunning = computed(() => Object.values(loading.value).some(v => v))
 
+let webdavOnChangedUnsub: (() => void) | null = null
+
 onMounted(async () => {
   const settings = await Store.getSettings()
   webdavConfig.value = { url: settings.webdavUrl || '', username: settings.webdavUsername || '', password: settings.webdavPassword || '' }
   isConfigSaved.value = !!(settings.webdavUrl && settings.webdavUsername && settings.webdavPassword)
+
+  // Sync WebDAV config across tabs
+  const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (area !== 'local') return
+    const relevant = [STORAGE_KEYS.WEBDAV_URL, STORAGE_KEYS.WEBDAV_USERNAME, STORAGE_KEYS.WEBDAV_PASSWORD]
+    if (!relevant.some(k => k in changes)) return
+    chrome.storage.local.get([STORAGE_KEYS.WEBDAV_URL, STORAGE_KEYS.WEBDAV_USERNAME, STORAGE_KEYS.WEBDAV_PASSWORD]).then(result => {
+      webdavConfig.value = {
+        url: (result[STORAGE_KEYS.WEBDAV_URL] as string) || '',
+        username: (result[STORAGE_KEYS.WEBDAV_USERNAME] as string) || '',
+        password: (result[STORAGE_KEYS.WEBDAV_PASSWORD] as string) || '',
+      }
+      isConfigSaved.value = !!(result[STORAGE_KEYS.WEBDAV_URL] && result[STORAGE_KEYS.WEBDAV_USERNAME] && result[STORAGE_KEYS.WEBDAV_PASSWORD])
+    })
+  }
+  chrome.storage.onChanged.addListener(onChange)
+  webdavOnChangedUnsub = () => { chrome.storage.onChanged.removeListener(onChange) }
+})
+
+onUnmounted(() => {
+  webdavOnChangedUnsub?.()
 })
 
 async function saveConfig() {
