@@ -10,7 +10,7 @@ import { Store } from '@/features/database'
 import { Utils } from '@/utils'
 import type { StoreRecord } from '@/types'
 import { initRouter, hasMatchingRoute } from './content/router'
-import { initI18n, t } from './content/i18n'
+import { initI18n, startLocaleSync, t } from './content/i18n'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
 import { startRatingObserver, cleanupRatingObserver, setNeoDBInjector } from './content/observers/rating'
@@ -163,6 +163,7 @@ export default defineContentScript({
       try {
         // Initialize i18n before any handler code runs
         await initI18n()
+        startLocaleSync()
 
         // ✅ 关键：先等待 Background Service Worker 和数据库就绪
         infoLog('Waiting for background DB to be ready...')

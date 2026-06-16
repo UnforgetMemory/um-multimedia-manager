@@ -46,6 +46,23 @@ export function getLocale(): Locale {
   return currentLocale
 }
 
+/**
+ * Start listening for locale changes from other contexts (options/popup tabs).
+ * Call this once after initI18n() to keep the content script's locale in sync.
+ */
+export function startLocaleSync(): void {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return
+    const langChange = changes[EXT_LANGUAGE_KEY]
+    if (langChange?.newValue && langChange.newValue !== langChange.oldValue) {
+      const newLocale = langChange.newValue as Locale
+      if (newLocale in locales) {
+        currentLocale = newLocale
+      }
+    }
+  })
+}
+
 export function t(key: string, params?: Record<string, string | number>): string {
   const str = locales[currentLocale]?.[key] || locales['en-US']?.[key] || key
   if (!params) return str
