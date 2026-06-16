@@ -1,29 +1,38 @@
 <script setup lang="ts">
 import { useThemeStore } from '@/stores/theme'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Sun, Moon, Monitor } from 'lucide-vue-next'
+import { Sun, Moon, Monitor, Globe } from 'lucide-vue-next'
+import { LOCALE_OPTIONS, persistLocale } from '@/plugins/i18n'
+import type { Locale } from '@/locales'
 
+const { t, locale } = useI18n()
 const themeStore = useThemeStore()
 const { theme, fontSize, density } = storeToRefs(themeStore)
 
 const themeOptions = [
-  { value: 'light' as const, label: '浅色', icon: Sun },
-  { value: 'dark' as const, label: '深色', icon: Moon },
-  { value: 'auto' as const, label: '跟随系统', icon: Monitor },
+  { value: 'light' as const, key: 'appearance.light' as const, icon: Sun },
+  { value: 'dark' as const, key: 'appearance.dark' as const, icon: Moon },
+  { value: 'auto' as const, key: 'appearance.system' as const, icon: Monitor },
 ]
 
 const fontSizeOptions = [
-  { value: 'compact' as const, label: '紧凑', desc: '更小的字体' },
-  { value: 'default' as const, label: '标准', desc: '默认大小' },
-  { value: 'comfortable' as const, label: '宽松', desc: '更大的字体' },
+  { value: 'compact' as const, labelKey: 'appearance.compact' as const, descKey: 'appearance.fontDesc.compact' as const },
+  { value: 'default' as const, labelKey: 'appearance.default' as const, descKey: 'appearance.fontDesc.default' as const },
+  { value: 'comfortable' as const, labelKey: 'appearance.comfortable' as const, descKey: 'appearance.fontDesc.comfortable' as const },
 ]
 
 const densityOptions = [
-  { value: 'compact' as const, label: '紧凑', desc: '更小的间距' },
-  { value: 'default' as const, label: '标准', desc: '默认间距' },
-  { value: 'comfortable' as const, label: '宽松', desc: '更大的间距' },
+  { value: 'compact' as const, labelKey: 'appearance.compact' as const, descKey: 'appearance.densityDesc.compact' as const },
+  { value: 'default' as const, labelKey: 'appearance.default' as const, descKey: 'appearance.densityDesc.default' as const },
+  { value: 'comfortable' as const, labelKey: 'appearance.comfortable' as const, descKey: 'appearance.densityDesc.comfortable' as const },
 ]
+
+function setLocale(value: Locale) {
+  locale.value = value
+  persistLocale(value)
+}
 </script>
 
 <template>
@@ -31,7 +40,7 @@ const densityOptions = [
     <!-- Theme -->
     <Card>
       <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content">主题</CardTitle>
+        <CardTitle class="font-h2 text-primary-content">{{ t('appearance.theme') }}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="grid grid-cols-3 gap-3">
@@ -47,7 +56,7 @@ const densityOptions = [
             ]"
           >
             <component :is="opt.icon" class="w-5 h-5" :class="theme === opt.value ? 'text-primary' : 'text-muted-foreground'" />
-            <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
+            <span class="text-sm-scaled font-medium">{{ t(opt.key) }}</span>
           </button>
         </div>
       </CardContent>
@@ -56,7 +65,7 @@ const densityOptions = [
     <!-- Font Size -->
     <Card>
       <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content">字体大小</CardTitle>
+        <CardTitle class="font-h2 text-primary-content">{{ t('appearance.fontSize') }}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="grid grid-cols-3 gap-3">
@@ -71,8 +80,35 @@ const densityOptions = [
                 : 'border-border hover:border-primary/50'
             ]"
           >
+            <span class="text-sm-scaled font-medium">{{ t(opt.labelKey) }}</span>
+            <span class="text-xs-scaled text-muted-foreground">{{ t(opt.descKey) }}</span>
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <!-- Language -->
+    <Card>
+      <CardHeader class="pb-3">
+        <CardTitle class="font-h2 text-primary-content flex items-center gap-2">
+          <Globe class="w-5 h-5" />
+          {{ t('appearance.language') }}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="grid grid-cols-3 gap-3">
+          <button
+            v-for="opt in LOCALE_OPTIONS"
+            :key="opt.value"
+            @click="setLocale(opt.value)"
+            :class="[
+              'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center',
+              locale === opt.value
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
+            ]"
+          >
             <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
-            <span class="text-xs-scaled text-muted-foreground">{{ opt.desc }}</span>
           </button>
         </div>
       </CardContent>
@@ -81,7 +117,7 @@ const densityOptions = [
     <!-- Density -->
     <Card>
       <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content">间距密度</CardTitle>
+        <CardTitle class="font-h2 text-primary-content">{{ t('appearance.density') }}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="grid grid-cols-3 gap-3">
@@ -96,8 +132,8 @@ const densityOptions = [
                 : 'border-border hover:border-primary/50'
             ]"
           >
-            <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
-            <span class="text-xs-scaled text-muted-foreground">{{ opt.desc }}</span>
+            <span class="text-sm-scaled font-medium">{{ t(opt.labelKey) }}</span>
+            <span class="text-xs-scaled text-muted-foreground">{{ t(opt.descKey) }}</span>
           </button>
         </div>
       </CardContent>

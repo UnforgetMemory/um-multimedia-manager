@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useStats } from '@/composables/useStats'
-import { PLATFORM_LABELS, PLATFORM_HUES } from '@/composables/usePlatformMeta'
+import { PLATFORM_HUES } from '@/composables/usePlatformMeta'
 import StatCard from '@/components/StatCard.vue'
 import HeatmapCalendar from '@/components/HeatmapCalendar.vue'
 import PlatformDistribution from '@/components/PlatformDistribution.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { RefreshCw, AlertCircle, Film, Tv, Music, ShieldAlert, Database } from 'lucide-vue-next'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle, Database, RefreshCw, Film, Tv, Music, ShieldAlert } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const appStore = useAppStore()
 const { stats } = useStats(
   () => appStore.records as any,
@@ -19,72 +21,91 @@ const { stats } = useStats(
 
 const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
 
-const typeLabels: Record<string, string> = { movie: '电影', tv: '剧集', music: '音乐', book: '书籍' }
+const overviewTabs = computed(() => [
+  { id: 'overview' as const, label: t('tab.overview') as string },
+  { id: 'weekly' as const, label: t('tab.weekly') as string },
+  { id: 'platform' as const, label: t('tab.platform') as string },
+])
 
-const platformStats = computed(() => {
-  const map: Record<string, { count: number; typeCounts: Record<string, number> }> = {}
-  for (const r of (appStore.records as any[])) {
-    const key = r.provider as string
-    if (!map[key]) map[key] = { count: 0, typeCounts: {} }
-    map[key].count++
-    map[key].typeCounts[r.type] = (map[key].typeCounts[r.type] || 0) + 1
+interface PlatformStat {
+  provider: string
+  count: number
+  types: { label: string; count: number }[]
+}
+
+const platformStats = computed<PlatformStat[]>(() => {
+  const data = appStore.records as any
+  const map: Record<string, PlatformStat> = {}
+  for (const r of data || []) {
+    const provider: string = r.provider || r.storeName?.replace('_records', '') || 'unknown'
+    if (!map[provider]) map[provider] = { provider, count: 0, types: [] }
+    map[provider].count++
+    const type: string = r.type || (r.url?.includes('music') ? 'music' : 'movie')
+    const existing = map[provider].types.find(t => t.label === type)
+    if (existing) existing.count++
+    else map[provider].types.push({ label: type, count: 1 })
   }
-  for (const item of appStore.adultAvItems) {
-    const key = item.source
-    if (!map[key]) map[key] = { count: 0, typeCounts: {} }
-    map[key].count++
-    map[key].typeCounts['成人视频'] = (map[key].typeCounts['成人视频'] || 0) + 1
+  // Include adult AV items (javdb, sehuatang) in platform distribution
+  for (const item of appStore.adultAvItems || []) {
+    const provider = item.source
+    if (!map[provider]) map[provider] = { provider, count: 0, types: [] }
+    map[provider].count++
+    const existing = map[provider].types.find(t => t.label === 'jav')
+    if (existing) existing.count++
+    else map[provider].types.push({ label: 'jav', count: 1 })
   }
-  return Object.entries(map)
-    .map(([provider, info]) => ({
-      provider,
-      count: info.count,
-      types: Object.entries(info.typeCounts)
-        .map(([t, count]) => ({ label: typeLabels[t] || t, count }))
-        .sort((a, b) => b.count - a.count),
-    }))
-    .sort((a, b) => b.count - a.count)
+  return Object.values(map).sort((a, b) => b.count - a.count)
 })
 
 const maxCount = computed(() => Math.max(1, ...platformStats.value.map(p => p.count)))
 
-const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+interface DailyItem { source: string; label: string; count: number }
+interface DailyStat { date: string; dateStr: string; weekday: string; total: number; items: DailyItem[]; isToday: boolean }
+
+const weekdayNames = computed(() => [
+  t('weekday.sunday'), t('weekday.monday'), t('weekday.tuesday'), t('weekday.wednesday'),
+  t('weekday.thursday'), t('weekday.friday'), t('weekday.saturday'),
+])
 
 const weeklyStats = computed(() => {
+  const data = appStore.records as any
   const now = new Date()
-  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const dayMs = 86400000
-  const days: { date: string; dateStr: string; weekday: string; total: number; items: { source: string; label: string; count: number }[]; isToday: boolean }[] = []
+  const days: DailyStat[] = []
   let weekTotal = 0
 
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getTime() - i * dayMs)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const dateStr = `${d.getMonth() + 1}/${d.getDate()}`
-    const isToday = key === todayKey
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const isToday = i === 0
 
     const sourceCounts: Record<string, number> = {}
-    for (const r of (appStore.records as any[])) {
+    for (const r of data || []) {
       if (!r.updatedAt) continue
       const rd = new Date(r.updatedAt)
       const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
-      if (rKey === key) sourceCounts[r.provider] = (sourceCounts[r.provider] || 0) + 1
+      if (rKey !== key) continue
+      const provider: string = r.provider || r.storeName?.replace('_records', '') || 'unknown'
+      sourceCounts[provider] = (sourceCounts[provider] || 0) + 1
     }
-    for (const item of appStore.adultAvItems) {
+    // Include adult AV items (javdb, sehuatang) in daily counts
+    for (const item of appStore.adultAvItems || []) {
       if (!item.updatedAt) continue
       const rd = new Date(item.updatedAt)
       const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
-      if (rKey === key) sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1
+      if (rKey !== key) continue
+      sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1
     }
 
     const total = Object.values(sourceCounts).reduce((a, b) => a + b, 0)
     weekTotal += total
 
     const items = Object.entries(sourceCounts)
-      .map(([source, count]) => ({ source, label: PLATFORM_LABELS[source] || source, count }))
+      .map(([source, count]) => ({ source, label: t('platform.' + source, source), count }))
       .sort((a, b) => b.count - a.count)
 
-    days.push({ date: key, dateStr, weekday: weekdayNames[d.getDay()], total, items, isToday })
+    days.push({ date: key, dateStr, weekday: weekdayNames.value[d.getDay()], total, items, isToday })
   }
 
   const maxDaily = Math.max(1, ...days.map(d => d.total))
@@ -95,7 +116,7 @@ const weeklyStats = computed(() => {
 })
 
 const statIcons = [Film, Tv, Music, ShieldAlert]
-const statLabels = ['电影', '剧集', '音乐', '成人视频']
+const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.jav')])
 const statKeys = ['movie', 'tv', 'music', 'jav'] as const
 
 const tooltipData = ref<{ show: boolean; x: number; y: number; text: string }>({ show: false, x: 0, y: 0, text: '' })
@@ -136,11 +157,11 @@ onMounted(async () => { await appStore.loadData() })
     <div v-else-if="appStore.error" class="py-12 text-center">
       <Alert variant="destructive" class="mb-4">
         <AlertCircle class="h-4 w-4" />
-        <AlertTitle>加载失败</AlertTitle>
+        <AlertTitle>{{ t('common.loadFailed') }}</AlertTitle>
         <AlertDescription>{{ appStore.error }}</AlertDescription>
       </Alert>
       <Button @click="appStore.loadData" variant="outline">
-        <RefreshCw class="mr-2 h-4 w-4" />重试
+        <RefreshCw class="mr-2 h-4 w-4" />{{ t('common.retry') }}
       </Button>
     </div>
 
@@ -150,7 +171,7 @@ onMounted(async () => { await appStore.loadData() })
       <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
         <div class="flex flex-1 p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
           <button
-            v-for="tab in [{ id: 'overview' as const, label: '总览' }, { id: 'weekly' as const, label: '最近一周' }, { id: 'platform' as const, label: '平台分布' }]"
+            v-for="tab in overviewTabs"
             :key="tab.id"
             @click="activeOverviewTab = tab.id"
             :class="[
@@ -180,7 +201,7 @@ onMounted(async () => { await appStore.loadData() })
           <div class="flex items-center justify-between" :style="{ padding: 'var(--card-padding)' }">
             <div class="flex items-center gap-2">
               <Database class="w-4 h-4 text-secondary-content" />
-              <span class="font-body font-medium text-secondary-content">总记录</span>
+              <span class="font-body font-medium text-secondary-content">{{ t('stats.total') }}</span>
             </div>
             <span class="font-bold tracking-tight text-primary-content tabular-nums whitespace-nowrap" :style="{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }">
               {{ stats.total.toLocaleString() }}
@@ -200,26 +221,26 @@ onMounted(async () => { await appStore.loadData() })
           <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
             {{ weeklyStats.total }}
           </div>
-          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">本周总计</div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ t('stats.weeklyTotal') }}</div>
         </Card>
         <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
           <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
             {{ weeklyStats.avgDaily }}
           </div>
-          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">日均</div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ t('stats.dailyAvg') }}</div>
         </Card>
         <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
           <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
             {{ weeklyStats.peakDay }}
           </div>
-          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">峰值日</div>
+          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ t('stats.peakDay') }}</div>
         </Card>
       </div>
 
       <!-- Daily Bar Chart -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
-          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">每日记录</h3>
+          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">{{ t('stats.dailyRecords') }}</h3>
           <div class="flex" :style="{ gap: 'var(--space-2)', height: '8rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
               class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)', height: '100%' }">
@@ -250,7 +271,7 @@ onMounted(async () => { await appStore.loadData() })
       <!-- Daily Detail List -->
       <Card>
         <div :style="{ padding: 'var(--card-padding)' }">
-          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-4)' }">每日详情</h3>
+          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-4)' }">{{ t('stats.dailyDetail') }}</h3>
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
               class="rounded-xl border transition-all"
@@ -274,7 +295,7 @@ onMounted(async () => { await appStore.loadData() })
                   </div>
                 </div>
                 <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
-                  <span v-if="day.isToday" class="text-xs-scaled font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">今天</span>
+                  <span v-if="day.isToday" class="text-xs-scaled font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">{{ t('common.today') }}</span>
                   <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.125rem * var(--font-scale, 1))' }">
                     {{ day.total }}
                   </div>
@@ -284,7 +305,7 @@ onMounted(async () => { await appStore.loadData() })
               <!-- Source breakdown with mini progress bars -->
               <div v-if="day.items.length > 0" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }">
                 <div v-for="(item, i) in day.items" :key="i" class="flex items-center" :style="{ gap: 'var(--space-2)' }">
-                  <span class="font-body text-secondary-content shrink-0" :style="{ width: '48px', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.label }}</span>
+                  <span class="font-body text-secondary-content shrink-0" :style="{ width: '80px', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.label }}</span>
                   <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                     <div class="h-full rounded-full transition-all duration-500"
                       :style="{
@@ -295,7 +316,7 @@ onMounted(async () => { await appStore.loadData() })
                   <span class="font-body font-medium tabular-nums text-primary-content shrink-0" :style="{ width: '32px', textAlign: 'right', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.count }}</span>
                 </div>
               </div>
-              <div v-else class="py-2 text-center font-caption text-secondary-content" :style="{ fontSize: '11px' }">无记录</div>
+              <div v-else class="py-2 text-center font-caption text-secondary-content" :style="{ fontSize: '11px' }">{{ t('common.noRecords') }}</div>
             </div>
           </div>
         </div>
@@ -306,7 +327,7 @@ onMounted(async () => { await appStore.loadData() })
       <div v-if="activeOverviewTab === 'platform'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
       <!-- Platform Distribution -->
       <div>
-        <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">平台分布</h3>
+        <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">{{ t('tab.platformDistribution') }}</h3>
 
         <!-- Summary bar chart -->
         <Card :style="{ marginBottom: 'var(--space-4)' }">
@@ -332,7 +353,7 @@ onMounted(async () => { await appStore.loadData() })
                 :key="info.provider + '-label'"
                 class="flex-1 text-center font-caption text-secondary-content truncate"
               >
-                {{ PLATFORM_LABELS[info.provider] || info.provider }}
+                {{ t('platform.' + info.provider, info.provider) }}
               </div>
             </div>
           </div>
@@ -342,7 +363,7 @@ onMounted(async () => { await appStore.loadData() })
         <PlatformDistribution :platformStats="platformStats" />
 
         <div v-if="platformStats.length === 0" class="py-8 text-center font-body text-secondary-content">
-          暂无数据
+          {{ t('common.noData') }}
         </div>
       </div>
       </div><!-- end platform tab -->

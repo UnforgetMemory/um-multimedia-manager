@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { safeSendMessage } from '@/utils/context'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Download, Upload, RefreshCw } from 'lucide-vue-next'
 import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
 
+const { t } = useI18n()
 const toast = useToast()
 const { show } = useConfirmStore()
 const isExporting = ref(false)
@@ -15,13 +17,13 @@ async function exportData() {
   isExporting.value = true
   try {
     const response = await safeSendMessage({ type: 'EXPORT_DATA' }, { timeout: 30000 })
-    if (!response?.success) throw new Error(response?.error || '导出失败')
+    if (!response?.success) throw new Error(response?.error || t('toast.exportFailed'))
     const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
-    toast.success('导出成功！')
-  } catch (e) { toast.error('导出失败', String(e)) } finally { isExporting.value = false }
+    toast.success(t('toast.exportSuccess'))
+  } catch (e) { toast.error(t('toast.exportFailed'), String(e)) } finally { isExporting.value = false }
 }
 
 function triggerImport() {
@@ -35,12 +37,12 @@ function triggerImport() {
         let recordCount = 0
         if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
         show({
-          title: '导入数据',
-          description: `即将导入 ${recordCount.toLocaleString()} 条记录`,
-          warning: '相同 ID 的记录将被覆盖',
-          details: `文件名: ${file.name}`,
+          title: t('confirm.importData'),
+          description: t('confirm.importRecords', { count: recordCount.toLocaleString() }),
+          warning: t('common.overrideWarning'),
+          details: `${t('common.fileName')}: ${file.name}`,
           icon: Upload,
-          confirmText: '开始导入',
+          confirmText: t('common.startImport'),
           action: async () => {
             isImporting.value = true
             try {
@@ -54,11 +56,11 @@ function triggerImport() {
                 importPayload = { stores }
               }
               await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
-              toast.success('导入成功')
-            } catch (e) { toast.error('导入失败', String(e)) } finally { isImporting.value = false }
+              toast.success(t('toast.importSuccess'))
+            } catch (e) { toast.error(t('toast.importFailed'), String(e)) } finally { isImporting.value = false }
           },
         })
-      } catch (e) { toast.error('文件解析失败', String(e)) }
+      } catch (e) { toast.error(t('toast.importFailed'), String(e)) }
     }
     reader.readAsText(file)
   }
@@ -68,14 +70,14 @@ function triggerImport() {
 
 <template>
   <div class="space-y-[var(--section-gap)]">
-    <h3 class="font-h2 text-primary-content">导入/导出</h3>
+    <h3 class="font-h2 text-primary-content">{{ t('tab.importExport') }}</h3>
     <div class="grid grid-cols-2 gap-3">
       <Button @click="exportData" variant="outline" :disabled="isExporting || isImporting">
-        <Download class="mr-2 h-4 w-4" />{{ isExporting ? '导出中...' : '导出数据' }}
+        <Download class="mr-2 h-4 w-4" />{{ isExporting ? t('common.exporting') : t('common.exportData') }}
       </Button>
       <Button @click="triggerImport" variant="outline" :disabled="isExporting || isImporting">
         <RefreshCw v-if="isImporting" class="mr-2 h-4 w-4 animate-spin" /><Upload v-else class="mr-2 h-4 w-4" />
-        {{ isImporting ? '导入中...' : '导入数据' }}
+        {{ isImporting ? t('common.importing') : t('common.importData') }}
       </Button>
     </div>
   </div>

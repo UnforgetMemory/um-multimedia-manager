@@ -2,12 +2,14 @@
 import { computed, ref } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/stores/theme'
 import { useAppStore } from '@/stores/app'
 import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
@@ -18,18 +20,18 @@ const { appVersion } = storeToRefs(appStore)
 
 const sidebarOpen = ref(false)
 
-const tabs = [
-  { id: 'overview', label: '概览', icon: Database, route: '/overview' },
-  { id: 'rating', label: '评分管理', icon: Star, route: '/rating' },
-  { id: 'linked', label: '关联查询', icon: Link, route: '/linked' },
-  { id: 'sync', label: '数据同步', icon: RefreshCw, route: '/sync' },
-  { id: 'appearance', label: '外观', icon: Palette, route: '/appearance' },
-  { id: 'settings', label: '设置', icon: Settings, route: '/settings' },
-] as const
+const tabs = computed(() => [
+  { id: 'overview', label: t('nav.overview') as string, icon: Database, route: '/overview' },
+  { id: 'rating', label: t('nav.rating') as string, icon: Star, route: '/rating' },
+  { id: 'linked', label: t('nav.linked') as string, icon: Link, route: '/linked' },
+  { id: 'sync', label: t('nav.sync') as string, icon: RefreshCw, route: '/sync' },
+  { id: 'appearance', label: t('nav.appearance') as string, icon: Palette, route: '/appearance' },
+  { id: 'settings', label: t('nav.settings') as string, icon: Settings, route: '/settings' },
+])
 
 const currentTab = computed(() => {
   const name = route.name as string
-  return tabs.find(t => t.id === name)?.id || 'overview'
+  return tabs.value.find(t => t.id === name)?.id || 'overview'
 })
 
 function navigateTo(path: string) {
