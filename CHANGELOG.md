@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **平台统计缺失**: JavDB/色花堂等成人视频数据现纳入概览页「平台分布」和「每日详情」统计
 - **类型标签显示**: 平台卡片内的媒体类型（电影/剧集/音乐/书籍/成人视频）由原始 code 改为本地化显示名称
+- **跨标签数据一致**: 多标签页下语言切换/配置修改现自动同步至所有打开的选项和弹出页
+  - 使用 `useLocaleSync` composable 通过 `useI18n().locale.value` 模式保持响应式链完整
+  - Content script 新增 `startLocaleSync()` 监听语言变更
+  - SettingsTab/WebDAVTab 使用 `chrome.storage.onChanged` 同步配置，`syncingFromStorage` 防止重复写入
 
 ### Changed
 - **License**: 项目许可证从 MIT 切换为 Apache-2.0 ([LICENSE](LICENSE))
