@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/stores/theme'
 import { useAppStore } from '@/stores/app'
+import { useLocaleSync } from '@/composables/useLocaleSync'
 import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
@@ -14,6 +15,7 @@ const router = useRouter()
 const route = useRoute()
 
 useThemeStore()
+useLocaleSync()
 
 const appStore = useAppStore()
 const { appVersion } = storeToRefs(appStore)
