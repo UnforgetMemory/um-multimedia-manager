@@ -55,6 +55,10 @@ export default {
   'common.saveRating': '保存评分',
   'common.activity': '活跃度',
   'common.last90Days': '最近 90 天',
+  'common.noActivity': '无活动',
+  'common.countActivity': '{count} 条活动',
+  'common.legendLess': '少',
+  'common.legendMore': '多',
 
   // Tabs
   'tab.overview': '总览',

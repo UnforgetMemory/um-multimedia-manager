@@ -55,6 +55,10 @@ export default {
   'common.saveRating': 'Save Rating',
   'common.activity': 'Activity',
   'common.last90Days': 'Last 90 Days',
+  'common.noActivity': 'No activity',
+  'common.countActivity': '{count} activities',
+  'common.legendLess': 'Less',
+  'common.legendMore': 'More',
 
   // Tabs
   'tab.overview': 'Overview',
