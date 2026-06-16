@@ -10,6 +10,7 @@ import { Store } from '@/features/database'
 import { Utils } from '@/utils'
 import type { StoreRecord } from '@/types'
 import { initRouter, hasMatchingRoute } from './content/router'
+import { initI18n, t } from './content/i18n'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
 import { startRatingObserver, cleanupRatingObserver, setNeoDBInjector } from './content/observers/rating'
@@ -160,6 +161,9 @@ export default defineContentScript({
     // ==================== 完整初始化函数 ====================
     async function fullInit() {
       try {
+        // Initialize i18n before any handler code runs
+        await initI18n()
+
         // ✅ 关键：先等待 Background Service Worker 和数据库就绪
         infoLog('Waiting for background DB to be ready...')
         let attempts = 0
@@ -468,20 +472,20 @@ function injectNeoDBPushButtons() {
   const pushMinusBtn = document.createElement('button')
   pushMinusBtn.id = 'umm-push-minus'
   pushMinusBtn.className = 'umm-neodb-btn umm-neodb-btn--minus'
-  pushMinusBtn.textContent = `-1分 (${ratingMinus})`
-  pushMinusBtn.title = '降低 1 分后推送到 NeoDB'
+  pushMinusBtn.textContent = t('neodb.btn_minus', { rating: ratingMinus })
+  pushMinusBtn.title = t('neodb.title_minus')
   
   const pushPlusBtn = document.createElement('button')
   pushPlusBtn.id = 'umm-push-plus'
   pushPlusBtn.className = 'umm-neodb-btn umm-neodb-btn--plus'
-  pushPlusBtn.textContent = `+1分 (${ratingPlus})`
-  pushPlusBtn.title = '提高 1 分后推送到 NeoDB'
+  pushPlusBtn.textContent = t('neodb.btn_plus', { rating: ratingPlus })
+  pushPlusBtn.title = t('neodb.title_plus')
   
   const pushOriginalBtn = document.createElement('button')
   pushOriginalBtn.id = 'umm-push-original'
   pushOriginalBtn.className = 'umm-neodb-btn umm-neodb-btn--original'
-  pushOriginalBtn.textContent = `原分推送 (${currentRating})`
-  pushOriginalBtn.title = '使用当前评分推送到 NeoDB'
+  pushOriginalBtn.textContent = t('neodb.btn_original', { rating: currentRating })
+  pushOriginalBtn.title = t('neodb.title_original')
   
   container.appendChild(pushMinusBtn)
   container.appendChild(pushPlusBtn)
@@ -529,14 +533,14 @@ function bindNeoDBPushEvents() {
  */
 async function pushToNeoDB(ratingAdjust: number) {
   if (!currentIdentity) {
-    showToast('❌ 无法识别当前页面', 'error')
+    showToast(t('neodb.no_identity'), 'error')
     return
   }
   
   // 验证必要的字段
   const providerId = currentIdentity.providerId
   if (!providerId) {
-    showToast('❌ 无法获取作品ID', 'error')
+    showToast(t('neodb.no_id'), 'error')
     return
   }
   
@@ -550,16 +554,16 @@ async function pushToNeoDB(ratingAdjust: number) {
           type: 'SHOW_TOAST',
           payload: { 
             type: 'error', 
-            title: '配置缺失', 
-            message: '请先在设置中配置 NeoDB API Token' 
+            title: t('neodb.config_missing_title'), 
+            message: t('neodb.config_missing') 
           }
         }).catch(err => {
           errorLog('Failed to send toast message:', err)
           // 降级方案
-          showToast('❌ 请先在设置中配置 NeoDB Token', 'error')
+          showToast(t('neodb.config_missing'), 'error')
         })
       } else {
-        showToast('❌ 请先在设置中配置 NeoDB Token', 'error')
+        showToast(t('neodb.config_missing'), 'error')
       }
       return
     }
@@ -591,17 +595,17 @@ async function pushToNeoDB(ratingAdjust: number) {
       })
     } catch (commError) {
       errorLog('Communication with background failed:', commError)
-      showToast('❌ 与后台服务通信失败，请重试', 'error')
+      showToast(t('neodb.comm_retry'), 'error')
       return
     }
     
     if (!response) {
-      showToast('❌ 后台服务未响应，请刷新页面', 'error')
+      showToast(t('neodb.no_response'), 'error')
       return
     }
     
     if (response.success) {
-      showToast(`✅ 已推送到 NeoDB (${adjustedRating}/10)`, 'success')
+      showToast(t('neodb.push_success', { rating: adjustedRating }), 'success')
       
       // 更新 linkedIds.neodb（full key 格式）
       if (response.catalogUuid && currentIdentity) {
@@ -651,11 +655,11 @@ async function pushToNeoDB(ratingAdjust: number) {
       injectNeoDBPushButtons()
       infoLog('[UMM] NeoDB buttons re-rendered after push success')
     } else {
-      showToast(`❌ 推送失败: ${response.message || '未知错误'}`, 'error')
+      showToast(t('neodb.push_failed', { message: response.message || t('neodb.unknown_error') }), 'error')
     }
   } catch (error) {
     errorLog('Push to NeoDB failed:', error)
-    showToast('❌ 推送失败', 'error')
+    showToast(t('neodb.sync_failed'), 'error')
   }
 }
 
