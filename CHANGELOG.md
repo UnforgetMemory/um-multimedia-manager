@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.4.0] - 2026-06-16
+
+### i18n
+- **vue-i18n 体系**: 集成 vue-i18n v11.4.5，支持中文简体/繁体/英文三语言
+  - 异步 locale 检测：`chrome.storage` → `navigator.language` → `zh-CN` 兜底
+  - 用户语言选择持久化至 `chrome.storage.local`，全局生效
+  - Vue 应用（popup/options）使用 `createAppI18n()` 异步 bootstrap，挂载前完成 locale 检测
+  - Content script 使用独立 i18n 模块，与 Vue 应用共享 `chrome.storage.local` 语言设置
+- **Options 页面**: 全量迁移 — 概览、评分管理、关联查询、数据同步、外观、设置等所有标签页已替换为 `t()` 调用
+- **Content script**: NeoDB 推送按钮、Toast 通知、状态标签等注入 DOM 元素使用 `t()` 调用统一本地化
+- **共享组件**: HeatmapCalendar（活跃度热力图）、PlatformDistribution（平台分布）使用 `t()` 调用
+- **语言切换**: 外观设置新增语言选项（简体中文/繁體中文/English），切换后即时生效
+
+### Added
+- **每日详情平台名称**: 标签宽度从 48px 扩展至 80px，防止英文平台名（Sehuatang/IMDb 等）被进度条遮挡
+
+### Fixed
+- **平台统计缺失**: JavDB/色花堂等成人视频数据现纳入概览页「平台分布」和「每日详情」统计
+- **类型标签显示**: 平台卡片内的媒体类型（电影/剧集/音乐/书籍/成人视频）由原始 code 改为本地化显示名称
 
 ### Changed
 - **License**: 项目许可证从 MIT 切换为 Apache-2.0 ([LICENSE](LICENSE))
@@ -116,5 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 选项页独立配置页面侧边栏精简：移除冗余 footer 和 tab 标题
 - 关联查询 LinkedTab 缺少 Input/Label 组件导入
 
+[3.4.0]: https://github.com/username/um-multimedia-manager/compare/v3.3.0...v3.4.0
+[3.3.0]: https://github.com/username/um-multimedia-manager/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/username/um-multimedia-manager/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/username/um-multimedia-manager/compare/v3.0.0...v3.1.0
