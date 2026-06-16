@@ -16,6 +16,7 @@ import { scanDoubanPageStatus } from './douban-scanner'
 import { getLocalRecord, syncToLocalStorage } from './douban-sync'
 import { injectNeoDBPushButtons } from './douban-neodb'
 import { showNotification } from './douban-toast'
+import { t } from '../i18n'
 
 // ✅ P2: 提取魔法数字为常量
 const STATUS_DONE = 2
@@ -61,7 +62,7 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
       // 页面未显示，但本地有记录，使用本地数据并标记来源
       finalStatus = STATUS_DONE
       finalRating = Utils.clampRating10(localRecord?.rating || 0)
-      note = '来自本地缓存'
+      note = t('common.cache_hint')
     } else {
       // 都没有，显示未看状态
       finalStatus = STATUS_NONE
@@ -78,7 +79,7 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
   } catch (error) {
     console.error('[UMM Douban] Failed to handle detail page:', error)
     // 可选：显示用户友好的错误提示
-    showNotification('❌ 页面处理失败，请刷新重试')
+    showNotification(t('neodb.no_response'))
   }
 }
 
@@ -162,9 +163,9 @@ function createDoubanStatusChip(
   
   const label = status === 2
     ? (note 
-        ? (identity.type === 'music' ? '📦 已听(本地)' : '📦 已看(本地)')
-        : (identity.type === 'music' ? '✅ 已听' : '✅ 已看'))
-    : (identity.type === 'music' ? '⏳ 未听' : '⏳ 未看')
+        ? t(identity.type === 'music' ? 'status.done_local_music' : 'status.done_local')
+        : t(identity.type === 'music' ? 'status.done_music' : 'status.done'))
+    : t(identity.type === 'music' ? 'status.none_music' : 'status.none')
   
   const ratingText = rating > 0 ? `${Utils.formatRating10(rating)}/10` : ''
   
@@ -184,7 +185,7 @@ function createDoubanStatusChip(
   // 添加 ARIA 属性 - 提升无障碍性
   chip.setAttribute('role', 'status')
   chip.setAttribute('aria-live', 'polite')
-  chip.setAttribute('aria-label', `${label}${ratingText ? `, 评分${ratingText}` : ''}${shouldShowNote && note ? `, ${note}` : ''}`)
+  chip.setAttribute('aria-label', `${label}${ratingText ? `, ${ratingText}` : ''}${shouldShowNote && note ? `, ${note}` : ''}`)
   
   return chip
 }

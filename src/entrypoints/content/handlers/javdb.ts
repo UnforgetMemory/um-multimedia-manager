@@ -42,7 +42,7 @@ function run(): void {
 }
 
 export async function handleJavDBPage(): Promise<void> {
-  initI18n()
+  await initI18n()
   console.log('[UMM] JavDB enhancer activated')
 
   if (!document.getElementById('umm-javdb-styles')) {

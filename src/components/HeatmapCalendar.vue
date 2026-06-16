@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Card } from '@/components/ui/card'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   records: { updatedAt?: string }[]
   adultAvItems: { updatedAt?: string }[]
 }>()
 
-const dayLabels = ['', '一', '', '三', '', '五', '']
+const dayLabels = computed(() => [
+  '', t('weekday.mon'), '', t('weekday.wed'), '', t('weekday.fri'), '',
+])
 
 const calendarData = computed(() => {
   const now = new Date()
@@ -56,8 +61,8 @@ function heatmapColor(level: number): string {
   <Card>
     <div :style="{ padding: 'var(--card-padding)' }">
       <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
-        <h3 class="font-h2 text-primary-content">活跃度</h3>
-        <span class="font-caption text-secondary-content">最近 90 天</span>
+        <h3 class="font-h2 text-primary-content">{{ t('common.activity') }}</h3>
+        <span class="font-caption text-secondary-content">{{ t('common.last90Days') }}</span>
       </div>
       <div class="overflow-x-auto pb-2 -mb-2" style="direction: rtl;">
         <div class="flex" :style="{ gap: '4px', minWidth: 'min-content', direction: 'ltr' }">

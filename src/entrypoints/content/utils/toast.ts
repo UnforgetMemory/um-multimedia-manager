@@ -8,6 +8,7 @@
  */
 
 import { escapeHtml } from './dom'
+import { t } from '../i18n'
 
 /** 快速 toast 的最大可见数量（持久化 toast 不计入） */
 const MAX_QUICK_TOASTS = 3
@@ -62,7 +63,7 @@ function ensureContainer(): HTMLElement {
     pointer-events: none;
   `
   container.setAttribute('role', 'region')
-  container.setAttribute('aria-label', '通知区域')
+  container.setAttribute('aria-label', t('toast.aria_region'))
 
   if (!document.body) {
     // body 还没就绪，返回一个临时占位；调用方应处理 retry
@@ -447,7 +448,7 @@ export class PersistentToast {
     const closeBtn = document.createElement('button')
     closeBtn.className = 'umm-toast__close'
     closeBtn.innerHTML = '×'
-    closeBtn.setAttribute('aria-label', '关闭通知')
+    closeBtn.setAttribute('aria-label', t('toast.aria_close'))
     closeBtn.addEventListener('click', () => this.close())
     el.appendChild(closeBtn)
 

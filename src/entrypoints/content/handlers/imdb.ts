@@ -8,6 +8,7 @@ import { Store } from '@/features/database'
 import { Utils } from '@/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
+import { t } from '../i18n'
 
 /**
  * 扫描 IMDb 页面状态
@@ -118,7 +119,7 @@ export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void>
   )
 
   // 生成备注信息
-  const note = isLocalDone && !isPageDone ? '来自本地缓存' : ''
+  const note = isLocalDone && !isPageDone ? t('common.cache_hint') : ''
 
   // 渲染状态标签
   await renderIMDbStatusChip(identity, finalStatus, finalRating, note)
@@ -138,7 +139,7 @@ export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void>
         linkedIds: localRecord?.linkedIds ?? {},
       })
 
-      FloatingToast.success('UMM', '✅ 已保存 IMDb 观看状态')
+      FloatingToast.success('UMM', t('imdb.saved'))
       console.log('[UMM] Updated IMDb local record from page state')
     } else {
       console.log('[UMM] ⏭️ IMDb record unchanged, skipping save')

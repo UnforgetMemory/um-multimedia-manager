@@ -216,7 +216,7 @@ function injectHeader(): HTMLElement {
 }
 
 export async function handleSehuatangListPage(): Promise<void> {
-  initI18n()
+  await initI18n()
   console.log('[UMM] Sehuatang handler activated')
 
   injectStyles()

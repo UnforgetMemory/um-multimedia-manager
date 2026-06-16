@@ -9,6 +9,7 @@ import { Identity } from '@/features/identity'
 import { Utils } from '@/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
+import { t } from '../i18n'
 
 /**
  * 扫描 NeoDB 页面状态
@@ -19,7 +20,7 @@ export async function scanNeoDBPageStatus(type: string): Promise<{ status: strin
   const strong = action?.querySelector('strong')?.textContent?.trim() || ''
   
   // 根据类型确定"已看/已听"的文本
-  const doneWord = type === 'music' ? '听过' : '看过'
+  const doneWord = type === 'music' ? t('neodb.listened_text') : t('neodb.watched_text')
   const done =
     strong === doneWord ||
     text.startsWith(doneWord) ||
@@ -157,7 +158,7 @@ export async function handleNeoDBDetailPage(identity: UrlIdentity): Promise<void
   )
   
   // 生成备注信息
-  const note = isLocalDone && !isPageDone ? '来自本地缓存' : ''
+  const note = isLocalDone && !isPageDone ? t('common.cache_hint') : ''
   
   // 渲染状态标签
   await renderNeoDBStatusChip(identity, finalStatus, finalRating, note)

@@ -10,6 +10,7 @@ import type { UrlIdentity, StoreRecord } from '@/types'
 import { FloatingToast } from '../utils/toast'
 import { scanDoubanPageStatus, extractCrossPlatformLinks } from './douban-scanner'
 import { getLocalRecord } from './douban-sync'
+import { t } from '../i18n'
 import { showPageToast, showNotification } from './douban-toast'
 
 /**
@@ -119,20 +120,20 @@ export async function injectNeoDBPushButtons(
   const pushMinusBtn = document.createElement('button')
   pushMinusBtn.id = 'umm-push-minus'
   pushMinusBtn.className = 'umm-neodb-btn umm-neodb-btn--minus'
-  pushMinusBtn.textContent = `-1分 (${ratingMinus})`
-  pushMinusBtn.title = '降低 1 分后推送到 NeoDB'
+  pushMinusBtn.textContent = t('neodb.btn_minus', { rating: ratingMinus })
+  pushMinusBtn.title = t('neodb.title_minus')
   
   const pushPlusBtn = document.createElement('button')
   pushPlusBtn.id = 'umm-push-plus'
   pushPlusBtn.className = 'umm-neodb-btn umm-neodb-btn--plus'
-  pushPlusBtn.textContent = `+1分 (${ratingPlus})`
-  pushPlusBtn.title = '提高 1 分后推送到 NeoDB'
+  pushPlusBtn.textContent = t('neodb.btn_plus', { rating: ratingPlus })
+  pushPlusBtn.title = t('neodb.title_plus')
   
   const pushOriginalBtn = document.createElement('button')
   pushOriginalBtn.id = 'umm-push-original'
   pushOriginalBtn.className = 'umm-neodb-btn umm-neodb-btn--original'
-  pushOriginalBtn.textContent = `原分推送 (${currentRating})`
-  pushOriginalBtn.title = '使用当前评分推送到 NeoDB'
+  pushOriginalBtn.textContent = t('neodb.btn_original', { rating: currentRating })
+  pushOriginalBtn.title = t('neodb.title_original')
   
   pushMinusBtn.style.position = 'relative'
   pushMinusBtn.style.zIndex = '1'
@@ -200,7 +201,7 @@ async function pushToNeoDB(
   // ✅ P0: 验证必要的字段
   const providerId = identity.providerId
   if (!providerId) {
-    showPageToast('无法获取作品ID', 'error', 3000)
+    showPageToast(t('neodb.no_id'), 'error', 3000)
     return
   }
   
@@ -229,7 +230,7 @@ async function pushToNeoDB(
   })
   
   // ✅ 显示顶部居中的 Loading Toast
-  const toast = showPageToast('正在同步到 NeoDB...', 'loading')
+  const toast = showPageToast(t('neodb.pushing'), 'loading')
   
   const startTime = Date.now()
   
@@ -246,10 +247,10 @@ async function pushToNeoDB(
     
     // 移除 Loading Toast，显示成功 Toast
     toast.remove()
-    showPageToast(successMessage || '同步成功！', 'success', 3000)
+    showPageToast(successMessage || t('neodb.sync_success'), 'success', 3000)
     
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : '同步失败'
+    const errorMsg = error instanceof Error ? error.message : t('neodb.sync_failed')
     
     // ✅ 区分预期错误和意外错误
     const expectedErrors = [
@@ -306,13 +307,13 @@ async function performNeoDBPush(
   // ✅ P2: 验证必要的字段
   const providerId = identity.providerId
   if (!providerId) {
-    throw new Error('无法获取作品ID')
+    throw new Error(t('neodb.no_id'))
   }
   
   // 获取 NeoDB Token
   const settings = await Store.getSettings()
   if (!settings.neodbToken) {
-    throw new Error('请先在设置中配置 NeoDB Token')
+    throw new Error(t('neodb.config_missing'))
   }
   
   // 计算调整后的评分：优先从页面 DOM 实时读取，降级到记录
@@ -344,14 +345,14 @@ async function performNeoDBPush(
       timeout: 15000,
       retries: 2,
       fallback: () => {
-        showNotification('❌ 扩展上下文已失效，请刷新页面')
+        showNotification(t('neodb.context_invalid'))
       }
     }
   )
   
   if (!response) {
     // safeSendMessage 已经处理了错误和 fallback
-    throw new Error('与后台服务通信失败')
+    throw new Error(t('neodb.comm_failed'))
   }
   
   if (response.success) {
@@ -453,14 +454,14 @@ async function performNeoDBPush(
       }
 
       // 在 linkedIds 全部保存后，通过 FloatingToast 确认 ID 关联已保存
-      FloatingToast.info('UMM', '🔗 跨平台 ID 关联已保存')
+      FloatingToast.info('UMM', t('neodb.cross_link_saved'))
     }
 
     // 成功，返回消息供外层显示
-    return response.message || `已推送到 NeoDB (${adjustedRating}/10)`
+    return response.message || t('neodb.push_success', { rating: adjustedRating })
   } else {
     // ✅ 显示具体错误原因
-    const errorMsg = response.message || '推送失败'
+    const errorMsg = response.message || t('neodb.sync_failed')
     
     // 如果是"未标记已看"的错误，提供引导
     if (errorMsg.includes('请先在豆瓣标记')) {

@@ -3,6 +3,7 @@
  */
 
 import { Utils } from '@/utils'
+import { t } from '../i18n'
 
 /** Escape HTML special characters — pure regex, no DOM element creation */
 export function escapeHtml(text: string): string {
@@ -60,9 +61,9 @@ export function createStatusChip(
   
   const label = status === 2
     ? (note 
-        ? (type === 'music' ? '📦 已听(本地)' : '📦 已看(本地)')
-        : (type === 'music' ? '✅ 已听' : '✅ 已看'))
-    : (type === 'music' ? '⏳ 未听' : '⏳ 未看')
+        ? t(type === 'music' ? 'status.done_local_music' : 'status.done_local')
+        : t(type === 'music' ? 'status.done_music' : 'status.done'))
+    : t(type === 'music' ? 'status.none_music' : 'status.none')
   
   const ratingText = rating > 0 ? `${Utils.formatRating10(rating)}/10` : ''
   
@@ -82,7 +83,7 @@ export function createStatusChip(
   // 添加 ARIA 属性
   chip.setAttribute('role', 'status')
   chip.setAttribute('aria-live', 'polite')
-  chip.setAttribute('aria-label', `${label}${ratingText ? `, 评分${ratingText}` : ''}${shouldShowNote && note ? `, ${note}` : ''}`)
+  chip.setAttribute('aria-label', `${label}${ratingText ? `, ${ratingText}` : ''}${shouldShowNote && note ? `, ${note}` : ''}`)
   
   return chip
 }

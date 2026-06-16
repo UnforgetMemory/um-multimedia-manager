@@ -7,6 +7,7 @@ import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
 import { Utils } from '@/utils'
 import { debugLog } from '@/utils/logger'
+import { t } from '../i18n'
 import { escapeHtml, waitForElement } from '../utils/dom'
 
 /**
@@ -117,9 +118,9 @@ function createSearchBadge(status: number, rating: number): HTMLElement {
   badge.innerHTML = `${escapedLabel}${escapedRatingText}`
   
   // ARIA 属性
-  const ariaLabel = status === 2 ? '已标记为已看' : '未标记'
+  const ariaLabel = status === 2 ? t('search.aria_done') : t('search.aria_none')
   badge.setAttribute('role', 'status')
-  badge.setAttribute('aria-label', `${ariaLabel}${ratingText ? `, 评分${ratingText}` : ''}`)
+  badge.setAttribute('aria-label', `${ariaLabel}${ratingText ? `,${ratingText}` : ''}`)
   
   return badge
 }

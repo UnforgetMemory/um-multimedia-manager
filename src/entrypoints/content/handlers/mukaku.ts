@@ -11,6 +11,7 @@
 import { RequestQueue } from '@/utils/requestQueue'
 import { FloatingToast, PersistentToast } from '../utils/toast'
 import { createStatusChip } from '../utils/dom'
+import { t } from '../i18n'
 import { Store } from '@/features/database'
 
 // ─── 全局 Toast 单例控制器 ──────────────────────────────────
@@ -37,7 +38,7 @@ class MukakuToastController {
     }
 
     // 创建新实例
-    MukakuToastController.instance = FloatingToast.persistent('Mukaku 链路队列中', 'loading')
+    MukakuToastController.instance = FloatingToast.persistent(t('mukaku.toast_title'), 'loading')
     return MukakuToastController.instance
   }
 
@@ -232,7 +233,7 @@ class MukakuHandler {
         // 队列空闲时关闭 toast
         if (!queued && !active) {
           if (MukakuToastController.hasActive()) {
-            MukakuToastController.success(`队列处理完成 · 全部 ${total} 项`)
+            MukakuToastController.success(t('mukaku.queue_done', { total }))
           }
           return
         }
@@ -243,7 +244,7 @@ class MukakuHandler {
 
         // 构建消息
         const parts: string[] = []
-        parts.push(`已完成 ${completed} / 全部 ${total}`)
+        parts.push(t('mukaku.progress', { completed, total }))
         if (active > 0) {
           parts.push(`并发 ${active}`)
         }
@@ -391,7 +392,7 @@ class MukakuHandler {
       })
 
       if (!response.ok) {
-        throw new Error(`Mukaku 探测失败 [${response.status}]`)
+        throw new Error(t('mukaku.probe_failed', { status: response.status }))
       }
 
       const payload = await response.json()
@@ -474,9 +475,9 @@ class MukakuHandler {
     } catch (error) {
       console.error('[Mukaku] Detail page rendering failed:', error)
       if (MukakuToastController.hasActive()) {
-        MukakuToastController.error(`详情探测失败: ${error}`)
+        MukakuToastController.error(t('mukaku.detail_failed', { error: String(error) }))
       } else {
-        FloatingToast.error('Mukaku 详情探测失败', String(error))
+        FloatingToast.error(t('mukaku.detail_failed_title'), String(error))
       }
     }
   }
@@ -499,7 +500,7 @@ class MukakuHandler {
     // 检查已看缓存
     if (await this.isCachedWatched(mvId)) {
       slot.innerHTML = ''
-      const chip = createStatusChip('movie', 2, 0, '命中本地 Mukaku 关联缓存')
+      const chip = createStatusChip('movie', 2, 0, t('mukaku.cache_hit'))
       slot.appendChild(chip)
       return
     }
@@ -507,7 +508,7 @@ class MukakuHandler {
     // 检查未看缓存
     if (await this.isCachedUnwatched(mvId)) {
       slot.innerHTML = ''
-      const chip = createStatusChip('movie', 0, 0, '最近探测未命中本地影视记录')
+      const chip = createStatusChip('movie', 0, 0, t('mukaku.cache_miss'))
       slot.appendChild(chip)
       return
     }
@@ -522,9 +523,9 @@ class MukakuHandler {
       } catch (error) {
         console.error('[Mukaku] API probe failed:', error)
         if (MukakuToastController.hasActive()) {
-          MukakuToastController.error(`API 探测失败: ${error}`)
+          MukakuToastController.error(t('mukaku.api_failed', { error: String(error) }))
         } else {
-          FloatingToast.error('Mukaku API 探测失败', String(error))
+          FloatingToast.error(t('mukaku.api_failed_title'), String(error))
         }
         return
       }
@@ -542,18 +543,18 @@ class MukakuHandler {
       if (matched) {
         await this.markWatched(mvId)
         slot.innerHTML = ''
-        const chip = createStatusChip('movie', 2, 0, '通过 Mukaku 链路匹配到本地记录')
+        const chip = createStatusChip('movie', 2, 0, t('mukaku.match_found'))
         slot.appendChild(chip)
       } else {
         await this.markUnwatched(mvId)
         slot.innerHTML = ''
-        const chip = createStatusChip('movie', 0, 0, 'Mukaku 链路未匹配到本地记录')
+        const chip = createStatusChip('movie', 0, 0, t('mukaku.no_match'))
         slot.appendChild(chip)
       }
     } else {
       await this.markUnwatched(mvId)
       slot.innerHTML = ''
-      const chip = createStatusChip('movie', 0, 0, '无法获取关联 ID')
+      const chip = createStatusChip('movie', 0, 0, t('mukaku.no_id'))
       slot.appendChild(chip)
     }
   }

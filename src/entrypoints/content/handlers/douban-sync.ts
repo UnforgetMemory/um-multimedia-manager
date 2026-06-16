@@ -9,6 +9,7 @@ import { safeSendMessage } from '@/utils/context'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { FloatingToast } from '../utils/toast'
 import { extractCrossPlatformLinks, extractCommentFromPage } from './douban-scanner'
+import { t } from '../i18n'
 import { showNotification } from './douban-toast'
 
 // ✅ P2: 提取魔法数字为常量
@@ -161,7 +162,7 @@ export async function syncToLocalStorage(
 
     // Toast 通知：已同步到对应平台
     const platformLabel = entry.provider === 'imdb' ? 'IMDb' : entry.provider === 'tmdb' ? 'TMDB' : entry.provider
-    showNotification(`✅ 已同步到 ${platformLabel} (${entry.providerId})`)
+    showNotification(t('sync.to_platform', { platform: platformLabel, id: entry.providerId }))
   }
   
   console.log('[UMM Douban] Record to save:', recordToSave)
@@ -184,13 +185,13 @@ export async function syncToLocalStorage(
     // ✅ 修复：只在有实质性变化时才发送通知
     if (effectiveChange) {
       if (isNewRecord) {
-        showNotification(`✅ 已自动同步${identity.type === 'music' ? '听过' : '看过'}状态`)
+        showNotification(t(identity.type === 'music' ? 'sync.douban_auto_music' : 'sync.douban_auto'))
       } else if (isStatusChanged) {
-        showNotification(`✅ 状态已更新为${identity.type === 'music' ? '已听' : '已看'}`)
+        showNotification(t(identity.type === 'music' ? 'sync.status_updated_music' : 'sync.status_updated'))
       } else if (isRatingChanged) {
-        showNotification(`✅ 评分已更新为 ${Utils.formatRating10(pageRating)}/10`)
+        showNotification(t('sync.rating_updated', { rating: Utils.formatRating10(pageRating) }))
       } else if (isCommentChanged) {
-        showNotification(`✅ 评语已更新`)
+        showNotification(t('sync.comment_updated'))
       }
       
       // 记录通知时间
@@ -200,7 +201,7 @@ export async function syncToLocalStorage(
     }
   } catch (error) {
     console.error('[UMM Douban] ❌ Failed to save record:', error)
-    showNotification('❌ 同步状态失败')
+    showNotification(t('sync.failed'))
   }
 
   // ✅ Auto-sync to NeoDB on FIRST record only (independent of notification cooldown)
@@ -290,18 +291,18 @@ export async function syncToLocalStorage(
             }
           }
           // 全部 linkedIds 保存完后显示结果 Toast
-          FloatingToast.info('UMM', '✅ ID关联已保存并已自动同步到 NeoDB')
+          FloatingToast.info('UMM', t('sync.neodb_auto_ok'))
           console.log('[UMM Douban] ✅ Auto-synced to NeoDB')
         } else if (syncResponse?.success) {
-          FloatingToast.info('UMM', '⚠️ NeoDB 推送成功但未返回作品 ID，无法建立关联')
+          FloatingToast.info('UMM', t('sync.neodb_auto_no_id'))
           console.warn('[UMM Douban] ⚠️ NeoDB push succeeded but no catalogUuid returned')
         } else {
-          FloatingToast.info('UMM', '⚠️ 自动同步到 NeoDB 失败')
+          FloatingToast.info('UMM', t('sync.neodb_auto_failed'))
           console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed: invalid response')
         }
       }
     } catch (syncErr) {
-      FloatingToast.error('UMM', `❌ 自动同步到 NeoDB 失败`)
+      FloatingToast.error('UMM', t('sync.neodb_auto_failed_err'))
       console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed:', syncErr)
     }
   }

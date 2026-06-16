@@ -1,12 +1,25 @@
 import locales, { type Locale } from './locales'
 
 const STORAGE_KEY = 'umm:locale'
+const EXT_LANGUAGE_KEY = 'language'
 
 let currentLocale: Locale = 'zh-CN'
 
-function detectLocale(): Locale {
-  const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
-  if (stored && stored in locales) return stored
+async function detectLocale(): Promise<Locale> {
+  // Try chrome.storage.local first (set by Vue apps via STORAGE_KEYS.LANGUAGE)
+  try {
+    const result = await chrome.storage.local.get(EXT_LANGUAGE_KEY)
+    const stored = result[EXT_LANGUAGE_KEY] as Locale | undefined
+    if (stored && stored in locales) return stored
+  } catch {
+    // chrome.storage not available
+  }
+
+  // Fall back to localStorage (legacy)
+  const localStored = localStorage.getItem(STORAGE_KEY) as Locale | null
+  if (localStored && localStored in locales) return localStored
+
+  // Fall back to browser language
   const lang = navigator.language
   if (lang.startsWith('zh')) {
     if (lang.includes('TW') || lang.includes('HK')) return lang.includes('TW') ? 'zh-TW' : 'zh-HK'
@@ -15,13 +28,18 @@ function detectLocale(): Locale {
   return 'en-US'
 }
 
-export function initI18n(): void {
-  currentLocale = detectLocale()
+export async function initI18n(): Promise<void> {
+  currentLocale = await detectLocale()
 }
 
-export function setLocale(locale: Locale): void {
+export async function setLocale(locale: Locale): Promise<void> {
   currentLocale = locale
   localStorage.setItem(STORAGE_KEY, locale)
+  try {
+    await chrome.storage.local.set({ [EXT_LANGUAGE_KEY]: locale })
+  } catch {
+    // chrome.storage not available
+  }
 }
 
 export function getLocale(): Locale {
