@@ -9,6 +9,7 @@ import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
 import { handleDoubanDetailPage } from './handlers/douban'
 import { startSearchEnhancer } from './enhancers/douban-search'
+import { startHomepageEnhancer } from './enhancers/douban-homepage'
 import { PTDimmer } from './enhancers/pt-dimmer'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
 import { handlePTDetailPage } from './handlers/pt-detail'
@@ -77,6 +78,26 @@ const ROUTES: RouteRule[] = [
     handler: async (identity) => {
       if (identity) {
         await handleNeoDBDetailPage(identity)
+      }
+    },
+  },
+
+  // 豆瓣首页增强器
+  {
+    match: (url) =>
+      url === 'https://movie.douban.com/' ||
+      url === 'https://movie.douban.com' ||
+      (url.startsWith('https://movie.douban.com') &&
+        !url.includes('/subject/') &&
+        !url.includes('/chart') &&
+        !url.includes('/typerank') &&
+        !url.includes('/explore') &&
+        !url.includes('/tv')),
+    handler: async () => {
+      const cleanup = await startHomepageEnhancer()
+      // 保存清理函数，用于页面卸载时调用
+      if (cleanup) {
+        window.addEventListener('beforeunload', cleanup, { once: true })
       }
     },
   },

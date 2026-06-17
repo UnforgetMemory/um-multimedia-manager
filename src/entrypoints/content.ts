@@ -31,6 +31,7 @@ let themeChangeListener: ((e: MediaQueryListEvent) => void) | null = null
 
 export default defineContentScript({
   matches: [
+    '*://movie.douban.com/*',
     '*://movie.douban.com/subject/*',
     '*://movie.douban.com/chart*',
     '*://movie.douban.com/typerank*',
