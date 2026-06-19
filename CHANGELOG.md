@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.1] - 2026-06-19
+
+### Added
+- **Dynamic Island 搜索栏**: 豆瓣首页顶部新增悬浮搜索栏，集成电影/音乐/个人主页快捷入口
+  - 左侧导航：电影（🎬）、音乐（🎵）、个人主页（👤）图标按钮
+  - 右侧搜索框：支持实时规范化输入（去除 PT 发布组后缀、年份后内容）
+  - 搜索按钮 loading 动画：提交时旋转 spinner + 800ms 脉冲防抖
+  - 所有链接通过 `window.open` 新标签页打开，不使用原生 `<a>` 元素
+- **12 级响应式 CSS Token 系统**: 全新 `breakpoints.css` 定义流体排版、间距、卡片尺寸
+  - 覆盖 320px（手机）→ 5120px（5K）完整分辨率范围
+  - 3 个显式断点覆写：2560px（2K）、3840px（4K）、5120px（5K）
+  - 所有 CSS 硬编码 `px` 值替换为 `var(--umm-*)` token
+- **深浅主题联动**: 支持 `auto`/`light`/`dark` 三种模式
+  - 从 `chrome.storage.local` 读取扩展主题设置
+  - `auto` 模式跟随 `prefers-color-scheme` 媒体查询
+  - 监听系统主题变化实时切换
+  - CSS 变量系统：`--umm-bg`, `--umm-text-primary`, `--umm-island-bg` 等
+- **封面悬浮效果**: 仅封面图片盒浮动，标题/评分/徽章保持静止
+- **useBadge 抽取**: 共享徽章计算逻辑抽取为独立 composable，消除 UmmMediaCard 和 UmmBillboardCard 重复代码
+- **href 协议验证**: `sanitizeHref()` 函数验证 URL 仅允许 http/https 协议，阻止 javascript:/data:/vbscript: 注入
+
+### Changed
+- **重构为独立 WXT 入口点**: `src/entrypoints/douban-homepage.content/` 替代旧 `enhancers/douban-homepage/` 模块
+  - 使用 `createShadowRootUi` Shadow DOM 隔离，无需 `all: initial` + `!important` CSS hack
+  - 从 `content/router.ts` 解耦，独立匹配 `https://movie.douban.com/`
+- **dbGetAll 优化**: `useRecordCache` 仅加载 `{ status, rating }` 字段，减少内存占用
+- **搜索查询规范化**: 去除点号、括号、特殊字符，合并多余空格，年份后内容截断
+  - 支持双年份场景（使用第二个年份作为截止点）
+  - 防死循环：`isNormalizing` 标志 + `setTimeout(0)` 重置
+- **所有导航链接**: 从原生 `<a>` 元素改为 `<button>` + `@click` 事件处理，统一新标签页打开
+
+### Fixed
+- **matchMedia 监听器泄漏**: `applyTheme` 每次调用新增监听器但从未移除 → 模块级 `activeMqHandler` 追踪 + `removeMqListener()` 清理
+- **重复 `:host` 声明**: `style.css` 中 `:host` 声明两次，移除底部重复块
+- **冗余注释清理**: 移除 `index.ts` 和 `App.vue` 中 8 条仅重述代码的内联注释
+- **console.error 泄露**: `useRecordCache.ts` 移除 error 对象，仅记录通用错误信息
+
+### Removed
+- **旧 enhancers 模块**: 删除 `src/entrypoints/content/enhancers/douban-homepage/` 目录（cache, card, index, row, sections, styles, utils 共 7 个文件）
+- **router.ts 豆瓣首页路由**: 移除 `content/router.ts` 中豆瓣首页增强器路由规则（21 行）
+
 ## [3.4.0] - 2026-06-16
 
 ### i18n
