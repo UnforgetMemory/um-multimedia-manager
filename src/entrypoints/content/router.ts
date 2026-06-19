@@ -9,7 +9,7 @@ import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
 import { handleDoubanDetailPage } from './handlers/douban'
 import { startSearchEnhancer } from './enhancers/douban-search'
-import { PTDimmer } from './enhancers/pt-dimmer'
+import { PTDimmer } from './enhancers/pt'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
 import { handlePTDetailPage } from './handlers/pt-detail'
 import { handleSehuatangListPage } from './handlers/sehuatang'
@@ -102,7 +102,8 @@ const ROUTES: RouteRule[] = [
   {
     match: (url) =>
       (url.includes('m-team.cc/detail') && !url.includes('/browse')) ||
-      (['audiences.me', 'hdhome.org', 'hdarea.club', 'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc'].some(
+      (['audiences.me', 'hdhome.org', 'hdarea.club', 'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc', 'ptsbao.club', 'pt.btschool.club',
+        'discfan.net', 'hhanclub.net', 'hddolby.com', 'hdfans.org', 'pt.soulvoice.club', 'hdtime.org', 'piggo.me'].some(
         (host) => url.includes(host),
       ) && url.includes('details.php')),
     handler: async () => {
@@ -122,7 +123,16 @@ const ROUTES: RouteRule[] = [
       url.includes('pterclub.net/officialgroup.php') ||
       url.includes('pthome.net/torrents.php') ||
       url.includes('haidan.cc/torrents.php') ||
-      url.includes('haidan.cc/videos.php'),
+      url.includes('haidan.cc/videos.php') ||
+      url.includes('ptsbao.club/torrents.php') ||
+      url.includes('pt.btschool.club/torrents.php') ||
+      url.includes('discfan.net/torrents.php') ||
+      url.includes('hhanclub.net/torrents.php') ||
+      url.includes('hddolby.com/torrents.php') ||
+      url.includes('hdfans.org/torrents.php') ||
+      url.includes('pt.soulvoice.club/torrents.php') ||
+      url.includes('hdtime.org/torrents.php') ||
+      url.includes('piggo.me/torrents.php'),
     handler: async () => {
       if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer()
       ptdimmerInstance.cleanup()

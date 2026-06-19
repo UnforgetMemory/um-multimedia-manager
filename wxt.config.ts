@@ -9,7 +9,7 @@ export default defineConfig({
   publicDir: 'icons',
   manifest: {
     name: 'UMManager - 多媒体管理器',
-    version: '3.5.0',
+    version: '3.6.0',
     description: '常见影视音乐平台的观看/收听记录管理工具，支持数据导入、清洗、合并和导出，提供 WebDAV 备份和第三方平台数据抓取功能。',
     permissions: [
       'storage',
@@ -39,6 +39,15 @@ export default defineConfig({
       '*://sehuatang.net/*',
       '*://sehuatang.org/*',
       '*://javdb.com/*',
+      '*://ptsbao.club/*',
+      '*://pt.btschool.club/*',
+      '*://discfan.net/*',
+      '*://hhanclub.net/*',
+      '*://hddolby.com/*',
+      '*://hdfans.org/*',
+      '*://pt.soulvoice.club/*',
+      '*://hdtime.org/*',
+      '*://piggo.me/*',
       // WebDAV sync - common providers (background fetch requires explicit host_permissions)
       'https://dav.jianguoyun.com/*',
       'https://webdav.jianguoyun.com/*',
