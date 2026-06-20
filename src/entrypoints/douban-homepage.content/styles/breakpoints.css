@@ -1,0 +1,100 @@
+/* 12-level responsive breakpoint system for UMM Douban homepage */
+/* Range: 320px (mobile S) → 5120px (4K/5K) */
+
+:root {
+  /* Fluid typography tokens using clamp() */
+  /* Min viewport: 320px, Max viewport: 5120px */
+
+  --umm-font-xs: clamp(0.65rem, 0.58rem + 0.35vw, 1rem);
+  --umm-font-sm: clamp(0.75rem, 0.65rem + 0.5vw, 1.25rem);
+  --umm-font-base: clamp(0.85rem, 0.72rem + 0.65vw, 1.5rem);
+  --umm-font-md: clamp(0.95rem, 0.78rem + 0.85vw, 1.875rem);
+  --umm-font-lg: clamp(1.125rem, 0.875rem + 1.25vw, 2.75rem);
+  --umm-font-xl: clamp(1.375rem, 1rem + 1.875vw, 3.75rem);
+  --umm-font-2xl: clamp(1.75rem, 1.1rem + 3.25vw, 5.5rem);
+
+  /* Fluid spacing tokens */
+  --umm-space-xs: clamp(4px, 0.25rem + 0.3vw, 12px);
+  --umm-space-sm: clamp(8px, 0.4rem + 0.5vw, 20px);
+  --umm-space-md: clamp(12px, 0.6rem + 0.75vw, 28px);
+  --umm-space-lg: clamp(16px, 0.75rem + 1vw, 40px);
+  --umm-space-xl: clamp(24px, 1rem + 1.5vw, 56px);
+  --umm-space-2xl: clamp(32px, 1.25rem + 2vw, 72px);
+
+  /* Fluid card dimensions */
+  --umm-card-width: clamp(120px, 8rem + 4vw, 280px);
+  --umm-card-height: clamp(168px, 11rem + 5.6vw, 392px);
+  --umm-card-radius: clamp(4px, 0.3rem + 0.25vw, 12px);
+}
+
+/* ===== 2K screens (2560px) ===== */
+@media (min-width: 2560px) {
+  :root {
+    --umm-font-xs: 1.125rem;
+    --umm-font-sm: 1.375rem;
+    --umm-font-base: 1.625rem;
+    --umm-font-md: 2rem;
+    --umm-font-lg: 2.875rem;
+    --umm-font-xl: 3.875rem;
+    --umm-font-2xl: 5.75rem;
+
+    --umm-space-xs: 14px;
+    --umm-space-sm: 22px;
+    --umm-space-md: 32px;
+    --umm-space-lg: 44px;
+    --umm-space-xl: 60px;
+    --umm-space-2xl: 80px;
+
+    --umm-card-width: 300px;
+    --umm-card-height: 420px;
+    --umm-card-radius: 14px;
+  }
+}
+
+/* ===== 4K screens (3840px+) ===== */
+@media (min-width: 3840px) {
+  :root {
+    --umm-font-xs: 1.25rem;
+    --umm-font-sm: 1.625rem;
+    --umm-font-base: 1.875rem;
+    --umm-font-md: 2.375rem;
+    --umm-font-lg: 3.375rem;
+    --umm-font-xl: 4.625rem;
+    --umm-font-2xl: 6.75rem;
+
+    --umm-space-xs: 18px;
+    --umm-space-sm: 28px;
+    --umm-space-md: 40px;
+    --umm-space-lg: 56px;
+    --umm-space-xl: 76px;
+    --umm-space-2xl: 100px;
+
+    --umm-card-width: 360px;
+    --umm-card-height: 504px;
+    --umm-card-radius: 16px;
+  }
+}
+
+/* ===== 5K screens (5120px+) ===== */
+@media (min-width: 5120px) {
+  :root {
+    --umm-font-xs: 1.5rem;
+    --umm-font-sm: 1.875rem;
+    --umm-font-base: 2.25rem;
+    --umm-font-md: 2.875rem;
+    --umm-font-lg: 4rem;
+    --umm-font-xl: 5.5rem;
+    --umm-font-2xl: 8rem;
+
+    --umm-space-xs: 22px;
+    --umm-space-sm: 34px;
+    --umm-space-md: 48px;
+    --umm-space-lg: 68px;
+    --umm-space-xl: 92px;
+    --umm-space-2xl: 120px;
+
+    --umm-card-width: 420px;
+    --umm-card-height: 588px;
+    --umm-card-radius: 20px;
+  }
+}

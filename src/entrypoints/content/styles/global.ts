@@ -208,6 +208,41 @@ const DIMMER_STYLES = `
 `
 
 /**
+ * 首页徽章样式（放在海报/封面容器内，不被 overflow:hidden 截断）
+ */
+const HOMEPAGE_BADGE_STYLES = `
+.umm-homepage-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: white;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.umm-homepage-badge[data-status="done"] {
+  background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
+  color: #f4fff8;
+  border: 1px solid rgba(198, 255, 228, 0.26);
+}
+.umm-homepage-badge[data-status="none"] {
+  background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
+  color: #fff7f8;
+  border: 1px solid rgba(255, 214, 220, 0.22);
+}
+`
+
+/**
  * 所有样式的集合
  */
 const ALL_STYLES = `
@@ -215,6 +250,7 @@ ${SEARCH_BADGE_STYLES}
 ${STATUS_CHIP_STYLES}
 ${NEODB_BUTTON_STYLES}
 ${DIMMER_STYLES}
+${HOMEPAGE_BADGE_STYLES}
 `
 
 /**

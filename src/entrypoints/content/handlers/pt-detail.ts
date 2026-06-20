@@ -13,10 +13,9 @@
 
 import { Store } from '@/features/database'
 
-/** Extract douban ID from a URL like https://movie.douban.com/subject/12345/ */
+/** Extract douban ID from a URL like https://douban.com/subject/12345/ or https://movie.douban.com/subject/12345/ */
 function extractDoubanId(url: string): string | null {
-  const m = url.match(/movie\.douban\.com\/subject\/(\d+)/)
-    ?? url.match(/music\.douban\.com\/subject\/(\d+)/)
+  const m = url.match(/douban\.com\/subject\/(\d+)/)
   return m?.[1] ?? null
 }
 
@@ -150,10 +149,11 @@ function waitForContent(
  */
 export async function handlePTDetailPage(url: string): Promise<void> {
   const isMTeam = url.includes('m-team.cc')
-  const isNexusPHP = [
-    'audiences.me', 'hdhome.org', 'hdarea.club',
-    'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc',
-  ].some((host) => url.includes(host))
+const isNexusPHP = [
+  'audiences.me', 'hdhome.org', 'hdarea.club',
+  'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc', 'ptsbao.club', 'pt.btschool.club',
+  'discfan.net', 'hhanclub.net', 'hddolby.com', 'hdfans.org', 'pt.soulvoice.club', 'hdtime.org', 'piggo.me',
+].some((host) => url.includes(host))
 
   if (!isMTeam && !isNexusPHP) return
 
@@ -161,8 +161,8 @@ export async function handlePTDetailPage(url: string): Promise<void> {
 
   // Check if already cached (skip extraction)
   const existing = await Store.ptIdCacheGet(cacheKey)
-  if (existing) {
-    console.log('[PT Detail] Already cached:', cacheKey)
+  if (existing && existing.doubanId && existing.imdbId) {
+    console.log('[PT Detail] Already cached with IDs')
     return
   }
 
@@ -177,23 +177,22 @@ export async function handlePTDetailPage(url: string): Promise<void> {
         : extractNexusPHPDetailIds()
 
       if (!doubanId && !imdbId) {
-        console.log('[PT Detail] No platform IDs found on page')
+        console.log('[PT Detail] No platform IDs found — caching empty')
+        await Store.ptIdCachePut({
+          ptUrl: cacheKey,
+          updatedAt: new Date().toISOString(),
+        })
         return
       }
 
-      // Cache the IDs
-      await Store.ptIdCachePut({
+      const entry = {
         ptUrl: cacheKey,
         doubanId: doubanId ?? undefined,
         imdbId: imdbId ?? undefined,
         updatedAt: new Date().toISOString(),
-      })
-
-      console.log('[PT Detail] Cached IDs:', {
-        url: cacheKey,
-        doubanId,
-        imdbId,
-      })
+      }
+      await Store.ptIdCachePut(entry)
+      console.log('[PT Detail] Cached')
     },
     8000,
     isMTeam

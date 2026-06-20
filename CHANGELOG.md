@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2026-06-20
+
+### 🐛 Bug Fixes
+
+- **MTeam SPA navigation**: Resolve PTDimmer failure on `kp.m-team.cc` when navigating from `/index` to `/browse`. Root cause was non-standard SPA routing that bypasses all browser routing events (pushState/popstate/hashchange). Implemented multi-layer detection: force `fullInit()` on MTeam domains in content script lazy-load logic; restore `setInterval` polling + `hashchange` listener in router; add DOM-based auto-detection via `MutationObserver` on `#root`; fix observer target from ephemeral container to stable `#root` with `subtree: true`.
+- **NexusPHPHandler infinite loop**: Remove redundant inline regex scan loop in `else` branch that matched zero rows for 6 sites (ptsbao.club, pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club). These sites now skip directly to `extractDetailUrl → ptIdCacheGet → scanBatch` pipeline.
+- **MTeam pollTimer over-fetching**: Add internal TTL cache (30s) in `MTeamHandler` to prevent `getMTeamSets` from hitting IndexedDB on every 1400ms poll cycle.
+- **MTeam pollTimer cascade**: Auto-stop poll timer after `MutationObserver` successfully attaches. Observer is the primary signal; poll timer was a temporary safety net.
+- **Scroll/resize infinite triggers**: Remove `scroll` and `resize` listeners from `MTeamHandler`. MTeam React SPA's `flushSync` causes scroll event bursts that trigger `safeProcess` cascades.
+
+### 🚀 Features
+
+- **PT background scan expansion**: Enable `enableBackgroundScan: true` for 6 additional NexusPHP sites (pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club, hdtime.org). Unified configuration: `rowSelector='table.torrents > tbody > tr'`, no `extractIdsFromRow`, `extractDetailUrl=extractDetailUrlFromLink`.
+
+### 🔒 Security
+
+- **Fetch URL validation**: Add `ALLOWED_ORIGINS` Set built from all 16 `SITE_CONFIGS` domains. `validateFetchUrl()` rejects non-http(s) protocols and non-allowlisted origins before `fetch()` in `ScanQueue`.
+- **Console log sanitization**: Remove `url` and `JSON.stringify(entry/sampleHrefs)` from 6 console statements in `queue.ts` and `pt-detail.ts`.
+
+### ⚙️ Chores
+
+- **Version bump**: 3.6.0 → 3.6.1
+- **Gitignore**: Add `Thumbs.db` (Windows thumbnail cache)
+
+### 🔧 Refactoring
+
+- **Router URL detection**: Restore `setInterval(checkUrl, 1000)` polling + `hashchange` listener for robust SPA navigation detection.
+- **Comment cleanup**: Remove redundant JSDoc, Chinese comments, section headers, and emoji annotations from `content.ts`, `mteam.ts`, `index.ts`.
+
+---
+
+## [3.5.2] - 2026-06-19
+
+### Added
+- **PT Dimmer 模块化重构**: 单文件 `pt-dimmer.ts` 重构为 `enhancers/pt/` 多模块架构（12 个文件，~1700 行）
+  - `config/` — 站点配置注册表（`SITE_CONFIGS`），支持 17+ NexusPHP 站点
+  - `scanner/` — 后台扫描队列（信号量并发控制、随机延迟、缓存优先、60s 冷却）
+  - `dimmer/` — 处理器编排（MTeamHandler + NexusPHPHandler），per-task 回调实时淡化
+  - `types.ts` / `utils.ts` — 共享类型和工具函数
+- **NexusPHP 列表页扫描**: 后台请求详情页提取豆瓣/IMDb 平台 ID，IndexedDB 缓存，双保险策略（后台扫描 + 详情页手动访问）
+- **17+ PT 站点适配**: ptsbao.club, audiences.me, hdhome.org, hdarea.club, ourbits.club, pterclub.net, pthome.net, haidan.cc, pt.btschool.club, discfan.net, hhanclub.net, hddolby.com, hdfans.org, pt.soulvoice.club, hdtime.org, piggo.me
+- **豆瓣 ID 格式兼容**: 支持 `douban.com/subject/`（无 `movie.` 前缀）和 `movie.douban.com/subject/` 两种格式
+
+### Changed
+- **PT Dimmer 架构**: 从单文件 `enhancers/pt-dimmer.ts`（874 行）重构为模块化 `enhancers/pt/`（12 文件，1686 行）
+- **数据属性提取**: `extractIdsFromRowLinks` 同时扫描 `<a>` 链接和 `data-doubanid`/`data-imdbid` 属性
+- **性能优化**: `enableBackgroundScan: false` 时跳过 IndexedDB 缓存查询；`getScanner()` 单例支持动态更新并发参数
+
+### Fixed
+- **内存泄漏**: `waitForElement` observer 使用类属性而非本地变量，`cleanup()` 可正确断开
+- **单例配置**: `getScanner()` 后续调用的 `concurrency`/`delayRange` 参数不再被忽略
+- **userdetails.php 误匹配**: `extractDetailUrlFromLink` 跳过 `userdetails.php` 链接
+- **DOMParser base URL**: `extractIdsFromDoc` 改用 `getAttribute('href')` 避免 `about:blank` 前缀
+- **空结果缓存**: 无平台 ID 的详情页也写入空缓存条目，避免重复扫描
+- **详情页更新**: 用户手动访问详情页时提取并更新缓存，双重保险
+
+## [3.5.1] - 2026-06-19
+
+### Added
+- **Dynamic Island 搜索栏**: 豆瓣首页顶部新增悬浮搜索栏，集成电影/音乐/个人主页快捷入口
+  - 左侧导航：电影（🎬）、音乐（🎵）、个人主页（👤）图标按钮
+  - 右侧搜索框：支持实时规范化输入（去除 PT 发布组后缀、年份后内容）
+  - 搜索按钮 loading 动画：提交时旋转 spinner + 800ms 脉冲防抖
+  - 所有链接通过 `window.open` 新标签页打开，不使用原生 `<a>` 元素
+- **12 级响应式 CSS Token 系统**: 全新 `breakpoints.css` 定义流体排版、间距、卡片尺寸
+  - 覆盖 320px（手机）→ 5120px（5K）完整分辨率范围
+  - 3 个显式断点覆写：2560px（2K）、3840px（4K）、5120px（5K）
+  - 所有 CSS 硬编码 `px` 值替换为 `var(--umm-*)` token
+- **深浅主题联动**: 支持 `auto`/`light`/`dark` 三种模式
+  - 从 `chrome.storage.local` 读取扩展主题设置
+  - `auto` 模式跟随 `prefers-color-scheme` 媒体查询
+  - 监听系统主题变化实时切换
+  - CSS 变量系统：`--umm-bg`, `--umm-text-primary`, `--umm-island-bg` 等
+- **封面悬浮效果**: 仅封面图片盒浮动，标题/评分/徽章保持静止
+- **useBadge 抽取**: 共享徽章计算逻辑抽取为独立 composable，消除 UmmMediaCard 和 UmmBillboardCard 重复代码
+- **href 协议验证**: `sanitizeHref()` 函数验证 URL 仅允许 http/https 协议，阻止 javascript:/data:/vbscript: 注入
+
+### Changed
+- **重构为独立 WXT 入口点**: `src/entrypoints/douban-homepage.content/` 替代旧 `enhancers/douban-homepage/` 模块
+  - 使用 `createShadowRootUi` Shadow DOM 隔离，无需 `all: initial` + `!important` CSS hack
+  - 从 `content/router.ts` 解耦，独立匹配 `https://movie.douban.com/`
+- **dbGetAll 优化**: `useRecordCache` 仅加载 `{ status, rating }` 字段，减少内存占用
+- **搜索查询规范化**: 去除点号、括号、特殊字符，合并多余空格，年份后内容截断
+  - 支持双年份场景（使用第二个年份作为截止点）
+  - 防死循环：`isNormalizing` 标志 + `setTimeout(0)` 重置
+- **所有导航链接**: 从原生 `<a>` 元素改为 `<button>` + `@click` 事件处理，统一新标签页打开
+
+### Fixed
+- **matchMedia 监听器泄漏**: `applyTheme` 每次调用新增监听器但从未移除 → 模块级 `activeMqHandler` 追踪 + `removeMqListener()` 清理
+- **重复 `:host` 声明**: `style.css` 中 `:host` 声明两次，移除底部重复块
+- **冗余注释清理**: 移除 `index.ts` 和 `App.vue` 中 8 条仅重述代码的内联注释
+- **console.error 泄露**: `useRecordCache.ts` 移除 error 对象，仅记录通用错误信息
+
+### Removed
+- **旧 enhancers 模块**: 删除 `src/entrypoints/content/enhancers/douban-homepage/` 目录（cache, card, index, row, sections, styles, utils 共 7 个文件）
+- **router.ts 豆瓣首页路由**: 移除 `content/router.ts` 中豆瓣首页增强器路由规则（21 行）
+
 ## [3.4.0] - 2026-06-16
 
 ### i18n
