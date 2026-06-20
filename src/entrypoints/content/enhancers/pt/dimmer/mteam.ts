@@ -1,16 +1,17 @@
-/**
- * M-Team 专用列表页处理器
- */
 
 import { getMTeamSets, applyCacheFallback } from './cache'
-import type { HandlerContext, ListPageHandler } from '../types'
+import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types'
 import { dimElement } from '../utils'
 
 export class MTeamHandler implements ListPageHandler {
   readonly id = 'mteam'
 
   match(_url: string): boolean {
-    return location.href.includes('m-team.cc/browse')
+    const href = location.href
+    return (
+      href.includes('m-team.cc') &&
+      (href.includes('/browse') || href.includes('#/browse'))
+    )
   }
 
   getSelector(): string {
@@ -24,11 +25,30 @@ export class MTeamHandler implements ListPageHandler {
   private debug: (...args: any[]) => void = () => {}
   private observer: MutationObserver | null = null
 
+  // Watched IDs cache (avoids repeated DB fetches on pollTimer cycles)
+  private movieDoubanIds: Set<string> | null = null
+  private musicDoubanIds: Set<string> | null = null
+  private imdbIds: Set<string> | null = null
+  private setsExpiry = 0
+
   constructor() {}
 
-  /**
-   * 从 M-Team 行中提取 ID（带行级缓存）
-   */
+  private getCachedSets(): { movieDoubanIds: Set<string>; musicDoubanIds: Set<string>; imdbIds: Set<string> } | null {
+    if (
+      this.movieDoubanIds &&
+      this.musicDoubanIds &&
+      this.imdbIds &&
+      Date.now() < this.setsExpiry
+    ) {
+      return {
+        movieDoubanIds: this.movieDoubanIds,
+        musicDoubanIds: this.musicDoubanIds,
+        imdbIds: this.imdbIds,
+      }
+    }
+    return null
+  }
+
   extractMTeamIds(row: Element): {
     movieDoubanId: string | null
     musicDoubanId: string | null
@@ -56,19 +76,16 @@ export class MTeamHandler implements ListPageHandler {
         // ignore
       }
 
-      // Extract Douban movie ID
       if (!result.movieDoubanId) {
         const match = href.match(/douban\.com\/subject\/(\d+)/)
         if (match) result.movieDoubanId = match[1]
       }
 
-      // Extract Douban music ID
       if (!result.musicDoubanId) {
         const match = href.match(/music\.douban\.com\/subject\/(\d+)/)
         if (match) result.musicDoubanId = match[1]
       }
 
-      // Extract IMDb ID
       if (!result.imdbId) {
         const match = href.match(/imdb\.com\/title\/((?:tt)?\d+)/)
         if (match) {
@@ -77,7 +94,6 @@ export class MTeamHandler implements ListPageHandler {
         }
       }
 
-        // Try extracting from search parameters
       if (!result.movieDoubanId || !result.musicDoubanId || !result.imdbId) {
         try {
           const parsed = new URL(href, location.origin)
@@ -116,9 +132,6 @@ export class MTeamHandler implements ListPageHandler {
     return result
   }
 
-  /**
-   * 获取 M-Team 种子行
-   */
   getMTeamRows(root: Document | HTMLElement = document): Element[] {
     return Array.from(
       root.querySelectorAll("tr, [role='row'], .ant-table-row")
@@ -134,9 +147,6 @@ export class MTeamHandler implements ListPageHandler {
     })
   }
 
-  /**
-   * 生成 M-Team 行签名（用于避免重复处理）
-   */
   private getMTeamRowSignature(
     row: Element,
     ids: { movieDoubanId: string | null; musicDoubanId: string | null; imdbId: string | null },
@@ -160,9 +170,6 @@ export class MTeamHandler implements ListPageHandler {
     ].join('::')
   }
 
-  /**
-   * 处理 M-Team 种子行
-   */
   processMTeamRows(
     rows: Element[],
     movieDoubanIds: Set<string>,
@@ -207,9 +214,6 @@ export class MTeamHandler implements ListPageHandler {
     this.debug('[M-Team] processMTeamRows done — total:', rows.length, '| dimmed:', dimmed, '| no match:', notMatched, '| dedup skipped:', skipped)
   }
 
-  /**
-   * 设置响应式监听循环（用于 M-Team）
-   */
   private active = false
   private processing = false
   private processQueued = false
@@ -233,60 +237,54 @@ export class MTeamHandler implements ListPageHandler {
       })
   }
 
+  private pollTimer: number | null = null
+
   setupMTeamWatcher(process: () => Promise<void>): void {
-    this.debug('[M-Team] Setting up MTeam watcher (event-driven, no polling)')
+    this.debug('[M-Team] Setting up MTeam watcher')
     this.active = true
 
     const wrappedProcess = async () => {
       await process()
-        // First process complete → locate row container, attach precise observer
       if (!this.observer) {
         this.attachMTeamObserver(process)
       }
+      // Observer attached and initial run complete — poll timer is no longer needed
+      if (this.observer) {
+        this.stopPollTimer()
+        this.debug('[M-Team] Observer active, poll timer stopped')
+      }
     }
 
-    // Execute immediately on first run
     this.safeProcess(wrappedProcess)
+
+    // Safety net: only runs until observer is attached (typically < 3s)
+    this.pollTimer = window.setInterval(() => {
+      this.safeProcess(process)
+    }, 1400)
+    this.debug('[M-Team] Poll timer started (safety net until observer attaches)')
   }
 
-  /**
-   * 在 M-Team 的行容器上挂载精准 MutationObserver
-   * 使用 childList:true（不递归），仅监控行增删
-   */
-  private attachMTeamObserver(process: () => Promise<void>): void {
-    const rows = document.querySelectorAll('[role="row"]')
-    if (rows.length === 0) {
-      this.debug('[M-Team] No rows found for observer target — using fallback on #root')
-      const root = document.getElementById('root')
-      if (root) {
-        this.observer = new MutationObserver(
-          this.throttle(() => this.safeProcess(process), 180)
-        )
-        this.observer.observe(root, { childList: true, subtree: true })
-      }
-      return
+  private stopPollTimer(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
     }
+  }
 
-    const container = rows[0].parentElement
-    if (!container) return
+  private attachMTeamObserver(process: () => Promise<void>): void {
+    const root = document.getElementById('root')
+    if (!root) return
 
-    this.debug('[M-Team] Observer target:', container.tagName,
-      container.id ? '#' + container.id : '',
-      container.className ? '.' + container.className.trim().split(/\s+/).join('.') : ''
-    )
-
+    this.debug('[M-Team] Observer target: #root (subtree)')
     this.observer = new MutationObserver(
       this.throttle(() => {
-        this.debug('[M-Team] Row mutation detected')
+        this.debug('[M-Team] Mutation detected, re-processing...')
         this.safeProcess(process)
-      }, 180)
+      }, 180),
     )
-    this.observer.observe(container, { childList: true })
+    this.observer.observe(root, { childList: true, subtree: true })
   }
 
-  /**
-   * 清理 M-Team 专用监听器
-   */
   teardown(): void {
     this.active = false
     this.processing = false
@@ -295,11 +293,12 @@ export class MTeamHandler implements ListPageHandler {
       this.observer.disconnect()
       this.observer = null
     }
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
   }
 
-  /**
-   * 节流函数（内部使用）
-   */
   private throttle<T extends (...args: any[]) => any>(
     fn: T,
     delay: number,
@@ -314,13 +313,24 @@ export class MTeamHandler implements ListPageHandler {
     }
   }
 
-  /**
-   * 处理页面
-   */
   async process(context: HandlerContext): Promise<void> {
     const { debug, idCache, cacheTimestamp } = context
     this.debug = debug
-    const sets = await getMTeamSets(debug, idCache, cacheTimestamp)
+
+    // Use internal TTL cache to avoid repeated DB fetches on pollTimer cycles
+    const cached = this.getCachedSets()
+    let sets: CachedIdSets
+    if (cached) {
+      sets = cached
+      this.debug('[M-Team] Using cached ID sets')
+    } else {
+      const result = await getMTeamSets(debug, idCache, cacheTimestamp)
+      sets = result
+      this.movieDoubanIds = new Set(result.movieDoubanIds)
+      this.musicDoubanIds = new Set(result.musicDoubanIds)
+      this.imdbIds = new Set(result.imdbIds)
+      this.setsExpiry = Date.now() + 30000
+    }
     const rows = this.getMTeamRows(document)
     this.debug('[M-Team] Found', rows.length, 'rows')
     this.processMTeamRows(rows, sets.movieDoubanIds, sets.musicDoubanIds, sets.imdbIds)
@@ -349,13 +359,16 @@ export class MTeamHandler implements ListPageHandler {
     // is event-driven (no polling), fires only when Ant Design swaps rows.
   }
 
-  /**
-   * 设置 M-Team 专用监听器
-   */
-  setup(
-    _target: HTMLElement,
-    process: () => Promise<void>,
-  ): void {
+  setup(_target: HTMLElement, process: () => Promise<void>): void {
+    if (this.active) return
     this.setupMTeamWatcher(process)
+  }
+
+  isActive(): boolean {
+    return this.active
+  }
+
+  isMTeamDomPresent(): boolean {
+    return document.querySelectorAll('[role="row"]').length > 3
   }
 }

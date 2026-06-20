@@ -1,7 +1,3 @@
-/**
- * PT Dimmer 编排器
- * 管理多个 PT 站点列表页的"已看淡化"逻辑
- */
 
 import { MTeamHandler } from './mteam'
 import { NexusPHPHandler } from './nexusphp'
@@ -13,6 +9,8 @@ export class PTDimmer {
   private observer: MutationObserver | null = null
   private waitForObserver: MutationObserver | null = null
   private storageChangeListener: ((changes: any, area: string) => void) | null = null
+  private mteamAutoDetector: MutationObserver | null = null
+  private mteamDocObserver: MutationObserver | null = null
 
   /** Static reference to current instance — ensures cleanup() can always find us */
   static currentInstance: PTDimmer | null = null
@@ -28,18 +26,18 @@ export class PTDimmer {
   constructor() {
     this.mteamHandler = new MTeamHandler()
     this.nexusphpHandler = new NexusPHPHandler()
+
+    // MTeam SPA: URL events may not fire for internal routing
+    // Start DOM-based auto-detection as fallback
+    if (location.href.includes('m-team.cc')) {
+      this.startMteamAutoDetection()
+    }
   }
 
-  /**
-   * Debug 日志
-   */
   private debug(...args: any[]): void {
     console.log(this.debugTag, ...args)
   }
 
-  /**
-   * 清理所有监听器和定时器
-   */
   cleanup(): void {
     this.mteamHandler.teardown()
     this.nexusphpHandler.teardown()
@@ -55,12 +53,17 @@ export class PTDimmer {
       chrome.storage.onChanged.removeListener(this.storageChangeListener)
       this.storageChangeListener = null
     }
+    if (this.mteamAutoDetector) {
+      this.mteamAutoDetector.disconnect()
+      this.mteamAutoDetector = null
+    }
+    if (this.mteamDocObserver) {
+      this.mteamDocObserver.disconnect()
+      this.mteamDocObserver = null
+    }
     PTDimmer.currentInstance = null
   }
 
-  /**
-   * 选择匹配当前 URL 的处理器（按优先级：MTeam > NexusPHP）
-   */
   private selectHandler(url: string): ListPageHandler | null {
     const handlers: ListPageHandler[] = [
       this.mteamHandler,
@@ -69,9 +72,6 @@ export class PTDimmer {
     return handlers.find((h) => h.match(url)) || null
   }
 
-  /**
-   * 主入口：根据 URL 运行对应的 Dimmer
-   */
   public async runFor(url: string): Promise<void> {
     this.debug('=== runFor called for URL:', url)
     this.cleanup()
@@ -134,5 +134,50 @@ export class PTDimmer {
       active.contentCheck,
       { current: this.waitForObserver },
     )
+  }
+
+  /** MTeam SPA fallback: auto-detect browse page via DOM when URL events don't fire */
+  private startMteamAutoDetection(): void {
+    const checkDom = () => {
+      if (!this.mteamHandler.isActive() && this.mteamHandler.isMTeamDomPresent()) {
+        this.debug('[M-Team] DOM auto-detect: browse rows found, initializing...')
+        const ctx: HandlerContext = {
+          debug: this.debug.bind(this),
+          idCache: this.idCache,
+          cacheTimestamp: this.cacheTimestamp,
+        }
+        void this.mteamHandler.process(ctx).then(() => {
+          const target =
+            (document.querySelector(this.mteamHandler.getSelector().split(',')[0].trim()) as HTMLElement | null) ||
+            document.body
+          this.mteamHandler.setup(target, () => this.mteamHandler.process(ctx))
+        })
+      }
+    }
+
+    // Immediate check for direct page loads
+    checkDom()
+
+    // Observe #root for SPA navigation (M-Team React root)
+    const root = document.getElementById('root')
+    if (root) {
+      this.mteamAutoDetector = new MutationObserver(throttle(checkDom, 1000))
+      this.mteamAutoDetector.observe(root, { childList: true, subtree: true })
+      this.debug('[M-Team] DOM auto-detector attached to #root')
+      return
+    }
+
+    // #root not ready yet — watch document for it to appear
+    this.mteamDocObserver = new MutationObserver(() => {
+      const delayedRoot = document.getElementById('root')
+      if (delayedRoot) {
+        this.mteamDocObserver!.disconnect()
+        this.mteamDocObserver = null
+        this.mteamAutoDetector = new MutationObserver(throttle(checkDom, 1000))
+        this.mteamAutoDetector.observe(delayedRoot, { childList: true, subtree: true })
+        this.debug('[M-Team] DOM auto-detector attached to #root (delayed)')
+      }
+    })
+    this.mteamDocObserver.observe(document.documentElement, { childList: true, subtree: true })
   }
 }
