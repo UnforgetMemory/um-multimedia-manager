@@ -8,22 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.6.1] - 2026-06-20
 
 ### Fixed
-- MTeam SPA navigation failure on `kp.m-team.cc` when navigating from `/index` to `/browse`
-- NexusPHPHandler redundant regex scan loop causing unnecessary DOM queries for 6 sites
-- MTeam pollTimer over-fetching IndexedDB on every 1400ms cycle
+- Fixed PT dimmer not activating on some sites after SPA navigation
+- Removed redundant regex scan loop in list page handler causing unnecessary DOM queries for 6 sites
+- MTeam pollTimer over-fetching cached data on every poll cycle
 - MTeam pollTimer cascade triggering after observer attachment
-- Scroll/resize event bursts triggering safeProcess cascades via React flushSync
+- Scroll/resize event bursts triggering excessive reprocessing during SPA navigation
 
 ### Added
 - Background scan support for 6 NexusPHP sites: pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club, hdtime.org
 
 ### Security
-- Fetch URL validation with ALLOWED_ORIGINS allowlist in ScanQueue
-- Console log sanitization removing url and JSON.stringify(entry) exposure
+- Added URL validation for external resource fetches
+- Sanitized console output to prevent URL and data exposure
 
 ### Changed
 - Router URL detection restored with setInterval polling and hashchange listener
-- Removed redundant JSDoc, Chinese comments, and section headers from content.ts, mteam.ts, index.ts
+- Removed redundant JSDoc, Chinese comments, and section headers from core modules
 - Bumped version to 3.6.1
 - Added `Thumbs.db` to .gitignore
 
