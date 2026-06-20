@@ -7,32 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.6.1] - 2026-06-20
 
-### 🐛 Bug Fixes
+### Fixed
+- MTeam SPA navigation failure on `kp.m-team.cc` when navigating from `/index` to `/browse`
+- NexusPHPHandler redundant regex scan loop causing unnecessary DOM queries for 6 sites
+- MTeam pollTimer over-fetching IndexedDB on every 1400ms cycle
+- MTeam pollTimer cascade triggering after observer attachment
+- Scroll/resize event bursts triggering safeProcess cascades via React flushSync
 
-- **MTeam SPA navigation**: Resolve PTDimmer failure on `kp.m-team.cc` when navigating from `/index` to `/browse`. Root cause was non-standard SPA routing that bypasses all browser routing events (pushState/popstate/hashchange). Implemented multi-layer detection: force `fullInit()` on MTeam domains in content script lazy-load logic; restore `setInterval` polling + `hashchange` listener in router; add DOM-based auto-detection via `MutationObserver` on `#root`; fix observer target from ephemeral container to stable `#root` with `subtree: true`.
-- **NexusPHPHandler infinite loop**: Remove redundant inline regex scan loop in `else` branch that matched zero rows for 6 sites (ptsbao.club, pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club). These sites now skip directly to `extractDetailUrl → ptIdCacheGet → scanBatch` pipeline.
-- **MTeam pollTimer over-fetching**: Add internal TTL cache (30s) in `MTeamHandler` to prevent `getMTeamSets` from hitting IndexedDB on every 1400ms poll cycle.
-- **MTeam pollTimer cascade**: Auto-stop poll timer after `MutationObserver` successfully attaches. Observer is the primary signal; poll timer was a temporary safety net.
-- **Scroll/resize infinite triggers**: Remove `scroll` and `resize` listeners from `MTeamHandler`. MTeam React SPA's `flushSync` causes scroll event bursts that trigger `safeProcess` cascades.
+### Added
+- Background scan support for 6 NexusPHP sites: pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club, hdtime.org
 
-### 🚀 Features
+### Security
+- Fetch URL validation with ALLOWED_ORIGINS allowlist in ScanQueue
+- Console log sanitization removing url and JSON.stringify(entry) exposure
 
-- **PT background scan expansion**: Enable `enableBackgroundScan: true` for 6 additional NexusPHP sites (pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club, hdtime.org). Unified configuration: `rowSelector='table.torrents > tbody > tr'`, no `extractIdsFromRow`, `extractDetailUrl=extractDetailUrlFromLink`.
-
-### 🔒 Security
-
-- **Fetch URL validation**: Add `ALLOWED_ORIGINS` Set built from all 16 `SITE_CONFIGS` domains. `validateFetchUrl()` rejects non-http(s) protocols and non-allowlisted origins before `fetch()` in `ScanQueue`.
-- **Console log sanitization**: Remove `url` and `JSON.stringify(entry/sampleHrefs)` from 6 console statements in `queue.ts` and `pt-detail.ts`.
-
-### ⚙️ Chores
-
-- **Version bump**: 3.6.0 → 3.6.1
-- **Gitignore**: Add `Thumbs.db` (Windows thumbnail cache)
-
-### 🔧 Refactoring
-
-- **Router URL detection**: Restore `setInterval(checkUrl, 1000)` polling + `hashchange` listener for robust SPA navigation detection.
-- **Comment cleanup**: Remove redundant JSDoc, Chinese comments, section headers, and emoji annotations from `content.ts`, `mteam.ts`, `index.ts`.
+### Changed
+- Router URL detection restored with setInterval polling and hashchange listener
+- Removed redundant JSDoc, Chinese comments, and section headers from content.ts, mteam.ts, index.ts
+- Bumped version to 3.6.1
+- Added `Thumbs.db` to .gitignore
 
 ---
 
@@ -175,6 +168,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unicode 转义修复**: 替换 `.vue` 模板中所有 `\uXXXX` 转义序列为实际中文字符
 - **Options 页侧边栏精简**: 移除重复的页脚和标签页标题，修复 `LinkedTab.vue` 缺失的 `Input`/`Label` 导入
 
+### Removed
+- 临时 jav_ids 导入入口
+- 各处重复的 `showPageToast` 函数
+- `<all_urls>` 过度权限
+
 ## [3.2.0] - 2026-06-14
 
 ### Added
@@ -239,7 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 选项页独立配置页面侧边栏精简：移除冗余 footer 和 tab 标题
 - 关联查询 LinkedTab 缺少 Input/Label 组件导入
 
-[3.4.0]: https://github.com/username/um-multimedia-manager/compare/v3.3.0...v3.4.0
-[3.3.0]: https://github.com/username/um-multimedia-manager/compare/v3.2.0...v3.3.0
-[3.2.0]: https://github.com/username/um-multimedia-manager/compare/v3.1.0...v3.2.0
-[3.1.0]: https://github.com/username/um-multimedia-manager/compare/v3.0.0...v3.1.0
+[3.4.0]: https://github.com/UnforgetMemory/um-multimedia-manager/compare/v3.3.0...v3.4.0
+[3.3.0]: https://github.com/UnforgetMemory/um-multimedia-manager/compare/v3.2.0...v3.3.0
+[3.2.0]: https://github.com/UnforgetMemory/um-multimedia-manager/compare/v3.1.0...v3.2.0
+[3.1.0]: https://github.com/UnforgetMemory/um-multimedia-manager/compare/v3.0.0...v3.1.0
