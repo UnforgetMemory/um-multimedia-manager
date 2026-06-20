@@ -114,7 +114,8 @@ const ROUTES: RouteRule[] = [
   // PT 站点 Dimmer
   {
     match: (url) =>
-      url.includes('m-team.cc/browse') ||
+      (url.includes('m-team.cc') &&
+        (url.includes('/browse') || url.includes('#/browse'))) ||
       url.includes('audiences.me/torrents.php') ||
       url.includes('hdhome.org/torrents.php') ||
       url.includes('hdarea.club/torrents.php') ||
@@ -228,6 +229,7 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
   }
 
   window.addEventListener('popstate', checkUrl)
+  window.addEventListener('hashchange', checkUrl)
 
   const origPushState = history.pushState
   const origReplaceState = history.replaceState
@@ -240,10 +242,15 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
     checkUrl()
   }
 
+  // Fallback: interval poll for SPA edge cases (hash changes, direct location.href assignments)
+  const pollInterval = setInterval(checkUrl, 1000)
+
   return () => {
     window.removeEventListener('popstate', checkUrl)
+    window.removeEventListener('hashchange', checkUrl)
     history.pushState = origPushState
     history.replaceState = origReplaceState
+    clearInterval(pollInterval)
   }
 }
 
