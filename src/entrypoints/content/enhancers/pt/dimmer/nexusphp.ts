@@ -69,28 +69,6 @@ export class NexusPHPHandler implements ListPageHandler {
           dimmed++
           hasDirectLink = true
         }
-      } else {
-        for (const a of row.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-          const href = a.href
-          if (href.match(/douban\.com\/subject\/\d+/)) {
-            const m = href.match(/\/subject\/(\d+)/)
-            if (m && doubanIds.has(m[1])) {
-              dimElement(row as HTMLElement)
-              dimmed++
-              hasDirectLink = true
-              break
-            }
-          }
-          if (href.match(/imdb\.com\/title\/tt\d+/)) {
-            const m = href.match(/\/title\/(tt\d+)/)
-            if (m && imdbIds.has(m[1])) {
-              dimElement(row as HTMLElement)
-              dimmed++
-              hasDirectLink = true
-              break
-            }
-          }
-        }
       }
 
       if (hasDirectLink) continue
