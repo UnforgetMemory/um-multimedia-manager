@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2026-06-20
+
+### 🐛 Bug Fixes
+
+- **MTeam SPA navigation**: Resolve PTDimmer failure on `kp.m-team.cc` when navigating from `/index` to `/browse`. Root cause was non-standard SPA routing that bypasses all browser routing events (pushState/popstate/hashchange). Implemented multi-layer detection: force `fullInit()` on MTeam domains in content script lazy-load logic; restore `setInterval` polling + `hashchange` listener in router; add DOM-based auto-detection via `MutationObserver` on `#root`; fix observer target from ephemeral container to stable `#root` with `subtree: true`.
+- **NexusPHPHandler infinite loop**: Remove redundant inline regex scan loop in `else` branch that matched zero rows for 6 sites (ptsbao.club, pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club). These sites now skip directly to `extractDetailUrl → ptIdCacheGet → scanBatch` pipeline.
+- **MTeam pollTimer over-fetching**: Add internal TTL cache (30s) in `MTeamHandler` to prevent `getMTeamSets` from hitting IndexedDB on every 1400ms poll cycle.
+- **MTeam pollTimer cascade**: Auto-stop poll timer after `MutationObserver` successfully attaches. Observer is the primary signal; poll timer was a temporary safety net.
+- **Scroll/resize infinite triggers**: Remove `scroll` and `resize` listeners from `MTeamHandler`. MTeam React SPA's `flushSync` causes scroll event bursts that trigger `safeProcess` cascades.
+
+### 🚀 Features
+
+- **PT background scan expansion**: Enable `enableBackgroundScan: true` for 6 additional NexusPHP sites (pt.btschool.club, discfan.net, hhanclub.net, hdfans.org, pt.soulvoice.club, hdtime.org). Unified configuration: `rowSelector='table.torrents > tbody > tr'`, no `extractIdsFromRow`, `extractDetailUrl=extractDetailUrlFromLink`.
+
+### 🔒 Security
+
+- **Fetch URL validation**: Add `ALLOWED_ORIGINS` Set built from all 16 `SITE_CONFIGS` domains. `validateFetchUrl()` rejects non-http(s) protocols and non-allowlisted origins before `fetch()` in `ScanQueue`.
+- **Console log sanitization**: Remove `url` and `JSON.stringify(entry/sampleHrefs)` from 6 console statements in `queue.ts` and `pt-detail.ts`.
+
+### ⚙️ Chores
+
+- **Version bump**: 3.6.0 → 3.6.1
+- **Gitignore**: Add `Thumbs.db` (Windows thumbnail cache)
+
+### 🔧 Refactoring
+
+- **Router URL detection**: Restore `setInterval(checkUrl, 1000)` polling + `hashchange` listener for robust SPA navigation detection.
+- **Comment cleanup**: Remove redundant JSDoc, Chinese comments, section headers, and emoji annotations from `content.ts`, `mteam.ts`, `index.ts`.
+
+---
+
 ## [3.5.2] - 2026-06-19
 
 ### Added
