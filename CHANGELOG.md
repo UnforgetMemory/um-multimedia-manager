@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Glassmorphic pill-shaped search bar on Douban detail and search pages, replacing native form
+  - New `src/utils/search-normalizer.ts` shared normalizer (extracted from UmmDynamicIsland)
+  - New `src/entrypoints/content/enhancers/douban-search-bar.ts` enhancer
+  - Detail page integration via `handleDoubanDetailPage` in `douban.ts`
+  - Search page integration via `startSearchEnhancer` in `douban-search.ts`
+  - URL `search_text` prefilling on search result pages
+  - Smart query normalization: PT release names → clean search terms (dots, brackets, season/episode → `Season 1`, year truncation)
+  - 500ms debounce on blur for input normalization (no cursor jump during typing)
+  - CSS isolation via inline styles + injected stylesheet with `!important` overrides
+  - Responsive breakpoints: mobile (40px), tablet (42px), desktop
+  - Dark mode support via `prefers-color-scheme`
+
+### Changed
+- Search navigation uses `location.href` (same-tab) instead of `window.open` (new tab)
+
 ## [3.6.1] - 2026-06-20
 
 ### Fixed

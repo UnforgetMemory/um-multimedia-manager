@@ -17,6 +17,7 @@ import { getLocalRecord, syncToLocalStorage } from './douban-sync'
 import { injectNeoDBPushButtons } from './douban-neodb'
 import { showNotification } from './douban-toast'
 import { t } from '../i18n'
+import { enhanceDetailPageSearch } from '../enhancers/douban-search-bar'
 
 // ✅ P2: 提取魔法数字为常量
 const STATUS_DONE = 2
@@ -34,7 +35,9 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
     // ✅ P1-3: 添加全局错误边界
     // 等待 #interest_sect_level 元素加载
     await waitForElement('#interest_sect_level', 5000)
-      
+
+    enhanceDetailPageSearch()
+
     // ✅ 修复：先获取本地记录
     console.log('[UMM] Calling getLocalRecord...')
     const localRecord = await getLocalRecord(identity)
