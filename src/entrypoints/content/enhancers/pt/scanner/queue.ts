@@ -7,6 +7,21 @@ import { Store } from '@/features/database'
 import type { PtIdCacheEntry } from '@/types'
 import type { SiteScannerConfig } from '../types'
 import { Semaphore } from './semaphore'
+import { SITE_CONFIGS } from '../config/sites'
+
+const ALLOWED_ORIGINS = new Set<string>(
+  SITE_CONFIGS.flatMap(config => [`https://${config.domain}`, `http://${config.domain}`]),
+)
+
+function validateFetchUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+    return ALLOWED_ORIGINS.has(parsed.origin)
+  } catch {
+    return false
+  }
+}
 
 /** 扫描任务 */
 export interface ScanTask {
@@ -110,6 +125,9 @@ export class ScanQueue {
       await this.semaphore.acquire()
       await this.randomDelay()
 
+      if (!validateFetchUrl(url)) {
+        throw new Error('Blocked fetch to non-allowlisted origin')
+      }
       const response = await fetch(url, { credentials: 'include' })
 
       if (!response.ok) {
@@ -127,8 +145,7 @@ export class ScanQueue {
         const allLinks = doc.querySelectorAll('a[href]')
         const doubanLinks = doc.querySelectorAll('a[href*="douban.com"]')
         const imdbLinks = doc.querySelectorAll('a[href*="imdb.com"]')
-        const sampleHrefs = Array.from(allLinks).slice(0, 5).map((a) => a.getAttribute('href') || '')
-        console.warn(`[PT Scanner] No IDs found: ${url} (total links: ${allLinks.length}, douban links: ${doubanLinks.length}, imdb links: ${imdbLinks.length}, sample hrefs: ${JSON.stringify(sampleHrefs)})`)
+        console.warn(`[PT Scanner] No IDs found (total links: ${allLinks.length}, douban links: ${doubanLinks.length}, imdb links: ${imdbLinks.length})`)
         const emptyEntry: PtIdCacheEntry = { ptUrl: url, updatedAt: new Date().toISOString() }
         await Store.ptIdCachePut(emptyEntry)
         const result: ScanResult = { url, entry: emptyEntry, success: false, error: 'No IDs found' }
@@ -146,13 +163,13 @@ export class ScanQueue {
       await Store.ptIdCachePut(entry)
       this.setCooldown(url)
 
-      console.log(`[PT Scanner] Cached: ${url} → ${JSON.stringify(entry)}`)
+      console.log(`[PT Scanner] Cached successfully`)
       const result: ScanResult = { url, entry, success: true }
       if (onTaskComplete) onTaskComplete(result)
       return result
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
-      console.warn(`[PT Scanner] Failed: ${url} — ${errorMsg}`)
+      console.warn(`[PT Scanner] Failed: ${errorMsg}`)
       const result: ScanResult = {
         url,
         entry: { ptUrl: url, updatedAt: '' },

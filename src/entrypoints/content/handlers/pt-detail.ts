@@ -162,7 +162,7 @@ const isNexusPHP = [
   // Check if already cached (skip extraction)
   const existing = await Store.ptIdCacheGet(cacheKey)
   if (existing && existing.doubanId && existing.imdbId) {
-    console.log('[PT Detail] Already cached with IDs:', cacheKey, JSON.stringify(existing))
+    console.log('[PT Detail] Already cached with IDs')
     return
   }
 
@@ -177,7 +177,7 @@ const isNexusPHP = [
         : extractNexusPHPDetailIds()
 
       if (!doubanId && !imdbId) {
-        console.log('[PT Detail] No platform IDs found — caching empty:', cacheKey)
+        console.log('[PT Detail] No platform IDs found — caching empty')
         await Store.ptIdCachePut({
           ptUrl: cacheKey,
           updatedAt: new Date().toISOString(),
@@ -192,7 +192,7 @@ const isNexusPHP = [
         updatedAt: new Date().toISOString(),
       }
       await Store.ptIdCachePut(entry)
-      console.log('[PT Detail] Cached:', JSON.stringify(entry))
+      console.log('[PT Detail] Cached')
     },
     8000,
     isMTeam
