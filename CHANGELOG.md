@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Full-page overlay injection on Douban homepage (`movie.douban.com`) with `document_start` CSS blocking
+  - New `src/entrypoints/douban-homepage-overlay.content/` content script
+  - Early CSS injection prevents flash of original content
+  - Shadow root container houses the entire Vue-enhanced homepage UI
+  - Themed scrollbar (5px, `--umm-border` color, light/dark adaptive)
+  - `user-select: none` on overlay (except search input)
+  - Dynamic theme sync via `chrome.storage.onChanged` (`umm:appearance` key)
+- Moved Dynamic Island styles from component `<style scoped>` to shadow DOM stylesheet (`style.css`)
+  - Fixes Vue scoped styles not applying inside Shadow DOM
 - Glassmorphic pill-shaped search bar on Douban detail and search pages, replacing native form
   - New `src/utils/search-normalizer.ts` shared normalizer (extracted from UmmDynamicIsland)
   - New `src/entrypoints/content/enhancers/douban-search-bar.ts` enhancer
