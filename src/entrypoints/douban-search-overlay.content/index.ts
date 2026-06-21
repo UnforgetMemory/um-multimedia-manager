@@ -1,10 +1,10 @@
 import { defineContentScript } from 'wxt/utils/define-content-script'
 
-const OVERLAY_ID = 'umm-douban-overlay'
+const OVERLAY_ID = 'umm-search-overlay'
 const THEME_KEY = 'umm:appearance'
 
 export default defineContentScript({
-  matches: ['https://movie.douban.com/'],
+  matches: ['*://search.douban.com/movie/subject_search*', '*://search.douban.com/music/subject_search*'],
   runAt: 'document_start',
 
   main() {
@@ -47,7 +47,7 @@ export default defineContentScript({
     loading.innerHTML =
       '<div class="ov-spinner"></div>' +
       '<div class="ov-title">UMManager</div>' +
-      '<div class="ov-subtitle">\u591A\u5A92\u4F53\u7BA1\u7406\u5668 \u00B7 \u52A0\u8F7D\u4E2D</div>'
+      '<div class="ov-subtitle">加载搜索结果...</div>'
     shadow.appendChild(loading)
 
     applyOverlayTheme(overlay)

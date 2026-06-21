@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Full-page overlay injection on Douban search page (`search.douban.com/movie|music/subject_search`)
+  - New `src/entrypoints/douban-search-overlay.content/` content script (`document_start`)
+  - New `src/entrypoints/douban-search.content/` Vue app with search results grid
+  - Data extraction via 4-layer fallback: `window.__DATA__` → script tag regex → injected bridge → DOM parsing
+  - Search bar with real-time input normalization and debounce
+  - Watch-status badges integrated from IndexedDB
+  - Dynamic pagination with page window and jump-to-page input
+  - Music/movie search type auto-detection
+  - Same-tab navigation for search, new-tab for result links
+  - Themed scrollbar and fade-in transition
 - Full-page overlay injection on Douban homepage (`movie.douban.com`) with `document_start` CSS blocking
   - New `src/entrypoints/douban-homepage-overlay.content/` content script
   - Early CSS injection prevents flash of original content
