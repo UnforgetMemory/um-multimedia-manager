@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `rebuildSubjectCard()` TDZ crash: `ratingCard` referenced via `appendChild` before `const` declaration (Rollup hoists `var` to `undefined`)
+- `createStandalonePill()` TS6133 warning: `searchTimeout` declared but never read — added `clearTimeout` to prevent race on rapid clicks
+- Original `.rank-label` not hidden after data extraction into rebuilt card
+- Old `.lnk-doulist-add` button not hidden after relocation into new card layout
+- Doulist modal overlay (`#umm-dl-modal`) broken by `all:initial` — replaced with targeted CSS resets (`margin:0;padding:0;border:none;box-sizing:border-box;overflow-y:auto`)
+- Legacy `content.ts` neoDBInjector callback still active alongside handler — overridden via `setNeoDBInjector()` in `handleDoubanDetailPage()`
+
 ### Added
+- Left-column wrapper (`umm-subject-left-col`) grouping poster and rating-card below poster in the same grid column
+- `umm-detail-shell` container isolating all injected UI elements from legacy Douban CSS pollution
+- `FloatingToast` error feedback in `initDoulistReplacement()` when doulist fetch fails or returns empty
+
 - Full-page overlay injection on Douban search page (`search.douban.com/movie|music/subject_search`)
   - New `src/entrypoints/douban-search-overlay.content/` content script (`document_start`)
   - New `src/entrypoints/douban-search.content/` Vue app with search results grid
