@@ -3,8 +3,6 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { createAppI18n } from '@/plugins/i18n'
-import '@/styles/typography.css'
-import '@/styles/design-tokens.css'
 import '../../style.css'
 
 async function bootstrap() {

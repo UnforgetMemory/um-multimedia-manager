@@ -24,7 +24,7 @@ const forwardedProps = useForwardProps(delegatedProps)
   >
     <slot />
     <ChevronDown
-      class="relative top-px ml-1 h-3 w-3 transition duration-200 group-data-[state=open]:rotate-180"
+      class="umm-relative top-px umm-ml-1 umm-h-3 umm-w-3 umm-transition umm-duration-200 umm-group-data-[state=open]:rotate-180"
       aria-hidden="true"
     />
   </NavigationMenuTrigger>

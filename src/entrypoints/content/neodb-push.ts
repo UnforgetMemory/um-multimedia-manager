@@ -2,13 +2,14 @@
  * NeoDB Push Button Injection & Push Logic
  *
  * Injects push-to-NeoDB buttons on Douban detail pages
- * and handles the actual push via chrome.runtime.sendMessage.
+ * and handles the actual push via safeSendMessage.
  * Extracted from content.ts for modularity.
  */
 
 import type { StoreRecord } from '@/types'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
+import { safeSendMessage } from '@/utils/context'
 import { FloatingToast } from './utils/toast'
 import { t } from './i18n'
 import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
@@ -211,18 +212,15 @@ async function pushToNeoDB(
   try {
     const settings = await Store.getSettings()
     if (!settings.neodbToken) {
-      if (chrome.runtime?.sendMessage) {
-        chrome.runtime.sendMessage({
-          type: 'SHOW_TOAST',
-          payload: {
-            type: 'error',
-            title: t('neodb.config_missing_title'),
-            message: t('neodb.config_missing')
-          }
-        }).catch(() => {
-          showToast(t('neodb.config_missing'), 'error')
-        })
-      } else {
+      const toastSent = await safeSendMessage({
+        type: 'SHOW_TOAST',
+        payload: {
+          type: 'error',
+          title: t('neodb.config_missing_title'),
+          message: t('neodb.config_missing')
+        }
+      }, { timeout: 5000, retries: 0 })
+      if (!toastSent) {
         showToast(t('neodb.config_missing'), 'error')
       }
       return
@@ -241,20 +239,14 @@ async function pushToNeoDB(
       comment: currentRecord?.comment ?? '',
     }
 
-    let response: any
-    try {
-      response = await chrome.runtime.sendMessage({
-        type: 'NEODB_PUSH_RATING',
-        payload: { record: neodbData },
-      })
-    } catch (commError) {
-      errorLog('Communication with background failed:', commError)
-      showToast(t('neodb.comm_retry'), 'error')
-      return
-    }
+    const response = await safeSendMessage({
+      type: 'NEODB_PUSH_RATING',
+      payload: { record: neodbData },
+    }, { timeout: 15000, retries: 2 })
 
     if (!response) {
-      showToast(t('neodb.no_response'), 'error')
+      errorLog('Communication with background failed after retries')
+      showToast(t('neodb.comm_retry'), 'error')
       return
     }
 

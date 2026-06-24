@@ -26,9 +26,9 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       props.class,
     )"
   >
-    <span class="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+    <span class="umm-absolute umm-left-2 umm-flex umm-h-3.5 umm-w-3.5 umm-items-center umm-justify-center">
       <MenubarItemIndicator>
-        <Check class="w-4 h-4" />
+        <Check class="umm-w-4 umm-h-4" />
       </MenubarItemIndicator>
     </span>
     <slot />

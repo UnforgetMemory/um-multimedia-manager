@@ -3,7 +3,7 @@
  * 功能：根据 URL 动态加载对应的页面处理器
  */
 
-import { Identity } from '@/features/identity'
+import { Identity, PT_HOSTS } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
 import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
@@ -102,10 +102,7 @@ const ROUTES: RouteRule[] = [
   {
     match: (url) =>
       (url.includes('m-team.cc/detail') && !url.includes('/browse')) ||
-      (['audiences.me', 'hdhome.org', 'hdarea.club', 'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc', 'ptsbao.club', 'pt.btschool.club',
-        'discfan.net', 'hhanclub.net', 'hddolby.com', 'hdfans.org', 'pt.soulvoice.club', 'hdtime.org', 'piggo.me'].some(
-        (host) => url.includes(host),
-      ) && url.includes('details.php')),
+      (PT_HOSTS.some(h => url.includes(h)) && url.includes('details.php')),
     handler: async () => {
       await handlePTDetailPage(location.href)
     },
@@ -116,24 +113,8 @@ const ROUTES: RouteRule[] = [
     match: (url) =>
       (url.includes('m-team.cc') &&
         (url.includes('/browse') || url.includes('#/browse'))) ||
-      url.includes('audiences.me/torrents.php') ||
-      url.includes('hdhome.org/torrents.php') ||
-      url.includes('hdarea.club/torrents.php') ||
-      url.includes('ourbits.club/torrents.php') ||
-      url.includes('pterclub.net/torrents.php') ||
-      url.includes('pterclub.net/officialgroup.php') ||
-      url.includes('pthome.net/torrents.php') ||
-      url.includes('haidan.cc/torrents.php') ||
-      url.includes('haidan.cc/videos.php') ||
-      url.includes('ptsbao.club/torrents.php') ||
-      url.includes('pt.btschool.club/torrents.php') ||
-      url.includes('discfan.net/torrents.php') ||
-      url.includes('hhanclub.net/torrents.php') ||
-      url.includes('hddolby.com/torrents.php') ||
-      url.includes('hdfans.org/torrents.php') ||
-      url.includes('pt.soulvoice.club/torrents.php') ||
-      url.includes('hdtime.org/torrents.php') ||
-      url.includes('piggo.me/torrents.php'),
+      PT_HOSTS.some(h => url.includes(`${h}/torrents.php`) || url.includes(`${h}/videos.php`)) ||
+      url.includes('pterclub.net/officialgroup.php'),
     handler: async () => {
       if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer()
       ptdimmerInstance.cleanup()

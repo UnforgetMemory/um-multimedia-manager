@@ -15,7 +15,7 @@ const delegatedProps = reactiveOmit(props, "class")
 </script>
 
 <template>
-  <AccordionHeader class="flex">
+  <AccordionHeader class="umm-flex">
     <AccordionTrigger
       v-bind="delegatedProps"
       :class="
@@ -28,7 +28,7 @@ const delegatedProps = reactiveOmit(props, "class")
       <slot />
       <slot name="icon">
         <ChevronDown
-          class="h-4 w-4 shrink-0 transition-transform duration-200"
+          class="umm-h-4 umm-w-4 shrink-0 umm-transition-transform umm-duration-200"
         />
       </slot>
     </AccordionTrigger>

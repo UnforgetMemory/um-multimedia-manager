@@ -9,18 +9,8 @@
 
 import { escapeHtml } from './dom'
 import { t } from '../i18n'
+import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/shared/types/toast'
 
-/** 快速 toast 的最大可见数量（持久化 toast 不计入） */
-const MAX_QUICK_TOASTS = 3
-
-/** 去重窗口：相同 hash（title+message）在 500ms 内复用元素 */
-const DEDUP_HASH_MS = 500
-
-/** 去重窗口：相同 title 在 2s 内替换内容 */
-const DEDUP_TITLE_MS = 2000
-
-/** 容器空闲清理时间 */
-const CONTAINER_CLEANUP_MS = 5 * 60 * 1000
 
 // ─── 内部类型 ────────────────────────────────────────────
 
@@ -83,7 +73,7 @@ function scheduleContainerCleanup(): void {
       stylesInjected = false
       console.log('[FloatingToast] Container cleaned up due to inactivity')
     }
-  }, CONTAINER_CLEANUP_MS)
+  }, TOAST_CONTAINER_CLEANUP_MS)
 }
 
 // ─── 样式注入 ────────────────────────────────────────────
@@ -232,14 +222,14 @@ function tryDedup(title: string, message: string | undefined, hash: string): HTM
   const now = Date.now()
 
   // 1. 相同 hash + 500ms 内 → 复用
-  if (lastQuickToast && lastQuickToast.hash === hash && now - lastQuickToast.timestamp < DEDUP_HASH_MS) {
+  if (lastQuickToast && lastQuickToast.hash === hash && now - lastQuickToast.timestamp < TOAST_DEDUP_HASH_MS) {
     updateQuickToastContent(lastQuickToast.element, title, message)
     lastQuickToast.timestamp = now
     return lastQuickToast.element
   }
 
   // 2. 相同 title + 2s 内 → 替换内容
-  if (lastQuickToast && lastQuickToast.title === title && now - lastQuickToast.timestamp < DEDUP_TITLE_MS) {
+  if (lastQuickToast && lastQuickToast.title === title && now - lastQuickToast.timestamp < TOAST_DEDUP_TITLE_MS) {
     updateQuickToastContent(lastQuickToast.element, title, message)
     lastQuickToast.hash = hash
     lastQuickToast.timestamp = now
