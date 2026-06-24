@@ -1,4 +1,4 @@
-/* 12-Level Responsive Breakpoints */
+/* 13-Level Responsive Breakpoints */
 :root {
   --bp-xs: 0px;
   --bp-sm: 320px;
@@ -11,6 +11,7 @@
   --bp-5xl: 1536px;
   --bp-6xl: 1920px;
   --bp-7xl: 2560px;
+  --bp-3k: 2880px;
   --bp-8xl: 3200px;
 
   /* Spacing Scale (4px base) */

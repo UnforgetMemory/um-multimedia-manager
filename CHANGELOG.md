@@ -74,6 +74,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Search navigation uses `location.href` (same-tab) instead of `window.open` (new tab)
 
+## [4.0.0] - 2026-06-24
+
+### Changed
+- **Background service worker refactored**: Split 1,439-line monolithic `background.ts` into modular handler architecture
+  - `background/handlers/webdav.ts` — WebDAV sync handlers (test, upload, download, merge)
+  - `background/handlers/neodb.ts` — NeoDB push rating handler
+  - `background/handlers/data.ts` — Settings, export, import, statistics handlers
+  - `background/handlers/toast.ts` — Toast notification handler with inline fallback
+  - `background/handlers/adult-av.ts` — Adult AV ID operations + legacy sehuatang handlers
+  - Main `background.ts` reduced to message routing entry point (457 lines)
+- **Content script refactored**: Extracted NeoDB push logic from `content.ts` (707→272 lines)
+  - New `content/neodb-push.ts` — NeoDB push button injection and push logic (312 lines)
+  - New `content/shared/overlay.ts` — Shared shadow DOM overlay creation (127 lines)
+- **Early scripts consolidated**: 3 near-identical douban early scripts now use shared `createOverlay()`
+  - `douban-detail-early.content/index.ts` — 109→25 lines
+  - `douban-homepage-overlay.content/index.ts` — 74→21 lines
+  - `douban-search-overlay.content/index.ts` — 74→21 lines
+- **Design tokens extracted**: New `content/styles/tokens.ts` with shared color constants
+  - `global.ts` updated to import tokens instead of hardcoded values
+  - UI component styles (`umm-panel`, `umm-overlay`, `umm-btn`) added to `global.ts`
+- **UI panels refactored**: `manual-add-panel.ts` and `check-viewed-panel.ts` use CSS classes instead of inline styles
+- Added 3K resolution breakpoint (`--bp-3k: 2880px`) to `design-tokens.css`
+
+### Security
+- Security audit passed: XSS prevention via `escapeHtml()` in toast handler, store name validation in DB operations, settings whitelist in import
+- Known low-risk items deferred to 4.2.0: toast payload input validation, webdav credential leakage in error messages, import data structural validation
+
 ## [3.6.1] - 2026-06-20
 
 ### Fixed
