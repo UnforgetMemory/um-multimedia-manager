@@ -114,17 +114,23 @@ async function fetchAllDoulists(subject: SubjectInfo): Promise<DoulistItem[]> {
       arr = parsed
     } else if (parsed && typeof parsed === 'object') {
       const obj = parsed as Record<string, unknown>
-      arr = (obj.doulist as unknown[]) ||
+      arr = (obj.doulists as unknown[]) ||
+            (obj.doulist as unknown[]) ||
             (obj.items as unknown[]) ||
             (obj.data as unknown[]) ||
             (obj.results as unknown[]) ||
             (obj.list as unknown[]) ||
             []
     }
+    if (arr.length > 0) {
+      console.log('[UMM] Doulist item keys:', Object.keys(arr[0] as Record<string, unknown>))
+      console.log('[UMM] Doulist first item:', JSON.stringify(arr[0]).slice(0, 300))
+    }
     const items = arr.map((item: unknown) => {
       const i = item as Record<string, unknown>
+      const doulistId = String(i.id ?? i.ID ?? i.doulist_id ?? i.doulistId ?? '')
       return {
-      id: String(i.id ?? i.ID ?? ''),
+      id: doulistId,
       name: (String(i.name ?? i.title ?? i.Name ?? '')).trim(),
       count: i.count ? String(i.count) : '',
       is_collected: Boolean(i.is_collected ?? false),
