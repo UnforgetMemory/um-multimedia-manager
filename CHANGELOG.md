@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **热力图溢出**：修复活跃度热力图方块在 hover 放大时向上溢出被裁剪的问题
+- **Tooltip 残留**：优化 tooltip 防抖配置，快速移动鼠标时不再出现残留轨迹
+- **Tooltip 暂停**：移除关闭动画，消除 tooltip 关闭时的视觉暂停
+
 ### Changed
 - Title card layout: horizontal title + original name + year row, responsive stack on small screens
 - Rating card redesign: larger score (42px), focal score section, better bar design, `border-top` separator
