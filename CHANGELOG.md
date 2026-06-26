@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-06-26
+
 ### Fixed
 - **热力图溢出**：修复活跃度热力图方块在 hover 放大时向上溢出被裁剪的问题
 - **Tooltip 残留**：优化 tooltip 防抖配置，快速移动鼠标时不再出现残留轨迹
