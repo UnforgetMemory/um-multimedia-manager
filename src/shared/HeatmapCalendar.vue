@@ -90,7 +90,7 @@ const legendLevels = [0, 2, 4, 6, 8] as const
     </CardHeader>
     <CardContent>
       <!-- Heatmap grid -->
-      <div class="umm:overflow-x-auto umm:pb-2 umm:-mb-2" style="direction: rtl;">
+      <div class="umm:overflow-x-auto umm:pb-2 umm:-mb-2" style="direction: rtl; padding-top: 8px;">
         <div class="umm:flex" :style="{ gap: 'var(--umm-spacing-1)', minWidth: 'min-content', direction: 'ltr' }">
           <!-- Day labels -->
           <div class="umm:flex umm:flex-col" :style="{ gap: 'var(--umm-spacing-1)', marginRight: '6px' }">
@@ -101,7 +101,7 @@ const legendLevels = [0, 2, 4, 6, 8] as const
             </div>
           </div>
           <!-- Weeks -->
-          <TooltipProvider :delayDuration="200">
+          <TooltipProvider :delayDuration="300" :skipDelayDuration="150" disableHoverableContent>
             <div v-for="(week, wi) in calendarData.weeks" :key="wi" class="umm:flex umm:flex-col" :style="{ gap: 'var(--umm-spacing-1)' }">
               <Tooltip v-for="(day, di) in week" :key="di">
                 <TooltipTrigger as-child>
