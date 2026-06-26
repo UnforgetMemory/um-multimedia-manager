@@ -159,7 +159,7 @@ onUnmounted(() => {
         v-for="item in searchData.items"
         :key="item.id"
         :href="item.url"
-        target="_blank"
+        target="_blank" rel="noopener noreferrer"
         class="umm-search-card"
       >
         <div class="umm-search-card-cover">

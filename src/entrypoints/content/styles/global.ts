@@ -252,17 +252,18 @@ const HOMEPAGE_BADGE_STYLES = `
 `
 
 /**
- * 共享UI组件样式（用于content/ui/*.ts的panel/modal）
+ * Shared UI component styles (for content/ui/*.ts panel/modal)
+ * Uses CSS variables for theme-aware styling
  */
 const UI_COMPONENT_STYLES = `
-/* 深色面板容器 */
+/* Panel container */
 .umm-panel {
-  background: #1e1e1e;
-  border: 1px solid #333;
+  background: var(--umm-bg, #1e1e1e);
+  border: 1px solid var(--umm-border, #333);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-/* 遮罩层 */
+/* Overlay */
 .umm-overlay {
   position: fixed;
   top: 0;
@@ -275,17 +276,17 @@ const UI_COMPONENT_STYLES = `
   justify-content: center;
   align-items: center;
 }
-/* 强调色标题 */
+/* Accent title */
 .umm-panel-title {
   margin: 0;
-  color: #03dac6;
+  color: var(--umm-link, #03dac6);
   text-align: center;
 }
-/* 深色输入框 */
+/* Input */
 .umm-input {
-  background: #2a2a2a;
-  border: 1px solid #444;
-  color: white;
+  background: var(--umm-bg-secondary, #2a2a2a);
+  border: 1px solid var(--umm-border, #444);
+  color: var(--umm-text-primary, white);
   padding: 10px;
   border-radius: 6px;
   outline: none;
@@ -293,9 +294,9 @@ const UI_COMPONENT_STYLES = `
   box-sizing: border-box;
 }
 .umm-input:focus {
-  border-color: #03dac6;
+  border-color: var(--umm-link, #03dac6);
 }
-/* 操作按钮 */
+/* Action buttons */
 .umm-btn {
   padding: 8px 16px;
   border-radius: 6px;
@@ -304,19 +305,19 @@ const UI_COMPONENT_STYLES = `
   font-weight: bold;
 }
 .umm-btn--primary {
-  background: #03dac6;
-  color: #000;
+  background: var(--umm-link, #03dac6);
+  color: var(--umm-bg, #000);
 }
 .umm-btn--secondary {
-  background: #444;
-  color: #ccc;
+  background: var(--umm-bg-secondary, #444);
+  color: var(--umm-text-secondary, #ccc);
 }
-/* 标签文字 */
+/* Label text */
 .umm-label-text {
   font-size: 0.9rem;
-  color: #aaa;
+  color: var(--umm-text-muted, #aaa);
 }
-/* 弹性布局 */
+/* Flex layouts */
 .umm-flex-col {
   display: flex;
   flex-direction: column;

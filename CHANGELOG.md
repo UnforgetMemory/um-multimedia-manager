@@ -7,35 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- `rebuildSubjectCard()` TDZ crash: `ratingCard` referenced via `appendChild` before `const` declaration (Rollup hoists `var` to `undefined`)
-- `createStandalonePill()` TS6133 warning: `searchTimeout` declared but never read — added `clearTimeout` to prevent race on rapid clicks
-- Original `.rank-label` not hidden after data extraction into rebuilt card
-- Old `.lnk-doulist-add` button not hidden after relocation into new card layout
-- Doulist modal overlay (`#umm-dl-modal`) broken by `all:initial` — replaced with targeted CSS resets (`margin:0;padding:0;border:none;box-sizing:border-box;overflow-y:auto`)
-- Legacy `content.ts` neoDBInjector callback still active alongside handler — overridden via `setNeoDBInjector()` in `handleDoubanDetailPage()`
-- Doulist add API: expanded ID field mapping (`doulist_id`, `doulists(plural)`) to fix malformed request URL
-
-### Added
-- Left-column wrapper (`umm-subject-left-col`) grouping poster and rating-card below poster in the same grid column
-- `umm-detail-shell` container isolating all injected UI elements from legacy Douban CSS pollution
-- `FloatingToast` error feedback in `initDoulistReplacement()` when doulist fetch fails or returns empty
-- **Douban detail page Vue overlay** — replaces DOM manipulation with Shadow DOM + Vue 3
-  - New `src/entrypoints/douban-detail.content/` entrypoint: data extraction + Vue app mount
-  - New `App.vue` with full detail page layout: search pill, title, poster, rating card, meta, synopsis, actions
-  - New `style.css` with complete light/dark theme variables, responsive grid layout
-  - Awards card (`#celebrities`) with grid layout, win/nom badges, sorted by award status
-  - Celebrities card (`#celebrities`) with 2:3 portrait avatars
-  - Photos/stills card (`#related-pic`) with aspect-ratio grid, trailer badges
-  - Recommendations card (`#recommendations`) with watched/unwatched status bar
-  - `dbGetAll` → `dbGetWatchedIds` for watched-status batch check
-  - XSS sanitization: script tag stripping from synopsis HTML before `v-html`
-- Debug toggle (`Shift+\``) for showing/hiding overlay to inspect original page
-
 ### Changed
-- `handleDoubanDetailPage` simplified from 1994→30 lines — overlay handles UI, handler does background sync only
 - Title card layout: horizontal title + original name + year row, responsive stack on small screens
 - Rating card redesign: larger score (42px), focal score section, better bar design, `border-top` separator
+- Status chip moved from actions area to top of title block
+- Poster URL: `s_ratio_poster` → `xl` for high-resolution images
+- Celebrity card: circular avatars → 2:3 portrait rectangles
+- Search navigation uses `location.href` (same-tab) instead of `window.open` (new tab)
+
+### Added
+- Full-page overlay injection on Douban search page (`search.douban.com/movie|music/subject_search`)
+  - New `src/entrypoints/douban-search-overlay.content/` content script (`document_start`)
+  - New `src/entrypoints/douban-search.content/` Vue app with search results grid
+  - Data extraction via 4-layer fallback: `window.__DATA__` → script tag regex → injected bridge → DOM parsing
+  - Search bar with real-time input normalization and debounce
+  - Watch-status badges integrated from IndexedDB
+  - Dynamic pagination with page window and jump-to-page input
+  - Music/movie search type auto-detection
+  - Same-tab navigation for search, new-tab for result links
+  - Themed scrollbar and fade-in transition
+- Full-page overlay injection on Douban homepage (`movie.douban.com`) with `document_start` CSS blocking
+  - New `src/entrypoints/douban-homepage-overlay.content/` content script
+  - Early CSS injection prevents flash of original content
+  - Shadow root container houses the entire Vue-enhanced homepage UI
+  - Themed scrollbar (5px, `--umm-border` color, light/dark adaptive)
+  - `user-select: none` on overlay (except search input)
+  - Dynamic theme sync via `chrome.storage.onChanged` (`umm:appearance` key)
+- Moved Dynamic Island styles from component `<style scoped>` to shadow DOM stylesheet (`style.css`)
+  - Fixes Vue scoped styles not applying inside Shadow DOM
+- Glassmorphic pill-shaped search bar on Douban detail and search pages, replacing native form
+  - New `src/utils/search-normalizer.ts` shared normalizer (extracted from UmmDynamicIsland)
+  - New `src/entrypoints/content/enhancers/douban-search-bar.ts` enhancer
+  - Detail page integration via `handleDoubanDetailPage` in `douban.ts`
+  - Search page integration via `startSearchEnhancer` in `douban-search.ts`
+  - URL `search_text` prefilling on search result pages
+  - Smart query normalization: PT release names → clean search terms (dots, brackets, season/episode → `Season 1`, year truncation)
+  - 500ms debounce on blur for input normalization (no cursor jump during typing)
+  - CSS isolation via inline styles + injected stylesheet with `!important` overrides
+  - Responsive breakpoints: mobile (40px), tablet (42px), desktop
+  - Dark mode support via `prefers-color-scheme`
+
+### Security
+- XSS prevention: DOMPurify integrated for all `v-html` usage
+- Tabnabbing prevention: `rel="noopener noreferrer"` added to all `target="_blank"` links
+- Dead code cleanup: Removed unused `vue-sonner` and `gsap` dependencies
+
+## [4.1.0] - 2026-06-25
+
+### Added
+- Unified design system with Tailwind CSS v4 `prefix(umm)` configuration (v4 variant-style prefix)
+- Design tokens consolidated in `src/style.css` `@theme` block (merged from `design-tokens.css` and `typography.css`)
+- 13-level responsive breakpoint system (320px to 3200px) with 3K (2880px) support
+- Fluid typography using `clamp()` for all text sizes
+- `src/shared/` module for unified exports (utils, composables, stores, types)
+- `scripts/add-umm-prefix.js` automation for adding `umm:` prefix to Tailwind classes
+
+### Changed
+- All shadcn/vue components now use `umm:` prefixed Tailwind classes (126 files updated)
+- Options page and popup components updated with `umm:` prefix
+- Custom components (HeatmapCalendar, PlatformDistribution, ToastContainer, StatCard, ConfirmDialog) updated with `umm:` prefix
+- Variant files (index.ts) for Button, Badge, Alert, Toggle, Sheet, NavigationMenu, Avatar updated with `umm:` prefix
+- `handleDoubanDetailPage` simplified from 1994→30 lines — overlay handles UI, handler does background sync only
+
+### Fixed
+- Tailwind CSS v4 prefix format: changed from `umm-` (v3 style) to `umm:` (v4 variant style)
+- `data-[state=on]:` prefixed classes now correctly skip shadcn token classes
+- Nested parentheses in `cn()` calls (e.g., `[&:has([role=checkbox])]`) now handled correctly
+- Multi-line `:class="cn(...)"` bindings now processed correctly
+- `size-*` Tailwind utility classes now receive `umm:` prefix
+- `border-b` (without number suffix) now correctly identified as Tailwind utility
+
+### Removed
+- `src/styles/design-tokens.css` (merged into `src/style.css`)
+- `src/styles/typography.css` (merged into `src/style.css`)
+- `src/utils/theme.ts` (consolidated into `src/shared/`)
+- Debug toggle (`Shift+\``) for showing/hiding overlay to inspect original page
 - Status chip moved from actions area to top of title block
 - Poster URL: `s_ratio_poster` → `xl` for high-resolution images
 - Celebrity card: circular avatars → 2:3 portrait rectangles

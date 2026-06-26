@@ -1,0 +1,25 @@
+/* ===== UMM Shared Badge Styles ===== */
+/* Shared badge styles for all Shadow DOM content scripts */
+/* Usage: @import url('./shadow-badge.css'); in each content script's style.css */
+
+.umm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-weight: 700;
+  line-height: 1;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.umm-badge--done {
+  background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
+  color: #f4fff8;
+  border: 1px solid rgba(198, 255, 228, 0.26);
+}
+
+.umm-badge--none {
+  background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
+  color: #fff7f8;
+  border: 1px solid rgba(255, 214, 220, 0.22);
+}

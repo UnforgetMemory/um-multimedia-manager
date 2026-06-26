@@ -11,12 +11,6 @@
   background: var(--umm-bg);
   user-select: none;
   -webkit-user-select: none;
-  --umm-bg: #ffffff;
-  --umm-bg-secondary: #f8f9fa;
-  --umm-text-primary: #1a1a1a;
-  --umm-text-secondary: #666666;
-  --umm-text-muted: #999999;
-  --umm-border: #e5e7eb;
   --umm-border-light: #f0f0f0;
   --umm-card-bg: transparent;
   --umm-island-bg: rgba(255, 255, 255, 0.92);
@@ -33,12 +27,6 @@
 }
 
 :host(.umm-theme--dark) {
-  --umm-bg: #1a1b1e;
-  --umm-bg-secondary: #25262b;
-  --umm-text-primary: #e0e0e0;
-  --umm-text-secondary: #aaaaaa;
-  --umm-text-muted: #777777;
-  --umm-border: #373a40;
   --umm-border-light: #2c2e33;
   --umm-card-bg: transparent;
   --umm-island-bg: rgba(30, 31, 36, 0.92);
@@ -521,16 +509,6 @@
 }
 
 /* ---- Status badges ---- */
-
-.umm-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  font-weight: 700;
-  line-height: 1;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 .umm-badge--inline {
   min-width: 40px;

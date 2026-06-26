@@ -140,7 +140,7 @@ defineExpose({ updateRecord })
 
       <div class="umm-detail-left">
         <div v-if="d.posterSrc" class="umm-poster">
-          <a v-if="d.posterLink" :href="d.posterLink" target="_blank"><img :src="d.posterSrc" :alt="d.posterAlt"></a>
+          <a v-if="d.posterLink" :href="d.posterLink" target="_blank" rel="noopener noreferrer"><img :src="d.posterSrc" :alt="d.posterAlt"></a>
           <img v-else :src="d.posterSrc" :alt="d.posterAlt">
         </div>
 
@@ -179,7 +179,7 @@ defineExpose({ updateRecord })
           <div class="umm-meta-row">
             <span class="umm-meta-label">排行榜</span>
             <span class="umm-meta-value">
-              <a v-if="d.rankHref" :href="d.rankHref" target="_blank">{{ d.rankNo }} {{ d.rankText }}</a>
+              <a v-if="d.rankHref" :href="d.rankHref" target="_blank" rel="noopener noreferrer">{{ d.rankNo }} {{ d.rankText }}</a>
               <template v-else>{{ d.rankNo }} {{ d.rankText }}</template>
             </span>
           </div>

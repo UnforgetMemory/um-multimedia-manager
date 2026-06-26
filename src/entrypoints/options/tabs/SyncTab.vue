@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
 
 const { t } = useI18n()
 const activeSubTab = ref('webdav')
@@ -15,31 +16,17 @@ const subTabs = [
 </script>
 
 <template>
-  <div class="space-y-[var(--section-gap)]">
-    <div class="flex p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
-      <button
-        v-for="tab in subTabs"
-        :key="tab.id"
-        @click="activeSubTab = tab.id"
-        :class="[
-          'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-          activeSubTab === tab.id
-            ? 'bg-background text-primary-content shadow-sm'
-            : 'text-secondary-content hover:text-primary-content hover:bg-background/50'
-        ]"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+  <div class="umm:flex umm:flex-col umm:gap-[var(--umm-section-gap)]">
+    <SegmentedControl v-model="activeSubTab" :options="subTabs" />
 
     <Suspense>
       <WebDAVTab v-if="activeSubTab === 'webdav'" />
       <ImportExportTab v-else-if="activeSubTab === 'import-export'" />
       <template #fallback>
-        <div class="space-y-4">
-          <div class="h-8 bg-muted rounded-lg animate-pulse w-1/3"></div>
-          <div class="h-4 bg-muted rounded-lg animate-pulse w-2/3"></div>
-          <div class="h-32 bg-muted rounded-xl animate-pulse"></div>
+        <div class="umm:flex umm:flex-col umm:gap-4">
+          <div class="umm:h-8 umm:bg-muted umm:rounded-lg umm:animate-pulse umm:w-1/3"></div>
+          <div class="umm:h-4 umm:bg-muted umm:rounded-lg umm:animate-pulse umm:w-2/3"></div>
+          <div class="umm:h-32 umm:bg-muted umm:rounded-xl umm:animate-pulse"></div>
         </div>
       </template>
     </Suspense>

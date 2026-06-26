@@ -7,8 +7,9 @@ import { useThemeStore } from '@/stores/theme'
 import { useAppStore } from '@/stores/app'
 import { useLocaleSync } from '@/composables/useLocaleSync'
 import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import ToastContainer from '@/components/ToastContainer.vue'
+import ConfirmDialog from '@/shared/ConfirmDialog.vue'
+import ToastContainer from '@/shared/ToastContainer.vue'
+import NavItem from '@/shared/ui/nav-item/NavItem.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -43,13 +44,13 @@ function navigateTo(path: string) {
 </script>
 
 <template>
-  <div class="h-screen bg-background text-foreground flex overflow-hidden">
+  <div class="umm:h-screen umm:bg-background umm:text-foreground umm:flex umm:overflow-hidden">
     <!-- Sidebar — persistent on xl+, drawer on smaller -->
     <!-- Mobile drawer overlay -->
     <Transition name="fade">
       <div
         v-if="sidebarOpen"
-        class="xl:hidden fixed inset-0 bg-black/50 z-40"
+        class="umm:xl:hidden umm:fixed umm:inset-0 umm:bg-black/50 umm:z-40"
         @click="sidebarOpen = false"
       />
     </Transition>
@@ -57,63 +58,53 @@ function navigateTo(path: string) {
     <!-- Sidebar -->
     <Transition name="slide">
       <nav
-        :class="[
-          'fixed xl:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col shrink-0 transition-transform duration-300',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0',
-        ]"
-        :style="{ paddingTop: 'var(--space-5)', paddingBottom: 'var(--space-5)' }"
+        :class="['umm:fixed umm:xl:static umm:inset-y-0 umm:left-0 umm:z-50 umm:w-64 umm:bg-card umm:border-r umm:border-border umm:flex umm:flex-col umm:shrink-0 umm:transition-transform umm:duration-300', sidebarOpen ? 'umm:translate-x-0' : 'umm:-translate-x-full umm:xl:translate-x-0']"
+        :style="{ paddingTop: 'var(--umm-spacing-5)', paddingBottom: 'var(--umm-spacing-5)' }"
       >
         <!-- Sidebar header -->
-        <div class="flex items-center justify-between px-5 mb-6">
+        <div class="umm:flex umm:items-center umm:justify-between umm:px-5 umm:mb-6">
           <div>
-            <h1 class="text-base-scaled font-bold tracking-tight text-primary-content">UMManager</h1>
-            <span class="font-caption text-secondary-content">v{{ appVersion }}</span>
+            <h1 class="umm:text-base umm:font-bold umm:tracking-tight umm:text-primary-content">UMManager</h1>
+            <span class="umm:font-caption umm:text-secondary-content">v{{ appVersion }}</span>
           </div>
-          <button @click="sidebarOpen = false" class="xl:hidden p-1 rounded-md hover:bg-muted">
-            <X class="w-4 h-4 text-secondary-content" />
+          <button @click="sidebarOpen = false" class="umm:xl:hidden umm:p-1 umm:rounded-md umm:hover:bg-muted">
+            <X class="umm:w-4 umm:h-4 umm:text-secondary-content" />
           </button>
         </div>
 
         <!-- Nav items -->
-        <div class="flex-1 px-3 space-y-1">
-          <button
+        <div class="umm:flex-1 umm:px-3 umm:flex umm:flex-col umm:gap-1 umm:overflow-y-auto">
+          <NavItem
             v-for="tab in tabs"
             :key="tab.id"
+            :icon="tab.icon"
+            :label="tab.label"
+            :active="currentTab === tab.id"
             @click="navigateTo(tab.route)"
-            :class="[
-              'w-full flex items-center gap-3 rounded-lg font-medium transition-all duration-200',
-              currentTab === tab.id
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-secondary-content hover:bg-muted hover:text-primary-content',
-            ]"
-            :style="{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--font-body-size)' }"
-          >
-            <component :is="tab.icon" class="h-4 w-4 shrink-0" />
-            <span>{{ tab.label }}</span>
-          </button>
+          />
         </div>
 
       </nav>
     </Transition>
 
     <!-- Main content area -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="umm:flex-1 umm:flex umm:flex-col umm:min-w-0">
       <!-- Mobile menu button -->
-      <button @click="sidebarOpen = !sidebarOpen" class="xl:hidden fixed top-3 left-3 z-30 p-2 rounded-lg bg-card border border-border shadow-sm hover:bg-muted transition-colors">
-        <Menu class="w-4 h-4 text-secondary-content" />
+      <button @click="sidebarOpen = !sidebarOpen" class="umm:xl:hidden umm:fixed umm:top-3 umm:left-3 umm:z-30 umm:p-2 umm:rounded-lg umm:bg-card umm:border umm:border-border umm:shadow-sm umm:hover:bg-muted umm:transition-colors">
+        <Menu class="umm:w-4 umm:h-4 umm:text-secondary-content" />
       </button>
 
       <!-- Page content -->
-      <main class="flex-1 overflow-y-auto" :style="{ padding: 'var(--card-padding)', paddingTop: 'calc(var(--card-padding) + 40px)' }">
-        <div class="mx-auto" style="max-width: 1200px;">
+      <main class="umm:flex-1 umm:overflow-y-auto" :style="{ padding: 'var(--umm-card-padding)', paddingTop: 'calc(var(--umm-card-padding) + 40px)' }">
+        <div class="umm:mx-auto" style="max-width: 1200px;">
           <RouterView v-slot="{ Component }">
             <Suspense>
               <component :is="Component" />
               <template #fallback>
-                <div class="space-y-4 animate-pulse">
-                  <div class="h-8 bg-muted rounded w-1/3"></div>
-                  <div class="h-4 bg-muted rounded w-2/3"></div>
-                  <div class="h-48 bg-muted rounded"></div>
+                <div class="umm:flex umm:flex-col umm:gap-4 umm:animate-pulse">
+                  <div class="umm:h-8 umm:bg-muted umm:rounded umm:w-1/3"></div>
+                  <div class="umm:h-4 umm:bg-muted umm:rounded umm:w-2/3"></div>
+                  <div class="umm:h-48 umm:bg-muted umm:rounded"></div>
                 </div>
               </template>
             </Suspense>

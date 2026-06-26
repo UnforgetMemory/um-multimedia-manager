@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { useStats } from '@/composables/useStats'
+import { useStats, type RecordWithType } from '@/composables/useStats'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import StatCard from '@/components/StatCard.vue'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import StatCard from '@/shared/StatCard.vue'
+import { Card, CardContent } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Separator } from '@/shared/ui/separator'
 import { Settings, Film, Tv, Music, ShieldAlert, ArrowUpRight } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
 const { dataReady, appVersion } = storeToRefs(appStore)
 const { stats } = useStats(
-  () => appStore.records as any,
-  () => appStore.adultAvItems as any,
+  () => (appStore.records as RecordWithType[]),
+  () => appStore.adultAvItems,
 )
 
 function openOptionsPage() {
@@ -26,40 +26,35 @@ onMounted(() => appStore.loadData())
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <!-- Header -->
-    <div class="flex items-center justify-between px-5 pt-4 pb-2">
-      <h1 class="text-lg font-bold tracking-tight">UMManager</h1>
-      <span class="text-xs-scaled text-secondary-content">v{{ appVersion }}</span>
+  <div class="umm:flex umm:flex-col umm:h-full">
+    <div class="umm:flex umm:items-center umm:justify-between umm:px-5 umm:pt-4 umm:pb-2">
+      <h1 class="umm:text-base umm:font-bold umm:tracking-tight umm:text-primary-content">UMManager</h1>
+      <span class="umm:font-caption umm:text-secondary-content">v{{ appVersion }}</span>
     </div>
 
     <Separator />
 
-    <!-- Content -->
-    <div class="flex-1 px-5 py-4 overflow-y-auto">
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="umm:flex-1 umm:px-5 umm:py-4 umm:overflow-y-auto">
+      <div class="umm:grid umm:grid-cols-2 umm:gap-3 umm:mb-4">
         <StatCard :icon="Film" :label="t('stats.movie')" :value="stats.movie" :loading="!dataReady" />
         <StatCard :icon="Tv" :label="t('stats.tv')" :value="stats.tv" :loading="!dataReady" />
         <StatCard :icon="Music" :label="t('stats.music')" :value="stats.music" :loading="!dataReady" />
         <StatCard :icon="ShieldAlert" :label="t('stats.jav')" :value="stats.jav" :loading="!dataReady" />
       </div>
 
-      <!-- Total -->
-      <Card class="mb-4 overflow-hidden">
-        <CardContent class="flex items-center justify-between py-3 px-5">
-          <span class="text-sm-scaled font-medium text-secondary-content">{{ t('stats.total') }}</span>
-          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary-content truncate tabular-nums" :class="{ 'animate-pulse': !dataReady }">
+      <Card class="umm:mb-4 umm:overflow-hidden">
+        <CardContent class="umm:flex umm:items-center umm:justify-between umm:py-3 umm:px-5">
+          <span class="umm:text-sm umm:font-medium umm:text-secondary-content">{{ t('stats.total') }}</span>
+          <span class="umm:text-base umm:sm:text-lg umm:font-bold umm:tracking-tight umm:text-primary-content umm:truncate umm:tabular-nums" :class="{ 'umm:animate-pulse': !dataReady }">
             {{ dataReady ? stats.total.toLocaleString() : '—' }}
           </span>
         </CardContent>
       </Card>
 
-      <!-- CTA -->
-      <Button @click="openOptionsPage" class="w-full" size="default">
-        <Settings class="w-4 h-4 mr-2" />
-         {{ t('nav.managementPanel') }}
-        <ArrowUpRight class="w-3.5 h-3.5 ml-1.5 opacity-50" />
+      <Button @click="openOptionsPage" class="umm:w-full umm:gap-2" size="default">
+        <Settings class="umm:w-4 umm:h-4" />
+        {{ t('nav.managementPanel') }}
+        <ArrowUpRight class="umm:w-3.5 umm:h-3.5 umm:ml-1.5 umm:opacity-50" />
       </Button>
     </div>
   </div>

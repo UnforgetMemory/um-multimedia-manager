@@ -4,12 +4,15 @@ import { Store } from '@/features/database'
 import { STORAGE_KEYS } from '@/config'
 import { useI18n } from 'vue-i18n'
 import type { AppSettings } from '@/types'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
+import { Switch } from '@/shared/ui/switch'
+import { Separator } from '@/shared/ui/separator'
 import { useToast } from '@/composables/useToast'
+import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
+import FormField from '@/shared/ui/form-field/FormField.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -89,46 +92,41 @@ watch([debugEnabled, logLevel], async ([e, l]) => {
 </script>
 
 <template>
-  <div class="space-y-[var(--section-gap)]">
-    <div class="space-y-4">
-      <h3 class="font-h2 text-primary-content">{{ t('settings.neodbConfig') }}</h3>
-      <div>
-        <Label>{{ t('settings.apiToken') }}</Label>
-        <Input v-model="neodbToken" type="password" :placeholder="t('settings.apiToken')" class="mt-2" />
-        <p class="font-caption text-secondary-content mt-2">{{ t('settings.autoSyncNeoDBDesc') }}</p>
-      </div>
-      <Button @click="saveNeoDBToken" class="w-full">{{ t('settings.saveToken') }}</Button>
-      <div v-if="neodbToken.trim()" class="flex items-center justify-between rounded-lg border p-3">
-        <div class="space-y-0.5"><Label class="font-medium">{{ t('settings.autoSyncNeoDB') }}</Label><p class="font-caption text-secondary-content">{{ t('settings.autoSyncNeoDBDesc') }}</p></div>
-        <button type="button" role="switch" :aria-checked="autoSyncNeoDB" :class="['peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50', autoSyncNeoDB ? 'bg-primary' : 'bg-input']" @click="autoSyncNeoDB = !autoSyncNeoDB">
-          <span :class="['pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform', autoSyncNeoDB ? 'translate-x-5' : 'translate-x-0']" />
-        </button>
+  <SectionContainer>
+    <div class="umm:flex umm:flex-col umm:gap-4">
+      <SectionHeader :title="t('settings.neodbConfig')" />
+      <FormField :label="t('settings.apiToken')" :description="t('settings.autoSyncNeoDBDesc')">
+        <Input v-model="neodbToken" type="password" :placeholder="t('settings.apiToken')" />
+      </FormField>
+      <Button @click="saveNeoDBToken" class="umm:w-full">{{ t('settings.saveToken') }}</Button>
+      <div v-if="neodbToken.trim()" class="umm:flex umm:items-center umm:justify-between umm:rounded-lg umm:border umm:p-3">
+        <FormField :label="t('settings.autoSyncNeoDB')" :description="t('settings.autoSyncNeoDBDesc')" />
+        <Switch :checked="autoSyncNeoDB" @update:checked="(v: boolean) => autoSyncNeoDB = v" />
       </div>
     </div>
 
     <Separator />
 
-    <div class="space-y-4">
-      <h3 class="font-h2 text-primary-content">{{ t('settings.debugLog') }}</h3>
-      <div class="flex items-center justify-between rounded-lg border p-3">
-        <div class="space-y-0.5"><Label class="font-medium">{{ t('settings.enableLog') }}</Label><p class="font-caption text-secondary-content">{{ t('settings.enableLogDesc') }}</p></div>
-        <button type="button" role="switch" :aria-checked="debugEnabled" :class="['peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50', debugEnabled ? 'bg-primary' : 'bg-input']" @click="debugEnabled = !debugEnabled">
-          <span :class="['pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform', debugEnabled ? 'translate-x-5' : 'translate-x-0']" />
-        </button>
+    <div class="umm:flex umm:flex-col umm:gap-4">
+      <SectionHeader :title="t('settings.debugLog')" />
+      <div class="umm:flex umm:items-center umm:justify-between umm:rounded-lg umm:border umm:p-3">
+        <FormField :label="t('settings.enableLog')" :description="t('settings.enableLogDesc')" />
+        <Switch :checked="debugEnabled" @update:checked="(v: boolean) => debugEnabled = v" />
       </div>
-      <div v-if="debugEnabled" class="space-y-2">
-        <Label class="font-medium">{{ t('settings.logLevel') }}</Label>
-        <Select v-model="logLevel">
-          <SelectTrigger class="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="opt in LOG_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
-              {{ opt.label }} — {{ t(opt.descKey) }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+      <div v-if="debugEnabled" class="umm:flex umm:flex-col umm:gap-2">
+        <FormField :label="t('settings.logLevel')">
+          <Select v-model="logLevel">
+            <SelectTrigger class="umm:w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="opt in LOG_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
+                {{ opt.label }} — {{ t(opt.descKey) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
       </div>
     </div>
-  </div>
+  </SectionContainer>
 </template>

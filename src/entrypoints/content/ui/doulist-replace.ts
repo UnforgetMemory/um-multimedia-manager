@@ -152,7 +152,7 @@ function buildThemedDialog(
   const subject = data.subject
 
   // Re-read theme each time to stay in sync with extension settings
-  const isDark = () => document.documentElement.getAttribute('data-umm-theme') === 'dark'
+  const isDark = () => document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-umm-theme') === 'dark'
   const c = (l: string, d: string): string => isDark() ? d : l
 
   // ── Overlay (targeted resets instead of all:initial which destroys z-index/display) ──

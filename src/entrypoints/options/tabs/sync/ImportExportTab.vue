@@ -2,10 +2,12 @@
 import { ref } from 'vue'
 import { safeSendMessage } from '@/utils/context'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Download, Upload, RefreshCw } from 'lucide-vue-next'
+import { Download, Upload } from 'lucide-vue-next'
 import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
+import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
+import LoadingButton from '@/shared/ui/loading-button/LoadingButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -69,16 +71,27 @@ function triggerImport() {
 </script>
 
 <template>
-  <div class="space-y-[var(--section-gap)]">
-    <h3 class="font-h2 text-primary-content">{{ t('tab.importExport') }}</h3>
-    <div class="grid grid-cols-2 gap-3">
-      <Button @click="exportData" variant="outline" :disabled="isExporting || isImporting">
-        <Download class="mr-2 h-4 w-4" />{{ isExporting ? t('common.exporting') : t('common.exportData') }}
-      </Button>
-      <Button @click="triggerImport" variant="outline" :disabled="isExporting || isImporting">
-        <RefreshCw v-if="isImporting" class="mr-2 h-4 w-4 animate-spin" /><Upload v-else class="mr-2 h-4 w-4" />
-        {{ isImporting ? t('common.importing') : t('common.importData') }}
-      </Button>
+  <SectionContainer>
+    <SectionHeader :title="t('tab.importExport')" />
+    <div class="umm:grid umm:grid-cols-2 umm:gap-3">
+      <LoadingButton
+        :icon="Download"
+        :label="t('common.exportData')"
+        :loading="isExporting"
+        :loading-label="t('common.exporting')"
+        variant="outline"
+        :disabled="isExporting || isImporting"
+        @click="exportData"
+      />
+      <LoadingButton
+        :icon="Upload"
+        :label="t('common.importData')"
+        :loading="isImporting"
+        :loading-label="t('common.importing')"
+        variant="outline"
+        :disabled="isExporting || isImporting"
+        @click="triggerImport"
+      />
     </div>
-  </div>
+  </SectionContainer>
 </template>

@@ -2,31 +2,22 @@
 import { useThemeStore } from '@/stores/theme'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
 import { Sun, Moon, Monitor, Globe } from 'lucide-vue-next'
-import { LOCALE_OPTIONS, persistLocale } from '@/plugins/i18n'
-import type { Locale } from '@/locales'
+import { LOCALE_OPTIONS, persistLocale } from '@/shared/plugins/i18n'
+import type { Locale } from '@/shared/locales'
+import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
 
 const { t, locale } = useI18n()
 const themeStore = useThemeStore()
-const { theme, fontSize, density } = storeToRefs(themeStore)
+const { theme } = storeToRefs(themeStore)
 
 const themeOptions = [
   { value: 'light' as const, key: 'appearance.light' as const, icon: Sun },
   { value: 'dark' as const, key: 'appearance.dark' as const, icon: Moon },
   { value: 'auto' as const, key: 'appearance.system' as const, icon: Monitor },
-]
-
-const fontSizeOptions = [
-  { value: 'compact' as const, labelKey: 'appearance.compact' as const, descKey: 'appearance.fontDesc.compact' as const },
-  { value: 'default' as const, labelKey: 'appearance.default' as const, descKey: 'appearance.fontDesc.default' as const },
-  { value: 'comfortable' as const, labelKey: 'appearance.comfortable' as const, descKey: 'appearance.fontDesc.comfortable' as const },
-]
-
-const densityOptions = [
-  { value: 'compact' as const, labelKey: 'appearance.compact' as const, descKey: 'appearance.densityDesc.compact' as const },
-  { value: 'default' as const, labelKey: 'appearance.default' as const, descKey: 'appearance.densityDesc.default' as const },
-  { value: 'comfortable' as const, labelKey: 'appearance.comfortable' as const, descKey: 'appearance.densityDesc.comfortable' as const },
 ]
 
 function setLocale(value: Locale) {
@@ -36,107 +27,50 @@ function setLocale(value: Locale) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <SectionContainer>
     <!-- Theme -->
     <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content">{{ t('appearance.theme') }}</CardTitle>
+      <CardHeader class="umm:pb-3">
+        <SectionHeader :title="t('appearance.theme')" />
       </CardHeader>
       <CardContent>
-        <div class="grid grid-cols-3 gap-3">
-          <button
+        <div class="umm:grid umm:grid-cols-3 umm:gap-3">
+          <Button
             v-for="opt in themeOptions"
             :key="opt.value"
+            variant="outline"
             @click="theme = opt.value"
-            :class="[
-              'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
-              theme === opt.value
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            ]"
+            :class="['umm:flex umm:flex-col umm:items-center umm:gap-2 umm:p-4 umm:h-auto', theme === opt.value ? 'umm:border-primary umm:bg-primary/5' : '']"
           >
-            <component :is="opt.icon" class="w-5 h-5" :class="theme === opt.value ? 'text-primary' : 'text-muted-foreground'" />
-            <span class="text-sm-scaled font-medium">{{ t(opt.key) }}</span>
-          </button>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Font Size -->
-    <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content">{{ t('appearance.fontSize') }}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="grid grid-cols-3 gap-3">
-          <button
-            v-for="opt in fontSizeOptions"
-            :key="opt.value"
-            @click="fontSize = opt.value"
-            :class="[
-              'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center',
-              fontSize === opt.value
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            ]"
-          >
-            <span class="text-sm-scaled font-medium">{{ t(opt.labelKey) }}</span>
-            <span class="text-xs-scaled text-muted-foreground">{{ t(opt.descKey) }}</span>
-          </button>
+            <component :is="opt.icon" class="umm:w-5 umm:h-5" :class="theme === opt.value ? 'umm:text-primary' : 'umm:text-muted-foreground'" />
+            <span class="umm:text-sm umm:font-medium">{{ t(opt.key) }}</span>
+          </Button>
         </div>
       </CardContent>
     </Card>
 
     <!-- Language -->
     <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content flex items-center gap-2">
-          <Globe class="w-5 h-5" />
-          {{ t('appearance.language') }}
-        </CardTitle>
+      <CardHeader class="umm:pb-3">
+        <SectionHeader :title="t('appearance.language')">
+          <template #icon>
+            <Globe class="umm:w-5 umm:h-5" />
+          </template>
+        </SectionHeader>
       </CardHeader>
       <CardContent>
-        <div class="grid grid-cols-3 gap-3">
-          <button
+        <div class="umm:grid umm:grid-cols-3 umm:gap-3">
+          <Button
             v-for="opt in LOCALE_OPTIONS"
             :key="opt.value"
+            variant="outline"
             @click="setLocale(opt.value)"
-            :class="[
-              'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center',
-              locale === opt.value
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            ]"
+            :class="['umm:flex umm:flex-col umm:items-center umm:gap-1 umm:p-3 umm:h-auto umm:text-center', locale === opt.value ? 'umm:border-primary umm:bg-primary/5' : '']"
           >
-            <span class="text-sm-scaled font-medium">{{ opt.label }}</span>
-          </button>
+            <span class="umm:text-sm umm:font-medium">{{ opt.label }}</span>
+          </Button>
         </div>
       </CardContent>
     </Card>
-
-    <!-- Density -->
-    <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="font-h2 text-primary-content">{{ t('appearance.density') }}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="grid grid-cols-3 gap-3">
-          <button
-            v-for="opt in densityOptions"
-            :key="opt.value"
-            @click="density = opt.value"
-            :class="[
-              'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center',
-              density === opt.value
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            ]"
-          >
-            <span class="text-sm-scaled font-medium">{{ t(opt.labelKey) }}</span>
-            <span class="text-xs-scaled text-muted-foreground">{{ t(opt.descKey) }}</span>
-          </button>
-        </div>
-      </CardContent>
-    </Card>
-  </div>
+  </SectionContainer>
 </template>

@@ -3,26 +3,14 @@
   width: 100%;
   min-height: 100vh;
   background: var(--umm-bg, #ffffff);
-  --umm-bg: #ffffff;
-  --umm-bg-secondary: #f8f9fa;
-  --umm-text-primary: #1a1a1a;
-  --umm-text-secondary: #666666;
-  --umm-text-muted: #999999;
-  --umm-border: #e5e7eb;
-  --umm-card-radius: 8px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--umm-text-primary);
   user-select: none;
   -webkit-user-select: none;
+  --umm-card-radius: 8px;
 }
 
 :host(.umm-theme--dark) {
-  --umm-bg: #1a1b1e;
-  --umm-bg-secondary: #25262b;
-  --umm-text-primary: #e0e0e0;
-  --umm-text-secondary: #aaaaaa;
-  --umm-text-muted: #777777;
-  --umm-border: #373a40;
 }
 
 :host::-webkit-scrollbar { width: 5px; }
@@ -214,31 +202,7 @@
   gap: 8px;
 }
 
-.umm-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 9px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.umm-badge--done {
-  background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
-  color: #f4fff8;
-  border: 1px solid rgba(198, 255, 228, 0.26);
-}
-
-.umm-badge--none {
-  background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
-  color: #fff7f8;
-  border: 1px solid rgba(255, 214, 220, 0.22);
-}
+/* Badge styles - using shared shadow-badge.css */
 
 .umm-search-rating {
   display: flex;

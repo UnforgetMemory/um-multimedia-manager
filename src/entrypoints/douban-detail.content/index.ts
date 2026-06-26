@@ -15,6 +15,7 @@ import { Identity } from '@/features/identity'
 import type { UrlIdentity } from '@/types'
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
+import DOMPurify from 'dompurify'
 
 const OVERLAY_ID = 'umm-detail-mask'
 
@@ -135,7 +136,7 @@ async function extractDetailData(): Promise<DetailData | null> {
           }
         }
       }
-      const text = temp.innerHTML.trim()
+      const text = DOMPurify.sanitize(temp.innerHTML.trim())
       metaRows.push({ label, html: text })
     }
   }
@@ -148,8 +149,8 @@ async function extractDetailData(): Promise<DetailData | null> {
   const synopsisEl = relatedInfo?.querySelector(
     '[property="v:summary"], [property="v:des"]'
   ) || relatedInfo?.querySelector('span.all.hidden, span:not(.all.hidden)')
-  // Strip script tags from synopsis HTML as XSS sanitization
-  const synopsisHtml = (synopsisEl?.innerHTML || '').replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  // Sanitize synopsis HTML with DOMPurify to prevent XSS
+  const synopsisHtml = DOMPurify.sanitize(synopsisEl?.innerHTML || '')
 
   // Celebrities
   const celebEl = document.querySelector('#celebrities')

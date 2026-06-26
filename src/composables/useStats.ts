@@ -1,10 +1,11 @@
 import { computed } from 'vue'
 import type { StoreRecord, AdultAvId } from '@/types'
 
-interface RecordWithType extends StoreRecord {
+export interface RecordWithType extends StoreRecord {
   type: string
   provider?: string
   providerId?: string
+  storeName?: string
 }
 
 export function useStats(

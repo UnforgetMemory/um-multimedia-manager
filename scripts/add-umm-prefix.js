@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 /**
- * Add umm- prefix to Tailwind utility classes in Vue files
+ * Add umm- prefix to Tailwind utility classes in Vue and TypeScript files
  * 
  * Usage: node scripts/add-umm-prefix.js
+ * 
+ * Processes:
+ * - .vue files: class="..." attributes
+ * - .ts files: cva() class strings in quotes
  */
 
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
@@ -26,6 +30,7 @@ const TAILWIND_PATTERNS = [
   /\b(w|h|min-w|min-h|max-w|max-h)-[0-9]+/g,
   /\b(w|h|min-w|min-h|max-w|max-h)-\[[^\]]+\]/g,
   /\b(w|h|min-w|min-h|max-w|max-h)-(auto|full|screen|svw|svh|lvw|lvh|dvw|dvh)\b/g,
+  /\b(size-[0-9]+|size-\[[^\]]+\]|size-(auto|full|screen))\b/g,
   // Typography
   /\b(text-xs|text-sm|text-base|text-lg|text-xl|text-2xl|text-3xl|text-4xl|text-5xl|text-6xl|text-7xl|text-8xl|text-9xl)\b/g,
   /\b(font-thin|font-light|font-normal|font-medium|font-semibold|font-bold|font-extrabold|font-black)\b/g,
@@ -40,6 +45,7 @@ const TAILWIND_PATTERNS = [
   // Borders
   /\b(border|border-t|border-r|border-b|border-l|border-x|border-y|border-s|border-e)-[0-9]+/g,
   /\b(border|border-t|border-r|border-b|border-l|border-x|border-y|border-s|border-e)-(solid|dashed|dotted|double|none)\b/g,
+  /\b(border-(?:t|r|b|l|x|y|s|e)?)\b/g,
   /\b(rounded|rounded-t|rounded-r|rounded-b|rounded-l|rounded-tl|rounded-tr|rounded-bl|rounded-br|rounded-s|rounded-e|rounded-ss|rounded-se|rounded-ee|rounded-es)-[a-z0-9]+/g,
   // Effects
   /\b(shadow|shadow-sm|shadow-md|shadow-lg|shadow-xl|shadow-2xl|shadow-inner|shadow-none)\b/g,
@@ -116,41 +122,29 @@ const TAILWIND_PATTERNS = [
   /\b(place-[a-z]+-[a-z]+)\b/g,
 ]
 
-// Skip these patterns (already prefixed or not Tailwind)
 const SKIP_PATTERNS = [
-  /^umm-/, // Already prefixed
-  /^font-/, // Custom font classes
-  /^text-(primary|secondary|tertiary)-content$/, // Custom
-  /^density-/, // Custom
-  /^bg-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
-  /^text-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
-  /^border-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)$/, // shadcn tokens
-  /^ring-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)$/, // shadcn tokens
-  /^hover:bg-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
-  /^hover:text-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
-  /^focus:ring-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
-  /^dark:bg-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
-  /^dark:text-(card|popover|muted|accent|destructive|border|input|ring|primary|secondary)-/, // shadcn tokens
+  /^umm:/,
 ]
 
 function addPrefixToClasses(classString) {
-  // Split by spaces, filter empty
   const classes = classString.split(/\s+/).filter(Boolean)
   
   const prefixed = classes.map(cls => {
-    // Skip if already prefixed
     if (SKIP_PATTERNS.some(p => p.test(cls))) {
       return cls
     }
     
-    // Check if it matches any Tailwind pattern
     const isTailwind = TAILWIND_PATTERNS.some(pattern => {
-      pattern.lastIndex = 0 // Reset regex
+      pattern.lastIndex = 0
       return pattern.test(cls)
     })
     
     if (isTailwind) {
-      return `umm-${cls}`
+      return `umm:${cls}`
+    }
+    
+    if (/^(bg|text|font|border|rounded|shadow|hover:|focus:|dark:|active:|disabled:|data-|animate-|mx-|my-|mt-|mb-|ml-|mr-|shrink-|grow-|tabular-|leading-|tracking-|indent-|align-|justify-|place-|content-|self-|overflow-|whitespace-|break-|object-|aspect-|columns-|box-|isolate|will-|content-|ring-|outline-|accent-|caret-|scroll-)/.test(cls)) {
+      return `umm:${cls}`
     }
     
     return cls
@@ -162,10 +156,105 @@ function addPrefixToClasses(classString) {
 function processVueFile(filePath) {
   const content = readFileSync(filePath, 'utf-8')
   
-  const updated = content.replace(
+  let updated = content.replace(
     /(?<!:)class="([^"]*)"/g,
     (match, classes) => {
       return `class="${addPrefixToClasses(classes)}"`
+    }
+  )
+  
+  updated = updated.replace(
+    /:class="\s*\n?\s*cn\(([\s\S]*?)\)\s*"/g,
+    (match, args) => {
+      const prefixedArgs = args.replace(
+        /(["'])([^"']*)\1/g,
+        (m, quote, classes) => {
+          if (classes.includes(' ') || /(?:flex|grid|items-|justify-|gap-|p-|m-|text-|bg-|border-|rounded|shadow|size-)/.test(classes)) {
+            return `${quote}${addPrefixToClasses(classes)}${quote}`
+          }
+          return m
+        }
+      )
+      const indentation = match.match(/^\s*/)[0]
+      return `${indentation}:class="\n${indentation}  cn(${prefixedArgs})\n${indentation}"`
+    }
+  )
+  
+  updated = updated.replace(
+    /:class="\s*\n?\s*\[([\s\S]*?)\]\s*"/g,
+    (match, items) => {
+      const prefixedItems = items.replace(
+        /(["'])([^"']*)\1/g,
+        (m, quote, classes) => {
+          if (classes.includes(' ') || /(?:flex|grid|items-|justify-|gap-|p-|m-|text-|bg-|border-|rounded|shadow|size-|animate-|tabular-|font-|tracking-|leading-)/.test(classes)) {
+            return `${quote}${addPrefixToClasses(classes)}${quote}`
+          }
+          return m
+        }
+      )
+      const indentation = match.match(/^\s*/)[0]
+      return `${indentation}:class="\n${indentation}  [${prefixedItems}]\n${indentation}"`
+    }
+  )
+  
+  updated = updated.replace(
+    /:class="\s*\n?\s*\{([\s\S]*?)\}\s*"/g,
+    (match, items) => {
+      const prefixedItems = items.replace(
+        /(["'])([^"']*)\1/g,
+        (m, quote, classes) => {
+          if (classes.includes(' ') || /(?:flex|grid|items-|justify-|gap-|p-|m-|text-|bg-|border-|rounded|shadow|size-|animate-|tabular-|font-|tracking-|leading-)/.test(classes)) {
+            return `${quote}${addPrefixToClasses(classes)}${quote}`
+          }
+          return m
+        }
+      )
+      const indentation = match.match(/^\s*/)[0]
+      return `${indentation}:class="\n${indentation}  {${prefixedItems}}\n${indentation}"`
+    }
+  )
+  
+  updated = updated.replace(
+    /cva\(\s*(["'])([^"'\n]+)\1/g,
+    (match, quote, classes) => {
+      if (classes.includes(' ') || /(?:flex|grid|items-|justify-|gap-|p-|m-|text-|bg-|border-|rounded|shadow)/.test(classes)) {
+        return `cva(${quote}${addPrefixToClasses(classes)}${quote}`
+      }
+      return match
+    }
+  )
+  
+  updated = updated.replace(
+    /(?:default|secondary|destructive|outline|ghost|link|sm|lg|icon):\s*(["'])([^"'\n]+)\1/g,
+    (match, quote, classes) => {
+      if (classes.includes(' ') || /(?:flex|grid|items-|justify-|gap-|p-|m-|text-|bg-|border-|rounded|shadow|hover:|focus:)/.test(classes)) {
+        return `${match.split(':')[0]}: ${quote}${addPrefixToClasses(classes)}${quote}`
+      }
+      return match
+    }
+  )
+  
+  if (updated !== content) {
+    writeFileSync(filePath, updated)
+    console.log(`Updated: ${filePath}`)
+    return true
+  }
+  return false
+}
+
+function processTsFile(filePath) {
+  const content = readFileSync(filePath, 'utf-8')
+  
+  const updated = content.replace(
+    /(["'])([^"'\n]+)\1/g,
+    (match, quote, classes) => {
+      if (classes.includes(' ') && /(?:flex|grid|items-|justify-|gap-|p-|m-|text-|bg-|border-|rounded|shadow|hover:|focus:|disabled:|data-)/.test(classes)) {
+        const prefixed = addPrefixToClasses(classes)
+        if (prefixed !== classes) {
+          return `${quote}${prefixed}${quote}`
+        }
+      }
+      return match
     }
   )
   
@@ -184,20 +273,75 @@ function walkDir(dir, callback) {
     const stat = statSync(path)
     if (stat.isDirectory()) {
       walkDir(path, callback)
-    } else if (extname(file) === '.vue') {
+    } else if (extname(file) === '.vue' || extname(file) === '.ts') {
       callback(path)
     }
   }
 }
 
 // Main
-const uiDir = '/home/um/sourcecode/my/um-multimedia-manager/src/components/ui'
+const uiDir = '/home/um/sourcecode/my/um-multimedia-manager/src/shared/ui'
+const optionsDir = '/home/um/sourcecode/my/um-multimedia-manager/src/entrypoints/options'
+const popupDir = '/home/um/sourcecode/my/um-multimedia-manager/src/entrypoints/popup'
+const customDir = '/home/um/sourcecode/my/um-multimedia-manager/src/shared'
 let updatedCount = 0
 
 console.log('Adding umm- prefix to Tailwind classes in shadcn components...\n')
 
 walkDir(uiDir, (file) => {
-  if (processVueFile(file)) {
+  const ext = extname(file)
+  let updated = false
+  if (ext === '.vue') {
+    updated = processVueFile(file)
+  } else if (ext === '.ts') {
+    updated = processTsFile(file)
+  }
+  if (updated) {
+    updatedCount++
+  }
+})
+
+console.log('\nProcessing options page components...\n')
+
+walkDir(optionsDir, (file) => {
+  const ext = extname(file)
+  let updated = false
+  if (ext === '.vue') {
+    updated = processVueFile(file)
+  } else if (ext === '.ts') {
+    updated = processTsFile(file)
+  }
+  if (updated) {
+    updatedCount++
+  }
+})
+
+console.log('\nProcessing popup components...\n')
+
+walkDir(popupDir, (file) => {
+  const ext = extname(file)
+  let updated = false
+  if (ext === '.vue') {
+    updated = processVueFile(file)
+  } else if (ext === '.ts') {
+    updated = processTsFile(file)
+  }
+  if (updated) {
+    updatedCount++
+  }
+})
+
+console.log('\nProcessing custom components...\n')
+
+walkDir(customDir, (file) => {
+  const ext = extname(file)
+  let updated = false
+  if (ext === '.vue') {
+    updated = processVueFile(file)
+  } else if (ext === '.ts') {
+    updated = processTsFile(file)
+  }
+  if (updated) {
     updatedCount++
   }
 })

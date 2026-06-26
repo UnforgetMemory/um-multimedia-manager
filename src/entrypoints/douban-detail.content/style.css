@@ -10,44 +10,16 @@
   background: var(--umm-bg);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--umm-text-primary);
-  --umm-bg: #ffffff;
-  --umm-bg-secondary: #f8f9fa;
-  --umm-text-primary: #1a1a1a;
-  --umm-text-secondary: #666666;
-  --umm-text-muted: #999999;
-  --umm-border: #e5e7eb;
-  --umm-card-bg: rgba(0, 0, 0, 0.02);
-  --umm-card-border: rgba(0, 0, 0, 0.06);
-  --umm-link: #1757d6;
-  --umm-link-hover: #0d47b8;
   --umm-rating-score: #e0901a;
   --umm-rating-bar: #f5a623;
-  --umm-accent: #4f6ef7;
-  --umm-accent-hover: #3d5ce5;
-  --umm-success: #0f7a43;
-  --umm-success-bg: rgba(15, 122, 67, 0.1);
   --umm-wish-bg: rgba(23, 87, 214, 0.1);
   --umm-island-bg: rgba(255, 255, 255, 0.92);
   --umm-island-border: rgba(0, 0, 0, 0.06);
 }
 
 :host(.umm-theme--dark) {
-  --umm-bg: #1a1b1e;
-  --umm-bg-secondary: #25262b;
-  --umm-text-primary: #e0e0e0;
-  --umm-text-secondary: #aaaaaa;
-  --umm-text-muted: #777777;
-  --umm-border: #373a40;
-  --umm-card-bg: rgba(255, 255, 255, 0.03);
-  --umm-card-border: rgba(255, 255, 255, 0.06);
-  --umm-link: #6e8aff;
-  --umm-link-hover: #8aa0ff;
   --umm-rating-score: #e0901a;
   --umm-rating-bar: #f5a623;
-  --umm-accent: #6e8aff;
-  --umm-accent-hover: #8aa0ff;
-  --umm-success: #6fcf73;
-  --umm-success-bg: rgba(111, 207, 115, 0.12);
   --umm-wish-bg: rgba(110, 138, 255, 0.12);
   --umm-island-bg: rgba(30, 31, 36, 0.95);
   --umm-island-border: rgba(255, 255, 255, 0.08);
@@ -677,8 +649,8 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  background: var(--umm-overlay-bg);
+  color: var(--umm-text-primary);
   backdrop-filter: blur(4px);
 }
 
@@ -731,13 +703,13 @@
 }
 
 .umm-rec-bar--seen {
-  background: rgba(15, 122, 67, 0.85);
-  color: #fff;
+  background: var(--umm-color-status-done);
+  color: var(--umm-text-primary);
 }
 
 .umm-rec-bar--new {
-  background: rgba(200, 50, 50, 0.8);
-  color: #fff;
+  background: var(--umm-color-status-watched);
+  color: var(--umm-text-primary);
 }
 
 .umm-rec-bar-text {
@@ -833,7 +805,7 @@
   font-size: 13px;
   font-weight: 600;
   background: var(--umm-accent);
-  color: #fff;
+  color: var(--umm-text-primary);
   transition: opacity 0.15s, transform 0.1s;
   flex-shrink: 0;
 }
@@ -878,7 +850,8 @@
 }
 
 .umm-actions .collect_btn[name*="collect"]:hover {
-  background: rgba(15, 122, 67, 0.18);
+  background: var(--umm-success-bg);
+  opacity: 0.8;
 }
 
 /* ---- Loading spinner ---- */

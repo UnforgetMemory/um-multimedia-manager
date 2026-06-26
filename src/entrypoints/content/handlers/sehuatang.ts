@@ -58,7 +58,7 @@ function createCard(info: ThreadInfo, container: HTMLElement, headerEl: HTMLElem
   card.innerHTML = `
     <div class="umm-card-image"></div>
     <div class="umm-card-content">
-      <h3 class="umm-card-title"><a href="${escapeHtml(info.url)}" target="_blank">${escapeHtml(info.title)}</a></h3>
+      <h3 class="umm-card-title"><a href="${escapeHtml(info.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(info.title)}</a></h3>
       <p class="umm-card-meta">${escapeHtml(info.releaseDate)}</p>
       <div class="umm-card-links"></div>
     </div>

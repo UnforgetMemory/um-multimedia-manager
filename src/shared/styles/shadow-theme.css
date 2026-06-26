@@ -1,0 +1,39 @@
+/* ===== UMM Shadow DOM Theme Variables ===== */
+/* Shared theme variables for all Shadow DOM content scripts */
+/* Usage: @import url('./shadow-theme.css'); in each content script's style.css */
+
+/* ---- Light theme (default) ---- */
+:host {
+  --umm-bg: #ffffff;
+  --umm-bg-secondary: #f8f9fa;
+  --umm-text-primary: #1a1a1a;
+  --umm-text-secondary: #666666;
+  --umm-text-muted: #999999;
+  --umm-border: #e5e7eb;
+  --umm-card-bg: rgba(0, 0, 0, 0.02);
+  --umm-card-border: rgba(0, 0, 0, 0.06);
+  --umm-link: #1757d6;
+  --umm-link-hover: #0d47b8;
+  --umm-accent: #4f6ef7;
+  --umm-accent-hover: #3d5ce5;
+  --umm-success: #0f7a43;
+  --umm-success-bg: rgba(15, 122, 67, 0.1);
+}
+
+/* ---- Dark theme ---- */
+:host(.umm-theme--dark) {
+  --umm-bg: #1a1b1e;
+  --umm-bg-secondary: #25262b;
+  --umm-text-primary: #e0e0e0;
+  --umm-text-secondary: #aaaaaa;
+  --umm-text-muted: #777777;
+  --umm-border: #373a40;
+  --umm-card-bg: rgba(255, 255, 255, 0.03);
+  --umm-card-border: rgba(255, 255, 255, 0.06);
+  --umm-link: #6e8aff;
+  --umm-link-hover: #8aa0ff;
+  --umm-accent: #6e8aff;
+  --umm-accent-hover: #8aa0ff;
+  --umm-success: #6fcf73;
+  --umm-success-bg: rgba(111, 207, 115, 0.12);
+}

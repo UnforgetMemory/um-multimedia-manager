@@ -109,3 +109,4 @@ pnpm-workspace.yaml
 *.tsbuildinfo
 # AI agent ephemeral docs
 docs/superpowers/
+.cortexkit/

@@ -4,14 +4,17 @@ import { Store } from '@/features/database'
 import type { Domain, Provider } from '@/config'
 import type { StoreRecord } from '@/types'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { Star, CheckCircle2, XCircle, Database, RefreshCw } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { JAV_ID_REGEX, autoDetectPlatform } from '@/features/adult-av/auto-detect'
+import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+
+import FormField from '@/shared/ui/form-field/FormField.vue'
+import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -21,20 +24,6 @@ interface RatingQueryRecord extends StoreRecord {
   provider: Provider
   providerId: string
 }
-
-const PLATFORM_OPTIONS = [
-  { value: 'douban', labelKey: 'platform.douban' as const },
-  { value: 'imdb', labelKey: 'platform.imdb' as const },
-  { value: 'neodb', labelKey: 'platform.neodb' as const },
-  { value: 'tmdb', labelKey: 'platform.tmdb' as const },
-  { value: 'jav_ids', labelKey: 'platform.jav' as const },
-] as const
-
-const JAV_SOURCE_OPTIONS = [
-  { value: 'javdb', labelKey: 'platform.javdb' as const },
-  { value: 'sehuatang', labelKey: 'platform.sehuatang' as const },
-  { value: 'local', labelKey: 'platform.local' as const },
-] as const
 
 const ratingInput = ref('')
 const ratingValue = ref<number | null>(null)
@@ -207,20 +196,18 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
 </script>
 
 <template>
-  <div class="space-y-[var(--section-gap)]">
-    <div class="space-y-4 p-[var(--card-padding)] border border-border rounded-lg">
-      <div>
-        <Label>{{ t('common.selectPlatform') }}</Label>
-        <Select v-model="selectedPlatform" class="mt-2">
+  <SectionContainer>
+    <div class="umm:flex umm:flex-col umm:gap-4 umm:p-[var(--umm-card-padding)] umm:border umm:border-border umm:rounded-lg">
+      <FormField :label="t('common.selectPlatform')">
+        <Select v-model="selectedPlatform">
           <SelectTrigger><SelectValue :placeholder="t('common.selectPlatform')" /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="p in PLATFORM_OPTIONS" :key="p.value" :value="p.value">{{ t(p.labelKey) }}</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <div>
-        <Label>{{ t('common.mediaType') }}</Label>
-        <Select v-model="selectedDomain" class="mt-2" :disabled="selectedPlatform === 'jav_ids'">
+      </FormField>
+      <FormField :label="t('common.mediaType')">
+        <Select v-model="selectedDomain" :disabled="selectedPlatform === 'jav_ids'">
           <SelectTrigger><SelectValue :placeholder="t('common.mediaType')" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="movie">{{ t('stats.movie') }}</SelectItem>
@@ -228,78 +215,74 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
             <SelectItem value="music">{{ t('stats.music') }}</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <div v-if="selectedPlatform === 'jav_ids'">
-        <Label>{{ t('common.source') }}</Label>
-        <Select v-model="selectedJavSource" class="mt-2">
+      </FormField>
+      <FormField v-if="selectedPlatform === 'jav_ids'" :label="t('common.source')">
+        <Select v-model="selectedJavSource">
           <SelectTrigger><SelectValue :placeholder="t('common.source')" /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="s in JAV_SOURCE_OPTIONS" :key="s.value" :value="s.value">{{ t(s.labelKey) }}</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <div>
-        <Label>{{ selectedPlatform === 'jav_ids' ? t('platform.jav') : t('common.search') }} ID / URL</Label>
-        <Input v-model="ratingInput" :placeholder="selectedPlatform === 'jav_ids' ? 'FC2-PPV-1234567' : '1299004 / URL'" class="mt-2" />
-      </div>
+      </FormField>
+      <FormField :label="selectedPlatform === 'jav_ids' ? t('platform.jav') : t('common.search') + ' ID / URL'">
+        <Input v-model="ratingInput" :placeholder="selectedPlatform === 'jav_ids' ? 'FC2-PPV-1234567' : '1299004 / URL'" />
+      </FormField>
 
-      <div class="space-y-2 min-h-[40px]">
+      <div class="umm:flex umm:flex-col umm:gap-2 umm:min-h-[40px]">
         <!-- Parse result -->
         <Transition name="fade" mode="out-in">
-          <div v-if="ratingInput && parseResult && parseResult.valid" key="parse-ok" class="flex items-center gap-2 p-2 rounded-md bg-green-50/50 dark:bg-green-950/20 text-xs">
-            <CheckCircle2 class="h-3.5 w-3.5 text-green-500 shrink-0" />
-            <span class="text-green-700 dark:text-green-300">{{ parseResult.provider }} / {{ parseResult.type }}</span>
-            <span class="text-green-600/70 dark:text-green-400/70 font-mono">{{ parseResult.providerId }}</span>
+          <div v-if="ratingInput && parseResult && parseResult.valid" key="parse-ok" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-state-success/10/50 umm:dark:bg-state-success/20 umm:text-xs">
+            <CheckCircle2 class="umm:h-3.5 umm:w-3.5 umm:text-state-success umm:shrink-0" />
+            <span class="umm:text-state-success">{{ parseResult.provider }} / {{ parseResult.type }}</span>
+            <span class="umm:text-state-success/70 umm:dark:text-state-success/70 umm:font-mono">{{ parseResult.providerId }}</span>
           </div>
-          <div v-else-if="ratingInput && parseResult && !parseResult.valid" key="parse-err" class="flex items-center gap-2 p-2 rounded-md bg-red-50/50 dark:bg-red-950/20 text-xs">
-            <XCircle class="h-3.5 w-3.5 text-red-500 shrink-0" />
-            <span class="text-red-600 dark:text-red-400">{{ parseResult.error }}</span>
+          <div v-else-if="ratingInput && parseResult && !parseResult.valid" key="parse-err" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-state-error/10 umm:dark:bg-state-error/20 umm:text-xs">
+            <XCircle class="umm:h-3.5 umm:w-3.5 umm:text-state-error umm:shrink-0" />
+            <span class="umm:text-state-error">{{ parseResult.error }}</span>
           </div>
         </Transition>
 
         <!-- Query state -->
         <Transition name="fade" mode="out-in">
-          <div v-if="isQuerying" key="querying" class="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-xs">
-            <RefreshCw class="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-            <span class="text-muted-foreground">{{ t('common.loading') }}</span>
+          <div v-if="isQuerying" key="querying" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-muted/50 umm:text-xs">
+            <RefreshCw class="umm:h-3.5 umm:w-3.5 umm:animate-spin umm:text-muted-foreground" />
+            <span class="umm:text-muted-foreground">{{ t('common.loading') }}</span>
           </div>
 
-          <div v-else-if="ratingQueryResult && ratingQueryResult.status === 2" key="viewed" class="flex items-center gap-2 p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-xs">
-            <CheckCircle2 class="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
-            <span class="text-green-800 dark:text-green-200 font-medium">{{ t('common.savedToDb') }}</span>
-            <span v-if="ratingQueryResult.rating" class="text-green-700 dark:text-green-300">· {{ ratingQueryResult.rating }}/10</span>
-            <span v-if="ratingQueryResult.comment" class="text-green-600/70 dark:text-green-400/70 italic">· "{{ ratingQueryResult.comment }}"</span>
+          <div v-else-if="ratingQueryResult && ratingQueryResult.status === 2" key="viewed" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-state-success/10 umm:dark:bg-state-success/30 umm:border umm:border-state-success/30 umm:dark:border-state-success/30 umm:text-xs">
+            <CheckCircle2 class="umm:h-3.5 umm:w-3.5 umm:text-state-success umm:dark:text-state-success umm:shrink-0" />
+            <span class="umm:text-state-success umm:dark:text-state-success umm:font-medium">{{ t('common.savedToDb') }}</span>
+            <span v-if="ratingQueryResult.rating" class="umm:text-state-success">· {{ ratingQueryResult.rating }}/10</span>
+            <span v-if="ratingQueryResult.comment" class="umm:text-state-success/70 umm:dark:text-state-success/70 umm:italic">· "{{ ratingQueryResult.comment }}"</span>
           </div>
 
-          <div v-else-if="ratingQueryResult" key="found" class="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs">
-            <Database class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-            <span class="text-blue-800 dark:text-blue-200 font-medium">{{ t('common.recordFound') }}</span>
-            <span class="text-blue-700 dark:text-blue-300">· {{ getStatusLabel(ratingQueryResult.status, ratingQueryResult.type) }}</span>
-            <span v-if="ratingQueryResult.rating" class="text-blue-600 dark:text-blue-300">· {{ ratingQueryResult.rating }}/10</span>
+          <div v-else-if="ratingQueryResult" key="found" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-blue-50 umm:dark:bg-blue-950/30 umm:border umm:border-blue-200 umm:dark:border-blue-800 umm:text-xs">
+            <Database class="umm:h-3.5 umm:w-3.5 umm:text-blue-600 umm:dark:text-blue-400 umm:shrink-0" />
+            <span class="umm:text-blue-800 umm:dark:text-blue-200 umm:font-medium">{{ t('common.recordFound') }}</span>
+            <span class="umm:text-blue-700 umm:dark:text-blue-300">· {{ getStatusLabel(ratingQueryResult.status, ratingQueryResult.type) }}</span>
+            <span v-if="ratingQueryResult.rating" class="umm:text-blue-600 umm:dark:text-blue-300">· {{ ratingQueryResult.rating }}/10</span>
           </div>
 
-          <div v-else-if="ratingInput && hasQueryed && !isQuerying" key="notfound" class="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-dashed border-muted-foreground/20 text-xs">
-            <Database class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span class="text-muted-foreground">{{ t('common.noData') }}</span>
+          <div v-else-if="ratingInput && hasQueryed && !isQuerying" key="notfound" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-muted/30 umm:border umm:border-dashed umm:border-muted-foreground/20 umm:text-xs">
+            <Database class="umm:h-3.5 umm:w-3.5 umm:text-muted-foreground umm:shrink-0" />
+            <span class="umm:text-muted-foreground">{{ t('common.noData') }}</span>
           </div>
         </Transition>
       </div>
 
-      <div>
-        <Label>{{ t('common.rating') }} (1-10)</Label>
-        <div class="grid grid-cols-5 gap-2 mt-2">
-          <Button v-for="i in 10" :key="i" variant="outline" :class="{ 'bg-primary text-primary-foreground': ratingValue === i }" @click="ratingValue = i" class="h-9">{{ i }}</Button>
+      <FormField :label="t('common.rating') + ' (1-10)'">
+        <div class="umm:grid umm:grid-cols-5 umm:gap-2">
+          <Button v-for="i in 10" :key="i" variant="outline" :class="{ 'umm:bg-primary umm:text-primary-foreground': ratingValue === i }" @click="ratingValue = i" class="umm:h-9">{{ i }}</Button>
         </div>
-      </div>
+      </FormField>
 
-      <div>
-        <Label>{{ t('common.comment') }}</Label>
-        <textarea v-model="ratingComment" :placeholder="t('common.comment')" class="mt-2 w-full min-h-[60px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-      </div>
+      <FormField :label="t('common.comment')">
+        <textarea v-model="ratingComment" :placeholder="t('common.comment')" class="umm:w-full umm:min-h-[60px] umm:rounded-md umm:border umm:border-input umm:bg-transparent umm:px-3 umm:py-2 umm:text-sm umm:shadow-sm umm:placeholder:text-muted-foreground umm:focus-visible:outline-none umm:focus-visible:ring-1 umm:focus-visible:ring-ring" />
+      </FormField>
 
-      <Button @click="saveRating" class="w-full"><Star class="mr-2 h-4 w-4" />{{ t('common.saveRating') }}</Button>
+      <Button @click="saveRating" class="umm:w-full umm:gap-2"><Star class="umm:h-4 umm:w-4" />{{ t('common.saveRating') }}</Button>
     </div>
-  </div>
+  </SectionContainer>
 </template>
 
 <style scoped>
