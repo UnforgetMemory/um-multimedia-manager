@@ -188,12 +188,12 @@ export default {
   'toast.configSaved': 'Configuration saved',
   'toast.autoSyncEnabled': 'Auto-sync to NeoDB enabled',
   'toast.autoSyncDisabled': 'Auto-sync to NeoDB disabled',
-  'toast.logEnabled': 'Logging enabled: {{level}}',
+  'toast.logEnabled': 'Logging enabled: {level}',
   'toast.logDisabled': 'Logging disabled',
   'toast.neodbTokenSaved': 'NeoDB Token saved',
   'toast.neodbTokenFailed': 'Failed to save NeoDB Token',
 
   // Confirm dialog
   'confirm.importData': 'Import Data',
-  'confirm.importRecords': 'About to import {{count}} records',
+  'confirm.importRecords': 'About to import {count} records',
 } as const

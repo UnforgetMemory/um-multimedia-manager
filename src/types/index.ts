@@ -13,13 +13,15 @@ import type { Provider } from '@/config'
 
 /** Per-platform store record (one entry per object store) */
 export interface StoreRecord {
-  url: string                             // Canonical URL for this platform
-  status: number                          // 0=未看/未听, 1=在看/在听, 2=已看/已听
-  rating: number                          // Rating 0-10 (integer)
-  comment?: string                        // User's short comment/review text
-  updatedAt: string                       // ISO 8601 update timestamp
-  linkedIds: Record<string, string>       // Cross-platform links: { "imdb": "movie::tt1375666", "neodb": "movie::xxx" }
-  schemaVersion?: number                  // Record schema version (0 or undefined = legacy)
+  url: string
+  status: number
+  rating: number
+  comment?: string
+  updatedAt: string
+  linkedIds: Record<string, string>
+  schemaVersion?: number
+  /** Optimistic concurrency version (incremented on each put). */
+  recordVersion?: number
 }
 
 /** Build a composite store key from type and provider ID */
@@ -143,6 +145,7 @@ export type MessageType =
   | 'HEALTH_CHECK'
   | 'GET_MIGRATION_STATUS'
   | 'ADULT_AV_CHECK'
+  | 'ADULT_AV_CHECK_BATCH'
   | 'ADULT_AV_ADD'
   | 'ADULT_AV_BATCH_ADD'
   | 'ADULT_AV_GET_ALL'
@@ -177,6 +180,7 @@ export interface MessagePayloadMap {
   SEHUATANG_ADD: { id: string; rating?: number }
   SEHUATANG_GET_ALL: void
   ADULT_AV_CHECK: { id: string }
+  ADULT_AV_CHECK_BATCH: { ids: string[] }
   ADULT_AV_ADD: { source: string; id: string; rating?: number; url?: string }
   ADULT_AV_BATCH_ADD: { source: string; items: AdultAvIdInput[] }
   ADULT_AV_GET_ALL: { source?: string }

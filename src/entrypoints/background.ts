@@ -15,12 +15,16 @@ import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/
 import { STORAGE_KEYS } from '@/config'
 import { broadcast } from '@/utils/event-bus'
 
+import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
+import { CacheManager } from '@/features/cache'
+import { infoLog as schedulerLog } from '@/utils/logger'
+
 // Handler imports
 import { handleWebDAVTest, handleWebDAVUpload, handleWebDAVDownload, handleWebDAVSync } from './background/handlers/webdav'
 import { handleNeoDBPushRating } from './background/handlers/neodb'
 import { handleGetSettings, handleUpdateSettings, handleExportData, handleImportData, handleGetStatistics, handleGetAllRecords, handleGetMigrationStatus } from './background/handlers/data'
 import { handleShowToast } from './background/handlers/toast'
-import { handleAdultAvCheck, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll, handleSehuatangCheckViewed, handleSehuatangAdd, handleSehuatangBatchAdd, handleSehuatangGetAll } from './background/handlers/adult-av'
+import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll, handleSehuatangCheckViewed, handleSehuatangAdd, handleSehuatangBatchAdd, handleSehuatangGetAll } from './background/handlers/adult-av'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
 
@@ -43,6 +47,15 @@ export default defineBackground({
     const startTime = Date.now()
     let dbReady = false
     let dbInitFailed = false
+
+    // CacheManager — L1 in-memory LRU (shared across DataScheduler + MediaDatabase)
+    const cacheManager = new CacheManager({ maxSize: 500, defaultTtlMs: 30_000 })
+
+    // DataScheduler — request queue, rate limiter, retry, monitoring
+    const dataScheduler = new DataScheduler(cacheManager)
+    dataScheduler.onEvent((event) => {
+      schedulerLog(`[Scheduler] ${event.type}${event.taskId ? ` id=${event.taskId}` : ''}${event.duration ? ` dur=${event.duration}ms` : ''}`)
+    })
 
     // Pending message queue for messages arriving before DB is ready
     const MAX_QUEUE_SIZE = 50
@@ -247,7 +260,10 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const record = await mediaDB.get(message.payload.storeName, message.payload.key)
+            const record = await dataScheduler.schedule(
+              () => mediaDB.get(message.payload.storeName, message.payload.key),
+              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `get:${message.payload.storeName}:${message.payload.key}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, record })
             break
           }
@@ -255,7 +271,10 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            await mediaDB.put(message.payload.storeName, message.payload.key, message.payload.record)
+            await dataScheduler.schedule(
+              () => mediaDB.put(message.payload.storeName, message.payload.key, message.payload.record),
+              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `put:${message.payload.storeName}:${message.payload.key}`, invalidateCache: true },
+            )
             broadcast('record:updated', { storeName: message.payload.storeName, key: message.payload.key })
             sendResponse({ success: true })
             break
@@ -264,7 +283,10 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            await mediaDB.delete(message.payload.storeName, message.payload.key)
+            await dataScheduler.schedule(
+              () => mediaDB.delete(message.payload.storeName, message.payload.key),
+              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `delete:${message.payload.storeName}:${message.payload.key}`, invalidateCache: true },
+            )
             broadcast('record:deleted', { storeName: message.payload.storeName, key: message.payload.key })
             sendResponse({ success: true })
             break
@@ -273,7 +295,10 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const entries = await mediaDB.getAll(message.payload.storeName)
+            const entries = await dataScheduler.schedule(
+              () => mediaDB.getAll(message.payload.storeName),
+              { priority: 'MEDIUM', storeName: message.payload.storeName, cacheKey: `all:${message.payload.storeName}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, entries })
             break
           }
@@ -281,7 +306,10 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const entries = await mediaDB.query(message.payload.storeName, message.payload.indexName, message.payload.value)
+            const entries = await dataScheduler.schedule(
+              () => mediaDB.query(message.payload.storeName, message.payload.indexName, message.payload.value),
+              { priority: 'MEDIUM', storeName: message.payload.storeName },
+            )
             sendResponse({ success: true, entries })
             break
           }
@@ -289,7 +317,10 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const count = await mediaDB.count(message.payload.storeName)
+            const count = await dataScheduler.schedule(
+              () => mediaDB.count(message.payload.storeName),
+              { priority: 'LOW', storeName: message.payload.storeName, cacheKey: `count:${message.payload.storeName}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, count })
             break
           }
@@ -301,19 +332,28 @@ export default defineBackground({
                 warnLog(`DB_GET_WATCHED_IDS: skipped disallowed store "${storeName}"`)
                 continue
               }
-              const ids = await mediaDB.getWatchedIds(storeName)
+              const ids = await dataScheduler.schedule(
+                () => mediaDB.getWatchedIds(storeName),
+                { priority: 'HIGH', storeName, cacheKey: `watched:${storeName}`, cacheTTL: 10000 },
+              )
               results[storeName] = Array.from(ids)
             }
             sendResponse({ success: true, results })
             break
           }
           case 'PT_ID_CACHE_GET': {
-            const entry = await mediaDB.getCacheEntry(message.payload.ptUrl)
+            const entry = await dataScheduler.schedule(
+              () => mediaDB.getCacheEntry(message.payload.ptUrl),
+              { priority: 'HIGH', cacheKey: `ptcache:${message.payload.ptUrl}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, entry })
             break
           }
           case 'PT_ID_CACHE_PUT': {
-            await mediaDB.putCacheEntry(message.payload.entry)
+            await dataScheduler.schedule(
+              () => mediaDB.putCacheEntry(message.payload.entry),
+              { priority: 'HIGH', cacheKey: `ptcache:${message.payload.entry.ptUrl}`, invalidateCache: true },
+            )
             sendResponse({ success: true })
             break
           }
@@ -321,7 +361,10 @@ export default defineBackground({
             const { ptUrls } = message.payload
             const entries: Record<string, any> = {}
             for (const ptUrl of ptUrls) {
-              const entry = await mediaDB.getCacheEntry(ptUrl)
+              const entry = await dataScheduler.schedule(
+                () => mediaDB.getCacheEntry(ptUrl),
+                { priority: 'MEDIUM', cacheKey: `ptcache:${ptUrl}`, cacheTTL: 5000 },
+              )
               if (entry) entries[ptUrl] = entry
             }
             sendResponse({ success: true, entries })
@@ -344,7 +387,10 @@ export default defineBackground({
             if (linkedInvalid) {
               sendResponse({ success: false, error: 'Invalid linked platform' }); break
             }
-            const result = await mediaDB.syncPageRecord(platform, message.payload.key, message.payload.record, linked)
+            const result = await dataScheduler.schedule(
+              () => mediaDB.syncPageRecord(platform, message.payload.key, message.payload.record, linked),
+              { priority: 'HIGH', storeName: `${platform}_records`, cacheKey: `sync:${platform}:${message.payload.key}`, invalidateCache: true },
+            )
             broadcast('record:updated', { storeName: `${platform}_records`, key: message.payload.key })
             sendResponse({ success: true, result })
             break
@@ -406,6 +452,9 @@ export default defineBackground({
           // ==================== Adult AV ID Operations ====================
           case 'ADULT_AV_CHECK':
             await handleAdultAvCheck(message.payload, sendResponse)
+            break
+          case 'ADULT_AV_CHECK_BATCH':
+            await handleAdultAvCheckBatch(message.payload, sendResponse)
             break
           case 'ADULT_AV_ADD':
             await handleAdultAvAdd(message.payload, sendResponse)

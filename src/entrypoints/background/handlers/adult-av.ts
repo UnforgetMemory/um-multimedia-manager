@@ -15,7 +15,7 @@ type SendResponse = (response?: any) => void
 
 const KNOWN_SOURCES = ['javdb', 'sehuatang']
 
-/** ADULT_AV_CHECK — check if AV ID exists */
+/** ADULT_AV_CHECK — check if AV ID exists across ALL sources */
 export async function handleAdultAvCheck(
   payload: { id: string },
   sendResponse: SendResponse
@@ -26,24 +26,73 @@ export async function handleAdultAvCheck(
   const cleanId = normalizeAvId(id)
   const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
   let found: any = null
+  let watched = false
 
-  // Level 1: exact match
+  // Level 1: known sources exact match
   for (const source of KNOWN_SOURCES) {
-    const key = `${source}::${cleanId}`
-    const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
-    if (record) { found = { key, record }; break }
+    for (const candidate of [cleanId, baseId]) {
+      if (candidate !== cleanId && candidate === baseId) continue // dedup
+      const key = `${source}::${candidate}`
+      const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
+      if (record) {
+        found = { key, record }
+        watched = (record.status ?? 0) >= 2
+        break
+      }
+    }
+    if (found) break
   }
 
-  // Level 2: prefix match (handles UC/C variants)
-  if (!found && cleanId !== baseId) {
-    for (const source of KNOWN_SOURCES) {
-      const key = `${source}::${baseId}`
-      const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
-      if (record) { found = { key, record }; break }
+  // Level 2: cursor scan — match any key ending with ::id (handles all sources)
+  if (!found) {
+    const allEntries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
+    const candidates = [cleanId, ...(baseId !== cleanId ? [baseId] : [])]
+    for (const entry of allEntries) {
+      const keySuffix = entry.key.includes('::') ? entry.key.slice(entry.key.indexOf('::') + 2) : entry.key
+      if (candidates.includes(keySuffix)) {
+        found = { key: entry.key, record: entry.record }
+        watched = (entry.record.status ?? 0) >= 2
+        break
+      }
     }
   }
 
-  sendResponse({ success: true, exists: !!found, record: found?.record })
+  sendResponse({ success: true, exists: !!found, watched, record: found?.record })
+}
+
+/** ADULT_AV_CHECK_BATCH — batch check: which of these IDs are watched? */
+export async function handleAdultAvCheckBatch(
+  payload: { ids: string[] },
+  sendResponse: SendResponse
+) {
+  const { ids } = payload
+  if (!Array.isArray(ids) || ids.length === 0) {
+    sendResponse({ success: true, watched: [] })
+    return
+  }
+
+  // Get all jav_id store entries in a single read
+  const allEntries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
+  // Build a Set of all watched IDs (key suffix after ::, normalized)
+  const watchedBase = new Set<string>()
+  for (const entry of allEntries) {
+    const suffix = entry.key.includes('::') ? entry.key.slice(entry.key.indexOf('::') + 2) : entry.key
+    if ((entry.record.status ?? 0) >= 2) {
+      watchedBase.add(suffix)
+    }
+  }
+
+  // Match each input ID against the watched set
+  const watched: string[] = []
+  for (const rawId of ids) {
+    const cleanId = normalizeAvId(rawId)
+    const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
+    if (watchedBase.has(cleanId) || watchedBase.has(baseId)) {
+      watched.push(cleanId)
+    }
+  }
+
+  sendResponse({ success: true, watched })
 }
 
 /** ADULT_AV_ADD — add single AV ID */

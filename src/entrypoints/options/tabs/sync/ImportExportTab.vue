@@ -35,7 +35,17 @@ function triggerImport() {
     const reader = new FileReader()
     reader.onload = async (event) => {
       try {
-        const payload = JSON.parse(event.target?.result as string)
+        const raw = (event.target?.result as string) || ''
+        const clean = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw
+        let payload: any
+        try {
+          payload = JSON.parse(clean)
+        } catch (parseErr) {
+          const preview = raw.slice(0, 80).replace(/[\x00-\x1f]/g, ch => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`)
+          console.error('[Import] JSON parse failed. Raw[:80]:', preview, 'length:', raw.length)
+          toast.error(t('toast.importFailed'), `${String(parseErr)}\n\nFile starts with: "${preview}"`)
+          return
+        }
         let recordCount = 0
         if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
         show({
@@ -57,9 +67,18 @@ function triggerImport() {
                 }
                 importPayload = { stores }
               }
-              await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
-              toast.success(t('toast.importSuccess'))
-            } catch (e) { toast.error(t('toast.importFailed'), String(e)) } finally { isImporting.value = false }
+              const res = await safeSendMessage<{ success: boolean; error?: string }>({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
+              if (res?.success) {
+                toast.success(t('toast.importSuccess'))
+              } else {
+                console.error('[Import] background handler returned error:', JSON.stringify(res))
+                throw new Error(res?.error || 'Import returned no response')
+              }
+            } catch (e) {
+              const errMsg = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+              console.error('[Import] action error:', errMsg)
+              toast.error(t('toast.importFailed'), errMsg)
+            } finally { isImporting.value = false }
           },
         })
       } catch (e) { toast.error(t('toast.importFailed'), String(e)) }

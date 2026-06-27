@@ -188,12 +188,12 @@ export default {
   'toast.configSaved': '配置已保存',
   'toast.autoSyncEnabled': '已开启自动同步到 NeoDB',
   'toast.autoSyncDisabled': '已关闭自动同步到 NeoDB',
-  'toast.logEnabled': '日志已开启: {{level}}',
+  'toast.logEnabled': '日志已开启: {level}',
   'toast.logDisabled': '日志已关闭',
   'toast.neodbTokenSaved': 'NeoDB Token 已保存',
   'toast.neodbTokenFailed': 'NeoDB Token 保存失败',
 
   // Confirm dialog
   'confirm.importData': '导入数据',
-  'confirm.importRecords': '即将导入 {{count}} 条记录',
+  'confirm.importRecords': '即将导入 {count} 条记录',
 } as const

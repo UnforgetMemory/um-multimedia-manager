@@ -82,11 +82,17 @@ export async function handleImportData(
   // Clear all stores first
   await mediaDB.clearAll()
 
-  // Import each store — put() auto-stamps schemaVersion
+  // Import each store — put() auto-stamps schemaVersion + recordVersion
   let totalImported = 0
   for (const [storeName, records] of Object.entries(payload.stores)) {
     if (!RECORD_STORES.includes(storeName) && storeName !== STORE_NAMES.JAV_IDS) continue
     for (const [key, record] of Object.entries(records)) {
+      // Normalize: ensure required fields exist (imported JSON may omit them)
+      if (record.linkedIds === undefined) record.linkedIds = {}
+      if (record.url === undefined) record.url = ''
+      if (record.status === undefined) record.status = 0
+      if (record.rating === undefined) record.rating = 0
+      if (record.updatedAt === undefined) record.updatedAt = new Date().toISOString()
       await mediaDB.put(storeName, key, record)
       totalImported++
     }

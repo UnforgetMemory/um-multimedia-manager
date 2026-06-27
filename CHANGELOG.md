@@ -8,45 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **豆瓣注入体系统一**：6个独立 WXT entrypoint 合并为2个薄层入口点 (`douban-early` / `douban-main`)，全部逻辑迁移到 `src/content/douban/`
+  - `early.ts`：3个 early overlay 合并为 URL 路由的工厂函数
+  - `main.ts`：3个 idle 入口合并为 URL 路由工厂，动态导入 page 模块
+  - `UmmImageWrapper` / `UmmStatusBadgeWrapper` 提取到 `components/`，消除搜索/详情页重复 defineComponent
 - **模板统一系统**：创建函数式模板构造架构，消除3个豆瓣入口点的重复代码
-  - 共享 `UmmImage` 组件（defineComponent + shimmer覆盖式loading，修复 `display:none` 导致lazy加载死锁）
-  - 共享 `UmmStatusBadge` 组件（纯渲染函数，无computed开销，三态done/none/wish + 3种变体）
-  - 共享 `mountUmmOverlay` 工厂函数（beforeMount→createApp→afterMount生命周期编排）
-  - 共享 `composeStyles` CSS组合工具
-  - 共享 `douban-theme.css`（:host变量源）+ `douban-common.css`（shimmer/status badge样式）
-  - 共享 `useStatus` composable（MaybeRefOrGetter适配）
-- **安全审计**：全面审查XSS/CSS注入/数据流——DOMPurify验证、搜索桥接安全性确认、Shadow DOM隔离
+  - 共享 `UmmImage` 组件 (defineComponent + shimmer 覆盖式 loading，修复 `display:none` 导致 lazy 加载死锁)
+  - 共享 `UmmStatusBadge` 组件 (纯渲染函数，无 computed 开销，三态 done/none/wish + 3种变体)
+  - 共享 `mountUmmOverlay` 工厂函数 (beforeMount→createApp→afterMount 生命周期编排)
+  - 共享 `composeStyles` CSS 组合工具
+  - 共享 `douban-theme.css` (:host变量源) + `douban-common.css` (shimmer/status badge 样式)
+  - 共享 `useStatus` composable (MaybeRefOrGetter 适配)
+- **灵动岛统一**：`UmmDynamicIsland` 提取为跨三页共享组件，新增 `newTab`/`type`/`initialQuery` props
+  - 搜索页：`newTab=false` 同标签导航；详情/首页：`newTab=true` 新标签
+- **数据链路 v4：DataScheduler 调度中心** — 请求优先级队列 + 令牌桶限流 + 指数退避重试
+  - `src/features/data-scheduler/`: PriorityQueue (HIGH/MEDIUM/LOW 三级)、RateLimiter (token bucket + timestamp refill)、RetryPolicy (exponential backoff + jitter)、SchedulerMonitor (P50/P95/P99 + 错误率 + 缓存命中率)
+  - DataScheduler 编排器：缓存检查 → 限流 → 排队 → [重试循环] → 监控事件
+  - 集成到 background.ts：所有 DB 消息通过 scheduler.schedule() 执行
+- **多级缓存系统 CacheManager** — L1 (LruCache LRU 内存) + L2 (TtlCacheStore IndexedDB 持久层)
+  - `src/features/cache/`: LruCache (可配 maxSize/TTL、deleteByPrefix)、TtlCacheStore (DbAdapter 接口)
+  - 替换 MediaDatabase.readCache (Map → LruCache 500条 LRU 淘汰)
+  - 替换 DataScheduler 内部缓存 (Map → CacheManager DI 注入)
+- **查询优化层** — `query-utils.ts`: queryPage (limit/offset cursor pagination)、batchGet (单事务批量读取)
+- **乐观锁 OptimisticLock** — 版本式写冲突检测，StoreRecord 新增 recordVersion 字段，put() 自动版本递增，optimisticPut() 条件写入
+- **性能优化工具** — MemoryManager (Observer/Listener/Timer 生命周期管理)、Memoizer (计算结果记忆化缓存)
+- **批量 ADULT_AV_CHECK_BATCH** — 一次性批量查询番号，避免并发消息超时
+- **ADULT_AV_CHECK 跨源扫描** — 超出已知 sources 时游标扫描全 store 匹配任意 source
+- **导入错误诊断增强** — BOM 剥离、JSON 前80字符预览、响应结果校验
 
 ### Fixed
-- **图片加载死锁**：UmmImage从FunctionalComponent改为defineComponent，`loading="lazy"` + `display:none` 导致浏览器永不触发加载
-- **UmmStatusBadge**：移除FunctionalComponent内的 `computed` 误用（无缓存效益、每次渲染新ref），改纯计算
-- **Dark主题**：`--umm-text-muted`/`--umm-text-secondary` 暗色值交换修复
-- **Promise拒绝**：`mountUmmOverlay.finalize()` 添加 `.catch()`
-- **CSS组合**：`composeStyles` 每chunk尾部添加换行，防止注释粘连
-- **残留清理**：删除 `douban-search` component.css中的 stale `shadow-badge.css` 注释
+- **vue-i18n SyntaxError: 9** — 双花括号 `{{level}}`/`{{count}}` 被 vue-i18n 解析为嵌套占位符触发 `NOT_ALLOW_NEST_PLACEHOLDER` (错误码 9)，改为单花括号
+- **Toast 背景色丢失** — `@theme` 中 `--umm-color-state-*` 改为 `--color-state-*`，Tailwind 正确生成 `umm:bg-state-*`
+- **图片加载死锁**：UmmImage 从 FunctionalComponent 改为 defineComponent，`loading="lazy"` + `display:none` 导致浏览器不触发加载
+- **UmmStatusBadge**：移除 FunctionalComponent 内的 `computed` 误用
+- **Dark 主题变量**：`--umm-text-muted`/`--umm-text-secondary` 暗色值交换
+- **Promise 拒绝**：`mountUmmOverlay.finalize()` 添加 `.catch()`
+- **CSS 组合**：`composeStyles` 每 chunk 尾部添加换行，防止注释粘连
+- **搜索页重复搜索栏**：移除 `enhanceSearchPageSearch()` 调用，消除与 Vue App 重复注入
+- **详情页灵动岛边距**：`.umm-detail-root` padding-top 0 → 16px
+- **Wrapper 组件 props 类型**：从 loose array props 改为带类型声明的 props 对象
+- **safeSendMessage null 处理** — AdultAvStore.has() 添加 try/catch
 
 ### Changed
-- 共享组件和CSS集中到 `src/entrypoints/content/shared/`，3个入口点统一引用
-- **豆瓣注入体系迁移**：6个独立 WXT entrypoint 合并为2个薄层入口点 (`douban-early` / `douban-main`)，全部逻辑迁移到 `src/content/douban/`
-  - `early.ts`：3个early overlay合并为URL路由的工厂函数
-  - `main.ts`：3个idle入口合并为URL路由工厂，动态导入page模块
-  - `UmmImageWrapper` / `UmmStatusBadgeWrapper` 提取到 `components/`，消除搜索/详情页重复defineComponent
-- **灵动岛统一**：`UmmDynamicIsland` 提取为跨三页共享组件，新增 `newTab`/`type`/`initialQuery` props控制行为
-  - 搜索页：`newTab=false` 同标签导航；详情/首页：`newTab=true` 新标签
-- **CSS变量集中化**：`--umm-island-*` 系列变量从 homepage.css/detail.css 迁移到 theme.css，三页共享统一值
-- **CSS去重**：删除 detail.css 中 `.umm-pill-wrap`/`.umm-search-bar` 等残留样式（已由UmmDynamicIsland替代）
+- 共享组件和 CSS 集中到 `src/entrypoints/content/shared/`，3个入口点统一引用
+- **CSS 变量集中化**：`--umm-island-*` 系列变量从 homepage.css/detail.css 迁移到 theme.css
+- **CSS 去重**：删除 detail.css 中 `.umm-pill-wrap`/`.umm-search-bar` 等残留样式
 - **构建优化**：`douban-main.js` 215→209 kB；`content.js` 168→162 kB
-
-### Fixed
-- **搜索页重复搜索栏**：`startSearchEnhancer()` 移除 `enhanceSearchPageSearch()` 调用，消除与 Vue App UmmDynamicIsland 的重复注入
-- **详情页灵动岛边距**：`.umm-detail-root` padding-top `0` → `16px`，与首页一致
-- **Wrapper组件props类型**：`UmmImageWrapper`/`UmmStatusBadgeWrapper` 从 loose array props 改为带类型声明的 props 对象
+- `database/models.ts` — put() 自动 recordVersion、新增 optimisticPut()/queryPage()/batchGet()
+- `data-scheduler/data-scheduler.ts` — CacheManager 构造函数注入
+- `background.ts` — 注入 CacheManager/DataScheduler、新增 ADULT_AV_CHECK_BATCH 路由
+- `locales/*.ts` — 统一单花括号占位符格式
 
 ### Removed
 - 6个旧 Douban 入口点目录 (`douban-homepage-overlay.content/`, `douban-search-overlay.content/`, `douban-detail-early.content/`, `douban-homepage.content/`, `douban-search.content/`, `douban-detail.content/`)
-- `entrypoints/content/shared/` 目录（overlay.ts/css-composer.ts/douban-*.css/UmmImage/UmmStatusBadge/useStatus→迁移到content/douban/）
+- `entrypoints/content/shared/` 目录
 
-## [4.1.1] - 2026-06-26
+### Security
+- 全面审查 XSS/CSS 注入/数据流：DOMPurify 验证、搜索桥接安全性确认、Shadow DOM 隔离
+- javdb.ts: textContent 替代 innerHTML，AdultAvStore 异常安全返回 false
 
 ### Fixed
 - **热力图溢出**：修复活跃度热力图方块在 hover 放大时向上溢出被裁剪的问题

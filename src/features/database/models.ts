@@ -20,6 +20,10 @@
 
 import type { StoreRecord, PtIdCacheEntry } from '@/types'
 import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/features/migration/models'
+import { LruCache } from '@/features/cache/lru-cache'
+import { queryPage as queryPageUtil, batchGet as batchGetUtil } from './query-utils'
+import type { PageQueryOptions, PageResult } from './query-utils'
+import type { WriteResult } from '@/features/optimistic-lock/types'
 
 export const DB_NAME = 'umm-media-db'
 export const DB_VERSION = 9
@@ -51,9 +55,10 @@ export function storeNameForPlatform(platform: string): string {
 class MediaDatabase {
   private db: IDBDatabase | null = null
   private initPromise: Promise<void> | null = null
-  private readCache = new Map<string, { data: any; timestamp: number }>()
-  private readonly READ_CACHE_TTL = 30_000  // 30s for single reads
-  private readonly LIST_CACHE_TTL = 5_000   // 5s for list reads
+  private readCache = new LruCache<StoreRecord | null | Array<{ key: string; record: StoreRecord }>>({
+    maxSize: 500,
+    defaultTtlMs: 30_000,
+  })
 
   // ==================== Initialization ====================
 
@@ -185,11 +190,8 @@ class MediaDatabase {
   }
 
   private invalidateStoreCache(storeName: string): void {
-    for (const k of this.readCache.keys()) {
-      if (k.startsWith(storeName + '::') || k === `__list__${storeName}`) {
-        this.readCache.delete(k)
-      }
-    }
+    this.readCache.deleteByPrefix(`${storeName}::`)
+    this.readCache.delete(`__list__${storeName}`)
   }
 
   // ==================== Public API ====================
@@ -197,14 +199,12 @@ class MediaDatabase {
   /** Get a single record by key. Returns null if not found. Normalizes on read. */
   async get(storeName: string, key: string): Promise<StoreRecord | null> {
     const cacheKey = `${storeName}::${key}`
-    const cached = this.readCache.get(cacheKey)
-    if (cached && Date.now() - cached.timestamp < this.READ_CACHE_TTL) {
-      return cached.data as StoreRecord | null
-    }
+    const cached = this.readCache.get(cacheKey) as StoreRecord | null | undefined
+    if (cached !== undefined) return cached
 
     const result = await this.storeOp(storeName, 'readonly', store => store.get(key))
     if (!result) {
-      this.readCache.set(cacheKey, { data: null, timestamp: Date.now() })
+      this.readCache.set(cacheKey, null)
       return null
     }
 
@@ -215,7 +215,7 @@ class MediaDatabase {
           console.warn(`[DB] Failed to write back migrated record ${key}:`, err)
         })
       }
-      this.readCache.set(cacheKey, { data: record, timestamp: Date.now() })
+      this.readCache.set(cacheKey, record)
       return record
     } catch (err) {
       if (err instanceof MigrationError) {
@@ -226,12 +226,53 @@ class MediaDatabase {
     }
   }
 
-  /** Put (insert or update) a record. Stamps schema version. */
+  /** Put (insert or update) a record. Stamps schema + record version. */
   async put(storeName: string, key: string, record: StoreRecord): Promise<void> {
     record.updatedAt = record.updatedAt || new Date().toISOString()
+    // Read current record to compute next recordVersion
+    const current = await this.get(storeName, key)
+    const nextVersion = (current?.recordVersion ?? 0) + 1
+    record.recordVersion = nextVersion
     const stamped = stampRecordVersion(record)
     await this.storeOp(storeName, 'readwrite', store => store.put(stamped, key))
     this.invalidateStoreCache(storeName)
+  }
+
+  /**
+   * Optimistic put — only writes if the record's version matches expectedVersion.
+   * Prevents last-write-wins data loss when multiple content scripts write concurrently.
+   *
+   * Returns WriteResult: { ok: true, version } on success, { ok: false, conflict } on mismatch.
+   */
+  async optimisticPut(
+    storeName: string,
+    key: string,
+    record: StoreRecord,
+    expectedVersion: number,
+  ): Promise<WriteResult> {
+    const current = await this.get(storeName, key)
+    const currentVersion = current?.recordVersion ?? 0
+
+    if (currentVersion !== expectedVersion) {
+      console.warn(
+        `[OptimisticLock] Conflict ${storeName}::${key}: ` +
+        `current=v${currentVersion}, expected=v${expectedVersion}`,
+      )
+      return {
+        ok: false,
+        conflict: { currentVersion, expectedVersion },
+      }
+    }
+
+    record.recordVersion = expectedVersion + 1
+    await this.put(storeName, key, record)
+    return { ok: true, version: expectedVersion + 1 }
+  }
+
+  /** Get the current optimistic version of a record (0 if not found). */
+  async getRecordVersion(storeName: string, key: string): Promise<number> {
+    const record = await this.get(storeName, key)
+    return record?.recordVersion ?? 0
   }
 
   /** Delete a record by key. */
@@ -243,10 +284,8 @@ class MediaDatabase {
   /** Get all records from a store. Normalizes each record on read. */
   async getAll(storeName: string): Promise<Array<{ key: string; record: StoreRecord }>> {
     const listCacheKey = `__list__${storeName}`
-    const cached = this.readCache.get(listCacheKey)
-    if (cached && Date.now() - cached.timestamp < this.LIST_CACHE_TTL) {
-      return cached.data as Array<{ key: string; record: StoreRecord }>
-    }
+    const cached = this.readCache.get(listCacheKey) as Array<{ key: string; record: StoreRecord }> | undefined
+    if (cached !== undefined) return cached
 
     const db = await this.ensureDB()
     return new Promise((resolve, reject) => {
@@ -276,7 +315,7 @@ class MediaDatabase {
           }
           cursor.continue()
         } else {
-          this.readCache.set(listCacheKey, { data: results, timestamp: Date.now() })
+          this.readCache.set(listCacheKey, results, 5_000)
           resolve(results)
         }
       }
@@ -326,6 +365,38 @@ class MediaDatabase {
       request.onerror = () => reject(request.error)
       tx.onerror = () => reject(tx.error)
     })
+  }
+
+  // ==================== Paginated Query ====================
+
+  /**
+   * Cursor-based paginated query with limit and offset.
+   * Supports optional index + key range filtering.
+   */
+  async queryPage<T = StoreRecord>(
+    storeName: string,
+    opts?: PageQueryOptions,
+  ): Promise<PageResult<T>> {
+    const db = await this.ensureDB()
+    const tx = db.transaction(storeName, 'readonly')
+    const store = tx.objectStore(storeName)
+    return queryPageUtil<T>(store, opts)
+  }
+
+  // ==================== Batch Operations ====================
+
+  /**
+   * Get multiple records by key in a single transaction.
+   * Keys not found are omitted from the result.
+   */
+  async batchGet<T = StoreRecord>(
+    storeName: string,
+    keys: IDBValidKey[],
+  ): Promise<Map<IDBValidKey, T>> {
+    const db = await this.ensureDB()
+    const tx = db.transaction(storeName, 'readonly')
+    const store = tx.objectStore(storeName)
+    return batchGetUtil<T>(store, keys)
   }
 
   /** Count records in a store. */

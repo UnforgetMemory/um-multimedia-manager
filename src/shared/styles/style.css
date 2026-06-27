@@ -129,10 +129,10 @@
   --umm-color-surface-elevated: hsl(0 0% 100%);
   
   /* State colors */
-  --umm-color-state-success: hsl(142 76% 36%);
-  --umm-color-state-warning: hsl(38 92% 50%);
-  --umm-color-state-error: hsl(0 84.2% 60.2%);
-  --umm-color-state-info: hsl(217 91% 60%);
+  --color-state-success: hsl(142 76% 36%);
+  --color-state-warning: hsl(38 92% 50%);
+  --color-state-error: hsl(0 84.2% 60.2%);
+  --color-state-info: hsl(217 91% 60%);
   
   /* Status colors */
   --umm-color-status-unknown: hsl(220 9% 46%);
@@ -435,10 +435,10 @@
     --umm-color-accent-active: hsl(240 4% 30%);
     --umm-color-accent-foreground: hsl(0 0% 98%);
     
-    --umm-color-state-success: hsl(160 84% 49%);
-    --umm-color-state-warning: hsl(38 92% 60%);
-    --umm-color-state-error: hsl(0 62.8% 40%);
-    --umm-color-state-info: hsl(217 91% 70%);
+    --color-state-success: hsl(160 84% 49%);
+    --color-state-warning: hsl(38 92% 60%);
+    --color-state-error: hsl(0 62.8% 40%);
+    --color-state-info: hsl(217 91% 70%);
     --umm-badge-done-bg-start: rgba(17, 111, 70, 1);
     --umm-badge-done-bg-end: rgba(11, 83, 53, 1);
     --umm-badge-done-text: #f4fff8;
