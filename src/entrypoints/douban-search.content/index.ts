@@ -1,12 +1,14 @@
-import styleCss from './style.css?raw'
+import styleCss from './styles/component.css?raw'
+import commonCss from '@/entrypoints/content/shared/douban-common.css?raw'
+import themeCss from '@/entrypoints/content/shared/douban-theme.css?raw'
 import { defineContentScript } from 'wxt/utils/define-content-script'
 import { createApp } from 'vue'
 import App from './App.vue'
 import type { DoubanSearchData, SearchItem } from './types'
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
-
-const OVERLAY_ID = 'umm-search-overlay'
+import { mountUmmOverlay } from '@/entrypoints/content/shared/overlay'
+import { composeStyles } from '@/entrypoints/content/shared/css-composer'
 
 /** Extract __DATA__ from inline script tags — bypasses CSP and isolated world */
 function parseDataFromScriptTag(): DoubanSearchData | undefined {
@@ -150,48 +152,27 @@ export default defineContentScript({
 
   async main() {
     try {
-      const overlay = document.getElementById(OVERLAY_ID)
-      if (!overlay?.shadowRoot) return
-
-      const shadow = overlay.shadowRoot
-
-      // Inject component CSS so :host has background
-      const style = document.createElement('style')
-      style.textContent = styleCss
-      shadow.appendChild(style)
-
-      // Apply theme synchronously BEFORE removing loading — prevents white flash
-      // Reads data-theme from host element (set by overlay script at document_start)
-      const host = shadow.host as HTMLElement
-      const theme = host.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      host.classList.remove('umm-theme--light', 'umm-theme--dark')
-      host.classList.add(`umm-theme--${theme}`)
-      chrome.storage?.onChanged?.addListener((changes, area) => {
-        if (area === 'local' && changes['umm:appearance']) {
-          const host = shadow.host as HTMLElement
-          chrome.storage?.local?.get?.('umm:appearance', (data: Record<string, unknown>) => {
-            const raw = (data['umm:appearance'] as Record<string, unknown> | undefined)?.theme as string ?? 'light'
-            const t = raw === 'dark' ? 'dark' : (raw === 'light' ? 'light' : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
-            host.classList.remove('umm-theme--light', 'umm-theme--dark')
-            host.classList.add(`umm-theme--${t}`)
-          })
-        }
+      const css = composeStyles(
+        { name: 'theme', css: themeCss },
+        { name: 'common', css: commonCss },
+        { name: 'components', css: styleCss },
+      )
+      mountUmmOverlay({
+        overlayId: 'umm-search-overlay',
+        css,
+        async beforeMount() {
+          const type = location.href.includes('search.douban.com/music') ? 'music' : 'movie'
+          const [searchData, recordMap] = await Promise.all([
+            parseSearchData(),
+            loadRecordMap(type),
+          ])
+          return { searchData, recordMap }
+        },
+        createApp(_shadow, ctx) {
+          const { searchData, recordMap } = ctx as { searchData: DoubanSearchData | undefined; recordMap: Map<string, StoreRecord> }
+          return createApp(App, { searchData, recordMap })
+        },
       })
-
-      // Remove loading overlay
-      const loading = shadow.querySelector('.ov-loading')
-      if (loading) loading.remove()
-
-      const type = location.href.includes('search.douban.com/music') ? 'music' : 'movie'
-      const [searchData, recordMap] = await Promise.all([
-        parseSearchData(),
-        loadRecordMap(type),
-      ])
-
-      const app = createApp(App, { searchData, recordMap })
-      const container = document.createElement('div')
-      shadow.appendChild(container)
-      app.mount(container)
     } catch (err) {
       console.warn('[UMM] Search overlay error:', err)
     }

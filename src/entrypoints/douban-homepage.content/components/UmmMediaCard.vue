@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useBadge } from '../composables/useBadge'
+import { computed, defineComponent, h } from 'vue'
+import { useStatus } from '@/entrypoints/content/shared/composables/useStatus'
+import { UmmImage } from '@/entrypoints/content/shared/components/UmmImage'
+
+const UmmImageWrapper = defineComponent({
+  props: ['src', 'alt', 'class', 'aspectRatio', 'eager', 'href'],
+  setup(props) {
+    return () => h(UmmImage, props)
+  }
+})
 
 interface Props {
   posterUrl: string
@@ -20,22 +28,19 @@ const props = withDefaults(defineProps<Props>(), {
   episodes: undefined,
 })
 
+const { statusType, statusText } = useStatus(() => props.badgeStatus, () => props.badgeRating)
+
 const starCount = computed(() => {
   const num = parseInt(props.starNum)
   if (isNaN(num) || num === 0) return 0
   return Math.round(num / 10)
 })
-
-const { badgeText, badgeClass } = useBadge(
-  () => props.badgeStatus,
-  () => props.badgeRating,
-)
 </script>
 
 <template>
   <a :href="href" class="umm-card" :title="intro || undefined">
     <div class="umm-card-cover">
-      <img :src="posterUrl" :alt="title" class="umm-card-img" loading="lazy">
+      <UmmImageWrapper :src="posterUrl" :alt="title" eager />
       <div v-if="episodes" class="umm-episodes">{{ episodes }}</div>
     </div>
     <div class="umm-card-title">{{ title }}</div>
@@ -44,6 +49,6 @@ const { badgeText, badgeClass } = useBadge(
       <span v-if="rate">{{ rate }}</span>
       <span v-else class="umm-card-no-rating">暂无评分</span>
     </div>
-    <span class="umm-badge umm-badge--inline" :class="badgeClass">{{ badgeText }}</span>
+    <span class="umm-status umm-status--inline" :class="`umm-status--${statusType}`">{{ statusText }}</span>
   </a>
 </template>

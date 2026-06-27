@@ -23,7 +23,6 @@ export const THEME_ATTR = 'data-umm-theme'
 // Theme sync — read UMM theme setting and apply to page
 // ============================================================
 
-let _themeListenerAttached = false
 
 function resolveThemeFromStorage(raw: Record<string, unknown> | undefined): 'dark' | 'light' {
   const mode = (raw?.theme as string) ?? 'auto'
@@ -53,14 +52,6 @@ function syncDetailPageTheme(): void {
     applyThemeToPage(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   }
 
-  if (_themeListenerAttached) return
-  _themeListenerAttached = true
-
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes[THEME_KEY]) {
-      applyThemeToPage(resolveThemeFromStorage(changes[THEME_KEY].newValue as Record<string, unknown> | undefined))
-    }
-  })
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {

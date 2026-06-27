@@ -1,0 +1,111 @@
+/* ---- Image shimmer placeholder ---- */
+.umm-img-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--umm-bg-secondary, #f0f0f0);
+  overflow: hidden;
+}
+
+.umm-img-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: umm-shimmer 1.8s ease-in-out infinite;
+}
+
+:host(.umm-theme--dark) .umm-img-shimmer {
+  background: var(--umm-bg-secondary, #2a2b30);
+}
+
+:host(.umm-theme--dark) .umm-img-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes umm-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ---- Status badge ---- */
+.umm-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: var(--umm-font-xs, 11px);
+  font-weight: 700;
+  border-radius: 999px;
+  user-select: none;
+  letter-spacing: 0.04em;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.3;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  min-height: 22px;
+}
+
+.umm-status--done {
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.umm-status--none {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.umm-status--wish {
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.umm-status--inline {
+  padding: 3px 8px;
+  font-size: 11px;
+  gap: 3px;
+  min-height: 20px;
+  max-width: 110px;
+}
+
+.umm-status--small {
+  padding: 2px 8px;
+  font-size: 10px;
+  gap: 3px;
+  min-height: 18px;
+  max-width: 100px;
+}
+
+:host(.umm-theme--dark) .umm-status--done {
+  background: linear-gradient(180deg, #15803d 0%, #166534 100%);
+}
+
+:host(.umm-theme--dark) .umm-status--none {
+  background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%);
+}
+
+:host(.umm-theme--dark) .umm-status--wish {
+  background: linear-gradient(180deg, #c2410c 0%, #9a3412 100%);
+}

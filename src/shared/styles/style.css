@@ -148,8 +148,11 @@
   
   /* Spacing scale */
   --umm-space-0: 0;
+  --umm-space-0-5: 0.125rem;
   --umm-space-1: 0.25rem;
+  --umm-space-1-5: 0.375rem;
   --umm-space-2: 0.5rem;
+  --umm-space-2-5: 0.625rem;
   --umm-space-3: 0.75rem;
   --umm-space-4: 1rem;
   --umm-space-5: 1.25rem;
@@ -165,47 +168,39 @@
   --umm-space-12: 3rem;
   --umm-space-16: 4rem;
   --umm-space-20: 5rem;
-  
-  /* Typography scale */
-  --umm-typography-display: clamp(2rem, 1.5rem + 1.5vw, 4rem);
-  --umm-typography-h1: clamp(1.25rem, 1rem + 0.75vw, 2.25rem);
-  --umm-typography-h2: clamp(1rem, 0.875rem + 0.375vw, 1.5rem);
-  --umm-typography-h3: clamp(0.875rem, 0.75rem + 0.375vw, 1.25rem);
-  --umm-typography-body: clamp(0.875rem, 0.75rem + 0.375vw, 1.25rem);
-  --umm-typography-caption: clamp(0.75rem, 0.625rem + 0.375vw, 1rem);
-  --umm-typography-mono: clamp(0.75rem, 0.625rem + 0.375vw, 1rem);
-  
+
+  /* Badge colors */
+  --umm-badge-done-bg-start: rgba(17, 111, 70, 0.96);
+  --umm-badge-done-bg-end: rgba(11, 83, 53, 0.98);
+  --umm-badge-done-text: #f4fff8;
+  --umm-badge-done-border: rgba(198, 255, 228, 0.26);
+  --umm-badge-none-bg-start: rgba(164, 43, 60, 0.96);
+  --umm-badge-none-bg-end: rgba(126, 28, 48, 0.98);
+  --umm-badge-none-text: #fff7f8;
+  --umm-badge-none-border: rgba(255, 214, 220, 0.22);
+  --umm-badge-wish-bg-start: #2563eb;
+  --umm-badge-wish-bg-end: #1d4ed8;
+  --umm-badge-wish-text: #fff;
+  --umm-badge-wish-border: rgba(37, 99, 235, 0.3);
+
   /* ============================================
      Typography Tokens (from typography.css)
      ============================================ */
   
   /* 13-Level Responsive Breakpoints */
-  --umm-bp-xs: 0px;
-  --umm-bp-sm: 320px;
-  --umm-bp-md: 375px;
-  --umm-bp-lg: 480px;
-  --umm-bp-xl: 640px;
-  --umm-bp-2xl: 768px;
-  --umm-bp-3xl: 1024px;
-  --umm-bp-4xl: 1280px;
-  --umm-bp-5xl: 1536px;
-  --umm-bp-6xl: 1920px;
-  --umm-bp-7xl: 2560px;
-  --umm-bp-3k: 2880px;
-  --umm-bp-8xl: 3200px;
+  --breakpoint-xs: 0px;
+  --breakpoint-sm: 320px;
+  --breakpoint-md: 375px;
+  --breakpoint-lg: 480px;
+  --breakpoint-xl: 640px;
+  --breakpoint-2xl: 768px;
+  --breakpoint-3xl: 1024px;
+  --breakpoint-4xl: 1280px;
+  --breakpoint-5xl: 1536px;
+  --breakpoint-6xl: 1920px;
+  --breakpoint-7xl: 2560px;
+  --breakpoint-8xl: 3200px;
 
-  /* Spacing Scale (4px base) */
-  --umm-spacing-1: 4px;
-  --umm-spacing-2: 8px;
-  --umm-spacing-3: 12px;
-  --umm-spacing-4: 16px;
-  --umm-spacing-5: 20px;
-  --umm-spacing-6: 24px;
-  --umm-spacing-8: 32px;
-  --umm-spacing-10: 40px;
-  --umm-spacing-12: 48px;
-  --umm-spacing-16: 64px;
-  --umm-spacing-20: 80px;
 
   /* Responsive page margins */
   --umm-page-margin: clamp(16px, 12px + 1vw, 64px);
@@ -444,7 +439,19 @@
     --umm-color-state-warning: hsl(38 92% 60%);
     --umm-color-state-error: hsl(0 62.8% 40%);
     --umm-color-state-info: hsl(217 91% 70%);
-  }
+    --umm-badge-done-bg-start: rgba(17, 111, 70, 1);
+    --umm-badge-done-bg-end: rgba(11, 83, 53, 1);
+    --umm-badge-done-text: #f4fff8;
+    --umm-badge-done-border: rgba(198, 255, 228, 0.4);
+    --umm-badge-none-bg-start: rgba(164, 43, 60, 1);
+    --umm-badge-none-bg-end: rgba(126, 28, 48, 1);
+    --umm-badge-none-text: #fff7f8;
+    --umm-badge-none-border: rgba(255, 214, 220, 0.4);
+    --umm-badge-wish-bg-start: #3b82f6;
+    --umm-badge-wish-bg-end: #2563eb;
+    --umm-badge-wish-text: #fff;
+    --umm-badge-wish-border: rgba(59, 130, 246, 0.4);
+}
 }
 
 @layer base {

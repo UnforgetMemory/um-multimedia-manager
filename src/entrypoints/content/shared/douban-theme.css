@@ -1,0 +1,29 @@
+/* ===== UMM Douban Shared Theme — Shadow DOM :host variables ===== */
+/* This file contains the COMMON CSS custom properties shared by all
+   Douban entrypoints (detail, homepage, search).
+   Keep minimal — only variables defined identically in ALL 3. */
+
+/* ---- Theme variables (light default) ---- */
+:host {
+  --umm-bg: #ffffff;
+  --umm-bg-secondary: #f8f9fa;
+  --umm-text-primary: #1a1a1a;
+  --umm-text-secondary: #666666;
+  --umm-text-muted: #aaaaaa;
+  --umm-border: #e5e7eb;
+  --umm-link: #1757d6;
+  background: var(--umm-bg);
+  color: var(--umm-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ---- Dark theme ---- */
+:host(.umm-theme--dark) {
+  --umm-bg: #1e1f24;
+  --umm-bg-secondary: #2a2b30;
+  --umm-text-primary: #e0e0e0;
+  --umm-text-secondary: #999999;
+  --umm-text-muted: #666666;
+  --umm-border: #3a3b40;
+  --umm-link: #60a5fa;
+}

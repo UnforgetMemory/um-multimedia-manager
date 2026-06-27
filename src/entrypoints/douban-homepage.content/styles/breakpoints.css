@@ -1,7 +1,7 @@
 /* 12-level responsive breakpoint system for UMM Douban homepage */
 /* Range: 320px (mobile S) → 5120px (4K/5K) */
 
-:root {
+:host {
   /* Fluid typography tokens using clamp() */
   /* Min viewport: 320px, Max viewport: 5120px */
 
@@ -27,9 +27,225 @@
   --umm-card-radius: clamp(4px, 0.3rem + 0.25vw, 12px);
 }
 
-/* ===== 2K screens (2560px) ===== */
+/* ===== Mobile S (320px) ===== */
+@media (min-width: 320px) {
+  :host {
+    --umm-font-xs: 0.65rem;
+    --umm-font-sm: 0.75rem;
+    --umm-font-base: 0.85rem;
+    --umm-font-md: 0.95rem;
+    --umm-font-lg: 1.125rem;
+    --umm-font-xl: 1.375rem;
+    --umm-font-2xl: 1.75rem;
+
+    --umm-space-xs: 4px;
+    --umm-space-sm: 8px;
+    --umm-space-md: 12px;
+    --umm-space-lg: 16px;
+    --umm-space-xl: 24px;
+    --umm-space-2xl: 32px;
+
+    --umm-card-width: 120px;
+    --umm-card-height: 168px;
+    --umm-card-radius: 4px;
+  }
+}
+
+/* ===== Mobile M (375px) ===== */
+@media (min-width: 375px) {
+  :host {
+    --umm-font-xs: 0.66rem;
+    --umm-font-sm: 0.77rem;
+    --umm-font-base: 0.87rem;
+    --umm-font-md: 0.98rem;
+    --umm-font-lg: 1.17rem;
+    --umm-font-xl: 1.44rem;
+    --umm-font-2xl: 1.85rem;
+
+    --umm-space-xs: 4px;
+    --umm-space-sm: 8px;
+    --umm-space-md: 12px;
+    --umm-space-lg: 17px;
+    --umm-space-xl: 25px;
+    --umm-space-2xl: 33px;
+
+    --umm-card-width: 124px;
+    --umm-card-height: 174px;
+    --umm-card-radius: 4px;
+  }
+}
+
+/* ===== Mobile L (480px) ===== */
+@media (min-width: 480px) {
+  :host {
+    --umm-font-xs: 0.68rem;
+    --umm-font-sm: 0.79rem;
+    --umm-font-base: 0.91rem;
+    --umm-font-md: 1.03rem;
+    --umm-font-lg: 1.25rem;
+    --umm-font-xl: 1.55rem;
+    --umm-font-2xl: 2.04rem;
+
+    --umm-space-xs: 5px;
+    --umm-space-sm: 9px;
+    --umm-space-md: 13px;
+    --umm-space-lg: 18px;
+    --umm-space-xl: 27px;
+    --umm-space-2xl: 35px;
+
+    --umm-card-width: 133px;
+    --umm-card-height: 186px;
+    --umm-card-radius: 5px;
+  }
+}
+
+/* ===== Tablet S (640px) ===== */
+@media (min-width: 640px) {
+  :host {
+    --umm-font-xs: 0.72rem;
+    --umm-font-sm: 0.84rem;
+    --umm-font-base: 0.96rem;
+    --umm-font-md: 1.10rem;
+    --umm-font-lg: 1.38rem;
+    --umm-font-xl: 1.73rem;
+    --umm-font-2xl: 2.32rem;
+
+    --umm-space-xs: 5px;
+    --umm-space-sm: 10px;
+    --umm-space-md: 15px;
+    --umm-space-lg: 20px;
+    --umm-space-xl: 29px;
+    --umm-space-2xl: 39px;
+
+    --umm-card-width: 146px;
+    --umm-card-height: 204px;
+    --umm-card-radius: 5px;
+  }
+}
+
+/* ===== Tablet L (768px) ===== */
+@media (min-width: 768px) {
+  :host {
+    --umm-font-xs: 0.75rem;
+    --umm-font-sm: 0.88rem;
+    --umm-font-base: 1.01rem;
+    --umm-font-md: 1.16rem;
+    --umm-font-lg: 1.48rem;
+    --umm-font-xl: 1.88rem;
+    --umm-font-2xl: 2.55rem;
+
+    --umm-space-xs: 6px;
+    --umm-space-sm: 11px;
+    --umm-space-md: 16px;
+    --umm-space-lg: 22px;
+    --umm-space-xl: 31px;
+    --umm-space-2xl: 42px;
+
+    --umm-card-width: 156px;
+    --umm-card-height: 218px;
+    --umm-card-radius: 6px;
+  }
+}
+
+/* ===== Laptop S (1024px) ===== */
+@media (min-width: 1024px) {
+  :host {
+    --umm-font-xs: 0.80rem;
+    --umm-font-sm: 0.95rem;
+    --umm-font-base: 1.09rem;
+    --umm-font-md: 1.28rem;
+    --umm-font-lg: 1.68rem;
+    --umm-font-xl: 2.16rem;
+    --umm-font-2xl: 3.01rem;
+
+    --umm-space-xs: 7px;
+    --umm-space-sm: 12px;
+    --umm-space-md: 18px;
+    --umm-space-lg: 25px;
+    --umm-space-xl: 35px;
+    --umm-space-2xl: 47px;
+
+    --umm-card-width: 177px;
+    --umm-card-height: 247px;
+    --umm-card-radius: 7px;
+  }
+}
+
+/* ===== Laptop L (1280px) ===== */
+@media (min-width: 1280px) {
+  :host {
+    --umm-font-xs: 0.85rem;
+    --umm-font-sm: 1.02rem;
+    --umm-font-base: 1.18rem;
+    --umm-font-md: 1.40rem;
+    --umm-font-lg: 1.88rem;
+    --umm-font-xl: 2.45rem;
+    --umm-font-2xl: 3.46rem;
+
+    --umm-space-xs: 8px;
+    --umm-space-sm: 14px;
+    --umm-space-md: 21px;
+    --umm-space-lg: 28px;
+    --umm-space-xl: 39px;
+    --umm-space-2xl: 53px;
+
+    --umm-card-width: 197px;
+    --umm-card-height: 276px;
+    --umm-card-radius: 8px;
+  }
+}
+
+/* ===== Desktop HD (1536px) ===== */
+@media (min-width: 1536px) {
+  :host {
+    --umm-font-xs: 0.91rem;
+    --umm-font-sm: 1.09rem;
+    --umm-font-base: 1.27rem;
+    --umm-font-md: 1.52rem;
+    --umm-font-lg: 2.08rem;
+    --umm-font-xl: 2.73rem;
+    --umm-font-2xl: 3.92rem;
+
+    --umm-space-xs: 9px;
+    --umm-space-sm: 16px;
+    --umm-space-md: 23px;
+    --umm-space-lg: 31px;
+    --umm-space-xl: 44px;
+    --umm-space-2xl: 58px;
+
+    --umm-card-width: 218px;
+    --umm-card-height: 305px;
+    --umm-card-radius: 9px;
+  }
+}
+
+/* ===== Desktop Full HD (1920px) ===== */
+@media (min-width: 1920px) {
+  :host {
+    --umm-font-xs: 0.99rem;
+    --umm-font-sm: 1.20rem;
+    --umm-font-base: 1.40rem;
+    --umm-font-md: 1.70rem;
+    --umm-font-lg: 2.38rem;
+    --umm-font-xl: 3.16rem;
+    --umm-font-2xl: 4.61rem;
+
+    --umm-space-xs: 11px;
+    --umm-space-sm: 18px;
+    --umm-space-md: 26px;
+    --umm-space-lg: 36px;
+    --umm-space-xl: 50px;
+    --umm-space-2xl: 66px;
+
+    --umm-card-width: 249px;
+    --umm-card-height: 348px;
+    --umm-card-radius: 11px;
+  }
+}
+
+/* ===== Desktop QHD (2560px) ===== */
 @media (min-width: 2560px) {
-  :root {
+  :host {
     --umm-font-xs: 1.125rem;
     --umm-font-sm: 1.375rem;
     --umm-font-base: 1.625rem;
@@ -51,9 +267,33 @@
   }
 }
 
+/* ===== Desktop 3K (3200px) ===== */
+@media (min-width: 3200px) {
+  :host {
+    --umm-font-xs: 1.19rem;
+    --umm-font-sm: 1.50rem;
+    --umm-font-base: 1.75rem;
+    --umm-font-md: 2.19rem;
+    --umm-font-lg: 3.13rem;
+    --umm-font-xl: 4.25rem;
+    --umm-font-2xl: 6.25rem;
+
+    --umm-space-xs: 16px;
+    --umm-space-sm: 25px;
+    --umm-space-md: 36px;
+    --umm-space-lg: 50px;
+    --umm-space-xl: 68px;
+    --umm-space-2xl: 90px;
+
+    --umm-card-width: 330px;
+    --umm-card-height: 462px;
+    --umm-card-radius: 15px;
+  }
+}
+
 /* ===== 4K screens (3840px+) ===== */
 @media (min-width: 3840px) {
-  :root {
+  :host {
     --umm-font-xs: 1.25rem;
     --umm-font-sm: 1.625rem;
     --umm-font-base: 1.875rem;
@@ -77,7 +317,7 @@
 
 /* ===== 5K screens (5120px+) ===== */
 @media (min-width: 5120px) {
-  :root {
+  :host {
     --umm-font-xs: 1.5rem;
     --umm-font-sm: 1.875rem;
     --umm-font-base: 2.25rem;

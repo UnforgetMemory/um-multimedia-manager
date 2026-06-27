@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **模板统一系统**：创建函数式模板构造架构，消除3个豆瓣入口点的重复代码
+  - 共享 `UmmImage` 组件（defineComponent + shimmer覆盖式loading，修复 `display:none` 导致lazy加载死锁）
+  - 共享 `UmmStatusBadge` 组件（纯渲染函数，无computed开销，三态done/none/wish + 3种变体）
+  - 共享 `mountUmmOverlay` 工厂函数（beforeMount→createApp→afterMount生命周期编排）
+  - 共享 `composeStyles` CSS组合工具
+  - 共享 `douban-theme.css`（:host变量源）+ `douban-common.css`（shimmer/status badge样式）
+  - 共享 `useStatus` composable（MaybeRefOrGetter适配）
+- **安全审计**：全面审查XSS/CSS注入/数据流——DOMPurify验证、搜索桥接安全性确认、Shadow DOM隔离
+
+### Fixed
+- **图片加载死锁**：UmmImage从FunctionalComponent改为defineComponent，`loading="lazy"` + `display:none` 导致浏览器永不触发加载
+- **UmmStatusBadge**：移除FunctionalComponent内的 `computed` 误用（无缓存效益、每次渲染新ref），改纯计算
+- **Dark主题**：`--umm-text-muted`/`--umm-text-secondary` 暗色值交换修复
+- **Promise拒绝**：`mountUmmOverlay.finalize()` 添加 `.catch()`
+- **CSS组合**：`composeStyles` 每chunk尾部添加换行，防止注释粘连
+- **残留清理**：删除 `douban-search` component.css中的 stale `shadow-badge.css` 注释
+
+### Changed
+- 共享组件和CSS集中到 `src/entrypoints/content/shared/`，3个入口点统一引用
+
 ## [4.1.1] - 2026-06-26
 
 ### Fixed

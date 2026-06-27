@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import type { StoreRecord } from '@/types'
-import { Utils } from '@/utils'
 
 const props = defineProps<{
   records: Map<string, StoreRecord>
@@ -26,15 +25,14 @@ function enhanceReviews(): void {
     const meta = review.querySelector('.review-meta')
     if (!meta) return
 
-    const isDone = status === 2
-    const label = isDone ? '✅' : '⏳'
-    const ratingText = userRating > 0 ? ` ${Utils.formatRating10(userRating)}/10` : ''
-    const statusAttr = isDone ? 'done' : 'none'
+    const statusType = status === 2 ? 'done' : 'none'
+    const statusText = status === 2
+      ? (userRating > 0 ? `已看 ${userRating}` : '已看')
+      : '未看'
 
     const badge = document.createElement('span')
-    badge.className = 'umm-search-badge'
-    badge.dataset.status = statusAttr
-    badge.textContent = `${label}${ratingText}`
+    badge.className = `umm-status umm-status--small umm-status--${statusType}`
+    badge.textContent = statusText
     meta.insertAdjacentElement('afterend', badge)
   })
 }

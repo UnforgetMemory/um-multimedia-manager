@@ -336,6 +336,62 @@ const UI_COMPONENT_STYLES = `
 `
 
 /**
+ * 焦点可见样式（键盘导航）
+ * 从 Shadow DOM 组件提取为全局样式
+ */
+const FOCUS_VISIBLE_STYLES = `
+:focus-visible {
+  outline: 2px solid var(--umm-link, #1757d6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.umm-dl-trigger:focus-visible,
+.umm-pill-btn:focus-visible,
+.umm-island-nav-link:focus-visible,
+.umm-search-submit:focus-visible,
+.umm-island-submit:focus-visible,
+.umm-page-link:focus-visible,
+.umm-page-go:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--umm-link, #1757d6);
+  outline-offset: 2px;
+}
+`
+
+/**
+ * 全局滚动条样式
+ * 应用于所有 UMM 注入的页面区域（非 Shadow DOM）
+ */
+const SCROLLBAR_STYLES = `
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--umm-border, rgba(0, 0, 0, 0.1));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--umm-border-hover, rgba(0, 0, 0, 0.2));
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--umm-border, rgba(0, 0, 0, 0.1)) transparent;
+}
+`
+
+/**
  * 所有样式的集合
  */
 const ALL_STYLES = `
@@ -345,6 +401,8 @@ ${NEODB_BUTTON_STYLES}
 ${DIMMER_STYLES}
 ${HOMEPAGE_BADGE_STYLES}
 ${UI_COMPONENT_STYLES}
+${FOCUS_VISIBLE_STYLES}
+${SCROLLBAR_STYLES}
 `
 
 /**

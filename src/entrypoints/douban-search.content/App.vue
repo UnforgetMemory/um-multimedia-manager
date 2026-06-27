@@ -2,7 +2,9 @@
 import type { DoubanSearchData } from './types'
 import type { StoreRecord } from '@/types'
 import { normalizeSearchQuery } from '@/utils/search-normalizer'
-import { computed, ref, onUnmounted } from 'vue'
+import { computed, ref, onUnmounted, defineComponent, h } from 'vue'
+import { UmmImage } from '@/entrypoints/content/shared/components/UmmImage'
+import { UmmStatusBadge } from '@/entrypoints/content/shared/components/UmmStatusBadge'
 
 const props = defineProps<{
   searchData?: DoubanSearchData
@@ -22,6 +24,20 @@ const searchText = ref(props.searchData?.text || '')
 const isSearching = ref(false)
 const jumpToPage = ref<number | null>(null)
 let isNormalizing = false
+
+const UmmImageWrapper = defineComponent({
+  props: ['src', 'alt', 'class', 'aspectRatio', 'eager', 'href'],
+  setup(props) {
+    return () => h(UmmImage, props)
+  }
+})
+
+const UmmStatusBadgeWrapper = defineComponent({
+  props: ['status', 'rating', 'variant'],
+  setup(props) {
+    return () => h(UmmStatusBadge, props)
+  }
+})
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const pageWindow = computed(() => {
@@ -163,16 +179,17 @@ onUnmounted(() => {
         class="umm-search-card"
       >
         <div class="umm-search-card-cover">
-          <img :src="item.cover_url" :alt="item.title" loading="lazy" />
+          <UmmImageWrapper :src="item.cover_url" :alt="item.title" aspect-ratio="2/3" />
           <span v-if="item.labels?.length" class="umm-search-label">{{ item.labels[0].text }}</span>
         </div>
         <div class="umm-search-card-body">
           <div class="umm-search-card-title-row">
             <span class="umm-search-card-title">{{ item.title }}</span>
-            <span
-              class="umm-badge"
-              :class="badgeFor(item).status === 'done' ? 'umm-badge--done' : 'umm-badge--none'"
-            >{{ badgeFor(item).status === 'done' ? (badgeFor(item).rating > 0 ? badgeFor(item).rating + '/10' : '✓') : '○' }}</span>
+            <UmmStatusBadgeWrapper
+              :status="badgeFor(item).status === 'done' ? 2 : 0"
+              :rating="badgeFor(item).rating"
+              variant="small"
+            />
           </div>
           <div v-if="item.rating.value > 0" class="umm-search-rating">
             <span class="umm-search-stars">{{ starString(item.rating.star_count) }}</span>

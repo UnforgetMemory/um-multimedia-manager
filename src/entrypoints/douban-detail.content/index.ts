@@ -7,7 +7,9 @@
  * Original Douban page remains untouched underneath.
  */
 
-import styleCss from './style.css?raw'
+import styleCss from './styles/component.css?raw'
+import commonCss from '@/entrypoints/content/shared/douban-common.css?raw'
+import themeCss from '@/entrypoints/content/shared/douban-theme.css?raw'
 import { defineContentScript } from 'wxt/utils/define-content-script'
 import { createApp } from 'vue'
 import App from './App.vue'
@@ -16,6 +18,8 @@ import type { UrlIdentity } from '@/types'
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
 import DOMPurify from 'dompurify'
+import { mountUmmOverlay } from '@/entrypoints/content/shared/overlay'
+import { composeStyles } from '@/entrypoints/content/shared/css-composer'
 
 const OVERLAY_ID = 'umm-detail-mask'
 
@@ -294,81 +298,53 @@ export default defineContentScript({
 
   async main() {
     try {
-      const overlay = document.getElementById(OVERLAY_ID)
-      if (!overlay?.shadowRoot) return
-
-      const shadow = overlay.shadowRoot
-
-      // Inject component CSS
-      const style = document.createElement('style')
-      style.textContent = styleCss
-      shadow.appendChild(style)
-
-      // Apply theme synchronously BEFORE removing loading
-      const host = shadow.host as HTMLElement
-      const theme = host.getAttribute('data-theme') ||
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      host.classList.remove('umm-theme--light', 'umm-theme--dark')
-      host.classList.add(`umm-theme--${theme}`)
-      chrome.storage?.onChanged?.addListener((changes, area) => {
-        if (area === 'local' && changes['umm:appearance']) {
-          chrome.storage?.local?.get?.('umm:appearance', (data: Record<string, unknown>) => {
-            const raw = (data['umm:appearance'] as Record<string, unknown> | undefined)?.theme as string ?? 'light'
-            const t = raw === 'dark' ? 'dark' : (raw === 'light' ? 'light' :
-              (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
-            host.classList.remove('umm-theme--light', 'umm-theme--dark')
-            host.classList.add(`umm-theme--${t}`)
-          })
-        }
-      })
-
-      // Extract data from underlying Douban DOM
-      const detailData = await extractDetailData()
-      if (!detailData) {
-        console.warn('[UMM] Could not extract detail data from page')
-        return
-      }
-
-      // Load record from IndexedDB
-      detailData.record = await loadRecord(detailData.identity)
-
-      // Remove loading spinner
-      const loading = shadow.querySelector('.ov-loading')
-      if (loading) loading.remove()
-
-      // Hide native Douban nav bars
-      const globalNav = document.getElementById('db-global-nav')
-      const movieNav = document.getElementById('db-nav-movie')
-      const musicNav = document.getElementById('db-nav-music')
-      if (globalNav) globalNav.style.display = 'none'
-      if (movieNav) movieNav.style.display = 'none'
-      if (musicNav) musicNav.style.display = 'none'
-
-      // Mount Vue app into shadow DOM
-      const app = createApp(App, { detailData })
-      const container = document.createElement('div')
-      shadow.appendChild(container)
-      app.mount(container)
-
-      // Poll IndexedDB for record changes (updates status/rating dynamically)
-      const recordPoller = setInterval(async () => {
-        if (!detailData.identity) return
-        const updated = await loadRecord(detailData.identity)
-        if (updated && app && app._instance) {
-          const vm = app._instance?.proxy as unknown as Record<string, unknown>
-          if (vm && typeof vm.updateRecord === 'function') {
-            vm.updateRecord(updated)
+      const css = composeStyles(
+        { name: 'theme', css: themeCss },
+        { name: 'common', css: commonCss },
+        { name: 'components', css: styleCss },
+      )
+      mountUmmOverlay({
+        overlayId: OVERLAY_ID,
+        css,
+        async beforeMount() {
+          const detailData = await extractDetailData()
+          if (!detailData) {
+            throw new Error('[UMM] Could not extract detail data from page')
           }
-        }
-      }, 3000)
+          detailData.record = await loadRecord(detailData.identity)
 
-      // Expose dismiss function for cleanup
-      ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-        clearInterval(recordPoller)
-        app.unmount()
-        container.remove()
-        style.remove()
-      }
+          const globalNav = document.getElementById('db-global-nav')
+          const movieNav = document.getElementById('db-nav-movie')
+          const musicNav = document.getElementById('db-nav-music')
+          if (globalNav) globalNav.style.display = 'none'
+          if (movieNav) movieNav.style.display = 'none'
+          if (musicNav) musicNav.style.display = 'none'
+
+          return detailData
+        },
+        createApp(_shadow: ShadowRoot, ctx?: unknown) {
+          const detailData = ctx as DetailData
+          return createApp(App, { detailData })
+        },
+        afterMount(_shadow: ShadowRoot, app: ReturnType<typeof createApp>, _container: HTMLDivElement, ctx?: unknown) {
+          const detailData = ctx as DetailData
+          const recordPoller = setInterval(async () => {
+            if (!detailData.identity) return
+            const updated = await loadRecord(detailData.identity)
+            if (updated && app && app._instance) {
+              const vm = app._instance?.proxy as unknown as Record<string, unknown>
+              if (vm && typeof vm.updateRecord === 'function') {
+                vm.updateRecord(updated)
+              }
+            }
+          }, 3000)
+
+          ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
+            clearInterval(recordPoller)
+            app.unmount()
+          }
+        },
+      })
     } catch (err) {
       console.warn('[UMM] Detail overlay error:', err)
     }

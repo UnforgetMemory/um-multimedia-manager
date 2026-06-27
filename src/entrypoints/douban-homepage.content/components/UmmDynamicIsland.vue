@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue'
+import { normalizeSearchQuery } from '@/utils/search-normalizer'
 
 const searchQuery = ref('')
 const isSearching = ref(false)
@@ -17,42 +18,6 @@ const navItems: NavItem[] = [
   { label: '音乐', href: 'https://music.douban.com/', icon: 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z' },
   { label: '我的', href: 'https://www.douban.com/mine', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
 ]
-
-/**
- * Normalize search query for Douban search.
- *
- * Handles professional resource naming patterns:
- * - "The.Great.Escaper.2023.1080p.BluRay.AVC.DTS-HD.MA.5.1-DIY@Audies"
- *   → "The Great Escaper 2023"
- * - "记忆碎片[2000].Memento.1080p.BluRay.x264"
- *   → "记忆碎片 Memento 2000"
- *
- * Strategy: keep only title + year(s), strip everything after the LAST year.
- * If two years exist, use the second year as the cutoff point.
- */
-function normalizeSearchQuery(raw: string): string {
-  let s = raw
-    .replace(/\./g, ' ')
-    .replace(/[[\]()【】「」『』〈〉《》]/g, ' ')
-    .replace(/[*#@!~`%^&+=|\\{}:;"'<>,?]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  // Find all 4-digit years (1900-2099)
-  const yearMatches = [...s.matchAll(/\b(19\d{2}|20\d{2})\b/g)]
-
-  if (yearMatches.length >= 2) {
-    // Two years found: keep everything up to the SECOND year
-    const secondYearEnd = yearMatches[1].index! + 4
-    s = s.slice(0, secondYearEnd).trim()
-  } else if (yearMatches.length === 1) {
-    // One year found: keep everything up to that year
-    const yearEnd = yearMatches[0].index! + 4
-    s = s.slice(0, yearEnd).trim()
-  }
-
-  return s
-}
 
 /**
  * Debounced real-time normalization.

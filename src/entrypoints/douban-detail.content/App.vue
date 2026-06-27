@@ -1,7 +1,24 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, defineComponent, h } from 'vue'
 import { normalizeSearchQuery } from '@/utils/search-normalizer'
 import { Utils } from '@/utils'
+import { t } from '@/entrypoints/content/i18n'
+import { UmmImage } from '@/entrypoints/content/shared/components/UmmImage'
+import { UmmStatusBadge } from '@/entrypoints/content/shared/components/UmmStatusBadge'
+
+const UmmImageWrapper = defineComponent({
+  props: ['src', 'alt', 'class', 'aspectRatio', 'eager', 'href'],
+  setup(props) {
+    return () => h(UmmImage, props)
+  }
+})
+
+const UmmStatusBadgeWrapper = defineComponent({
+  props: ['status', 'rating', 'variant'],
+  setup(props) {
+    return () => h(UmmStatusBadge, props)
+  }
+})
 
 interface RatingBar {
   label: string
@@ -43,6 +60,8 @@ interface DetailData {
 
 const props = defineProps<{ detailData: DetailData }>()
 const d = props.detailData
+
+
 
 const sortedAwards = computed(() => {
   return [...d.awardItems].sort((a, b) => {
@@ -140,8 +159,10 @@ defineExpose({ updateRecord })
 
       <div class="umm-detail-left">
         <div v-if="d.posterSrc" class="umm-poster">
-          <a v-if="d.posterLink" :href="d.posterLink" target="_blank" rel="noopener noreferrer"><img :src="d.posterSrc" :alt="d.posterAlt"></a>
-          <img v-else :src="d.posterSrc" :alt="d.posterAlt">
+          <a v-if="d.posterLink" :href="d.posterLink" target="_blank" rel="noopener noreferrer">
+            <UmmImageWrapper :src="d.posterSrc" :alt="d.posterAlt" aspect-ratio="2/3" eager />
+          </a>
+          <UmmImageWrapper v-else :src="d.posterSrc" :alt="d.posterAlt" aspect-ratio="2/3" eager />
         </div>
 
         <div v-if="d.ratingNum" class="umm-rating-card">
@@ -219,7 +240,7 @@ defineExpose({ updateRecord })
       <h3 class="umm-celeb-heading">{{ d.celebHeading }}</h3>
       <div class="umm-celeb-grid">
         <a v-for="(c, i) in d.celebItems" :key="i" :href="c.link" target="_blank" class="umm-celeb-item">
-          <div class="umm-celeb-avatar" :style="c.avatar ? { backgroundImage: `url(${c.avatar})` } : {}"></div>
+          <UmmImageWrapper :src="c.avatar" :alt="c.name" aspect-ratio="2/3" />
           <div class="umm-celeb-info">
             <span class="umm-celeb-name">{{ c.name }}</span>
             <span class="umm-celeb-role">{{ c.role }}</span>
@@ -229,29 +250,26 @@ defineExpose({ updateRecord })
     </div>
 
     <div v-if="d.photoItems.length" class="umm-photo-card">
-      <h3 class="umm-photo-heading">视频和图片</h3>
+      <h3 class="umm-photo-heading">剧照</h3>
       <div class="umm-photo-grid">
         <a v-for="(p, i) in d.photoItems" :key="i" :href="p.link" target="_blank" class="umm-photo-item">
-          <img :src="p.src" :alt="p.isVideo ? '预告片' : '剧照'" class="umm-photo-img">
+          <UmmImageWrapper :src="p.src" :alt="p.isVideo ? '预告片' : '剧照'" aspect-ratio="16/9" />
           <span v-if="p.isVideo" class="umm-photo-badge">预告片</span>
         </a>
       </div>
     </div>
 
     <div v-if="d.recItems.length" class="umm-rec-card">
-      <h3 class="umm-rec-heading">喜欢这部电影的人也喜欢</h3>
+      <h3 class="umm-rec-heading">推荐</h3>
       <div class="umm-rec-grid">
         <div v-for="(r, i) in d.recItems" :key="i" class="umm-rec-cell">
-          <div class="umm-rec-bar" :class="r.isDone ? 'umm-rec-bar--seen' : 'umm-rec-bar--new'">
-            <span v-if="r.isDone && r.rating" class="umm-rec-bar-text">看过 {{ r.rating }}</span>
-            <span v-else class="umm-rec-bar-text">未看</span>
-          </div>
           <a :href="r.link" target="_blank" class="umm-rec-item">
-            <img :src="r.poster" :alt="r.title" class="umm-rec-poster">
-            <div class="umm-rec-info">
-              <span class="umm-rec-title">{{ r.title }}</span>
-              <span class="umm-rec-rating">{{ r.rating }}</span>
+            <UmmStatusBadgeWrapper :status="r.isDone ? 2 : 0" :rating="Number(r.rating)" variant="small" />
+            <div class="umm-rec-cover">
+              <UmmImageWrapper :src="r.poster" :alt="r.title" aspect-ratio="2/3" />
             </div>
+            <span class="umm-rec-title">{{ r.title }}</span>
+            <span class="umm-rec-rating">{{ r.rating || t('common.rating_unknown') }}</span>
           </a>
         </div>
       </div>

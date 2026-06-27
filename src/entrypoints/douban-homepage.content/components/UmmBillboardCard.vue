@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBadge } from '../composables/useBadge'
+import { useStatus } from '@/entrypoints/content/shared/composables/useStatus'
 
 interface Props {
   order: string
@@ -10,17 +10,13 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const { badgeText, badgeClass } = useBadge(
-  () => props.badgeStatus,
-  () => props.badgeRating,
-)
+const { statusType, statusText } = useStatus(() => props.badgeStatus, () => props.badgeRating)
 </script>
 
 <template>
   <a :href="href" class="umm-billboard-card">
     <span class="umm-billboard-order">{{ order }}</span>
     <span class="umm-billboard-title">{{ title }}</span>
-    <span class="umm-badge umm-badge--inline" :class="badgeClass">{{ badgeText }}</span>
+    <span class="umm-status umm-status--small" :class="`umm-status--${statusType}`">{{ statusText }}</span>
   </a>
 </template>

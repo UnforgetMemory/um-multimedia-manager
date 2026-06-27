@@ -10,15 +10,8 @@ type SendResponse = (response?: any) => void
 /** Valid toast notification types */
 const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const
 
-/** Escape HTML special characters — pure regex, no DOM element creation */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+import { escapeHtml } from '@/utils/escape-html'
+import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
 
 /** SHOW_TOAST — send toast notification to active tab */
 export async function handleShowToast(
@@ -48,7 +41,7 @@ export async function handleShowToast(
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: __showInlineToast,
-      args: [toastPayload.type, toastPayload.title, toastPayload.message || ''],
+      args: [toastPayload.type, toastPayload.title, toastPayload.message || '', TOAST_CORE_CSS],
     })
     sendResponse({ success: true })
   } catch {
@@ -57,63 +50,17 @@ export async function handleShowToast(
 }
 
 /** Lightweight inline toast — injected into any page, matches FloatingToast styles */
-function __showInlineToast(type: string, title: string, message: string) {
+function __showInlineToast(type: string, title: string, message: string, CORE_CSS: string) {
   const CONTAINER_ID = 'umm-toast-container'
   const STYLES_ID = 'umm-toast-styles'
   const MAX_TOASTS = 3
   const AUTO_REMOVE_MS = 2800
 
-  // Inject styles (matches toast.ts exactly)
+  // Inject styles (shared canonical source: src/shared/styles/toast-css.ts)
   if (!document.getElementById(STYLES_ID)) {
     const style = document.createElement('style')
     style.id = STYLES_ID
-    style.textContent = `
-      .umm-toast {
-        padding: 14px 18px;
-        border-radius: 10px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
-        font-size: 14px;
-        min-width: 300px;
-        max-width: 420px;
-        transform: translateX(120%);
-        opacity: 0;
-        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        backdrop-filter: blur(8px);
-        pointer-events: auto;
-        position: relative;
-        overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      }
-      .umm-toast.show {
-        transform: translateX(0);
-        opacity: 1;
-      }
-      .umm-toast--success {
-        background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
-        color: white;
-      }
-      .umm-toast--error {
-        background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
-        color: white;
-      }
-      .umm-toast--info {
-        background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
-        color: white;
-      }
-      .umm-toast--loading {
-        background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-      }
-      .umm-toast strong {
-        display: block;
-        margin-bottom: 4px;
-      }
-      .umm-toast p {
-        margin: 0;
-        font-size: 12px;
-        opacity: 0.9;
-      }
-    `
+    style.textContent = CORE_CSS
     document.documentElement.appendChild(style)
   }
 
