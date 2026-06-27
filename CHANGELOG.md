@@ -27,6 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 共享组件和CSS集中到 `src/entrypoints/content/shared/`，3个入口点统一引用
+- **豆瓣注入体系迁移**：6个独立 WXT entrypoint 合并为2个薄层入口点 (`douban-early` / `douban-main`)，全部逻辑迁移到 `src/content/douban/`
+  - `early.ts`：3个early overlay合并为URL路由的工厂函数
+  - `main.ts`：3个idle入口合并为URL路由工厂，动态导入page模块
+  - `UmmImageWrapper` / `UmmStatusBadgeWrapper` 提取到 `components/`，消除搜索/详情页重复defineComponent
+- **灵动岛统一**：`UmmDynamicIsland` 提取为跨三页共享组件，新增 `newTab`/`type`/`initialQuery` props控制行为
+  - 搜索页：`newTab=false` 同标签导航；详情/首页：`newTab=true` 新标签
+- **CSS变量集中化**：`--umm-island-*` 系列变量从 homepage.css/detail.css 迁移到 theme.css，三页共享统一值
+- **CSS去重**：删除 detail.css 中 `.umm-pill-wrap`/`.umm-search-bar` 等残留样式（已由UmmDynamicIsland替代）
+- **构建优化**：`douban-main.js` 215→209 kB；`content.js` 168→162 kB
+
+### Fixed
+- **搜索页重复搜索栏**：`startSearchEnhancer()` 移除 `enhanceSearchPageSearch()` 调用，消除与 Vue App UmmDynamicIsland 的重复注入
+- **详情页灵动岛边距**：`.umm-detail-root` padding-top `0` → `16px`，与首页一致
+- **Wrapper组件props类型**：`UmmImageWrapper`/`UmmStatusBadgeWrapper` 从 loose array props 改为带类型声明的 props 对象
+
+### Removed
+- 6个旧 Douban 入口点目录 (`douban-homepage-overlay.content/`, `douban-search-overlay.content/`, `douban-detail-early.content/`, `douban-homepage.content/`, `douban-search.content/`, `douban-detail.content/`)
+- `entrypoints/content/shared/` 目录（overlay.ts/css-composer.ts/douban-*.css/UmmImage/UmmStatusBadge/useStatus→迁移到content/douban/）
 
 ## [4.1.1] - 2026-06-26
 
