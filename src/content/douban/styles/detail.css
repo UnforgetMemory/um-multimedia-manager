@@ -65,14 +65,14 @@
 .umm-detail-left { grid-column: 1; display: flex; flex-direction: column; gap: 28px; }
 .umm-poster { position: relative; align-self: start; overflow: hidden; width: 100%; border-radius: var(--umm-card-radius, 8px); }
 .umm-poster a { display: block; width: 100%; overflow: hidden; border-radius: inherit; }
-.umm-poster-img { width: 100%; display: block; object-fit: cover; border-radius: inherit; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-.umm-poster:hover .umm-poster-img { transform: scale(1.05); }
-.umm-celeb-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--umm-card-radius, 8px); display: block; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-.umm-celeb-item:hover .umm-celeb-img { transform: scale(1.05); }
-.umm-photo-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; display: block; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-.umm-photo-item:hover .umm-photo-img { transform: scale(1.08); }
-.umm-rec-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-.umm-rec-cover:hover .umm-rec-img { transform: scale(1.08); }
+.umm-poster .umm-image-img { will-change: transform; backface-visibility: hidden; transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.umm-poster:hover .umm-image-img { transform: scale(1.05); }
+.umm-celeb-item .umm-image-img { will-change: transform; backface-visibility: hidden; transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.umm-celeb-item:hover .umm-image-img { transform: scale(1.05); }
+.umm-photo-item .umm-image-img { will-change: transform; backface-visibility: hidden; transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.umm-photo-item:hover .umm-image-img { transform: scale(1.08); }
+.umm-rec-cover .umm-image-img { will-change: transform; backface-visibility: hidden; transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.umm-rec-cover:hover .umm-image-img { transform: scale(1.08); }
 
 .umm-rating-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .umm-rating-score-section { display: flex; align-items: center; gap: 14px; }

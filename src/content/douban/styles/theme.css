@@ -20,6 +20,10 @@
   --umm-island-hover-bg: rgba(0, 0, 0, 0.05);
   --umm-island-active-bg: rgba(0, 0, 0, 0.06);
   --umm-island-divider: color-mix(in srgb, #e5e7eb 8%, transparent);
+  /* Rating gold tiers — light theme */
+  --umm-rating-gold-low: #b8860b;
+  --umm-rating-gold-mid: #c9941a;
+  --umm-rating-gold-high: #d4a017;
   background: var(--umm-bg);
   color: var(--umm-text-primary);
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
@@ -44,4 +48,8 @@
   --umm-island-hover-bg: color-mix(in srgb, #e0e0e0 6%, transparent);
   --umm-island-active-bg: color-mix(in srgb, #e0e0e0 8%, transparent);
   --umm-island-divider: color-mix(in srgb, #e0e0e0 10%, transparent);
+  /* Rating gold tiers — dark theme */
+  --umm-rating-gold-low: #d4a843;
+  --umm-rating-gold-mid: #e0b020;
+  --umm-rating-gold-high: #e8c030;
 }

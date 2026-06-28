@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { DoubanSearchData } from './types'
+import type { DoubanSearchData, SearchItem } from './types'
 import type { StoreRecord } from '@/types'
 import { computed, ref } from 'vue'
-import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
-import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
-import UmmDynamicIsland from '@/content/douban/components/UmmDynamicIsland.vue'
+import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
+import UmmSearchCard from './components/UmmSearchCard.vue'
+import UmmSearchFilter, { type FilterType } from './components/UmmSearchFilter.vue'
 
 const props = defineProps<{
   searchData?: DoubanSearchData
@@ -20,6 +20,18 @@ const totalPages = computed(() => props.searchData ? Math.ceil(props.searchData.
 const currentPage = computed(() => props.searchData ? Math.floor((props.searchData.start || 0) / perPage.value) + 1 : 1)
 
 const jumpToPage = ref<number | null>(null)
+const filterType = ref<FilterType>('all')
+
+/** TV detection: check if item has a "剧集" label from Douban's own metadata */
+function isTvItem(item: SearchItem): boolean {
+  return item.labels?.some(l => l.text === '剧集') ?? false
+}
+
+const filteredItems = computed(() => {
+  if (!props.searchData?.items || filterType.value === 'all') return props.searchData?.items ?? []
+  const wantTv = filterType.value === 'tv'
+  return props.searchData.items.filter(i => isTvItem(i) === wantTv)
+})
 
 const pageWindow = computed(() => {
   const tp = totalPages.value
@@ -45,16 +57,6 @@ function navigate(url: string): void {
   location.href = url
 }
 
-function badgeFor(item: { id: number }): { status: 'done' | 'none'; rating: number } {
-  const rec = props.recordMap?.get(String(item.id))
-  if (rec?.status === 2) return { status: 'done', rating: rec.rating || 0 }
-  return { status: 'none', rating: 0 }
-}
-
-function starString(starCount: number): string {
-  return '★'.repeat(Math.floor(starCount)) + '☆'.repeat(5 - Math.floor(starCount))
-}
-
 function handlePageJump(): void {
   const p = Math.round(Number(jumpToPage.value))
   if (!Number.isFinite(p)) {
@@ -76,47 +78,33 @@ function clampJumpInput(): void {
 </script>
 
 <template>
-  <div class="umm-search-page">
-    <UmmDynamicIsland :newTab="false" :type="type" :initialQuery="searchData?.text || ''" />
+  <UmmPageLayout :newTab="false" :type="type" :initialQuery="searchData?.text || ''">
+    <div class="umm-search-page">
 
-    <div class="umm-search-hd">
-      <h1 class="umm-search-title">搜索结果</h1>
-      <span v-if="searchData" class="umm-search-meta">
+    <UmmSearchFilter
+      v-if="searchData && !isMusic"
+      v-model="filterType"
+      :total="searchData.total"
+      :filtered="filteredItems.length"
+      :query="searchData.text"
+    />
+
+    <div v-else-if="searchData" class="umm-search-hd">
+      <div class="umm-search-hd-left">
+        <h1 class="umm-search-title">{{ isMusic ? '音乐搜索' : '搜索结果' }}</h1>
+      </div>
+      <span class="umm-search-hd-meta">
         "{{ searchData.text }}" · {{ searchData.total }} 个结果
       </span>
     </div>
 
-    <div v-if="searchData?.items" class="umm-search-grid">
-      <a
-        v-for="item in searchData.items"
+    <div v-if="filteredItems.length > 0" class="umm-search-grid">
+      <UmmSearchCard
+        v-for="item in filteredItems"
         :key="item.id"
-        :href="item.url"
-        target="_blank" rel="noopener noreferrer"
-        class="umm-search-card"
-      >
-        <div class="umm-search-card-cover">
-          <UmmImageWrapper :src="item.cover_url" :alt="item.title" aspect-ratio="2/3" />
-          <span v-if="item.labels?.length" class="umm-search-label">{{ item.labels[0].text }}</span>
-        </div>
-        <div class="umm-search-card-body">
-          <div class="umm-search-card-title-row">
-            <span class="umm-search-card-title">{{ item.title }}</span>
-            <UmmStatusBadgeWrapper
-              :status="badgeFor(item).status === 'done' ? 2 : 0"
-              :rating="badgeFor(item).rating"
-              variant="small"
-            />
-          </div>
-          <div v-if="item.rating.value > 0" class="umm-search-rating">
-            <span class="umm-search-stars">{{ starString(item.rating.star_count) }}</span>
-            <span class="umm-search-score">{{ item.rating.value.toFixed(1) }}</span>
-            <span class="umm-search-count">({{ item.rating.count }})</span>
-          </div>
-          <div v-else class="umm-search-no-rating">暂无评分</div>
-          <div class="umm-search-meta-line">{{ item.abstract }}</div>
-          <div class="umm-search-meta-line umm-search-cast">{{ item.abstract_2 }}</div>
-        </div>
-      </a>
+        :item="item"
+        :records="recordMap || new Map()"
+      />
     </div>
     <div v-else class="umm-search-empty">
       <p>无法获取搜索结果数据。</p>
@@ -175,4 +163,5 @@ function clampJumpInput(): void {
       </span>
     </div>
   </div>
+  </UmmPageLayout>
 </template>

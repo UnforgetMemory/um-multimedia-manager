@@ -1,28 +1,31 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRecordCache } from './composables/useRecordCache'
-import { useDoubanScreeningItems } from './composables/useDoubanScreeningItems'
-import { useDoubanBillboard } from './composables/useDoubanBillboard'
-import { useDoubanHotSection } from './composables/useDoubanHotSection'
+import { useDoubanSection } from './composables/useDoubanSection'
 import { useHomepageObserver } from './composables/useHomepageObserver'
-import UmmDynamicIsland from '@/content/douban/components/UmmDynamicIsland.vue'
-import UmmScrollRow from './components/UmmScrollRow.vue'
-import UmmMediaCard from './components/UmmMediaCard.vue'
+import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
+import UmmMediaRow from './components/UmmMediaRow.vue'
 import UmmBillboardCard from './components/UmmBillboardCard.vue'
+import UmmScrollRow from './components/UmmScrollRow.vue'
 import UmmReviewsSection from './components/UmmReviewsSection.vue'
+import {
+  parseScreeningItems,
+  parseBillboardItems,
+  parseHotSection,
+} from './extractors'
 
 const { records, load } = useRecordCache()
 
-const { items: screeningItems, parse: parseScreening } = useDoubanScreeningItems(records)
-const { items: billboardItems, parse: parseBillboard } = useDoubanBillboard(records)
-const { items: hotMovies, parse: parseHotMovies } = useDoubanHotSection('.recent-hot-movie', '最近热门电影', records)
-const { items: hotTv, parse: parseHotTv } = useDoubanHotSection('.recent-hot-tv', '最近热门电视剧', records)
+const { items: screeningItems, refresh: refreshScreening } = useDoubanSection(parseScreeningItems, records)
+const { items: billboardItems, refresh: refreshBillboard } = useDoubanSection(parseBillboardItems, records)
+const { items: hotMovies, refresh: refreshHotMovies } = useDoubanSection(() => parseHotSection('.recent-hot-movie'), records)
+const { items: hotTv, refresh: refreshHotTv } = useDoubanSection(() => parseHotSection('.recent-hot-tv'), records)
 
 function refreshFromDom() {
-  parseScreening()
-  parseBillboard()
-  parseHotMovies()
-  parseHotTv()
+  refreshScreening()
+  refreshBillboard()
+  refreshHotMovies()
+  refreshHotTv()
 }
 
 const { start } = useHomepageObserver(refreshFromDom)
@@ -34,23 +37,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="umm-top-panel">
-    <UmmDynamicIsland />
+  <UmmPageLayout>
+    <div class="umm-top-panel">
 
-    <UmmScrollRow v-if="screeningItems.length > 0" title="正在热映">
-      <UmmMediaCard
-        v-for="item in screeningItems"
-        :key="item.subjectId"
-        :poster-url="item.posterUrl"
-        :title="item.title"
-        :href="item.href"
-        :rate="item.rate"
-        :star-num="item.starNum"
-        :intro="item.intro"
-        :badge-status="records.get(item.subjectId)?.status ?? 0"
-        :badge-rating="records.get(item.subjectId)?.rating ?? 0"
-      />
-    </UmmScrollRow>
+    <UmmMediaRow title="正在热映" :items="screeningItems" :records="records" />
 
     <UmmScrollRow v-if="billboardItems.length > 0" title="一周口碑榜">
       <UmmBillboardCard
@@ -64,33 +54,10 @@ onMounted(async () => {
       />
     </UmmScrollRow>
 
-    <UmmScrollRow v-if="hotMovies.length > 0" title="最近热门电影">
-      <UmmMediaCard
-        v-for="item in hotMovies"
-        :key="item.subjectId"
-        :poster-url="item.posterUrl"
-        :title="item.title"
-        :href="item.href"
-        :rate="item.rate"
-        :badge-status="records.get(item.subjectId)?.status ?? 0"
-        :badge-rating="records.get(item.subjectId)?.rating ?? 0"
-      />
-    </UmmScrollRow>
-
-    <UmmScrollRow v-if="hotTv.length > 0" title="最近热门电视剧">
-      <UmmMediaCard
-        v-for="item in hotTv"
-        :key="item.subjectId"
-        :poster-url="item.posterUrl"
-        :title="item.title"
-        :href="item.href"
-        :rate="item.rate"
-        :badge-status="records.get(item.subjectId)?.status ?? 0"
-        :badge-rating="records.get(item.subjectId)?.rating ?? 0"
-        :episodes="item.episodes"
-      />
-    </UmmScrollRow>
+    <UmmMediaRow title="最近热门电影" :items="hotMovies" :records="records" />
+    <UmmMediaRow title="最近热门电视剧" :items="hotTv" :records="records" :show-episodes="true" />
 
     <UmmReviewsSection :records="records" />
-  </div>
+    </div>
+  </UmmPageLayout>
 </template>

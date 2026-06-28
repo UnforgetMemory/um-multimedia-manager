@@ -1,3 +1,25 @@
+/* ===== Unified scrollbar styles (Chrome + Firefox) ===== */
+:host {
+  scrollbar-width: thin;
+  scrollbar-color: var(--umm-border) var(--umm-bg-secondary);
+}
+:host::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+:host::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+:host::-webkit-scrollbar-thumb {
+  background: var(--umm-border);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+:host::-webkit-scrollbar-thumb:hover {
+  background: var(--umm-text-muted);
+}
+
 /* ---- Image shimmer placeholder ---- */
 .umm-img-shimmer {
   position: absolute;
@@ -5,6 +27,13 @@
   border-radius: inherit;
   background: var(--umm-bg-secondary, #f0f0f0);
   overflow: hidden;
+}
+
+/* UmmImage container fills parent height only in fixed-height wrappers.
+   Pages using aspectRatio prop get height from aspect-ratio inline style. */
+.umm-card-cover > .umm-image-container,
+.umm-search-card-cover > .umm-image-container {
+  height: 100%;
 }
 
 .umm-img-shimmer::after {
@@ -33,6 +62,32 @@
     transparent 100%
   );
   background-size: 200% 100%;
+}
+
+/* ---- Rating display (score + count, no stars) ---- */
+.umm-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--umm-font-xs, 11px);
+}
+.umm-rating-score {
+  font-weight: 700;
+}
+.umm-rating-score.umm-rating--gold-low {
+  color: var(--umm-rating-gold-low);
+}
+.umm-rating-score.umm-rating--gold-mid {
+  color: var(--umm-rating-gold-mid);
+}
+.umm-rating-score.umm-rating--gold-high {
+  color: var(--umm-rating-gold-high);
+}
+.umm-rating-count {
+  color: var(--umm-text-muted);
+}
+.umm-rating-na {
+  color: var(--umm-text-muted);
 }
 
 @keyframes umm-shimmer {
@@ -84,7 +139,7 @@
 
 .umm-status--inline {
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--umm-font-xs, 11px);
   gap: 3px;
   min-height: 20px;
   max-width: 110px;
@@ -92,7 +147,7 @@
 
 .umm-status--small {
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: var(--umm-font-xs, 11px);
   gap: 3px;
   min-height: 18px;
   max-width: 100px;

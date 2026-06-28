@@ -4,7 +4,7 @@ import { Utils } from '@/utils'
 import { t } from '@/entrypoints/content/i18n'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
-import UmmDynamicIsland from '@/content/douban/components/UmmDynamicIsland.vue'
+import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 
 interface RatingBar {
   label: string
@@ -89,8 +89,8 @@ defineExpose({ updateRecord })
 </script>
 
 <template>
-  <div class="umm-detail-root">
-    <UmmDynamicIsland :type="d.isMusic ? 'music' : 'movie'" />
+  <UmmPageLayout :type="d.isMusic ? 'music' : 'movie'">
+    <div class="umm-detail-root">
 
     <div class="umm-detail-grid">
       <div class="umm-detail-title-block">
@@ -225,4 +225,5 @@ defineExpose({ updateRecord })
       </div>
     </div>
   </div>
+  </UmmPageLayout>
 </template>

@@ -1,4 +1,6 @@
 /* ===== UMM Douban Search — Shadow DOM styles ===== */
+/* Reorganized for better visual hierarchy and readability */
+
 .umm-search-page {
   padding: 24px 24px 64px;
   max-width: 1200px;
@@ -11,68 +13,122 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Search bar ---- */
+/* ---- Search header ---- */
 .umm-search-hd {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.umm-search-hd-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .umm-search-title {
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   font-weight: 700;
   margin: 0;
   color: var(--umm-text-primary);
+  white-space: nowrap;
 }
 
-.umm-search-meta {
-  font-size: 0.875rem;
+.umm-search-hd-meta {
+  font-size: 0.8125rem;
   color: var(--umm-text-muted);
+  white-space: nowrap;
 }
 
+/* ---- Type filter buttons ---- */
+.umm-search-type-group {
+  display: inline-flex;
+  background: var(--umm-bg);
+  border: 1px solid var(--umm-border);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 1px;
+}
+
+.umm-type-btn {
+  padding: 4px 14px;
+  border: none;
+  border-radius: 18px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.umm-type-btn:hover {
+  color: var(--umm-text-primary);
+  background: var(--umm-bg-secondary);
+}
+
+.umm-type-btn--active {
+  color: #fff;
+  background: var(--umm-link, #1757d6);
+}
+
+.umm-type-btn--active:hover {
+  color: #fff;
+  background: var(--umm-link, #1757d6);
+}
+
+/* ---- Results grid ---- */
 .umm-search-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
 }
 
+/* ---- Result card ---- */
 .umm-search-card {
   display: flex;
   gap: 16px;
-  padding: 16px;
+  padding: 14px 16px;
   border-radius: var(--umm-card-radius);
   background: var(--umm-bg-secondary);
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: 1px solid var(--umm-border);
+  border-left: 3px solid var(--umm-border);
+  box-sizing: border-box;
 }
 
 .umm-search-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--umm-border);
 }
 
+/* ---- Cover image ---- */
 .umm-search-card-cover {
   flex-shrink: 0;
-  width: 96px;
-  height: 135px;
+  width: 100px;
+  height: 140px;
   border-radius: 6px;
   overflow: hidden;
   position: relative;
   background: var(--umm-bg);
 }
 
-.umm-search-card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.umm-search-card-cover > .umm-image-container > .umm-image-img {
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.umm-search-card-cover:hover .umm-search-card-img {
+.umm-search-card-cover:hover > .umm-image-container > .umm-image-img {
   transform: scale(1.08);
 }
 
@@ -88,79 +144,65 @@
   color: #fff;
 }
 
+/* ---- Card body ---- */
 .umm-search-card-body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.umm-search-card-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--umm-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-}
-
-.umm-search-card-title-row {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
-.umm-search-rating {
+/* ---- Title row ---- */
+.umm-search-card-title-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8125rem;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.umm-search-stars {
-  color: #ffa500;
-  letter-spacing: -1px;
-}
-
-.umm-search-score {
+.umm-search-card-title {
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--umm-text-primary);
-}
-
-.umm-search-count {
-  color: var(--umm-text-muted);
-}
-
-.umm-search-no-rating {
-  font-size: 0.8125rem;
-  color: var(--umm-text-muted);
-}
-
-.umm-search-meta-line {
-  font-size: 0.8125rem;
-  color: var(--umm-text-secondary);
   line-height: 1.4;
+  color: var(--umm-text-primary);
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+}
+
+/* ---- Metadata lines ---- */
+.umm-search-meta {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--umm-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .umm-search-cast {
-  color: var(--umm-text-muted);
   font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--umm-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* ---- Empty state ---- */
 .umm-search-empty {
   text-align: center;
   padding: 64px 24px;
   color: var(--umm-text-muted);
 }
 
-/* ---- Pagination ---- */
+/* ---- Pagination (unchanged) ---- */
 .umm-paginator {
   display: flex;
   align-items: center;

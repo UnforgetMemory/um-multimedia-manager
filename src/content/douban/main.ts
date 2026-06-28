@@ -17,6 +17,7 @@ import breakpointsCss from './styles/breakpoints.css?raw'
 import homepageCss from './styles/homepage.css?raw'
 import searchCss from './styles/search.css?raw'
 import detailCss from './styles/detail.css?raw'
+import pageLayoutCss from './styles/page-layout.css?raw'
 import { mountUmmOverlay } from './overlay'
 import { composeStyles } from './css-composer'
 import { createApp } from 'vue'
@@ -42,6 +43,7 @@ async function mountHomepage(): Promise<void> {
     { name: 'theme', css: themeCss },
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
     { name: 'components', css: homepageCss },
   )
   const { default: App } = await import('./pages/homepage/App.vue')
@@ -58,6 +60,7 @@ async function mountSearch(): Promise<void> {
   const css = composeStyles(
     { name: 'theme', css: themeCss },
     { name: 'common', css: commonCss },
+    { name: 'page-layout', css: pageLayoutCss },
     { name: 'components', css: searchCss },
   )
   const { default: App } = await import('./pages/search/App.vue')
@@ -90,6 +93,7 @@ async function mountDetail(): Promise<void> {
   const css = composeStyles(
     { name: 'theme', css: themeCss },
     { name: 'common', css: commonCss },
+    { name: 'page-layout', css: pageLayoutCss },
     { name: 'components', css: detailCss },
   )
   const { default: App } = await import('./pages/detail/App.vue')

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-06-28
+
+### Added
+- **统一模板注入框架 UmmPageLayout**: 创建 defineComponent 布局组件，header (UmmDynamicIsland) + content (slot) + footer (slot) 三明治结构，page-layout.css 共享布局样式
+- **UmmRating 统一评分组件**: defineComponent 渲染分数+金色分段 (5+/7+/8+ 三级 gold low/mid/high)，适配亮暗主题
+- **UmmMediaRow 首页媒体行组件**: 封装 UmmScrollRow + UmmMediaCard + record 查找，消除 3 处重复 App.vue 模板
+- **useDoubanSection 通用工厂**: 替代 3 个 composable 的 ref/parse/watch 重复模式
+- **UmmSearchCard 搜索结果卡片组件**: 多行标题 (2-line clamp)、cover hover 缩放、左边条视觉增强
+- **UmmSearchFilter 搜索结果筛选器**: ALL/电影/剧集三档切换，基于豆瓣 labels 元数据判断类型，右侧结果计数显示
+- **搜索结果卡片重构**: cover 100×140px、视觉层级 (title→rating→meta→cast 渐进淡化)、gap 8px 间距
+- **Cover hover 动画统一优化**: 全线使用 cubic-bezier(0.22, 0.61, 0.36, 1) + will-change + backface-visibility，修复搜索页/详情页 transition 错放 :hover 导致鼠标离开瞬间回弹
+- **12级断点自适应**: .umm-status--inline/--small font-size 从固定 px 改为 var(--umm-font-xs)
+- **统一滚动条美化**: :host::-webkit-scrollbar 6px 圆角细条，Chrome+Firefox 双浏览器覆盖
+
+### Changed
+- **首页组件化**: App.vue 从 4 个独立 UmmScrollRow→3 行 UmmMediaRow，删除 3 个旧 composable
+- **搜索结果组件化**: App.vue 删除内联模板，改用 UmmSearchCard + UmmSearchFilter
+- **详情页图片 hover**: 修复海报/影人/剧照/推荐图片 CSS 选择器（旧 .umm-*-img→实际 .umm-image-img）
+- **首页评分**: 移除 UmmMediaCard 的 starNum 计算 + ★ 渲染，统一使用 UmmRating
+- **首页 Rank 增强**: billboard 金银铜牌勋章圈 + 渐变 + 辉光 + 左边色条
+
+### Fixed
+- **Cover hover 动画瞬间回弹**: transition 属性从 :hover 块移至基态，确保进出双向平滑
+- **搜索结果筛选无效**: isTvItem 从抽象启发式改为直接检查豆瓣 labels 元数据 (.text === '剧集')
+
+### Removed
+- **useDoubanScreeningItems / useDoubanBillboard / useDoubanHotSection**: 被 useDoubanSection 工厂替代
+- **UmmMediaCard 冗余 UmmImageWrapper 内联封装**: 改用共享组件导入
+
 ### Added
 - **共享 UI 组件系统**：创建 4 个可复用组件，消除 Options 页面重复渲染模式
   - `OptionPicker`：提取 AppearanceTab 主题/语言 3 列按钮网格

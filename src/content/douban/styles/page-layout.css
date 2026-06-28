@@ -1,0 +1,44 @@
+/* ===== UMM Douban Page Layout — Shared structural styles ===== */
+/* Applied to every Douban page via UmmPageLayout template. */
+/* Page-specific content styles remain in their respective CSS files. */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.umm-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--umm-text-primary);
+  background: var(--umm-bg);
+}
+
+.umm-layout-header {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  padding-top: var(--umm-space-md, 12px);
+  padding-bottom: 0;
+  background: var(--umm-bg);
+}
+
+.umm-layout-content {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.umm-layout-footer {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--umm-space-md, 12px) 0;
+  /* Empty placeholder — ready for future cross-cutting features */
+}
