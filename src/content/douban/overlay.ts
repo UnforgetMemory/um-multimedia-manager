@@ -31,19 +31,22 @@ function getPageCSS(overlayId: string): string {
   return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9998!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important}body{overflow:hidden!important}`
 }
 
-/** Apply theme to overlay host element */
+/** Apply theme to overlay host element (data-theme + CSS class for :host(.umm-theme--*)) */
 export function applyOverlayTheme(host: HTMLElement): void {
-  const fallback = () => {
-    host.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  function setTheme(mode: string) {
+    const theme = mode === 'dark' ? 'dark'
+      : mode === 'light' ? 'light'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    host.setAttribute('data-theme', theme)
+    host.classList.remove('umm-theme--light', 'umm-theme--dark')
+    host.classList.add(`umm-theme--${theme}`)
   }
+  const fallback = () => setTheme('auto')
   try {
     chrome.storage.local.get([THEME_KEY], (result) => {
       if (chrome.runtime.lastError) { fallback(); return }
       const raw = result[THEME_KEY] as Record<string, unknown> | undefined
-      const mode = (raw?.theme as string) ?? 'auto'
-      if (mode === 'dark') host.setAttribute('data-theme', 'dark')
-      else if (mode === 'light') host.setAttribute('data-theme', 'light')
-      else host.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      setTheme((raw?.theme as string) ?? 'auto')
     })
   } catch { fallback() }
 }

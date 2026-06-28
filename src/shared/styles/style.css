@@ -143,6 +143,18 @@
   /* Text colors */
   --umm-color-text-primary: hsl(240 10% 3.9%);
   --umm-color-text-secondary: hsl(240 3.8% 46.1%);
+  
+  /* Bar chart colors (theme-adaptive, read via getComputedStyle in OverviewTab) */
+  --umm-bar-platform-l: 45%;
+  --umm-bar-platform-icon-l: 40%;
+  --umm-bar-base-s: 35;
+  --umm-bar-base-l: 75;
+  
+  /* Surface colors (light) */
+  --umm-color-surface: hsl(0 0% 100%);
+  --umm-color-surface-secondary: hsl(240 5% 96%);
+  --umm-color-surface-tertiary: hsl(240 4% 91%);
+  --umm-color-surface-elevated: hsl(0 0% 100%);
   --umm-color-text-tertiary: hsl(240 3.8% 46.1% / 0.6);
   --umm-color-text-disabled: hsl(240 3.8% 46.1% / 0.38);
   
@@ -423,6 +435,11 @@
     --umm-color-text-primary: hsl(0 0% 98%);
     --umm-color-text-secondary: hsl(240 5% 60%);
     --umm-color-text-tertiary: hsl(240 5% 60% / 0.6);
+    
+    --umm-bar-platform-l: 50%;
+    --umm-bar-platform-icon-l: 45%;
+    --umm-bar-base-s: 30;
+    --umm-bar-base-l: 25;
     --umm-color-text-disabled: hsl(240 5% 60% / 0.38);
     
     --umm-color-primary: hsl(0 0% 98%);

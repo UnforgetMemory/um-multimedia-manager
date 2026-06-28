@@ -134,22 +134,23 @@ const statsData = computed(() =>
 const tooltipData = ref<{ show: boolean; x: number; y: number; text: string }>({ show: false, x: 0, y: 0, text: '' })
 
 function platformColor(hue: number, variant: 'bar' | 'icon'): string {
-  const isDark = document.documentElement.classList.contains('dark')
+  const s = getComputedStyle(document.documentElement)
+  const barL = s.getPropertyValue('--umm-bar-platform-l').trim()
+  const iconL = s.getPropertyValue('--umm-bar-platform-icon-l').trim()
   switch (variant) {
-    case 'bar': return `hsl(${hue}, 55%, ${isDark ? '50%' : '45%'})`
-    case 'icon': return `hsl(${hue}, 55%, ${isDark ? '45%' : '40%'})`
+    case 'bar': return `hsl(${hue}, 55%, ${barL || '45%'})`
+    case 'icon': return `hsl(${hue}, 55%, ${iconL || '40%'})`
   }
 }
 
 function barColor(count: number, maxCount: number): string {
-  const isDark = document.documentElement.classList.contains('dark')
   if (count === 0) return 'hsl(var(--muted))'
+  const s = getComputedStyle(document.documentElement)
+  const baseS = parseFloat(s.getPropertyValue('--umm-bar-base-s')) || 35
+  const baseL = parseFloat(s.getPropertyValue('--umm-bar-base-l')) || 75
   const ratio = count / maxCount
   const level = Math.min(5, Math.ceil(ratio * 5))
-  if (isDark) {
-    return `hsl(210, ${30 + level * 8}%, ${25 + level * 6}%)`
-  }
-  return `hsl(210, ${35 + level * 7}%, ${75 - level * 8}%)`
+  return `hsl(210, ${baseS + level * 7}%, ${baseL - level * 6}%)`
 }
 
 onMounted(async () => { await appStore.loadData() })
@@ -159,7 +160,7 @@ onMounted(async () => { await appStore.loadData() })
   <div class="umm:flex umm:flex-col umm:gap-6">
     <!-- Skeleton -->
     <div v-if="!appStore.dataReady && !appStore.error" class="umm:flex umm:flex-col umm:gap-6">
-      <div class="umm:grid umm:grid-cols-2 umm:lg:grid-cols-4" :style="{ gap: 'var(--umm-spacing-3)' }">
+      <div class="umm:grid umm:grid-cols-2 umm:lg:grid-cols-4" :style="{ gap: 'var(--umm-section-gap)' }">
         <div v-for="i in 4" :key="i" class="umm:h-28 umm:bg-muted umm:rounded-xl umm:animate-pulse"></div>
       </div>
       <div class="umm:h-48 umm:bg-muted umm:rounded-xl umm:animate-pulse"></div>
@@ -213,7 +214,7 @@ onMounted(async () => { await appStore.loadData() })
       <!-- Tab: Weekly Detail -->
       <div v-if="activeOverviewTab === 'weekly'" class="umm:flex umm:flex-col umm:gap-6">
       <!-- Weekly Summary Stats -->
-      <div class="umm:grid umm:grid-cols-3" :style="{ gap: 'var(--umm-spacing-3)' }">
+      <div class="umm:grid umm:grid-cols-3" :style="{ gap: 'var(--umm-section-gap)' }">
         <Card class="umm:text-center">
           <CardContent>
             <div class="umm:font-bold umm:tabular-nums umm:text-primary-content" :style="{ fontSize: '1.5rem' }">
@@ -246,9 +247,9 @@ onMounted(async () => { await appStore.loadData() })
           <h3 class="umm:font-h2 umm:text-primary-content">{{ t('stats.dailyRecords') }}</h3>
         </CardHeader>
         <CardContent>
-          <div class="umm:flex" :style="{ gap: 'var(--umm-spacing-2)', height: '8rem' }">
+          <div class="umm:flex umm:gap-2" :style="{ height: '8rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
-              class="umm:flex-1 umm:flex umm:flex-col umm:items-center" :style="{ gap: 'var(--umm-spacing-1)', height: '100%' }">
+              class="umm:flex-1 umm:flex umm:flex-col umm:items-center umm:gap-1" :style="{ height: '100%' }">
               <!-- Bar — log scale, flex-1 wrapper provides definite height for percentage -->
               <div class="umm:flex-1 umm:w-full umm:flex umm:flex-col umm:justify-end umm:min-h-0">
                 <div class="umm:w-full umm:rounded-t-lg umm:transition-all umm:duration-300 umm:relative group umm:cursor-default"
@@ -285,8 +286,8 @@ onMounted(async () => { await appStore.loadData() })
               :class="day.isToday ? 'umm:border-primary/30 umm:bg-primary/[0.03] umm:shadow-sm' : 'umm:border-border umm:hover:border-muted umm:hover:shadow-sm'"
               :style="{ padding: 'var(--umm-card-padding)' }">
               <!-- Day header row -->
-              <div class="umm:flex umm:items-center umm:justify-between" :style="{ marginBottom: 'var(--umm-spacing-3)' }">
-                <div class="umm:flex umm:items-center" :style="{ gap: 'var(--umm-spacing-3)' }">
+              <div class="umm:flex umm:items-center umm:justify-between umm:mb-3">
+                <div class="umm:flex umm:items-center umm:gap-3">
                   <!-- Day badge -->
                   <div class="umm:w-10 umm:h-10 umm:rounded-xl umm:flex umm:flex-col umm:items-center umm:justify-center"
                     :style="{
@@ -330,10 +331,10 @@ onMounted(async () => { await appStore.loadData() })
       <div v-if="activeOverviewTab === 'platform'" class="umm:flex umm:flex-col umm:gap-6">
       <!-- Platform Distribution -->
       <div>
-        <h3 class="umm:font-h2 umm:text-primary-content" :style="{ marginBottom: 'var(--umm-spacing-3)' }">{{ t('tab.platformDistribution') }}</h3>
+        <h3 class="umm:font-h2 umm:text-primary-content umm:mb-3">{{ t('tab.platformDistribution') }}</h3>
 
         <!-- Summary bar chart -->
-        <Card :style="{ marginBottom: 'var(--umm-spacing-4)' }">
+        <Card class="umm:mb-4">
           <div :style="{ padding: 'var(--umm-card-padding)' }">
             <div class="umm:flex umm:items-end" :style="{ gap: 'var(--umm-spacing-1)', height: '5rem' }">
               <div
@@ -401,7 +402,7 @@ onMounted(async () => { await appStore.loadData() })
 }
 .heatmap-cell:hover {
   transform: scale(1.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.2);
   z-index: 10;
 }
 </style>
