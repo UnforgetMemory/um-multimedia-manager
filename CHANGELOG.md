@@ -8,7 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **豆瓣注入体系统一**：6个独立 WXT entrypoint 合并为2个薄层入口点 (`douban-early` / `douban-main`)，全部逻辑迁移到 `src/content/douban/`
+- **共享 UI 组件系统**：创建 4 个可复用组件，消除 Options 页面重复渲染模式
+  - `OptionPicker`：提取 AppearanceTab 主题/语言 3 列按钮网格
+  - `PlatformSearchForm`：提取 RatingTab/LinkedTab 重复搜索表单（4字段 Select + Input）
+  - `SettingRow`：提取设置项 label+control 水平布局
+  - `SkeletonLoader`：统一 App.vue/SyncTab 加载骨架屏
+
+### Fixed
+- **Options 页面 Switch 开关不响应**：reka-ui v2 SwitchRoot 改用 `modelValue/update:modelValue`，SettingsTab 绑定改为 `v-model`
+- **Options 页面内容无法渲染**：移除 `<Transition mode="out-in">` 包裹 `<Suspense>`（Vue 3 不兼容）
+- **CardContent 缺少 padding-top**：`px-6 pb-6` → `p-[var(--umm-card-padding)]`，四边统一流体间距
+- **CardHeader 固定间距**：`p-6 pb-4` → `p-[var(--umm-card-padding)] pb-4`
+- **豆瓣注入元素主题实时同步**：`applyOverlayTheme` 同时更新 `data-theme` 和 `umm-theme--*` CSS 类
+- **Options 统计图颜色硬编码**：`barColor`/`platformColor` 从 JS `isDark` 检测改为 CSS 变量驱动
+- **WebDAV 跨标签同步**：`chrome.storage.onChanged` 改用 `changes.newValue` 直接读取
+- **Export 数据字段不完整**：`handleExportData` 导出全部 12 个 AppSettings 字段
+
+### Changed
+- **网格间距优化**：StatsGrid/Weekly 统计卡片 grid gap 从 `12px` 扩大为流体 `var(--umm-section-gap)`（16-56px自适应）
+- **`:root` 补充 surface 颜色**：`--umm-color-surface-*` 亮色值补全（之前只在 `.dark` 有定义）
+- **Options 各项 inline style**：统一为 Tailwind class（`umm:mb-3`, `umm:gap-2` 等）
+- **`.gitignore`**：新增 `coverage/`、`*.crswap` 等模式
+
+### Security
+- **热力阴影硬编码 rgba**：`box-shadow` 改用 `hsl(var(--foreground) / 0.2)` 适应双主题
+- **bar chart 样式**：CSS 变量 `--umm-bar-base-s/l`、`--umm-bar-platform-l` 在 `:root`/`.dark` 双定义
+
+### 豆瓣注入体系统一：6个独立 WXT entrypoint 合并为2个薄层入口点 (`douban-early` / `douban-main`)，全部逻辑迁移到 `src/content/douban/`
   - `early.ts`：3个 early overlay 合并为 URL 路由的工厂函数
   - `main.ts`：3个 idle 入口合并为 URL 路由工厂，动态导入 page 模块
   - `UmmImageWrapper` / `UmmStatusBadgeWrapper` 提取到 `components/`，消除搜索/详情页重复 defineComponent
