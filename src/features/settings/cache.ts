@@ -39,12 +39,6 @@ class SettingsCache {
     return { ...this.cache }
   }
 
-  async update(key: string, value: unknown): Promise<void> {
-    if (!this.cache) await this.init()
-    ;(this.cache as any)[key] = value
-    await chrome.storage.local.set({ [key]: value })
-  }
-
   async updateAll(settings: Partial<AppSettings>): Promise<void> {
     if (!this.cache) await this.init()
     Object.assign(this.cache!, settings)
@@ -57,6 +51,15 @@ class SettingsCache {
       for (const [key, change] of Object.entries(changes)) {
         if (change.newValue !== undefined) {
           ;(this.cache as any)[key] = change.newValue
+        }
+      }
+      // Sync theme from umm:appearance key (used by content scripts / AppearanceTab)
+      // into settingsCache's theme field for background consistency
+      const appearanceChange = changes['umm:appearance']
+      if (appearanceChange?.newValue) {
+        const mode = (appearanceChange.newValue as { theme?: string }).theme
+        if (mode && ['auto', 'light', 'dark'].includes(mode)) {
+          this.cache.theme = mode as AppSettings['theme']
         }
       }
     })

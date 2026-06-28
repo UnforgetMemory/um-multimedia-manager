@@ -13,6 +13,22 @@ import { settingsCache } from '@/features/settings/cache'
 import { infoLog, warnLog } from '@/utils/logger'
 import { STORAGE_KEYS } from '@/config'
 
+/** Settings fields to include in export (all AppSettings keys except sensitive credentials) */
+const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
+  'autoSync',
+  'autoSyncNeoDB',
+  'syncInterval',
+  'theme',
+  'language',
+  'notificationEnabled',
+  'appearance',
+  'accentColor',
+  'grayColor',
+  'debugEnabled',
+  'logLevel',
+  'neodbToken',
+]
+
 type SendResponse = (response?: any) => void
 
 /** GET_SETTINGS — return cached settings */
@@ -31,15 +47,14 @@ export async function handleUpdateSettings(
   sendResponse({ success: true, settings })
 }
 
-/** EXPORT_DATA — dump all stores + settings */
+/** EXPORT_DATA — dump all stores + settings (excludes WebDAV credentials) */
 export async function handleExportData(sendResponse: SendResponse) {
   const stores = await mediaDB.getAllStores()
   const appSettings = settingsCache.get()
-  const settings: Partial<AppSettings> = {
-    autoSync: appSettings.autoSync,
-    syncInterval: appSettings.syncInterval,
-    theme: appSettings.theme,
-    notificationEnabled: appSettings.notificationEnabled,
+  const settings: Record<string, unknown> = {}
+  for (const key of EXPORT_SETTINGS_KEYS) {
+    const value = appSettings[key]
+    if (value !== undefined) settings[key] = value
   }
 
   const data: ExportData = {

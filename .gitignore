@@ -107,6 +107,22 @@ pnpm-workspace.yaml
 .webpack/
 .output/
 *.tsbuildinfo
+
+# Test coverage output
+coverage/
 # AI agent ephemeral docs
 docs/superpowers/
 .cortexkit/
+
+# OS metadata (cross-platform)
+.DS_Store*
+Thumbs.db
+Desktop.ini
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+
+# Editor crash recovery
+*.crswap
+*.crswap.*
