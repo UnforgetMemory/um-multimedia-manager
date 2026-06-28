@@ -13,6 +13,7 @@ import { useToast } from '@/composables/useToast'
 import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
 import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
 import FormField from '@/shared/ui/form-field/FormField.vue'
+import { SettingRow } from '@/shared/ui/setting-row'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -30,8 +31,18 @@ const LOG_LEVEL_OPTIONS = [
 
 let autoSyncInitialized = false
 let debugInitialized = false
-let syncingFromStorage = false
+let syncCount = 0
 let settingsChangedUnsub: (() => void) | null = null
+
+/** Debounced save for rapid-toggle safety */
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+function debouncedSave(fn: () => Promise<void>, ms = 300): void {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null
+    fn().catch(() => {})
+  }, ms)
+}
 
 onMounted(async () => {
   const settings = await Store.getSettings()
@@ -43,12 +54,12 @@ onMounted(async () => {
   autoSyncInitialized = true
   debugInitialized = true
 
-  // Sync settings across tabs
+  // Sync settings across tabs (counter-based to handle re-entrant onChanged)
   const onChange = async (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
     if (area !== 'local') return
     const relevant = [STORAGE_KEYS.NEODB_TOKEN, STORAGE_KEYS.AUTO_SYNC_NEO_DB, STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL]
     if (!relevant.some(k => k in changes)) return
-    syncingFromStorage = true
+    syncCount++
     if (STORAGE_KEYS.NEODB_TOKEN in changes) {
       const v = changes[STORAGE_KEYS.NEODB_TOKEN].newValue
       neodbToken.value = (typeof v === 'string' ? v : '')
@@ -66,7 +77,7 @@ onMounted(async () => {
       logLevel.value = (v === 'debug' || v === 'info' || v === 'warn' || v === 'error' ? v : 'info')
     }
     await nextTick()
-    syncingFromStorage = false
+    syncCount--
   }
   chrome.storage.onChanged.addListener(onChange)
   settingsChangedUnsub = () => { chrome.storage.onChanged.removeListener(onChange) }
@@ -74,20 +85,38 @@ onMounted(async () => {
 
 onUnmounted(() => {
   settingsChangedUnsub?.()
+  if (debounceTimer) clearTimeout(debounceTimer)
 })
 
 async function saveNeoDBToken() {
   try { await Store.updateSettings({ neodbToken: neodbToken.value.trim() }); toast.success(t('toast.saved')) } catch (e) { toast.error(t('toast.saveFailed'), String(e)) }
 }
 
-watch(autoSyncNeoDB, async (v) => {
-  if (!autoSyncInitialized || syncingFromStorage) return
-  try { await Store.updateSettings({ autoSyncNeoDB: v }); toast.info(v ? t('toast.autoSyncEnabled') : t('toast.autoSyncDisabled')) } catch (e) { toast.error(t('toast.saveFailed'), String(e)) }
+watch(autoSyncNeoDB, (v, oldV) => {
+  if (!autoSyncInitialized || syncCount > 0) return
+  debouncedSave(async () => {
+    try {
+      await Store.updateSettings({ autoSyncNeoDB: v })
+      toast.info(v ? t('toast.autoSyncEnabled') : t('toast.autoSyncDisabled'))
+    } catch (e) {
+      toast.error(t('toast.saveFailed'), String(e))
+      autoSyncNeoDB.value = oldV as boolean
+    }
+  })
 })
 
-watch([debugEnabled, logLevel], async ([e, l]) => {
-  if (!debugInitialized || syncingFromStorage) return
-  try { await Store.updateSettings({ debugEnabled: e, logLevel: l }); toast.info(e ? t('toast.logEnabled', { level: l }) : t('toast.logDisabled')) } catch (err) { toast.error(t('toast.saveFailed'), String(err)) }
+watch([debugEnabled, logLevel], ([e, l], [oldE, oldL]) => {
+  if (!debugInitialized || syncCount > 0) return
+  debouncedSave(async () => {
+    try {
+      await Store.updateSettings({ debugEnabled: e, logLevel: l })
+      toast.info(e ? t('toast.logEnabled', { level: l }) : t('toast.logDisabled'))
+    } catch (err) {
+      toast.error(t('toast.saveFailed'), String(err))
+      debugEnabled.value = oldE as boolean
+      logLevel.value = oldL as AppSettings['logLevel']
+    }
+  })
 })
 </script>
 
@@ -99,9 +128,10 @@ watch([debugEnabled, logLevel], async ([e, l]) => {
         <Input v-model="neodbToken" type="password" :placeholder="t('settings.apiToken')" />
       </FormField>
       <Button @click="saveNeoDBToken" class="umm:w-full">{{ t('settings.saveToken') }}</Button>
-      <div v-if="neodbToken.trim()" class="umm:flex umm:items-center umm:justify-between umm:rounded-lg umm:border umm:p-3">
-        <FormField :label="t('settings.autoSyncNeoDB')" :description="t('settings.autoSyncNeoDBDesc')" />
-        <Switch :checked="autoSyncNeoDB" @update:checked="(v: boolean) => autoSyncNeoDB = v" />
+      <div v-if="neodbToken.trim()">
+        <SettingRow :label="t('settings.autoSyncNeoDB')" :description="t('settings.autoSyncNeoDBDesc')">
+          <Switch v-model="autoSyncNeoDB" />
+        </SettingRow>
       </div>
     </div>
 
@@ -109,24 +139,35 @@ watch([debugEnabled, logLevel], async ([e, l]) => {
 
     <div class="umm:flex umm:flex-col umm:gap-4">
       <SectionHeader :title="t('settings.debugLog')" />
-      <div class="umm:flex umm:items-center umm:justify-between umm:rounded-lg umm:border umm:p-3">
-        <FormField :label="t('settings.enableLog')" :description="t('settings.enableLogDesc')" />
-        <Switch :checked="debugEnabled" @update:checked="(v: boolean) => debugEnabled = v" />
-      </div>
-      <div v-if="debugEnabled" class="umm:flex umm:flex-col umm:gap-2">
-        <FormField :label="t('settings.logLevel')">
-          <Select v-model="logLevel">
-            <SelectTrigger class="umm:w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="opt in LOG_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
-                {{ opt.label }} — {{ t(opt.descKey) }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
-      </div>
+      <SettingRow :label="t('settings.enableLog')" :description="t('settings.enableLogDesc')">
+        <Switch v-model="debugEnabled" />
+      </SettingRow>
+      <Transition name="log">
+        <div v-if="debugEnabled" class="umm:flex umm:flex-col umm:gap-2">
+          <FormField :label="t('settings.logLevel')">
+            <Select v-model="logLevel">
+              <SelectTrigger class="umm:w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="opt in LOG_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
+                  {{ opt.label }} — {{ t(opt.descKey) }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+        </div>
+      </Transition>
     </div>
   </SectionContainer>
 </template>
+
+<style scoped>
+.log-enter-active, .log-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.log-enter-from, .log-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>

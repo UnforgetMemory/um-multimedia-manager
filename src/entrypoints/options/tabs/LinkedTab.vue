@@ -3,15 +3,13 @@ import { ref, watch, onUnmounted } from 'vue'
 import { Store } from '@/features/database'
 import type { Domain, Provider } from '@/config'
 import { Badge } from '@/shared/ui/badge'
-import { Input } from '@/shared/ui/input'
 import { Separator } from '@/shared/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { RefreshCw, Star } from 'lucide-vue-next'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { autoDetectPlatform } from '@/features/adult-av/auto-detect'
 import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
 
-import FormField from '@/shared/ui/form-field/FormField.vue'
+import { PlatformSearchForm } from '@/shared/ui/platform-search-form'
 import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants'
 import { useI18n } from 'vue-i18n'
 
@@ -152,37 +150,15 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
 
 <template>
   <SectionContainer>
-    <div class="umm:flex umm:flex-col umm:gap-4 umm:p-[var(--umm-card-padding)] umm:border umm:border-border umm:rounded-lg">
-      <FormField :label="t('common.selectPlatform')">
-        <Select v-model="linkedSelectedPlatform">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="p in PLATFORM_OPTIONS" :key="p.value" :value="p.value">{{ t(p.labelKey) }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField :label="t('common.mediaType')">
-        <Select v-model="linkedSelectedDomain" :disabled="linkedSelectedPlatform === 'jav_ids'">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="movie">{{ t('stats.movie') }}</SelectItem>
-            <SelectItem value="tv">{{ t('stats.tv') }}</SelectItem>
-            <SelectItem value="music">{{ t('stats.music') }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField v-if="linkedSelectedPlatform === 'jav_ids'" :label="t('common.source')">
-        <Select v-model="linkedSelectedJavSource">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="s in JAV_SOURCE_OPTIONS" :key="s.value" :value="s.value">{{ t(s.labelKey) }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField :label="linkedSelectedPlatform === 'jav_ids' ? t('platform.jav') : t('common.search') + ' ID / URL'" :description="linkedSelectedPlatform === 'jav_ids' ? t('validation.javFormat') : t('validation.cannotParse')">
-        <Input v-model="linkedInput" :placeholder="linkedSelectedPlatform === 'jav_ids' ? 'FC2-PPV-1234567' : '35401245 / URL'" />
-      </FormField>
-    </div>
+    <PlatformSearchForm
+      v-model:platform="linkedSelectedPlatform"
+      v-model:domain="linkedSelectedDomain"
+      v-model:javSource="linkedSelectedJavSource"
+      v-model:search="linkedInput"
+      :platform-options="PLATFORM_OPTIONS"
+      :jav-source-options="JAV_SOURCE_OPTIONS"
+      search-description=""
+    />
 
     <div class="umm:min-h-[60px]">
       <Transition name="fade" mode="out-in">

@@ -9,7 +9,7 @@ const props = defineProps<{
 
 <template>
   <div :class="
-  cn('umm:px-6 umm:pb-6', props.class)
+  cn('umm:p-[var(--umm-card-padding)]', props.class)
 ">
     <slot />
   </div>

@@ -38,14 +38,12 @@ onMounted(async () => {
     if (area !== 'local') return
     const relevant = [STORAGE_KEYS.WEBDAV_URL, STORAGE_KEYS.WEBDAV_USERNAME, STORAGE_KEYS.WEBDAV_PASSWORD]
     if (!relevant.some(k => k in changes)) return
-    chrome.storage.local.get([STORAGE_KEYS.WEBDAV_URL, STORAGE_KEYS.WEBDAV_USERNAME, STORAGE_KEYS.WEBDAV_PASSWORD]).then(result => {
-      webdavConfig.value = {
-        url: (result[STORAGE_KEYS.WEBDAV_URL] as string) || '',
-        username: (result[STORAGE_KEYS.WEBDAV_USERNAME] as string) || '',
-        password: (result[STORAGE_KEYS.WEBDAV_PASSWORD] as string) || '',
-      }
-      isConfigSaved.value = !!(result[STORAGE_KEYS.WEBDAV_URL] && result[STORAGE_KEYS.WEBDAV_USERNAME] && result[STORAGE_KEYS.WEBDAV_PASSWORD])
-    })
+    webdavConfig.value = {
+      url: (changes[STORAGE_KEYS.WEBDAV_URL]?.newValue as string) ?? webdavConfig.value.url,
+      username: (changes[STORAGE_KEYS.WEBDAV_USERNAME]?.newValue as string) ?? webdavConfig.value.username,
+      password: (changes[STORAGE_KEYS.WEBDAV_PASSWORD]?.newValue as string) ?? webdavConfig.value.password,
+    }
+    isConfigSaved.value = !!(webdavConfig.value.url && webdavConfig.value.username && webdavConfig.value.password)
   }
   chrome.storage.onChanged.addListener(onChange)
   webdavOnChangedUnsub = () => { chrome.storage.onChanged.removeListener(onChange) }

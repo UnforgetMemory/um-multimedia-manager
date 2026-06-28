@@ -5,8 +5,6 @@ import type { Domain, Provider } from '@/config'
 import type { StoreRecord } from '@/types'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/shared/ui/button'
-import { Input } from '@/shared/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { Star, CheckCircle2, XCircle, Database, RefreshCw } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
@@ -14,6 +12,7 @@ import { JAV_ID_REGEX, autoDetectPlatform } from '@/features/adult-av/auto-detec
 import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
 
 import FormField from '@/shared/ui/form-field/FormField.vue'
+import { PlatformSearchForm } from '@/shared/ui/platform-search-form'
 import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants'
 
 const { t } = useI18n()
@@ -197,41 +196,19 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
 
 <template>
   <SectionContainer>
-    <div class="umm:flex umm:flex-col umm:gap-4 umm:p-[var(--umm-card-padding)] umm:border umm:border-border umm:rounded-lg">
-      <FormField :label="t('common.selectPlatform')">
-        <Select v-model="selectedPlatform">
-          <SelectTrigger><SelectValue :placeholder="t('common.selectPlatform')" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="p in PLATFORM_OPTIONS" :key="p.value" :value="p.value">{{ t(p.labelKey) }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField :label="t('common.mediaType')">
-        <Select v-model="selectedDomain" :disabled="selectedPlatform === 'jav_ids'">
-          <SelectTrigger><SelectValue :placeholder="t('common.mediaType')" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="movie">{{ t('stats.movie') }}</SelectItem>
-            <SelectItem value="tv">{{ t('stats.tv') }}</SelectItem>
-            <SelectItem value="music">{{ t('stats.music') }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField v-if="selectedPlatform === 'jav_ids'" :label="t('common.source')">
-        <Select v-model="selectedJavSource">
-          <SelectTrigger><SelectValue :placeholder="t('common.source')" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="s in JAV_SOURCE_OPTIONS" :key="s.value" :value="s.value">{{ t(s.labelKey) }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField :label="selectedPlatform === 'jav_ids' ? t('platform.jav') : t('common.search') + ' ID / URL'">
-        <Input v-model="ratingInput" :placeholder="selectedPlatform === 'jav_ids' ? 'FC2-PPV-1234567' : '1299004 / URL'" />
-      </FormField>
+    <PlatformSearchForm
+      v-model:platform="selectedPlatform"
+      v-model:domain="selectedDomain"
+      v-model:javSource="selectedJavSource"
+      v-model:search="ratingInput"
+      :platform-options="PLATFORM_OPTIONS"
+      :jav-source-options="JAV_SOURCE_OPTIONS"
+    />
 
-      <div class="umm:flex umm:flex-col umm:gap-2 umm:min-h-[40px]">
+    <div class="umm:flex umm:flex-col umm:gap-2 umm:min-h-[40px]">
         <!-- Parse result -->
         <Transition name="fade" mode="out-in">
-          <div v-if="ratingInput && parseResult && parseResult.valid" key="parse-ok" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-state-success/10/50 umm:dark:bg-state-success/20 umm:text-xs">
+          <div v-if="ratingInput && parseResult && parseResult.valid" key="parse-ok" class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-state-success/10 umm:dark:bg-state-success/20 umm:text-xs">
             <CheckCircle2 class="umm:h-3.5 umm:w-3.5 umm:text-state-success umm:shrink-0" />
             <span class="umm:text-state-success">{{ parseResult.provider }} / {{ parseResult.type }}</span>
             <span class="umm:text-state-success/70 umm:dark:text-state-success/70 umm:font-mono">{{ parseResult.providerId }}</span>
@@ -281,7 +258,6 @@ onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
       </FormField>
 
       <Button @click="saveRating" class="umm:w-full umm:gap-2"><Star class="umm:h-4 umm:w-4" />{{ t('common.saveRating') }}</Button>
-    </div>
   </SectionContainer>
 </template>
 
