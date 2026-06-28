@@ -1,0 +1,1 @@
+export { default as PlatformSearchForm } from './PlatformSearchForm.vue'
