@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.2.2] - 2026-06-28
+
+### Fixed
+- **详情页推荐评分丢失**: 修复 `.subject-rate` 选择器作用域错误（`linkEl` → `dl`），豆瓣 DOM 中评分元素不在 `<a>` 内部
+- **添加到片单按钮在 Shadow DOM 中失灵**: 使用 `e.composedPath()` 替代 `e.target.closest()` 穿透 Shadow DOM 边界
+- **片单 API 首调用返回空列表**: 添加 1 次重试（500ms 延迟），始终打开 dialog
+- **添加到片单 `skind` 参数错误**: 修正为 `subject.cat`（cat_id 如 `1002`），原传入了 `kind`（`movie`）
+
+### Added
+- **创建新片单功能**: POST `/j/doulist/add`，footer 新增"＋ 新建片单"按钮，含名称输入、私密切换、自动刷新列表
+- **加载动画反馈**: dialog 加载中 spinner、toggle 操作旋转动画、保存按钮 spinner+文字反馈
 
 ## [4.2.1] - 2026-06-28
 

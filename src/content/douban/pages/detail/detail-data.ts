@@ -244,7 +244,10 @@ export async function extractDetailData(): Promise<DetailData | null> {
   recEl?.querySelectorAll('.recommendations-bd dl').forEach((dl) => {
     const img = dl.querySelector('dt img') as HTMLImageElement | null
     const linkEl = dl.querySelector('dd a') as HTMLAnchorElement | null
-    const rate = linkEl?.querySelector('.subject-rate')?.textContent?.trim() || ''
+    // Use dl.querySelector() not linkEl.querySelector() — .subject-rate is
+    // a sibling of <a> inside <dd>, not a child of <a>, so scoping to linkEl
+    // (the <a> element) would miss it entirely.
+    const rate = dl.querySelector('.subject-rate')?.textContent?.trim() || ''
     const href = linkEl?.href || ''
     const idMatch = href.match(/\/subject\/(\d+)/)
     recItems.push({

@@ -59,6 +59,30 @@ async function addToDoulist(doulistId: string, params: {
   }
 }
 
+async function createDoulist(params: {
+  title: string; category: string; isPrivate: boolean; ck: string
+}): Promise<{ id: string; name: string } | null> {
+  const body = new URLSearchParams({
+    title: params.title,
+    category: params.category,
+    is_private: String(params.isPrivate),
+    ck: params.ck,
+  })
+  try {
+    const resp = await fetch('/j/doulist/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+      body: body.toString(),
+      credentials: 'include',
+    })
+    const data = await resp.json()
+    if (data.r === 0 && data.id) return { id: String(data.id), name: data.name || params.title }
+    return null
+  } catch {
+    return null
+  }
+}
+
 async function removeFromDoulist(doulistId: string, params: {
   tkind: string; tid: string; ck: string
 }): Promise<boolean> {
@@ -202,6 +226,9 @@ function buildThemedDialog(
     '#umm-dl-modal ::-webkit-scrollbar{width:7px!important;height:7px!important}',
     `#umm-dl-modal ::-webkit-scrollbar-thumb{background:${c('#ccc','#45484f')}!important;border-radius:4px!important}`,
     `#umm-dl-modal ::-webkit-scrollbar-track{background:transparent!important}`,
+    // Loading spinner for add/remove operations
+    '@keyframes umm-dl-spin{to{transform:rotate(360deg)}}',
+    '.umm-dl-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(128,128,128,0.25);border-top-color:currentColor;border-radius:50%;animation:umm-dl-spin .6s linear infinite;vertical-align:middle}',
   ].join('')
   overlay.appendChild(rStyle)
 
@@ -225,6 +252,12 @@ function buildThemedDialog(
   const body = document.createElement('div')
   body.style.cssText = ['flex:1;overflow-y:auto;overscroll-behavior:contain','padding:18px 24px'].join(';')
   panel.appendChild(body)
+
+  // Loading indicator shown during initial fetch
+  const bodyLoading = document.createElement('div')
+  bodyLoading.style.cssText = ['display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 0',`color:${c('#888','#999')}`,'font-size:13.5px'].join(';')
+  bodyLoading.innerHTML = '<span class="umm-dl-spinner" style="width:20px;height:20px;border-width:2.5px"></span><span>加载片单列表...</span>'
+  body.appendChild(bodyLoading)
 
   // ── Confirm overlay ──
   const confirmBox = document.createElement('div')
@@ -323,16 +356,24 @@ function buildThemedDialog(
       toggleCell.addEventListener('click', (e) => {
         e.stopPropagation()
         const cur = item.is_collected ?? false
+        async function doToggle(): Promise<void> {
+          toggleBtn.innerHTML = '<span class="umm-dl-spinner"></span>'
+          const ok = cur
+            ? await removeFromDoulist(item.id, { tkind: subject.cat, tid: subject.subjectId, ck: subject.ck })
+            : await addToDoulist(item.id, { sid: subject.subjectId, skind: subject.cat, ck: subject.ck, comment: '' })
+          if (ok) {
+            item.is_collected = !cur
+            renderItems(searchInput.value)
+          } else {
+            toggleBtn.textContent = '\u2715'
+            toggleBtn.style.color = '#e74c3c'
+            setTimeout(() => renderItems(searchInput.value), 1200)
+          }
+        }
         if (cur) {
-          showConfirm('确认从该片单中移除此条目？','确认移出','取消', async () => {
-            const ok = await removeFromDoulist(item.id, { tkind: subject.cat, tid: subject.subjectId, ck: subject.ck })
-            if (ok) { item.is_collected = false; renderItems(searchInput.value) }
-          })
+          showConfirm('确认从该片单中移除此条目？','确认移出','取消', doToggle)
         } else {
-          showConfirm('确认将本条目添加到该片单？','确认添加','取消', async () => {
-            const ok = await addToDoulist(item.id, { sid: subject.subjectId, skind: subject.kind, ck: subject.ck, comment: '' })
-            if (ok) { item.is_collected = true; renderItems(searchInput.value) }
-          })
+          showConfirm('确认将本条目添加到该片单？','确认添加','取消', doToggle)
         }
       })
 
@@ -380,39 +421,115 @@ function buildThemedDialog(
   const footer = document.createElement('div')
   footer.style.cssText = ['display:flex;align-items:center;justify-content:flex-end;gap:10px','padding:14px 24px',`border-top:1px solid ${c('#e8e8e8','#373a40')}`,`background:${c('#fafafa','#2c2e33')}`].join(';')
 
+  // Create doulist button (left side)
+  const createBtn = document.createElement('button')
+  createBtn.textContent = '＋ 新建片单'
+  createBtn.style.cssText = ['padding:7px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all .12s',`color:${c('#4f6ef7','#6e8aff')}`,`background:${c('rgba(79,110,247,0.06)','rgba(110,138,255,0.08)')}`].join(';')
+  createBtn.onmouseenter = () => { createBtn.style.background = c('rgba(79,110,247,0.12)','rgba(110,138,255,0.15)') }
+  createBtn.onmouseleave = () => { createBtn.style.background = c('rgba(79,110,247,0.06)','rgba(110,138,255,0.08)') }
+
+  // ── Create doulist form (hidden until createBtn is clicked) ──
+  const createForm = document.createElement('div')
+  createForm.style.display = 'none'
+  createForm.style.cssText = ['display:none;flex-direction:column;gap:10px','padding:14px 0 10px',`border-bottom:1px solid ${c('#e8e8e8','#373a40')}`,'margin-bottom:10px'].join(';')
+
+  const nameInput = document.createElement('input')
+  nameInput.type = 'text'
+  nameInput.placeholder = '请输入片单名称'
+  nameInput.style.cssText = ['width:100%;box-sizing:border-box;height:38px;padding:0 14px',`background:${c('#f5f5f5','#1a1b1e')}`,`border:1px solid ${c('#d0d0d0','#45484f')}`,`color:${c('#1a1a1a','#e8e8e8')}`,'border-radius:10px;font-size:14px;outline:none'].join(';')
+  nameInput.onfocus = () => { nameInput.style.borderColor = c('#4f6ef7','#6e8aff'); nameInput.style.boxShadow = `0 0 0 3px ${c('rgba(79,110,247,0.12)','rgba(110,138,255,0.15)')}` }
+  nameInput.onblur = () => { nameInput.style.borderColor = c('#d0d0d0','#373a40'); nameInput.style.boxShadow = 'none' }
+
+  const privateRow = document.createElement('label')
+  privateRow.style.cssText = ['display:flex;align-items:center;gap:8px',`color:${c('#666','#999')}`,'font-size:13px;cursor:pointer'].join(';')
+  const privateCheck = document.createElement('input')
+  privateCheck.type = 'checkbox'
+  privateRow.append(privateCheck, '私密片单')
+
+  const formActions = document.createElement('div')
+  formActions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
+  const formCancel = document.createElement('button')
+  formCancel.textContent = '取消'
+  formCancel.style.cssText = `padding:7px 20px;border:1px solid ${c('#d0d0d0','#45484f')};border-radius:8px;background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')};font-size:13px;font-weight:500;cursor:pointer`
+  const formConfirm = document.createElement('button')
+  formConfirm.innerHTML = '创建'
+  formConfirm.style.cssText = `padding:7px 20px;border:none;border-radius:8px;background:${c('#4f6ef7','#6e8aff')};color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1.4`
+  formActions.append(formCancel, formConfirm)
+  createForm.append(nameInput, privateRow, formActions)
+  body.insertBefore(createForm, searchInput)
+
+  createBtn.addEventListener('click', () => {
+    const isOpen = createForm.style.display === 'flex'
+    createForm.style.display = isOpen ? 'none' : 'flex'
+    if (!isOpen) nameInput.focus()
+  })
+  formCancel.addEventListener('click', () => {
+    createForm.style.display = 'none'
+    nameInput.value = ''
+    privateCheck.checked = false
+  })
+  formConfirm.addEventListener('click', async () => {
+    const title = nameInput.value.trim()
+    if (!title) { nameInput.focus(); return }
+    formConfirm.disabled = true
+    formConfirm.innerHTML = '<span class="umm-dl-spinner" style="width:13px;height:13px;border-width:2px;display:block;margin:0 auto"></span>'
+    const result = await createDoulist({
+      title,
+      category: subject.kind,
+      isPrivate: privateCheck.checked,
+      ck: subject.ck,
+    })
+    if (result) {
+      createForm.style.display = 'none'
+      nameInput.value = ''
+      privateCheck.checked = false
+      const newItems = await fetchAllDoulists(subject)
+      if (newItems.length > 0) {
+        items = newItems
+        renderItems(searchInput.value)
+      }
+    } else {
+      formConfirm.innerHTML = '创建失败'
+      setTimeout(() => { formConfirm.innerHTML = '创建'; formConfirm.disabled = false }, 2000)
+    }
+  })
+
   const cancelBtn = document.createElement('button')
   cancelBtn.textContent = '取消'
   cancelBtn.style.cssText = `padding:9px 28px;border:1px solid ${c('#d0d0d0','#45484f')};border-radius:10px;background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')};font-size:13.5px;font-weight:500;cursor:pointer`
   cancelBtn.addEventListener('click', () => { overlay.remove(); document.body.style.overflow = '' })
 
   const saveBtn = document.createElement('button')
-  saveBtn.textContent = '保存'
-  saveBtn.style.cssText = `padding:9px 28px;border:none;border-radius:10px;background:${c('#4f6ef7','#6e8aff')};color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;transition:opacity .15s`
+  saveBtn.innerHTML = '保存'
+  saveBtn.style.cssText = `padding:9px 28px;border:none;border-radius:10px;background:${c('#4f6ef7','#6e8aff')};color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;transition:opacity .15s;line-height:1.4`
   saveBtn.addEventListener('click', async () => {
     if (!selectedId) return
     const item = items.find(it => it.id === selectedId)
     if (!item) return
     saveBtn.disabled = true
-    saveBtn.textContent = '保存中...'
+    saveBtn.innerHTML = '<span class="umm-dl-spinner" style="margin-right:6px"></span>保存中...'
     try {
       const ok = item.is_collected
         ? await removeFromDoulist(selectedId, { tkind: subject.cat, tid: subject.subjectId, ck: subject.ck })
-        : await addToDoulist(selectedId, { sid: subject.subjectId, skind: subject.kind, ck: subject.ck, comment: '' })
+        : await addToDoulist(selectedId, { sid: subject.subjectId, skind: subject.cat, ck: subject.ck, comment: '' })
       if (ok) {
         item.is_collected = !item.is_collected
-        saveBtn.textContent = '✓ 已保存'
+        saveBtn.innerHTML = '\u2713 已保存'
         setTimeout(() => overlay.remove(), 800)
       } else { throw new Error('API fail') }
     } catch {
-      saveBtn.textContent = '保存失败'
-      setTimeout(() => { saveBtn.textContent = '保存'; saveBtn.disabled = false }, 2000)
+      saveBtn.innerHTML = '保存失败'
+      setTimeout(() => { saveBtn.innerHTML = '保存'; saveBtn.disabled = false }, 2000)
     }
   })
 
-  footer.append(cancelBtn, saveBtn)
+  const spacer = document.createElement('div')
+  spacer.style.cssText = 'flex:1'
+  footer.append(createBtn, spacer, cancelBtn, saveBtn)
   panel.appendChild(footer)
 
   searchInput.addEventListener('input', () => renderItems(searchInput.value))
+  bodyLoading.remove()
   renderItems('')
 
   const refresh = (newItems: DoulistItem[]) => { items = newItems; selectedId = ''; renderItems(searchInput.value) }
@@ -433,7 +550,12 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
   }
 
   document.addEventListener('click', (e) => {
-    const trigger = (e.target as HTMLElement).closest('.lnk-doulist-add, .umm-dl-trigger') as HTMLElement | null
+    // Use composedPath() to penetrate Shadow DOM — the .umm-dl-trigger
+    // button lives inside the detail-page Vue overlay (Shadow DOM), so
+    // e.target gets retargeted to the shadow host, making .closest() fail.
+    const trigger = (e.composedPath() as HTMLElement[]).find(
+      el => el instanceof Element && el.matches('.lnk-doulist-add, .umm-dl-trigger')
+    ) as HTMLElement | undefined
     if (!trigger) return
     e.preventDefault()
     e.stopImmediatePropagation()
@@ -442,11 +564,15 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
     const subject = getSubjectInfo()
     if (!subject) return
 
-    fetchAllDoulists(subject).then(items => {
-      if (items.length === 0) {
-        FloatingToast.info('UMM', '无法加载片单列表，请重试')
-        return
-      }
+    // Retry once — Douban's API sometimes returns empty on first call
+    // (backend lazy init). Always opens dialog regardless of result.
+    async function fetchWithRetry(s: SubjectInfo): Promise<DoulistItem[]> {
+      const items = await fetchAllDoulists(s)
+      if (items.length > 0) return items
+      await new Promise(r => setTimeout(r, 500))
+      return fetchAllDoulists(s)
+    }
+    fetchWithRetry(subject).then(items => {
       const { overlay } = buildThemedDialog({ items, subject, comment: '' })
       document.body.appendChild(overlay)
       document.body.style.overflow = 'hidden'
