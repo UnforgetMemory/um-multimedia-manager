@@ -9,10 +9,17 @@ import { Utils } from '@/utils'
  * This composable detects those mutations via MutationObserver on document.body
  * (childList + subtree) and a 1-second polling fallback (first 30s only).
  * The callback is throttled to 500ms to avoid excessive re-parsing.
+ *
+ * Fixes:
+ * 1. Triggers the callback once on start() to catch content already in DOM
+ *    (the observer only fires on mutations after start, not on existing content).
+ * 2. Extends polling window from 30s to 60s (slow connections / Swiper lazy loads).
+ * 3. Watches `class` attribute changes on containers (Swiper injects classes
+ *    like swiper-slide-active without changing the childList).
  */
 const CONTAINER_SELECTORS = '#screening, .recent-hot, #billboard, #reviews, .review'
 const POLL_INTERVAL_MS = 1000
-const POLL_DURATION_MS = 30000
+const POLL_DURATION_MS = 60000
 const THROTTLE_MS = 500
 
 export function useHomepageObserver(callback: () => void) {
@@ -28,13 +35,15 @@ export function useHomepageObserver(callback: () => void) {
     targets.forEach(target => {
       if (!observedContainers.has(target)) {
         observedContainers.add(target)
-        observer?.observe(target, { childList: true, subtree: true })
+        // Watch childList + subtree for injected content,
+        // and class attribute for Swiper rendering state
+        observer?.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
       }
     })
   }
 
   function start(): void {
-    if (observer) return // already started
+    if (observer) return
 
     observer = new MutationObserver(mutations => {
       let shouldTrigger = false
@@ -53,6 +62,13 @@ export function useHomepageObserver(callback: () => void) {
             }
           }
         }
+        // Swiper often adds classes without childList changes
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const target = mutation.target as Element
+          if (target.closest?.(CONTAINER_SELECTORS)) {
+            shouldTrigger = true
+          }
+        }
       }
 
       if (shouldTrigger) {
@@ -62,9 +78,10 @@ export function useHomepageObserver(callback: () => void) {
     })
 
     refreshObserverTargets()
-
     observer.observe(document.body, { childList: true, subtree: true })
 
+    // Polling: catches containers injected before the observer started
+    // and content that loads after the throttle window
     checkInterval = setInterval(() => {
       const targets = document.querySelectorAll(CONTAINER_SELECTORS)
       let foundNew = false
@@ -83,6 +100,9 @@ export function useHomepageObserver(callback: () => void) {
         checkInterval = null
       }
     }, POLL_DURATION_MS)
+
+    // Parse content already in the DOM (observer only fires on future mutations)
+    throttledCallback()
   }
 
   function stop(): void {

@@ -1,3 +1,7 @@
+/**
+ * Interest-marking bar (想看/在看/已看) with star rating, tags, and comment dialog.
+ * Emits `save` with tab, stars, tags, and comment for the parent to submit.
+ */
 import { defineComponent, h, ref } from 'vue'
 
 const RATING_LABELS = ['', '很差', '较差', '还行', '推荐', '力荐'] as const
@@ -25,6 +29,7 @@ export const UmmInterestBar = defineComponent({
 
     function openDialog(): void {
       if (props.loading) return
+      // Map Douban status enums to dialog tabs: 3=do, 1=wish, 2=collect
       tab.value = props.status > 0
     ? (props.status === 3 ? 'do' : props.status === 1 ? 'wish' : 'collect')
     : null

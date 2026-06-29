@@ -39,6 +39,70 @@
 .umm-layout-footer {
   width: 100%;
   box-sizing: border-box;
-  padding: var(--umm-space-md, 12px) 0;
-  /* Empty placeholder — ready for future cross-cutting features */
+  padding: var(--umm-space-lg, 20px) 0;
+  border-top: 1px solid var(--umm-card-border);
+  margin-top: auto;
+}
+
+.umm-footer-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 0 var(--umm-space-xl, 24px);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.umm-footer-copyright {
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+}
+
+.umm-footer-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  color: var(--umm-text-muted);
+}
+
+.umm-footer-links a {
+  color: var(--umm-link, var(--umm-text-secondary));
+  text-decoration: none;
+  transition: color .15s;
+}
+
+.umm-footer-links a:hover {
+  color: var(--umm-link-hover);
+  text-decoration: underline;
+}
+
+.umm-footer-extra {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--umm-space-sm, 8px);
+  padding: 0 var(--umm-space-xl, 24px);
+  font-size: 12px;
+  color: var(--umm-text-muted);
+}
+
+.umm-footer-github {
+  display: inline-flex;
+  align-items: center;
+  color: var(--umm-text-muted);
+  text-decoration: none;
+  transition: color .15s;
+  line-height: 0;
+}
+
+.umm-footer-github:hover {
+  color: var(--umm-text-primary);
+}
+
+.umm-footer-version {
+  color: var(--umm-text-muted);
 }

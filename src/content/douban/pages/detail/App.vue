@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { t } from '@/entrypoints/content/i18n'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
-import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
+import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmInterestBar } from '@/content/douban/components/UmmInterestBar'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
@@ -178,8 +178,45 @@ function formatRatingBarPct(pct: string): string {
   return pct
 }
 
+function metaToChips(html: string): string {
+  // 提取首尾包裹标签（如 <span class="attrs">...</span>）避免分割后错位
+  const leading = html.match(/^(<[^>]+>)+/)
+  const trailing = html.match(/(<\/[^>]+>)+$/)
+  const prefix = leading?.[0] ?? ''
+  const suffix = trailing?.[0] ?? ''
+  let core = html
+  if (prefix) core = core.slice(prefix.length)
+  if (suffix && core.endsWith(suffix)) core = core.slice(0, -suffix.length)
+
+  // 字符级扫描：仅在非标签文本中替换 " / " 为 chip 边界
+  let result = ''
+  let inTag = false
+  let i = 0
+  while (i < core.length) {
+    const ch = core[i]
+    if (ch === '<') { inTag = true; result += ch; i++; continue }
+    if (inTag) { result += ch; if (ch === '>') inTag = false; i++; continue }
+    if (ch === '/' && i > 0 && i < core.length - 1 && /\s/.test(core[i - 1]) && /\s/.test(core[i + 1])) {
+      result = result.replace(/\s+$/, '')       // 削掉 / 前的空格
+      let j = i + 2
+      while (j < core.length && /\s/.test(core[j])) j++ // 跳过 / 后的空格
+      result += '</span><span class="umm-meta-chip">'
+      i = j
+      continue
+    }
+    result += ch
+    i++
+  }
+  return prefix + '<span class="umm-meta-chip">' + result + '</span>' + suffix
+}
+
 function ratingBarWidth(pct: string): string {
   return `${parseFloat(pct.replace('%', '')) || 0}%`
+}
+
+/** Open external link in new tab — replaces bare <a target="_blank"> */
+function openLink(url: string): void {
+  window.open(url, '_blank')
 }
 
 defineExpose({ updateRecord })
@@ -219,9 +256,9 @@ defineExpose({ updateRecord })
 
       <div class="umm-detail-left">
         <div v-if="d.posterSrc" class="umm-poster">
-          <a v-if="d.posterLink" :href="d.posterLink" target="_blank" rel="noopener noreferrer">
+          <div v-if="d.posterLink" style="cursor:pointer" @click="openLink(d.posterLink)">
             <UmmImageWrapper :src="d.posterSrc" :alt="d.posterAlt" aspect-ratio="2/3" eager />
-          </a>
+          </div>
           <UmmImageWrapper v-else :src="d.posterSrc" :alt="d.posterAlt" aspect-ratio="2/3" eager />
         </div>
 
@@ -236,7 +273,8 @@ defineExpose({ updateRecord })
             </div>
           </div>
           <div v-if="d.betterThan.length" class="umm-rating-better">
-            好于 <template v-for="(t, i) in d.betterThan" :key="i"><span v-if="i > 0"> / </span><span>{{ t }}</span></template>
+            <span class="umm-better-label">好于</span>
+            <span v-for="t in d.betterThan" :key="t" class="umm-better-chip">{{ t }}</span>
           </div>
           <div v-if="d.ratingBars.length" class="umm-rating-bars">
             <div v-for="(bar, i) in d.ratingBars" :key="i" class="umm-bar-row">
@@ -252,7 +290,7 @@ defineExpose({ updateRecord })
         <div v-if="d.metaRows.length" class="umm-meta-card">
           <div v-for="(row, i) in d.metaRows" :key="i" class="umm-meta-row">
             <span class="umm-meta-label">{{ row.label }}</span>
-            <span class="umm-meta-value" v-html="row.html"></span>
+            <span class="umm-meta-value" v-html="metaToChips(row.html)"></span>
           </div>
         </div>
 
@@ -260,7 +298,7 @@ defineExpose({ updateRecord })
           <div class="umm-meta-row">
             <span class="umm-meta-label">排行榜</span>
             <span class="umm-meta-value">
-              <a v-if="d.rankHref" :href="d.rankHref" target="_blank" rel="noopener noreferrer">{{ d.rankNo }} {{ d.rankText }}</a>
+              <span v-if="d.rankHref" class="umm-link" style="cursor:pointer" @click="openLink(d.rankHref)">{{ d.rankNo }} {{ d.rankText }}</span>
               <template v-else>{{ d.rankNo }} {{ d.rankText }}</template>
             </span>
           </div>
@@ -287,7 +325,7 @@ defineExpose({ updateRecord })
             <span class="umm-award-festival">{{ a.festival }}</span>
             <span class="umm-award-category">{{ a.category }}</span>
             <span v-if="a.nominee" class="umm-award-nominee">
-              <a v-if="a.nomineeLink" :href="a.nomineeLink" target="_blank" class="umm-award-link">{{ a.nominee }}</a>
+              <span v-if="a.nomineeLink" class="umm-award-link" style="cursor:pointer" @click="openLink(a.nomineeLink)">{{ a.nominee }}</span>
               <template v-else>{{ a.nominee }}</template>
             </span>
           </div>
@@ -298,16 +336,16 @@ defineExpose({ updateRecord })
     <div v-if="d.celebItems.length" class="umm-celeb-card">
                   <h3 class="umm-celeb-heading">
               {{ d.celebHeading }}
-              <span v-if="d.celebCount" class="umm-section-link">(<a :href="`/subject/${d.identity.providerId}/celebrities`" target="_blank">{{ d.celebCount }}</a>)</span>
+              <span v-if="d.celebCount" class="umm-section-link">(<span style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/celebrities`)">{{ d.celebCount }}</span>)</span>
             </h3>
       <div class="umm-celeb-grid">
-        <a v-for="(c, i) in d.celebItems" :key="i" :href="c.link" target="_blank" class="umm-celeb-item">
+        <div v-for="(c, i) in d.celebItems" :key="i" class="umm-celeb-item" @click="openLink(c.link)">
           <UmmImageWrapper :src="c.avatar" :alt="c.name" aspect-ratio="2/3" />
           <div class="umm-celeb-info">
             <span class="umm-celeb-name">{{ c.name }}</span>
             <span class="umm-celeb-role">{{ c.role }}</span>
           </div>
-        </a>
+        </div>
       </div>
     </div>
 
@@ -315,34 +353,35 @@ defineExpose({ updateRecord })
                   <h3 class="umm-photo-heading">
               剧照
               <span class="umm-section-link">(
-                <a v-if="d.trailerCount" :href="`/subject/${d.identity.providerId}/trailer#trailer`" target="_blank">预告片{{ d.trailerCount }}</a>
+                <span v-if="d.trailerCount" style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/trailer#trailer`)">预告片{{ d.trailerCount }}</span>
                 <template v-if="d.trailerCount && d.photoCount">&nbsp;|&nbsp;</template>
-                <a v-if="d.photoCount" :href="`/subject/${d.identity.providerId}/all_photos`" target="_blank">图片{{ d.photoCount }}</a>
+                <span v-if="d.photoCount" style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/all_photos`)">图片{{ d.photoCount }}</span>
                 <template v-if="d.photoCount">&nbsp;·&nbsp;</template>
-                <a :href="`/subject/${d.identity.providerId}/mupload`" target="_blank">添加</a>
+                <span style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/mupload`)">添加</span>
               )</span>
             </h3>
       <div class="umm-photo-grid">
-        <a v-for="(p, i) in d.photoItems" :key="i" :href="p.link" target="_blank" class="umm-photo-item">
+        <div v-for="(p, i) in d.photoItems" :key="i" class="umm-photo-item" @click="openLink(p.link)">
           <UmmImageWrapper :src="p.src" :alt="p.isVideo ? '预告片' : '剧照'" aspect-ratio="16/9" />
           <span v-if="p.isVideo" class="umm-photo-badge">预告片</span>
-        </a>
+        </div>
       </div>
     </div>
 
     <div v-if="d.recItems.length" class="umm-rec-card">
       <h3 class="umm-rec-heading">推荐</h3>
       <div class="umm-rec-grid">
-        <div v-for="(r, i) in d.recItems" :key="i" class="umm-rec-cell">
-          <a :href="r.link" target="_blank" class="umm-rec-item">
-            <UmmStatusBadgeWrapper :status="r.isDone ? 2 : 0" :rating="Number(r.rating)" variant="small" />
-            <div class="umm-rec-cover">
-              <UmmImageWrapper :src="r.poster" :alt="r.title" aspect-ratio="2/3" />
-            </div>
-            <span class="umm-rec-title">{{ r.title }}</span>
-            <span class="umm-rec-rating">{{ r.rating || t('common.rating_unknown') }}</span>
-          </a>
-        </div>
+        <UmmMediaCard
+          v-for="(r, i) in d.recItems"
+          :key="i"
+          mode="grid"
+          :poster-url="r.poster"
+          :title="r.title"
+          :href="r.link"
+          :badge-status="r.isDone ? 2 : 0"
+          :badge-rating="r.personalRating ?? Number(r.rating)"
+          :rating="r.rating || ''"
+        />
       </div>
     </div>
 
@@ -351,7 +390,7 @@ defineExpose({ updateRecord })
       <div class="umm-comment-list">
         <div v-for="(c, i) in d.shortComments" :key="i" class="umm-comment-item">
           <div class="umm-comment-meta">
-            <a :href="c.userLink" target="_blank" class="umm-comment-user">{{ c.user }}</a>
+            <span style="cursor:pointer" class="umm-comment-user" @click="openLink(c.userLink)">{{ c.user }}</span>
             <span class="umm-comment-stars"><span v-for="s in 5" :key="s" class="umm-comment-star" :class="{ 'umm-comment-star--on': s <= c.rating }">★</span></span>
             <span class="umm-comment-up">{{ c.votes > 0 ? c.votes + ' 有用' : '' }}</span>
           </div>

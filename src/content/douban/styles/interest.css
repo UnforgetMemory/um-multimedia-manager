@@ -1,5 +1,21 @@
 /* ===== UMM Douban Interest Marking — Dialog styles ===== */
 
+/* Dialog width at 13 responsive breakpoints */
+:host { --umm-dialog-width: 380px; --umm-star-size: 30px; --umm-star-font: 24px; }
+@media (min-width: 320px) { :host { --umm-dialog-width: calc(100vw - 32px); --umm-star-size: 28px; --umm-star-font: 22px; } }
+@media (min-width: 375px) { :host { --umm-dialog-width: calc(100vw - 40px); --umm-star-size: 30px; --umm-star-font: 24px; } }
+@media (min-width: 480px) { :host { --umm-dialog-width: 400px; --umm-star-size: 30px; --umm-star-font: 24px; } }
+@media (min-width: 640px) { :host { --umm-dialog-width: 420px; } }
+@media (min-width: 768px) { :host { --umm-dialog-width: 440px; } }
+@media (min-width: 1024px) { :host { --umm-dialog-width: 460px; } }
+@media (min-width: 1280px) { :host { --umm-dialog-width: 480px; } }
+@media (min-width: 1536px) { :host { --umm-dialog-width: 500px; --umm-star-size: 34px; --umm-star-font: 28px; } }
+@media (min-width: 1920px) { :host { --umm-dialog-width: 520px; --umm-star-size: 36px; --umm-star-font: 30px; } }
+@media (min-width: 2560px) { :host { --umm-dialog-width: 560px; --umm-star-size: 40px; --umm-star-font: 34px; } }
+@media (min-width: 3200px) { :host { --umm-dialog-width: 600px; --umm-star-size: 44px; --umm-star-font: 38px; } }
+@media (min-width: 3840px) { :host { --umm-dialog-width: 640px; --umm-star-size: 48px; --umm-star-font: 42px; } }
+@media (min-width: 5120px) { :host { --umm-dialog-width: 680px; --umm-star-size: 52px; --umm-star-font: 46px; } }
+
 .umm-interest-bar {
   display: inline-flex;
   position: relative;
@@ -82,8 +98,7 @@
   left: 50%;
   transform: translate(-50%,-50%);
   z-index: 1000000;
-  width: 380px;
-  max-width: 90vw;
+  width: var(--umm-dialog-width, 380px);
   background: var(--umm-card-bg, #fff);
   border: 1px solid var(--umm-card-border, #e5e7eb);
   border-radius: 16px;
@@ -96,7 +111,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px 0;
+  padding: var(--umm-space-md, 16px) var(--umm-space-lg, 20px) 0;
 }
 
 .umm-dialog-title {
@@ -126,8 +141,8 @@
 .umm-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px 20px 20px;
+  gap: var(--umm-space-md, 14px);
+  padding: var(--umm-space-md, 16px) var(--umm-space-lg, 20px) var(--umm-space-lg, 20px);
 }
 
 /* ── status picker ── */
@@ -169,7 +184,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 12px;
+  padding: var(--umm-space-sm, 10px) var(--umm-space-md, 12px);
   background: var(--umm-bg-secondary, #f8f9fa);
   border-radius: 10px;
 }
@@ -178,13 +193,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: var(--umm-star-size, 30px);
+  height: var(--umm-star-size, 30px);
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 24px;
+  font-size: var(--umm-star-font, 24px);
   line-height: 1;
   color: #ccc;
   transition: color .15s, transform .15s;
@@ -366,7 +381,7 @@
 
 .umm-dialog-save {
   flex: 1;
-  padding: 10px 0;
+  padding: var(--umm-space-sm, 10px) 0;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -382,7 +397,7 @@
 .umm-dialog-save:disabled { opacity: .4; cursor: not-allowed; }
 
 .umm-dialog-cancel {
-  padding: 10px 20px;
+  padding: var(--umm-space-sm, 10px) var(--umm-space-lg, 20px);
   border: 1px solid var(--umm-card-border, #e5e7eb);
   border-radius: 10px;
   cursor: pointer;
@@ -397,7 +412,7 @@
 .umm-dialog-cancel:hover { background: var(--umm-bg-secondary, #f8f9fa); }
 
 .umm-dialog-remove {
-  padding: 10px 16px;
+  padding: var(--umm-space-sm, 10px) var(--umm-space-md, 16px);
   border: none;
   border-radius: 10px;
   cursor: pointer;

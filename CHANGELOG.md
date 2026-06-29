@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-06-29
+
+### Added
+- **共享 UmmMediaCard 组件**: defineComponent props 驱动双模式（grid + scroll），grid 模式 `@click="window.open"`，scroll 模式 `<a>` 包裹，详情页推荐区/首页媒体行统一使用
+- **戏票/剧照/推荐 13 级响应式断点**: `detail.css` 网格列数从 3-4 级扩展为 320px-5120px 13 级自适应
+- **meta 信息 chip 化**: 导演/演员/类型等元数据用 `/` 分割为独立 chip（`.umm-meta-chip`），保留原生 `<a>` 链接
+- **better-than chip 化**: 评分对比区"好于 X%"从 `/` 拼接改为独立 chip（`.umm-better-chip`）
+- **个人评分覆盖**: 已看推荐项 badge 显示 IndexedDB 个人评分，替代豆瓣大众评分
+- **默认 footer**: `UmmPageLayout` 默认 footer 包含原生豆瓣链接 + GitHub 图标 + 扩展版本号，可通过 `#footer` slot 覆写
+- **Doulist 主题系统**: 抽取 `createDialogTheme()` 替代 `c(l,d)` 内联 lambda，37 个语义化主题属性
+
+### Fixed
+- **演职员 @click 迁移**: 海报/排行榜/获奖提名/演职员/剧照/短评 9 处 `<a :href target="_blank">` → `@click="openLink()"`
+- **Homepage 异步加载稳定性**: staggered re-parse（800/2500/6000ms）+ observer class 属性跟踪 + 轮询窗口 30s→60s + `start()` 立即首次解析
+- **演职员 grid 列宽撑开**: 添加 `min-width: 0` 阻止长名撑开 CSS Grid `1fr` 列
+- **Dark theme 颜色**: 新增 `--umm-text-primary/secondary/muted/link` 深色主题变量，提升评论、状态文字对比度
+- **douban-neodb.ts 生产日志泄漏**: 15 处 `console.log` → `infoLog()`（production 默认静音）
+- **CSRF 防护缺失**: `addToDoulist`/`removeFromDoulist` 补充 `X-Requested-With: XMLHttpRequest` 头
+- **neodb-push.ts null safety**: `interestSect` 加 `?.` 可选链防止空值错误
+
+### Changed
+- **详情页字号缩减**: section heading `--umm-font-lg`→`--umm-font-md`，meta `--umm-font-md`→`--umm-font-sm`，正文 `--umm-font-md`→`--umm-font-base`
+- **剧照/推荐 grid 最大列数**: 从 8/8 缩减至 4 列（base→480px→768px+ 三级递进）
+- **海报列宽响应式**: 从固定 320px 扩展为 13 级（320px→5120px，320px→700px）
+- **detail.css 移除 `:host` 独立变量**: 9 个 font 变量和 5 个 spacing 变量替换为 breakpoints.css 令牌，仅保留 `--umm-font-3xl`（标题）和 `--umm-font-display`
+- **评分栏标签自适应**: `.umm-bar-label`/`.umm-bar-pct` 固定宽度改为 `flex-shrink: 0; min-width` 防止大字包裹
+
+### Security
+- **background.ts sender 校验**: `chrome.runtime.onMessage` 确认 `sender.id === chrome.runtime.id`（已有）
+- **Doulist fetch**: 补充 CSRF 头 `X-Requested-With: XMLHttpRequest`
+- **日志安全**: NeoDB handler 全部 `console.log` → `infoLog()`（DEVel 环境自动静音）
+
 ## [4.2.3] - 2026-06-29
 
 ### Added

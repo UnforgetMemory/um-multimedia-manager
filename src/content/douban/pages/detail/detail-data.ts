@@ -45,6 +45,7 @@ export interface RecItem {
   link: string
   subjectId: string
   isDone: boolean
+  personalRating?: number
 }
 
 export interface ShortComment {
@@ -89,6 +90,14 @@ export interface DetailData {
   record: StoreRecord | null
 }
 
+/**
+ * Parse the current Douban detail page DOM into DetailData.
+ *
+ * Reads identity (type/providerId) from URL, scrapes meta info, cast/crew,
+ * synopsis, ratings, photos, recommendations, and fetches the corresponding
+ * IndexedDB record. All HTML from the page is DOMPurify-sanitised before
+ * returning. Returns null if no identity can be derived from the URL.
+ */
 export async function extractDetailData(): Promise<DetailData | null> {
   const identity = Identity.fromUrl(location.href)
   if (!identity) return null
@@ -297,6 +306,18 @@ export async function extractDetailData(): Promise<DetailData | null> {
         }
       } catch { /* silent */ }
     }
+  }
+
+  // Fetch personal ratings for watched rec items
+  if (recItems.length > 0) {
+    const promises = recItems.filter(r => r.isDone).map(async r => {
+      try {
+        const key = `${identity.type}::${r.subjectId}`
+        const record = await Store.dbGet('douban_records', key)
+        if (record?.rating) r.personalRating = record.rating
+      } catch { /* silent */ }
+    })
+    await Promise.all(promises)
   }
 
   // Short comments

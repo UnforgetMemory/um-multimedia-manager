@@ -33,6 +33,12 @@ const { start } = useHomepageObserver(refreshFromDom)
 onMounted(async () => {
   await load()
   start()
+  // Staggered re-parses: content injected by Douban's JS may not be
+  // ready when the observer first fires (Swiper lazy load, XHR race).
+  // Each retry is a no-op if the observer already caught it.
+  setTimeout(refreshFromDom, 800)
+  setTimeout(refreshFromDom, 2500)
+  setTimeout(refreshFromDom, 6000)
 })
 </script>
 

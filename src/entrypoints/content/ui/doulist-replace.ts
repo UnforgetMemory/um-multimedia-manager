@@ -49,7 +49,7 @@ async function addToDoulist(doulistId: string, params: {
   try {
     const resp = await fetch(`/j/doulist/${doulistId}/additem`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
       body: body.toString(),
       credentials: 'include',
     })
@@ -94,7 +94,7 @@ async function removeFromDoulist(doulistId: string, params: {
   try {
     const resp = await fetch(`/j/doulist/${doulistId}/removeitem`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
       body: body.toString(),
       credentials: 'include',
     })
@@ -168,6 +168,90 @@ async function fetchAllDoulists(subject: SubjectInfo): Promise<DoulistItem[]> {
   }
 }
 
+interface DialogTheme {
+  overlayBg: string
+  panelBg: string
+  panelBorder: string
+  panelShadow: string
+  headerBg: string
+  headerBorder: string
+  titleColor: string
+  closeColor: string
+  closeHoverBg: string
+  closeHoverColor: string
+  textPrimary: string
+  textSecondary: string
+  textMuted: string
+  surfaceAlt: string
+  borderDark: string
+  inputBg: string
+  inputBorder: string
+  accent: string
+  accentGlow: string
+  accentSubtle: string
+  tableHeaderBg: string
+  theadText: string
+  rowBorder: string
+  rowHover: string
+  selectedBg: string
+  checkedColor: string
+  checkedBg: string
+  uncheckedColor: string
+  confirmBg: string
+  emptyText: string
+  scrollThumb: string
+  placeholderColor: string
+  labelColor: string
+  yesBtnBg: string
+  noBtnBg: string
+  noBtnText: string
+  noBtnBorder: string
+  borderInputBlur: string
+}
+
+function createDialogTheme(dark: boolean): DialogTheme {
+  return {
+    overlayBg: dark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)',
+    panelBg: dark ? '#25262b' : '#fff',
+    panelBorder: dark ? '#373a40' : '#e8e8e8',
+    panelShadow: dark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.15)',
+    headerBg: dark ? '#2c2e33' : '#fafafa',
+    headerBorder: dark ? '#373a40' : '#e8e8e8',
+    titleColor: dark ? '#f0f0f0' : '#1a1a1a',
+    closeColor: dark ? '#888' : '#999',
+    closeHoverBg: dark ? '#373a40' : '#f0f0f0',
+    closeHoverColor: dark ? '#e8e8e8' : '#333',
+    textPrimary: dark ? '#e8e8e8' : '#1a1a1a',
+    textSecondary: dark ? '#c8c8c8' : '#333',
+    textMuted: dark ? '#999' : '#888',
+    surfaceAlt: dark ? '#373a40' : '#fff',
+    borderDark: dark ? '#45484f' : '#d0d0d0',
+    inputBg: dark ? '#1a1b1e' : '#f5f5f5',
+    inputBorder: dark ? '#45484f' : '#d0d0d0',
+    accent: dark ? '#6e8aff' : '#4f6ef7',
+    accentGlow: dark ? 'rgba(110,138,255,0.15)' : 'rgba(79,110,247,0.12)',
+    accentSubtle: dark ? 'rgba(110,138,255,0.08)' : 'rgba(79,110,247,0.06)',
+    tableHeaderBg: dark ? '#2c2e33' : '#fafafa',
+    theadText: dark ? '#999' : '#888',
+    rowBorder: dark ? '#2c2e33' : '#eee',
+    rowHover: dark ? '#2c2e33' : '#f5f5f5',
+    selectedBg: dark ? 'rgba(110,138,255,0.08)' : '#f0f4ff',
+    checkedColor: dark ? '#6fcf73' : '#0f7a43',
+    checkedBg: dark ? 'rgba(111,207,115,0.12)' : 'rgba(15,122,67,0.1)',
+    uncheckedColor: dark ? '#555' : '#bbb',
+    confirmBg: dark ? 'rgba(37,38,43,0.93)' : 'rgba(255,255,255,0.93)',
+    emptyText: dark ? '#777' : '#999',
+    scrollThumb: dark ? '#45484f' : '#ccc',
+    placeholderColor: dark ? '#666' : '#aaa',
+    labelColor: dark ? '#999' : '#666',
+    yesBtnBg: dark ? '#6e8aff' : '#4f6ef7',
+    noBtnBg: dark ? '#373a40' : '#fff',
+    noBtnText: dark ? '#c8c8c8' : '#333',
+    noBtnBorder: dark ? '#45484f' : '#d0d0d0',
+    borderInputBlur: dark ? '#373a40' : '#d0d0d0',
+  }
+}
+
 function buildThemedDialog(
   data: { items: DoulistItem[]; subject: SubjectInfo; comment: string }
 ): { overlay: HTMLElement; refresh: (newItems: DoulistItem[]) => void } {
@@ -177,14 +261,14 @@ function buildThemedDialog(
 
   // Re-read theme each time to stay in sync with extension settings
   const isDark = () => document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-umm-theme') === 'dark'
-  const c = (l: string, d: string): string => isDark() ? d : l
+  const theme = createDialogTheme(isDark())
 
   // ── Overlay (targeted resets instead of all:initial which destroys z-index/display) ──
   const overlay = document.createElement('div')
   overlay.id = DL_MODAL_ID
   overlay.style.cssText = [
     'position:fixed;inset:0;z-index:99999',
-    `background:${c('rgba(0,0,0,0.35)','rgba(0,0,0,0.55)')}`,
+    `background:${theme.overlayBg}`,
     'display:flex;align-items:center;justify-content:center',
     'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
     'margin:0;padding:0;border:none;box-sizing:border-box',
@@ -195,36 +279,44 @@ function buildThemedDialog(
   const panel = document.createElement('div')
   panel.className = 'umm-dl-panel'
   panel.style.cssText = [
-    `background:${c('#fff','#25262b')}`,
-    `border:1px solid ${c('#e8e8e8','#373a40')}`,
+    `background:${theme.panelBg}`,
+    `border:1px solid ${theme.panelBorder}`,
     'border-radius:14px',
-    `box-shadow:0 12px 48px ${c('rgba(0,0,0,0.15)','rgba(0,0,0,0.4)')}`,
+    `box-shadow:0 12px 48px ${theme.panelShadow}`,
     'width:800px;max-width:calc(100vw-32px);min-width:340px',
     'max-height:calc(100vh-64px)',
     'display:flex;flex-direction:column;overflow:hidden',
   ].join(';')
   overlay.appendChild(panel)
 
-  // ── Responsive + style isolation CSS ──
+  // ── Responsive + style isolation CSS (13-tier breakpoint system) ──
   const rStyle = document.createElement('style')
   rStyle.textContent = [
-    '@media(max-width:479px){.umm-dl-panel{width:calc(100vw-16px)!important}}',
+    '@media(max-width:319px){.umm-dl-panel{width:calc(100vw-16px)!important}}',
+    '@media(min-width:320px)and (max-width:374px){.umm-dl-panel{width:calc(100vw-16px)!important}}',
+    '@media(min-width:375px)and (max-width:479px){.umm-dl-panel{width:calc(100vw-24px)!important}}',
     '@media(min-width:480px)and (max-width:639px){.umm-dl-panel{width:480px!important}}',
     '@media(min-width:640px)and (max-width:767px){.umm-dl-panel{width:580px!important}}',
     '@media(min-width:768px)and (max-width:1023px){.umm-dl-panel{width:660px!important}}',
     '@media(min-width:1024px)and (max-width:1279px){.umm-dl-panel{width:740px!important}}',
-    '@media(min-width:1280px){.umm-dl-panel{width:860px!important}}',
+    '@media(min-width:1280px)and (max-width:1535px){.umm-dl-panel{width:860px!important}}',
+    '@media(min-width:1536px)and (max-width:1919px){.umm-dl-panel{width:880px!important}}',
+    '@media(min-width:1920px)and (max-width:2559px){.umm-dl-panel{width:920px!important}}',
+    '@media(min-width:2560px)and (max-width:3199px){.umm-dl-panel{width:960px!important}}',
+    '@media(min-width:3200px)and (max-width:3839px){.umm-dl-panel{width:1000px!important}}',
+    '@media(min-width:3840px)and (max-width:5119px){.umm-dl-panel{width:1040px!important}}',
+    '@media(min-width:5120px){.umm-dl-panel{width:1080px!important}}',
     // Font-size scales with viewport
     '@media(max-width:639px){.umm-dl-panel td,.umm-dl-panel th{font-size:12px!important}}',
     '@media(min-width:640px)and (max-width:1023px){.umm-dl-panel td,.umm-dl-panel th{font-size:13px!important}}',
-    '@media(min-width:1024px){.umm-dl-panel td,.umm-dl-panel th{font-size:14px!important}}',
-    '@media(min-width:1280px){.umm-dl-panel td{font-size:14.5px!important}.umm-dl-panel th{font-size:12px!important}}',
+    '@media(min-width:1024px)and (max-width:1535px){.umm-dl-panel td,.umm-dl-panel th{font-size:14px!important}}',
+    '@media(min-width:1536px){.umm-dl-panel td{font-size:14.5px!important}.umm-dl-panel th{font-size:12px!important}}',
     // Placeholder colors
-    `#umm-dl-modal input::placeholder{color:${c('#aaa','#666')}!important}`,
-    `#umm-dl-modal textarea::placeholder{color:${c('#aaa','#666')}!important}`,
+    `#umm-dl-modal input::placeholder{color:${theme.placeholderColor}!important}`,
+    `#umm-dl-modal textarea::placeholder{color:${theme.placeholderColor}!important}`,
     // Scrollbar
     '#umm-dl-modal ::-webkit-scrollbar{width:7px!important;height:7px!important}',
-    `#umm-dl-modal ::-webkit-scrollbar-thumb{background:${c('#ccc','#45484f')}!important;border-radius:4px!important}`,
+    `#umm-dl-modal ::-webkit-scrollbar-thumb{background:${theme.scrollThumb}!important;border-radius:4px!important}`,
     `#umm-dl-modal ::-webkit-scrollbar-track{background:transparent!important}`,
     // Loading spinner for add/remove operations
     '@keyframes umm-dl-spin{to{transform:rotate(360deg)}}',
@@ -234,16 +326,16 @@ function buildThemedDialog(
 
   // ── Header ──
   const header = document.createElement('div')
-  header.style.cssText = ['display:flex;align-items:center;justify-content:space-between','padding:18px 28px',`border-bottom:1px solid ${c('#e8e8e8','#373a40')}`,`background:${c('#fafafa','#2c2e33')}`].join(';')
+  header.style.cssText = ['display:flex;align-items:center;justify-content:space-between','padding:18px 28px',`border-bottom:1px solid ${theme.panelBorder}`,`background:${theme.headerBg}`].join(';')
   const title = document.createElement('h3')
   title.textContent = '添加到片单'
-  title.style.cssText = ['margin:0','font-size:17px','font-weight:600','letter-spacing:-0.01em',`color:${c('#1a1a1a','#f0f0f0')}`].join(';')
+  title.style.cssText = ['margin:0','font-size:17px','font-weight:600','letter-spacing:-0.01em',`color:${theme.titleColor}`].join(';')
   const closeBtn = document.createElement('button')
   closeBtn.innerHTML = '\u2715'
   closeBtn.setAttribute('aria-label','关闭')
-  closeBtn.style.cssText = ['width:34px;height:34px;border:none;background:transparent;cursor:pointer',`color:${c('#999','#888')};font-size:16px`,'display:flex;align-items:center;justify-content:center;border-radius:8px','transition:background .15s,color .15s'].join(';')
-  closeBtn.onmouseenter = () => { closeBtn.style.background = c('#f0f0f0','#373a40'); closeBtn.style.color = c('#333','#e8e8e8') }
-  closeBtn.onmouseleave = () => { closeBtn.style.background = 'transparent'; closeBtn.style.color = c('#999','#888') }
+  closeBtn.style.cssText = ['width:34px;height:34px;border:none;background:transparent;cursor:pointer',`color:${theme.closeColor};font-size:16px`,'display:flex;align-items:center;justify-content:center;border-radius:8px','transition:background .15s,color .15s'].join(';')
+  closeBtn.onmouseenter = () => { closeBtn.style.background = theme.closeHoverBg; closeBtn.style.color = theme.closeHoverColor }
+  closeBtn.onmouseleave = () => { closeBtn.style.background = 'transparent'; closeBtn.style.color = theme.closeColor }
   closeBtn.addEventListener('click', () => { overlay.remove(); document.body.style.overflow = '' })
   header.append(title, closeBtn)
   panel.appendChild(header)
@@ -255,15 +347,15 @@ function buildThemedDialog(
 
   // Loading indicator shown during initial fetch
   const bodyLoading = document.createElement('div')
-  bodyLoading.style.cssText = ['display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 0',`color:${c('#888','#999')}`,'font-size:13.5px'].join(';')
+  bodyLoading.style.cssText = ['display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 0',`color:${theme.theadText}`,'font-size:13.5px'].join(';')
   bodyLoading.innerHTML = '<span class="umm-dl-spinner" style="width:20px;height:20px;border-width:2.5px"></span><span>加载片单列表...</span>'
   body.appendChild(bodyLoading)
 
   // ── Confirm overlay ──
   const confirmBox = document.createElement('div')
   confirmBox.style.display = 'none'
-  confirmBox.style.cssText = ['position:absolute;inset:0;z-index:10',`background:${c('rgba(255,255,255,0.93)','rgba(37,38,43,0.93)')}`,'display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px;text-align:center'].join(';')
-  confirmBox.innerHTML = '<p id="umm-dl-confirm-text" style="margin:0;font-size:14.5px;font-weight:500;line-height:1.5"></p><div style="display:flex;gap:12px"><button id="umm-dl-confirm-yes" style="padding:10px 28px;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600"></button><button id="umm-dl-confirm-no" style="padding:10px 28px;border:1px solid;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:500"></button></div>'
+  confirmBox.style.cssText = ['position:absolute;inset:0;z-index:10',`background:${theme.confirmBg}`,'display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px;text-align:center'].join(';')
+  confirmBox.innerHTML = `<p id="umm-dl-confirm-text" style="margin:0;font-size:14.5px;font-weight:500;line-height:1.5;color:${theme.textPrimary}"></p><div style="display:flex;gap:12px"><button id="umm-dl-confirm-yes" style="padding:10px 28px;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600"></button><button id="umm-dl-confirm-no" style="padding:10px 28px;border:1px solid;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:500"></button></div>`
   panel.style.position = 'relative'
   panel.appendChild(confirmBox)
 
@@ -275,8 +367,8 @@ function buildThemedDialog(
     confirmText.textContent = msg
     confirmYes.textContent = yesLabel
     confirmNo.textContent = noLabel
-    confirmYes.style.cssText = ['padding:10px 28px;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600',`background:${c('#4f6ef7','#6e8aff')};color:#fff`].join(';')
-    confirmNo.style.cssText = ['padding:10px 28px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:500',`border:1px solid ${c('#d0d0d0','#45484f')}`,`background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')}`].join(';')
+    confirmYes.style.cssText = ['padding:10px 28px;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600',`background:${theme.accent};color:#fff`].join(';')
+    confirmNo.style.cssText = ['padding:10px 28px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:500',`border:1px solid ${theme.borderDark}`,`background:${theme.surfaceAlt};color:${theme.textSecondary}`].join(';')
     confirmBox.style.display = 'flex'
     confirmYes.onclick = () => { confirmBox.style.display = 'none'; action() }
     confirmNo.onclick = () => { confirmBox.style.display = 'none' }
@@ -286,23 +378,23 @@ function buildThemedDialog(
   const searchInput = document.createElement('input')
   searchInput.type = 'text'
   searchInput.placeholder = '搜索片单...'
-  searchInput.style.cssText = ['width:100%;box-sizing:border-box;height:40px;padding:0 14px;margin-bottom:14px',`background:${c('#f5f5f5','#1a1b1e')}`,`border:1px solid ${c('#d0d0d0','#45484f')}`,`color:${c('#1a1a1a','#e8e8e8')}`,'border-radius:10px;font-size:14px;outline:none','transition:border-color .15s,box-shadow .15s'].join(';')
-  searchInput.onfocus = () => { searchInput.style.borderColor = c('#4f6ef7','#6e8aff'); searchInput.style.boxShadow = `0 0 0 3px ${c('rgba(79,110,247,0.12)','rgba(110,138,255,0.15)')}` }
-  searchInput.onblur = () => { searchInput.style.borderColor = c('#d0d0d0','#373a40'); searchInput.style.boxShadow = 'none' }
+  searchInput.style.cssText = ['width:100%;box-sizing:border-box;height:40px;padding:0 14px;margin-bottom:14px',`background:${theme.inputBg}`,`border:1px solid ${theme.borderDark}`,`color:${theme.textPrimary}`,'border-radius:10px;font-size:14px;outline:none','transition:border-color .15s,box-shadow .15s'].join(';')
+  searchInput.onfocus = () => { searchInput.style.borderColor = theme.accent; searchInput.style.boxShadow = `0 0 0 3px ${theme.accentGlow}` }
+  searchInput.onblur = () => { searchInput.style.borderColor = theme.borderInputBlur; searchInput.style.boxShadow = 'none' }
   body.appendChild(searchInput)
 
   // ── Table ──
   const tableWrap = document.createElement('div')
-  tableWrap.style.cssText = [`border:1px solid ${c('#e8e8e8','#373a40')}`,'border-radius:10px;overflow:hidden;max-height:360px;overflow-y:auto;overscroll-behavior:contain'].join(';')
+  tableWrap.style.cssText = [`border:1px solid ${theme.panelBorder}`,'border-radius:10px;overflow:hidden;max-height:360px;overflow-y:auto;overscroll-behavior:contain'].join(';')
 
   const table = document.createElement('table')
   table.style.cssText = 'width:100%;border-collapse:collapse;table-layout:fixed'
 
   // Thead
   const thead = document.createElement('thead')
-  thead.style.cssText = [`background:${c('#fafafa','#2c2e33')}`,`border-bottom:1px solid ${c('#e8e8e8','#373a40')}`,'position:sticky;top:0;z-index:1'].join(';')
+  thead.style.cssText = [`background:${theme.headerBg}`,`border-bottom:1px solid ${theme.panelBorder}`,'position:sticky;top:0;z-index:1'].join(';')
   const hRow = document.createElement('tr')
-  const h = (w: string, align: string) => `padding:10px 12px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${c('#888','#999')};width:${w};text-align:${align}`
+  const h = (w: string, align: string) => `padding:10px 12px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${theme.theadText};width:${w};text-align:${align}`
 
   hRow.innerHTML = [
     '<th style="' + h('38px','center') + '">🔒</th>',
@@ -315,7 +407,7 @@ function buildThemedDialog(
 
   // Tbody
   const tbody = document.createElement('tbody')
-  const td = (align: string) => `padding:10px 12px;font-size:13.5px;color:${c('#333','#c8c8c8')};text-align:${align};border-bottom:1px solid ${c('#eee','#2c2e33')};transition:background .12s`
+  const td = (align: string) => `padding:10px 12px;font-size:13.5px;color:${theme.textSecondary};text-align:${align};border-bottom:1px solid ${theme.rowBorder};transition:background .12s`
 
   function renderItems(filter: string): void {
     tbody.innerHTML = ''
@@ -327,7 +419,7 @@ function buildThemedDialog(
       hasVisible = true
       const row = document.createElement('tr')
       row.style.cursor = 'pointer'
-      row.onmouseenter = () => { row.style.background = c('#f5f5f5','#2c2e33') }
+      row.onmouseenter = () => { row.style.background = theme.rowHover }
       row.onmouseleave = () => {
         if (item.id !== selectedId) row.style.background = 'transparent'
       }
@@ -349,8 +441,8 @@ function buildThemedDialog(
         'font-size:16px;font-weight:700',
         'transition:all .15s',
         collected
-          ? `color:${c('#0f7a43','#6fcf73')};background:${c('rgba(15,122,67,0.1)','rgba(111,207,115,0.12)')}`
-          : `color:${c('#bbb','#555')}`,
+          ? `color:${theme.checkedColor};background:${theme.checkedBg}`
+          : `color:${theme.uncheckedColor}`,
       ].join(';')
       toggleCell.appendChild(toggleBtn)
       toggleCell.addEventListener('click', (e) => {
@@ -383,8 +475,8 @@ function buildThemedDialog(
       // Use a custom attribute to re-apply highlight
       nameCell.textContent = item.name
       if (item.id === selectedId) {
-        row.style.background = c('#f0f4ff','rgba(110,138,255,0.08)')
-        row.style.outline = '1px solid ' + c('#4f6ef7','#6e8aff')
+        row.style.background = theme.selectedBg
+        row.style.outline = '1px solid ' + theme.accent
         row.style.outlineOffset = '-1px'
       }
       row.addEventListener('click', () => {
@@ -394,7 +486,7 @@ function buildThemedDialog(
 
       // Column 4: Count
       const countCell = document.createElement('td')
-      countCell.style.cssText = td('right') + ';font-size:12px;color:' + c('#888','#999')
+      countCell.style.cssText = td('right') + ';font-size:12px;color:' + theme.theadText
       const m = item.count.match(/(\\d+)/)
       countCell.textContent = m ? m[1] : item.count
 
@@ -406,7 +498,7 @@ function buildThemedDialog(
       const emptyRow = document.createElement('tr')
       const emptyCell = document.createElement('td')
       emptyCell.colSpan = 4
-      emptyCell.style.cssText = ['padding:40px;text-align:center',`color:${c('#999','#777')}`,'font-size:13.5px'].join(';')
+      emptyCell.style.cssText = ['padding:40px;text-align:center',`color:${theme.emptyText}`,'font-size:13.5px'].join(';')
       emptyCell.textContent = q ? '未找到匹配的片单' : '暂无片单'
       emptyRow.appendChild(emptyCell)
       tbody.appendChild(emptyRow)
@@ -419,29 +511,29 @@ function buildThemedDialog(
 
   // ── Footer ──
   const footer = document.createElement('div')
-  footer.style.cssText = ['display:flex;align-items:center;justify-content:flex-end;gap:10px','padding:14px 24px',`border-top:1px solid ${c('#e8e8e8','#373a40')}`,`background:${c('#fafafa','#2c2e33')}`].join(';')
+  footer.style.cssText = ['display:flex;align-items:center;justify-content:flex-end;gap:10px','padding:14px 24px',`border-top:1px solid ${theme.panelBorder}`,`background:${theme.headerBg}`].join(';')
 
   // Create doulist button (left side)
   const createBtn = document.createElement('button')
   createBtn.textContent = '＋ 新建片单'
-  createBtn.style.cssText = ['padding:7px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all .12s',`color:${c('#4f6ef7','#6e8aff')}`,`background:${c('rgba(79,110,247,0.06)','rgba(110,138,255,0.08)')}`].join(';')
-  createBtn.onmouseenter = () => { createBtn.style.background = c('rgba(79,110,247,0.12)','rgba(110,138,255,0.15)') }
-  createBtn.onmouseleave = () => { createBtn.style.background = c('rgba(79,110,247,0.06)','rgba(110,138,255,0.08)') }
+  createBtn.style.cssText = ['padding:7px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all .12s',`color:${theme.accent}`,`background:${theme.accentSubtle}`].join(';')
+  createBtn.onmouseenter = () => { createBtn.style.background = theme.accentGlow }
+  createBtn.onmouseleave = () => { createBtn.style.background = theme.accentSubtle }
 
   // ── Create doulist form (hidden until createBtn is clicked) ──
   const createForm = document.createElement('div')
   createForm.style.display = 'none'
-  createForm.style.cssText = ['display:none;flex-direction:column;gap:10px','padding:14px 0 10px',`border-bottom:1px solid ${c('#e8e8e8','#373a40')}`,'margin-bottom:10px'].join(';')
+  createForm.style.cssText = ['display:none;flex-direction:column;gap:10px','padding:14px 0 10px',`border-bottom:1px solid ${theme.panelBorder}`,'margin-bottom:10px'].join(';')
 
   const nameInput = document.createElement('input')
   nameInput.type = 'text'
   nameInput.placeholder = '请输入片单名称'
-  nameInput.style.cssText = ['width:100%;box-sizing:border-box;height:38px;padding:0 14px',`background:${c('#f5f5f5','#1a1b1e')}`,`border:1px solid ${c('#d0d0d0','#45484f')}`,`color:${c('#1a1a1a','#e8e8e8')}`,'border-radius:10px;font-size:14px;outline:none'].join(';')
-  nameInput.onfocus = () => { nameInput.style.borderColor = c('#4f6ef7','#6e8aff'); nameInput.style.boxShadow = `0 0 0 3px ${c('rgba(79,110,247,0.12)','rgba(110,138,255,0.15)')}` }
-  nameInput.onblur = () => { nameInput.style.borderColor = c('#d0d0d0','#373a40'); nameInput.style.boxShadow = 'none' }
+  nameInput.style.cssText = ['width:100%;box-sizing:border-box;height:38px;padding:0 14px',`background:${theme.inputBg}`,`border:1px solid ${theme.borderDark}`,`color:${theme.textPrimary}`,'border-radius:10px;font-size:14px;outline:none'].join(';')
+  nameInput.onfocus = () => { nameInput.style.borderColor = theme.accent; nameInput.style.boxShadow = `0 0 0 3px ${theme.accentGlow}` }
+  nameInput.onblur = () => { nameInput.style.borderColor = theme.borderInputBlur; nameInput.style.boxShadow = 'none' }
 
   const privateRow = document.createElement('label')
-  privateRow.style.cssText = ['display:flex;align-items:center;gap:8px',`color:${c('#666','#999')}`,'font-size:13px;cursor:pointer'].join(';')
+  privateRow.style.cssText = ['display:flex;align-items:center;gap:8px',`color:${theme.labelColor}`,'font-size:13px;cursor:pointer'].join(';')
   const privateCheck = document.createElement('input')
   privateCheck.type = 'checkbox'
   privateRow.append(privateCheck, '私密片单')
@@ -450,10 +542,10 @@ function buildThemedDialog(
   formActions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
   const formCancel = document.createElement('button')
   formCancel.textContent = '取消'
-  formCancel.style.cssText = `padding:7px 20px;border:1px solid ${c('#d0d0d0','#45484f')};border-radius:8px;background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')};font-size:13px;font-weight:500;cursor:pointer`
+  formCancel.style.cssText = `padding:7px 20px;border:1px solid ${theme.borderDark};border-radius:8px;background:${theme.surfaceAlt};color:${theme.textSecondary};font-size:13px;font-weight:500;cursor:pointer`
   const formConfirm = document.createElement('button')
   formConfirm.innerHTML = '创建'
-  formConfirm.style.cssText = `padding:7px 20px;border:none;border-radius:8px;background:${c('#4f6ef7','#6e8aff')};color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1.4`
+  formConfirm.style.cssText = `padding:7px 20px;border:none;border-radius:8px;background:${theme.accent};color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1.4`
   formActions.append(formCancel, formConfirm)
   createForm.append(nameInput, privateRow, formActions)
   body.insertBefore(createForm, searchInput)
@@ -496,7 +588,7 @@ function buildThemedDialog(
 
   const closeBtn2 = document.createElement('button')
   closeBtn2.textContent = '关闭'
-  closeBtn2.style.cssText = `padding:9px 28px;border:1px solid ${c('#d0d0d0','#45484f')};border-radius:10px;background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')};font-size:13.5px;font-weight:500;cursor:pointer`
+  closeBtn2.style.cssText = `padding:9px 28px;border:1px solid ${theme.borderDark};border-radius:10px;background:${theme.surfaceAlt};color:${theme.textSecondary};font-size:13.5px;font-weight:500;cursor:pointer`
   closeBtn2.addEventListener('click', () => { overlay.remove(); document.body.style.overflow = '' })
 
   footer.append(createBtn, closeBtn2)
@@ -512,7 +604,11 @@ function buildThemedDialog(
 
 export function initDoulistReplacement(identity: UrlIdentity): void {
   function getSubjectInfo(): SubjectInfo | null {
-    const ck = document.querySelector<HTMLInputElement>('input[name="ck"]')?.value || ''
+    // Prefer hidden <input name="ck">; fall back to document.cookie (user may be logged in
+    // even if the input is absent — e.g. partial page load, SPA navigation)
+    const inputCk = document.querySelector<HTMLInputElement>('input[name="ck"]')?.value
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)ck=([^;]+)/)
+    const ck = inputCk || (cookieMatch ? decodeURIComponent(cookieMatch[1]) : '')
     if (!identity.providerId || !ck) return null
     return {
       subjectId: identity.providerId,
@@ -531,12 +627,22 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
       el => el instanceof Element && el.matches('.lnk-doulist-add, .umm-dl-trigger')
     ) as HTMLElement | undefined
     if (!trigger) return
-    e.preventDefault()
-    e.stopImmediatePropagation()
     if (document.getElementById(DL_MODAL_ID)) return
 
     const subject = getSubjectInfo()
-    if (!subject) return
+    if (!subject) {
+      // Missing ck token or providerId — can't proceed with custom dialog.
+      // Don't block the native handler: for .lnk-doulist-add the native Douban
+      // dialog will open; for .umm-dl-trigger show a toast so the user isn't
+      // left with a dead button.
+      if (trigger.matches('.umm-dl-trigger')) {
+        console.warn('[UMM Doulist] Cannot open: missing ck token or providerId')
+        FloatingToast.error('UMM', '片单功能暂不可用（请确认已登录豆瓣）')
+      }
+      return
+    }
+    e.preventDefault()
+    e.stopImmediatePropagation()
 
     // Show loading on the trigger button while fetching doulists
     const origText = trigger.textContent || ''

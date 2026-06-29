@@ -11,6 +11,7 @@ import { FloatingToast } from '../utils/toast'
 import { scanDoubanPageStatus, extractCrossPlatformLinks } from './douban-scanner'
 import { getLocalRecord } from './douban-sync'
 import { t } from '../i18n'
+import { infoLog } from '@/utils/logger'
 import { showPageToast, showNotification } from './douban-toast'
 
 /**
@@ -27,7 +28,7 @@ export async function injectNeoDBPushButtons(
   // 扫描页面状态（检测"我看过"或"我听过"）
   const pageState = scanDoubanPageStatus(identity)
   if (pageState.status !== 'done') {
-    console.log('[UMM] Page not marked as done, skip NeoDB buttons')
+    infoLog('Page not marked as done, skip NeoDB buttons')
     return
   }
   
@@ -39,11 +40,11 @@ export async function injectNeoDBPushButtons(
   }
   
   // ✅ P1: 使用缓存的记录，避免重复查询
-  console.log('[UMM] injectNeoDBPushButtons called, record:', !!record)
+  infoLog('injectNeoDBPushButtons called, record:', !!record)
   const localRecord = record || await getLocalRecord(identity)
   
   // ✅ 调试：输出完整的记录信息
-  console.log('[UMM] Local record after query:', localRecord ? {
+  infoLog('Local record after query:', localRecord ? {
     rating: localRecord.rating,
     status: localRecord.status,
     linkedIds: localRecord.linkedIds
@@ -56,13 +57,13 @@ export async function injectNeoDBPushButtons(
   
   // ✅ 检查是否已通过linkedIds同步到 NeoDB
   const isSynced = !!(localRecord?.linkedIds?.neodb)
-  console.log('[UMM] Checking synced state:', {
+  infoLog('Checking synced state:', {
     linkedIds: localRecord?.linkedIds,
     isSynced: !!isSynced
   })
   if (isSynced) {
     container.classList.add('umm-neodb-synced')
-    console.log('[UMM] Applied umm-neodb-synced class to container')
+    infoLog('Applied umm-neodb-synced class to container')
   }
 
   const watermark = document.createElement('div')
@@ -108,7 +109,7 @@ export async function injectNeoDBPushButtons(
   // ✅ P0: 使用事件委托绑定事件（避免内存泄漏）
   bindNeoDBPushEvents(identity, localRecord, container)
   
-  console.log('[UMM] NeoDB push buttons injected')
+  infoLog('NeoDB push buttons injected')
 }
 
 /**
@@ -307,9 +308,9 @@ async function performNeoDBPush(
   if (response.success) {
     // ✅ 成功：重新查询数据库以获取最新的 neodbUuid
     const updatedRecord = await getLocalRecord(identity)
-    console.log('[UMM] Updated record after sync:', updatedRecord ? 'Found' : 'Not found')
+    infoLog('Updated record after sync:', updatedRecord ? 'Found' : 'Not found')
     if (updatedRecord) {
-      console.log('[UMM] Updated record after sync:', { linkedIds: updatedRecord.linkedIds })
+      infoLog('Updated record after sync:', { linkedIds: updatedRecord.linkedIds })
     }
     
     // ✅ 更新按钮容器的荧光效果状态
@@ -319,10 +320,10 @@ async function performNeoDBPush(
       const isSynced = !!(updatedRecord.linkedIds?.neodb)
       if (isSynced) {
         c.classList.add('umm-neodb-synced')
-        console.log('[UMM] Applied synced glow effect to buttons')
+        infoLog('Applied synced glow effect to buttons')
       } else {
         c.classList.remove('umm-neodb-synced')
-        console.log('[UMM] Removed synced glow effect from buttons')
+        infoLog('Removed synced glow effect from buttons')
       }
     }
 
@@ -341,7 +342,7 @@ async function performNeoDBPush(
         if (existingDouban.linkedIds.neodb !== neodbFullKey) {
           existingDouban.linkedIds.neodb = neodbFullKey
           await Store.dbPut(storeName, doubanFullKey, existingDouban)
-          console.log('[UMM Douban] ✅ Updated Douban linkedIds.neodb via push:', neodbFullKey)
+          infoLog('[Douban] ✅ Updated Douban linkedIds.neodb via push:', neodbFullKey)
         }
       }
 
@@ -360,7 +361,7 @@ async function performNeoDBPush(
           ...neodbLinkedIds,
         }
         await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
-        console.log('[UMM Douban] ✅ Updated existing NeoDB record via push:', neodbFullKey, 'linkedIds:', existingNeoDB.linkedIds)
+        infoLog('[Douban] ✅ Updated existing NeoDB record via push:', neodbFullKey, 'linkedIds:', existingNeoDB.linkedIds)
       } else {
         const neodbRecord: StoreRecord = {
           url: `https://neodb.social/${identity.type === 'music' ? 'album' : identity.type}/${catalogUuid}/`,
@@ -370,7 +371,7 @@ async function performNeoDBPush(
           linkedIds: neodbLinkedIds,
         }
         await Store.dbPut(neodbStoreName, neodbFullKey, neodbRecord)
-        console.log('[UMM Douban] ✅ Created NeoDB local record via push:', neodbFullKey, 'linkedIds:', neodbLinkedIds)
+        infoLog('[Douban] ✅ Created NeoDB local record via push:', neodbFullKey, 'linkedIds:', neodbLinkedIds)
       }
 
       // 4. 反方向：更新 IMDB/TMDB 记录的 linkedIds 以包含 neodb
@@ -384,7 +385,7 @@ async function performNeoDBPush(
           if (existingImdb.linkedIds.neodb !== neodbFullKey) {
             existingImdb.linkedIds.neodb = neodbFullKey
             await Store.dbPut('imdb_records', imdbStoreKey, existingImdb)
-            console.log('[UMM Douban] ✅ Updated IMDB linkedIds.neodb via push:', imdbStoreKey)
+            infoLog('[Douban] ✅ Updated IMDB linkedIds.neodb via push:', imdbStoreKey)
           }
         }
       }
@@ -398,7 +399,7 @@ async function performNeoDBPush(
           if (existingTmdb.linkedIds.neodb !== neodbFullKey) {
             existingTmdb.linkedIds.neodb = neodbFullKey
             await Store.dbPut('tmdb_records', tmdbStoreKey, existingTmdb)
-            console.log('[UMM Douban] ✅ Updated TMDB linkedIds.neodb via push:', tmdbStoreKey)
+            infoLog('[Douban] ✅ Updated TMDB linkedIds.neodb via push:', tmdbStoreKey)
           }
         }
       }
