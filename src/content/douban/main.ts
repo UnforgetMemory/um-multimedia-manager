@@ -18,6 +18,7 @@ import homepageCss from './styles/homepage.css?raw'
 import searchCss from './styles/search.css?raw'
 import detailCss from './styles/detail.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
+import interestCss from './styles/interest.css?raw'
 import { mountUmmOverlay } from './overlay'
 import { composeStyles } from './css-composer'
 import { createApp } from 'vue'
@@ -93,8 +94,10 @@ async function mountDetail(): Promise<void> {
   const css = composeStyles(
     { name: 'theme', css: themeCss },
     { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
     { name: 'components', css: detailCss },
+    { name: 'interest', css: interestCss },
   )
   const { default: App } = await import('./pages/detail/App.vue')
   const { extractDetailData, loadRecord } = await import('./pages/detail/detail-data')

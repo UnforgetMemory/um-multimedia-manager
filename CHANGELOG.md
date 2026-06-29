@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.3] - 2026-06-29
+
+### Added
+- **标记 dialog 完整交互**: 支持"想看/在看/已看"三态选择、5星评分、标签(tags)推荐+自定义、短评输入(350字限制)，POST 豆瓣 API + IndexedDB 持久化
+- **跨平台同步 (IMDb/TMDB/NeoDB)**: 第一次标记已看时自动扫描页面提取 IMDb/TMDB 链接，写入对应平台记录；NeoDB 自动推送（需配置）
+- **我的短评展示**: 标记对话框保存的短评显示在 `#umm-interest-actions` 标记按钮下方
+- **热门短评区域**: 从页面 `#comments-section` 解析热门短评并渲染到详情页 body
+- **NeoDB 同步组件注入 Shadow DOM**: 页面加载+标记保存后注入到 overlay 内 `#umm-neodb-actions`，带按钮 loading 反馈和 toast 通知
+- **演职员/剧照入口链接**: 复用原始页面的计数（全部 N / 预告片N / 图片N），点击跳转豆瓣原生页面
+
+### Fixed
+- **NeoDB 按钮操作失灵**: 使用事件委托 + `container.querySelectorAll` 替代 `document.getElementById` 穿透 Shadow DOM
+- **NeoDB 容器样式丢失**: 移除内联 style，改用 CSS class（`.umm-neodb-push-buttons`）接入 Shadow DOM 设计令牌
+- **NeoDB 首次注入时机**: 初始 `neoDBInjector` 在 Vue 挂载前运行 → 回退原生 DOM 被遮盖；改为 `onMounted` 中 `fetchInterest` 完成后主动触发
+- **NeoDB 容器重复注入**: 清理旧按钮时优先 `shadowRoot?.getElementById`，兜底 `document.getElementById`
+- **NeoDB watermark 层叠错误**: 补回 `.umm-neodb-btn { position: relative; z-index: 1 }`
+- **添加到片单按钮缺 loading**: fetch 期间按钮显示"加载中…" + `[data-loading]` 属性
+- **添加到片单 dialog 简化**: 移除"取消"/"保存"按钮，替换为"关闭"；二次确认携带片单名
+- **"添加到片单"按钮浅色主题兼容**: `color: #fff` 替代 `--umm-text-primary`
+- **年份显示不清晰**: `--umm-text-muted` → `--umm-text-secondary`，提升对比度
+- **标记 dialog 保存无 toast**: 补全 DB 保存/跨平台同步/NeoDB 同步各阶段 toast 反馈
+
+### Changed
+- **UmmInterestBar 改用 Vue 渲染**: 从纯 `defineComponent("h")` 渲染，替代早期内联 HTML；dialog 及其交互状态通过 props 控制
+- **useInterest composable**: 抽取豆瓣 interest API 封装（GET + POST），支持 MaybeRef subjectId，提供 loading/error 响应式状态
+- **extractCrossPlatformLinks 接入**: 从页面 `#info` 提取 IMDb/TMDB 链接并双向同步记录
+
 ## [4.2.2] - 2026-06-28
+
+### Added
+- **豆瓣详情页"想看/已看"标记功能**: 在 Shadow DOM 详情页 overlay 中集成 `UmmInterestBar` 组件，支持下方面两项操作并通过豆瓣 API 同步状态:
+  - "想看" / "看过" 开关按钮
+  - 5-星评分选择器（选中"看过"后显示）
+  - POST 至 `/j/subject/{id}/interest` 并持久化到 IndexedDB
+  - CSRF token 从页面 `input[name="ck"]` 和 cookie 自动提取
 
 ### Fixed
 - **详情页推荐评分丢失**: 修复 `.subject-rate` 选择器作用域错误（`linkEl` → `dl`），豆瓣 DOM 中评分元素不在 `<a>` 内部

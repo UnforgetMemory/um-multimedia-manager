@@ -371,9 +371,9 @@ function buildThemedDialog(
           }
         }
         if (cur) {
-          showConfirm('确认从该片单中移除此条目？','确认移出','取消', doToggle)
+          showConfirm(`确认从片单「${item.name}」中移除此条目？`,'确认移出','取消', doToggle)
         } else {
-          showConfirm('确认将本条目添加到该片单？','确认添加','取消', doToggle)
+          showConfirm(`确认将本条目添加到片单「${item.name}」？`,'确认添加','取消', doToggle)
         }
       })
 
@@ -494,38 +494,12 @@ function buildThemedDialog(
     }
   })
 
-  const cancelBtn = document.createElement('button')
-  cancelBtn.textContent = '取消'
-  cancelBtn.style.cssText = `padding:9px 28px;border:1px solid ${c('#d0d0d0','#45484f')};border-radius:10px;background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')};font-size:13.5px;font-weight:500;cursor:pointer`
-  cancelBtn.addEventListener('click', () => { overlay.remove(); document.body.style.overflow = '' })
+  const closeBtn2 = document.createElement('button')
+  closeBtn2.textContent = '关闭'
+  closeBtn2.style.cssText = `padding:9px 28px;border:1px solid ${c('#d0d0d0','#45484f')};border-radius:10px;background:${c('#fff','#373a40')};color:${c('#333','#c8c8c8')};font-size:13.5px;font-weight:500;cursor:pointer`
+  closeBtn2.addEventListener('click', () => { overlay.remove(); document.body.style.overflow = '' })
 
-  const saveBtn = document.createElement('button')
-  saveBtn.innerHTML = '保存'
-  saveBtn.style.cssText = `padding:9px 28px;border:none;border-radius:10px;background:${c('#4f6ef7','#6e8aff')};color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;transition:opacity .15s;line-height:1.4`
-  saveBtn.addEventListener('click', async () => {
-    if (!selectedId) return
-    const item = items.find(it => it.id === selectedId)
-    if (!item) return
-    saveBtn.disabled = true
-    saveBtn.innerHTML = '<span class="umm-dl-spinner" style="margin-right:6px"></span>保存中...'
-    try {
-      const ok = item.is_collected
-        ? await removeFromDoulist(selectedId, { tkind: subject.cat, tid: subject.subjectId, ck: subject.ck })
-        : await addToDoulist(selectedId, { sid: subject.subjectId, skind: subject.cat, ck: subject.ck, comment: '' })
-      if (ok) {
-        item.is_collected = !item.is_collected
-        saveBtn.innerHTML = '\u2713 已保存'
-        setTimeout(() => overlay.remove(), 800)
-      } else { throw new Error('API fail') }
-    } catch {
-      saveBtn.innerHTML = '保存失败'
-      setTimeout(() => { saveBtn.innerHTML = '保存'; saveBtn.disabled = false }, 2000)
-    }
-  })
-
-  const spacer = document.createElement('div')
-  spacer.style.cssText = 'flex:1'
-  footer.append(createBtn, spacer, cancelBtn, saveBtn)
+  footer.append(createBtn, closeBtn2)
   panel.appendChild(footer)
 
   searchInput.addEventListener('input', () => renderItems(searchInput.value))
@@ -564,6 +538,11 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
     const subject = getSubjectInfo()
     if (!subject) return
 
+    // Show loading on the trigger button while fetching doulists
+    const origText = trigger.textContent || ''
+    trigger.setAttribute('data-loading', 'true')
+    trigger.textContent = '加载中…'
+
     // Retry once — Douban's API sometimes returns empty on first call
     // (backend lazy init). Always opens dialog regardless of result.
     async function fetchWithRetry(s: SubjectInfo): Promise<DoulistItem[]> {
@@ -572,11 +551,17 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
       await new Promise(r => setTimeout(r, 500))
       return fetchAllDoulists(s)
     }
+    const clearLoading = () => {
+      trigger.removeAttribute('data-loading')
+      trigger.textContent = origText
+    }
     fetchWithRetry(subject).then(items => {
+      clearLoading()
       const { overlay } = buildThemedDialog({ items, subject, comment: '' })
       document.body.appendChild(overlay)
       document.body.style.overflow = 'hidden'
     }).catch(() => {
+      clearLoading()
       FloatingToast.error('UMM', '片单加载失败')
     })
   }, { capture: true })

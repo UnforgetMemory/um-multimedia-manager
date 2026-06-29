@@ -31,8 +31,9 @@ export async function injectNeoDBPushButtons(
     return
   }
   
-  // 移除旧的按钮
-  const oldButtons = document.getElementById('umm-neodb-push-buttons')
+  const overlay = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
+  const oldButtons = overlay?.shadowRoot?.getElementById('umm-neodb-push-buttons')
+    ?? document.getElementById('umm-neodb-push-buttons')
   if (oldButtons) {
     oldButtons.remove()
   }
@@ -51,6 +52,7 @@ export async function injectNeoDBPushButtons(
   // ✅ P1: 创建按钮容器（带 NeoDB 高级感背景，提高对比度）
   const container = document.createElement('div')
   container.id = 'umm-neodb-push-buttons'
+  container.className = 'umm-neodb-push-buttons'
   
   // ✅ 检查是否已通过linkedIds同步到 NeoDB
   const isSynced = !!(localRecord?.linkedIds?.neodb)
@@ -62,52 +64,9 @@ export async function injectNeoDBPushButtons(
     container.classList.add('umm-neodb-synced')
     console.log('[UMM] Applied umm-neodb-synced class to container')
   }
-  
-  container.style.cssText = `
-    margin-top: 12px;
-    margin-bottom: 12px;
-    padding: 16px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(15, 122, 67, 0.1), rgba(23, 87, 214, 0.1));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 2px solid rgba(15, 122, 67, 0.3);
-    box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    display: flex;
-    gap: 10px;
-    justify-content: flex-start;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-  `
-  
-  // ✅ P1: 添加 NeoDB 背景艺术字（增强视觉效果）
+
   const watermark = document.createElement('div')
-  watermark.className = 'umm-neodb-watermark' // ✅ 新增：添加类名以便应用荧光效果
-  watermark.style.cssText = `
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 72px;
-    font-weight: 900;
-    font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
-    color: rgba(15, 122, 67, 0.12); /* ✅ P1: 提高对比度到 12% */
-    letter-spacing: 4px;
-    pointer-events: none;
-    user-select: none;
-    z-index: 0;
-    text-transform: uppercase;
-    line-height: 1;
-    white-space: nowrap;
-    text-shadow: 
-      2px 2px 0 rgba(15, 122, 67, 0.06),
-      4px 4px 0 rgba(23, 87, 214, 0.04);
-  `
-  watermark.textContent = 'NEODB'
-  watermark.setAttribute('aria-hidden', 'true') // ✅ P1: 对屏幕阅读器隐藏
+  watermark.className = 'umm-neodb-watermark'
   container.appendChild(watermark)
   
   // 获取当前评分：优先从页面 DOM 实时读取，降级到本地记录
@@ -122,34 +81,27 @@ export async function injectNeoDBPushButtons(
   pushMinusBtn.className = 'umm-neodb-btn umm-neodb-btn--minus'
   pushMinusBtn.textContent = t('neodb.btn_minus', { rating: ratingMinus })
   pushMinusBtn.title = t('neodb.title_minus')
-  
+  container.appendChild(pushMinusBtn)
+
   const pushPlusBtn = document.createElement('button')
   pushPlusBtn.id = 'umm-push-plus'
   pushPlusBtn.className = 'umm-neodb-btn umm-neodb-btn--plus'
   pushPlusBtn.textContent = t('neodb.btn_plus', { rating: ratingPlus })
   pushPlusBtn.title = t('neodb.title_plus')
-  
+  container.appendChild(pushPlusBtn)
+
   const pushOriginalBtn = document.createElement('button')
   pushOriginalBtn.id = 'umm-push-original'
   pushOriginalBtn.className = 'umm-neodb-btn umm-neodb-btn--original'
   pushOriginalBtn.textContent = t('neodb.btn_original', { rating: currentRating })
   pushOriginalBtn.title = t('neodb.title_original')
-  
-  pushMinusBtn.style.position = 'relative'
-  pushMinusBtn.style.zIndex = '1'
-  container.appendChild(pushMinusBtn)
-  
-  pushPlusBtn.style.position = 'relative'
-  pushPlusBtn.style.zIndex = '1'
-  container.appendChild(pushPlusBtn)
-  
-  pushOriginalBtn.style.position = 'relative'
-  pushOriginalBtn.style.zIndex = '1'
   container.appendChild(pushOriginalBtn)
   
-  // 插入到 #interest_sect_level 上方
   const interestSect = document.getElementById('interest_sect_level')
-  if (interestSect) {
+  const neodbActions = overlay?.shadowRoot?.querySelector('#umm-neodb-actions')
+  if (neodbActions) {
+    neodbActions.appendChild(container)
+  } else if (interestSect) {
     interestSect.parentNode?.insertBefore(container, interestSect)
   }
   
@@ -178,13 +130,12 @@ function bindNeoDBPushEvents(
     
     // 阻止事件冒泡，避免触发父元素的其他点击处理
     e.stopPropagation()
-    
     if (target.id === 'umm-push-minus') {
-      await pushToNeoDB(identity, record, -1)
+      await pushToNeoDB(identity, record, -1, container)
     } else if (target.id === 'umm-push-plus') {
-      await pushToNeoDB(identity, record, 1)
+      await pushToNeoDB(identity, record, 1, container)
     } else if (target.id === 'umm-push-original') {
-      await pushToNeoDB(identity, record, 0)
+      await pushToNeoDB(identity, record, 0, container)
     }
   })
 }
@@ -196,7 +147,8 @@ function bindNeoDBPushEvents(
 async function pushToNeoDB(
   identity: UrlIdentity, 
   record: StoreRecord | null, 
-  ratingAdjust: number
+  ratingAdjust: number,
+  container: HTMLElement
 ) {
   // ✅ P0: 验证必要的字段
   const providerId = identity.providerId
@@ -205,12 +157,9 @@ async function pushToNeoDB(
     return
   }
   
-  // ✅ 获取所有三个 NeoDB 按钮
-  const allButtons = [
-    document.getElementById('umm-push-minus'),
-    document.getElementById('umm-push-plus'),
-    document.getElementById('umm-push-original')
-  ].filter(btn => btn !== null) as HTMLButtonElement[]
+  const allButtons = Array.from(
+    container.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original')
+  ) as HTMLButtonElement[]
   
   // ✅ 保存原始状态
   const originalStates = allButtons.map(btn => ({
@@ -364,14 +313,15 @@ async function performNeoDBPush(
     }
     
     // ✅ 更新按钮容器的荧光效果状态
-    const container = document.getElementById('umm-neodb-push-buttons')
-    if (container && updatedRecord) {
+    const c = document.getElementById('umm-neodb-push-buttons')
+      ?? overlay?.shadowRoot?.getElementById('umm-neodb-push-buttons')
+    if (c && updatedRecord) {
       const isSynced = !!(updatedRecord.linkedIds?.neodb)
       if (isSynced) {
-        container.classList.add('umm-neodb-synced')
+        c.classList.add('umm-neodb-synced')
         console.log('[UMM] Applied synced glow effect to buttons')
       } else {
-        container.classList.remove('umm-neodb-synced')
+        c.classList.remove('umm-neodb-synced')
         console.log('[UMM] Removed synced glow effect from buttons')
       }
     }

@@ -71,7 +71,10 @@ export function injectNeoDBPushButtons(
 ): void {
   if (!currentIdentity) return
 
-  const pageState = scanDoubanPageStatus(currentIdentity.type)
+  // Use record data if available (works in overlay Shadow DOM, doesn't rely on native DOM)
+  const pageState = currentRecord?.status === 2
+    ? { status: 'done', rating: currentRecord.rating || 0 }
+    : scanDoubanPageStatus(currentIdentity.type)
   if (pageState.status !== 'done') {
     debugLog('Page not marked as done, skip NeoDB buttons')
     const oldButtons = document.getElementById('umm-neodb-push-buttons')
@@ -80,32 +83,16 @@ export function injectNeoDBPushButtons(
   }
 
   const interestSect = document.querySelector('#interest_sect_level')
-  if (!interestSect) {
-    debugLog('Could not find #interest_sect_level for NeoDB buttons')
-    return
-  }
 
-  const oldButtons = document.getElementById('umm-neodb-push-buttons')
-  if (oldButtons) oldButtons.remove()
+  const ov = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
+  const oldFromShadow = ov?.shadowRoot?.getElementById('umm-neodb-push-buttons')
+  const oldFromPage = document.getElementById('umm-neodb-push-buttons')
+  oldFromShadow?.remove()
+  oldFromPage?.remove()
 
   const container = document.createElement('div')
   container.id = 'umm-neodb-push-buttons'
-  container.style.cssText = `
-    margin-top: 12px;
-    margin-bottom: 12px;
-    padding: 16px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(15, 122, 67, 0.1), rgba(23, 87, 214, 0.1));
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(15, 122, 67, 0.3);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    display: flex;
-    gap: 10px;
-    justify-content: flex-start;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-  `
+  container.className = 'umm-neodb-push-buttons'
 
   const hasNeoDBLink = !!(currentRecord?.linkedIds?.neodb)
 
@@ -117,30 +104,6 @@ export function injectNeoDBPushButtons(
   watermark.className = 'umm-neodb-watermark'
   watermark.setAttribute('aria-hidden', 'true')
   watermark.textContent = 'NEODB'
-  watermark.style.cssText = `
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 72px;
-    font-weight: 900;
-    font-family: "Arial Black", "Helvetica Neue", sans-serif;
-    color: ${hasNeoDBLink ? 'rgba(15, 100, 55, 0.35)' : 'rgba(15, 122, 67, 0.12)'};
-    letter-spacing: 4px;
-    pointer-events: none;
-    user-select: none;
-    z-index: 0;
-    text-transform: uppercase;
-    line-height: 1;
-    white-space: nowrap;
-    text-shadow: rgba(15, 122, 67, 0.06) 2px 2px 0px, rgba(23, 87, 214, 0.04) 4px 4px 0px;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
-  `
-
-  if (hasNeoDBLink) {
-    watermark.style.textShadow = 'rgba(15, 100, 55, 0.2) 2px 2px 0px, rgba(15, 100, 55, 0.15) 4px 4px 0px, rgba(15, 100, 55, 0.1) 6px 6px 0px'
-  }
-
   container.appendChild(watermark)
 
   const livePageState = scanDoubanPageStatus(currentIdentity.type)
@@ -170,27 +133,30 @@ export function injectNeoDBPushButtons(
   container.appendChild(pushPlusBtn)
   container.appendChild(pushOriginalBtn)
 
-  interestSect.parentNode?.insertBefore(container, interestSect)
+  // Prefer overlay's #umm-neodb-actions (Shadow DOM), fall back to native DOM
+  const overlay = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
+  const neodbActions = overlay?.shadowRoot?.querySelector('#umm-neodb-actions')
+  if (neodbActions) {
+    neodbActions.appendChild(container)
+  } else if (interestSect.parentNode) {
+    interestSect.parentNode.insertBefore(container, interestSect)
+  } else {
+    return
+  }
 
-  bindNeoDBPushEvents(currentIdentity, currentRecord)
+  bindNeoDBPushEvents(currentIdentity, currentRecord, container)
 
   infoLog('NeoDB push buttons injected')
 }
 
-function bindNeoDBPushEvents(currentIdentity: any, currentRecord: StoreRecord | null): void {
-  const pushMinusBtn = document.getElementById('umm-push-minus')
-  const pushPlusBtn = document.getElementById('umm-push-plus')
-  const pushOriginalBtn = document.getElementById('umm-push-original')
-
-  if (pushMinusBtn) {
-    pushMinusBtn.addEventListener('click', () => pushToNeoDB(currentIdentity, currentRecord, -1))
-  }
-  if (pushPlusBtn) {
-    pushPlusBtn.addEventListener('click', () => pushToNeoDB(currentIdentity, currentRecord, 1))
-  }
-  if (pushOriginalBtn) {
-    pushOriginalBtn.addEventListener('click', () => pushToNeoDB(currentIdentity, currentRecord, 0))
-  }
+function bindNeoDBPushEvents(currentIdentity: any, currentRecord: StoreRecord | null, container: HTMLElement): void {
+  container.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement
+    if (!target.matches('#umm-push-minus, #umm-push-plus, #umm-push-original')) return
+    if (target.id === 'umm-push-minus') await pushToNeoDB(currentIdentity, currentRecord, -1)
+    else if (target.id === 'umm-push-plus') await pushToNeoDB(currentIdentity, currentRecord, 1)
+    else if (target.id === 'umm-push-original') await pushToNeoDB(currentIdentity, currentRecord, 0)
+  })
 }
 
 async function pushToNeoDB(
@@ -208,6 +174,24 @@ async function pushToNeoDB(
     showToast(t('neodb.no_id'), 'error')
     return
   }
+
+  // Disable buttons to show loading state
+  const ov = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
+  const pushBtns = ov?.shadowRoot?.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original')
+    ?? document.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original')
+  const restore: Array<{ el: HTMLElement; d: boolean; op: string; pe: string }> = []
+  pushBtns.forEach(el => {
+    const btn = el as HTMLElement
+    restore.push({ el: btn, d: btn.hasAttribute('disabled'), op: btn.style.opacity, pe: btn.style.pointerEvents })
+    btn.setAttribute('disabled', 'true')
+    btn.style.opacity = '0.5'
+    btn.style.pointerEvents = 'none'
+  })
+  const restoreBtns = () => restore.forEach(r => {
+    if (!r.d) r.el.removeAttribute('disabled')
+    r.el.style.opacity = r.op
+    r.el.style.pointerEvents = r.pe
+  })
 
   try {
     const settings = await Store.getSettings()
@@ -297,8 +281,10 @@ async function pushToNeoDB(
     } else {
       showToast(t('neodb.push_failed', { message: response.message || t('neodb.unknown_error') }), 'error')
     }
+    restoreBtns()
   } catch (error) {
     errorLog('Push to NeoDB failed:', error)
     showToast(t('neodb.sync_failed'), 'error')
+    restoreBtns()
   }
 }

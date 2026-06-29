@@ -47,6 +47,16 @@ export interface RecItem {
   isDone: boolean
 }
 
+export interface ShortComment {
+  user: string
+  userLink: string
+  avatar: string
+  rating: number
+  content: string
+  time: string
+  votes: number
+}
+
 export interface DetailData {
   identity: UrlIdentity
   title: string
@@ -65,9 +75,13 @@ export interface DetailData {
   synopsisHtml: string
   celebHeading: string
   celebItems: CelebItem[]
+  celebCount: string
   awardItems: AwardItem[]
   photoItems: PhotoItem[]
+  photoCount: string
+  trailerCount: string
   recItems: RecItem[]
+  shortComments: ShortComment[]
   rankNo: string
   rankText: string
   rankHref: string
@@ -197,6 +211,9 @@ export async function extractDetailData(): Promise<DetailData | null> {
     })
   })
 
+  const celebPl = celebEl?.querySelector('.pl')
+  const celebCount = celebPl?.textContent?.trim().replace(/[()]/g, '') || ''
+
   // Awards
   const awardMod = document.querySelector(
     '#content > .grid-16-8.clearfix > .article > .mod'
@@ -238,6 +255,13 @@ export async function extractDetailData(): Promise<DetailData | null> {
     }
   })
 
+  const photoPl = photoEl?.querySelector('h2 .pl')
+  const photoPlText = photoPl?.textContent || ''
+  const trailerMatch = photoPlText.match(/预告片(\d+)/)
+  const photoMatch = photoPlText.match(/图片(\d+)/)
+  const trailerCount = trailerMatch?.[1] || ''
+  const photoCount = photoMatch?.[1] || ''
+
   // Recommendations
   const recEl = document.querySelector('#recommendations')
   const recItems: RecItem[] = []
@@ -275,6 +299,32 @@ export async function extractDetailData(): Promise<DetailData | null> {
     }
   }
 
+  // Short comments
+  const commentsSection = document.querySelector('#comments-section')
+  const shortComments: ShortComment[] = []
+  commentsSection?.querySelectorAll('.comment-item').forEach((item) => {
+    const info = item.querySelector('.comment-info')
+    const userEl = info?.querySelector('a') as HTMLAnchorElement | null
+    const ratingEl = info?.querySelector('[class*="allstar"]')
+    const cls = ratingEl?.className || ''
+    const ratingMatch = cls.match(/allstar(\d)0/)
+    const contentEl = item.querySelector('.short')
+    const timeEl = info?.querySelector('.comment-time')
+    const voteEl = item.querySelector('.votes')
+    const avatarEl = item.querySelector('.avator img') as HTMLImageElement | null
+    const rating = ratingMatch ? parseInt(ratingMatch[1], 10) : 0
+    if (!userEl || !contentEl) return
+    shortComments.push({
+      user: userEl.textContent?.trim() || '',
+      userLink: userEl.href || '',
+      avatar: avatarEl?.src || '',
+      rating,
+      content: contentEl.textContent?.trim() || '',
+      time: timeEl?.textContent?.trim() || '',
+      votes: parseInt(voteEl?.textContent?.trim() || '0', 10) || 0,
+    })
+  })
+
   return {
     identity,
     title,
@@ -293,9 +343,13 @@ export async function extractDetailData(): Promise<DetailData | null> {
     synopsisHtml,
     celebHeading,
     celebItems,
+    celebCount,
     awardItems,
     photoItems,
+    photoCount,
+    trailerCount,
     recItems,
+    shortComments,
     rankNo,
     rankText,
     rankHref,
