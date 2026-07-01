@@ -279,14 +279,14 @@ export const Identity = {
       const host = parsed.hostname.toLowerCase();
       const pathname = parsed.pathname;
 
-      // 豆瓣电影
-      const doubanMovie = pathname.match(/^\/subject\/(\d+)\/$/i);
+      // 豆瓣电影 — also matches sub-paths like /subject/{id}/celebrities, /subject/{id}/photos
+      const doubanMovie = pathname.match(/^\/subject\/(\d+)/i);
       if (host === 'movie.douban.com' && doubanMovie) {
         return this.make('movie', 'douban', doubanMovie[1], normalized);
       }
 
       // 豆瓣音乐
-      const doubanMusic = pathname.match(/^\/subject\/(\d+)\/$/i);
+      const doubanMusic = pathname.match(/^\/subject\/(\d+)/i);
       if (host === 'music.douban.com' && doubanMusic) {
         return this.make('music', 'douban', doubanMusic[1], normalized);
       }
@@ -316,6 +316,12 @@ export const Identity = {
       const neodbAlbum = pathname.match(/^\/album\/([a-zA-Z0-9_-]+)\/$/i);
       if (host === 'neodb.social' && neodbAlbum) {
         return this.make('music', 'neodb', neodbAlbum[1], normalized);
+      }
+
+      // 豆瓣影人 (personage)
+      const doubanPersonage = pathname.match(/^\/personage\/(\d+)\/$/i);
+      if (host === 'www.douban.com' && doubanPersonage) {
+        return this.make('movie', 'douban', doubanPersonage[1], normalized);
       }
 
       // TMDB 电影

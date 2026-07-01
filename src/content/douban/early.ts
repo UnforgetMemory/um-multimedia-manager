@@ -24,6 +24,14 @@ function isSearchPage(url: string): boolean {
   return /^https?:\/\/search\.douban\.com\/(movie|music)\/subject_search/.test(url)
 }
 
+function isCelebritiesPage(url: string): boolean {
+  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/celebrities/.test(url)
+}
+
+function isPersonagePage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/personage\/\d+/.test(url)
+}
+
 function isTrailerPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/(subject\/\d+\/trailer|trailer\/\d+)/.test(url)
 }
@@ -47,6 +55,12 @@ function getOverlayConfig(): OverlayOptions | null {
       subtitle: '加载预告片...',
     }
   }
+  if (isCelebritiesPage(url)) {
+    return {
+      overlayId: 'umm-celebrities-overlay',
+      subtitle: '加载演职员...',
+    }
+  }
   if (isDetailPage(url)) {
     return {
       overlayId: 'umm-detail-mask',
@@ -58,6 +72,12 @@ function getOverlayConfig(): OverlayOptions | null {
     return {
       overlayId: 'umm-search-overlay',
       subtitle: '加载搜索结果...',
+    }
+  }
+  if (isPersonagePage(url)) {
+    return {
+      overlayId: 'umm-personage-overlay',
+      subtitle: '加载影人资料...',
     }
   }
   // Homepage (movie.douban.com/) or fallback

@@ -5,7 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.4.0] - 2026-06-30
+## [4.5.0] - 2026-07-01
+
+### Added
+- **全部演职员页面全屏覆盖层**: `/subject/{id}/celebrities` 支持影人分组网格，2/3 头像 + 代表作标签，12 级响应式断点
+- **单个影人页面全屏覆盖层**: `www.douban.com/personage/{id}/` 含 profile header（2/3 头像 grid）、简介（meta OG 全文提取）、图片、获奖、作品三明治卡片（UmmMediaCard）、合作人物卡片网格、未上映作品列表
+- **www.douban.com host_permission**: 新增 `*://www.douban.com/*`，扩展 content script 覆盖到豆瓣主站
+- **`Identity.fromUrl()` 影人 ID 解析**: `www.douban.com/personage/{id}` 路径识别，type=movie, provider=douban
+- **作品卡片复用 UmmMediaCard**: personage 页面 recentWorks/popularWorks 复用 UmmMediaCard grid 模式
+- **作品提取重试兜底**: 5 次指数退避重试，解决豆瓣原生 JS 替换底部 sections DOM 的竞态问题
+
+### Fixed
+- **人物简介截断**: 从 `meta[property="og:description"]` 提取全文，替代原生 DOM 截断片段
+- **工作区清洁**: `dist/`、`.wxt/` 构建产物清理
+- **代表作链接新标签**: celebrities 页面代表作标签改为 `@click.prevent` + `window.open` new tab
+- **影人卡片新标签**: celebrities 页面点击影人卡片改为 `@click.prevent` new tab
+- **CSS 变量统一**: celebrities/personage 全量硬编码值替换为 `--umm-*` 带 fallback 变量
+- **12 级断点体系**: 所有 grids 补齐 375px→5120px 完整 12 级断点
+
+### Changed
+- **合作人物卡片**: 从横向 flex 改为纵向卡片网格（2/3 封面 + 名称 + 合作数），hover 上浮阴影
+- **Section heading 主题色**: 下划线统一使用 rosered accent (`--umm-personage-accent`)
+- **"更多影视作品"按钮**: 从 `<a>` 内联样式改为统一 `.umm-personage-btn` 带 hover 效果
 
 ### Added
 - **预告片/视频页面统一注入**: `/subject/{id}/trailer` 列表页网格 + `/trailer/{id}/` `/video/{id}/` 详情页内嵌视频播放器，原生 DOM 移除防止音频穿透

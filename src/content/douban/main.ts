@@ -19,6 +19,8 @@ import searchCss from './styles/search.css?raw'
 import detailCss from './styles/detail.css?raw'
 import photosCss from './styles/photos.css?raw'
 import trailerCss from './styles/trailer.css?raw'
+import celebritiesCss from './styles/celebrities.css?raw'
+import personageCss from './styles/personage.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import interestCss from './styles/interest.css?raw'
 import { mountUmmOverlay } from './overlay'
@@ -41,6 +43,14 @@ function isTrailerPage(url: string): boolean {
 
 function isVideoPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/video\/\d+/.test(url)
+}
+
+function isCelebritiesPage(url: string): boolean {
+  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/celebrities/.test(url)
+}
+
+function isPersonagePage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/personage\/\d+/.test(url)
 }
 
 function isPhotosPage(url: string): boolean {
@@ -242,6 +252,75 @@ async function mountTrailer(): Promise<void> {
   })
 }
 
+// ---- Celebrities page mount ----
+
+async function mountCelebrities(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'components', css: celebritiesCss },
+  )
+  const { default: App } = await import('./pages/celebrities/App.vue')
+  const { extractCelebritiesPageData } = await import('./pages/celebrities/celebrities-data')
+  type CelebritiesPageData = import('./pages/celebrities/celebrities-data').CelebritiesPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-celebrities-overlay',
+    css,
+    async beforeMount() {
+      const data = extractCelebritiesPageData()
+      if (!data) throw new Error('[UMM] Could not extract celebrities data')
+      const globalNav = document.getElementById('db-global-nav')
+      const movieNav = document.getElementById('db-nav-movie')
+      if (globalNav) globalNav.style.display = 'none'
+      if (movieNav) movieNav.style.display = 'none'
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as CelebritiesPageData })
+    },
+  })
+}
+
+// ---- Personage page mount ----
+
+async function mountPersonage(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'components', css: personageCss },
+  )
+  const { default: App } = await import('./pages/personage/App.vue')
+  const { extractPersonagePageData } = await import('./pages/personage/personage-data')
+  type PersonagePageData = import('./pages/personage/personage-data').PersonagePageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-personage-overlay',
+    css,
+    async beforeMount() {
+      // Retry extraction — native JS may replace bottom sections (works,
+      // partners) after initial DOM paint. Poll 5 times with backoff.
+      let data: PersonagePageData | null = null
+      for (let i = 0; i < 5; i++) {
+        data = extractPersonagePageData()
+        if (data && (data.recentWorks.length > 0 || data.partners.length > 0)) break
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)))
+      }
+      if (!data) throw new Error('[UMM] Could not extract personage data')
+      const globalNav = document.getElementById('db-global-nav')
+      if (globalNav) globalNav.style.display = 'none'
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as PersonagePageData })
+    },
+  })
+}
+
 // ---- Public API ----
 
 /**
@@ -257,12 +336,16 @@ export async function mountDoubanMain(): Promise<void> {
       await mountSearch()
     } else if (isPhotosPage(url)) {
       await mountPhotos()
+    } else if (isCelebritiesPage(url)) {
+      await mountCelebrities()
     } else if (isTrailerPage(url)) {
       await mountTrailer()
     } else if (isVideoPage(url)) {
       await mountTrailer()
     } else if (isDetailPage(url)) {
       await mountDetail()
+    } else if (isPersonagePage(url)) {
+      await mountPersonage()
     } else {
       console.warn('[UMM] Unknown Douban page type — skipping mount')
     }
