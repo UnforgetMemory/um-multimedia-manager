@@ -480,6 +480,46 @@ export default defineBackground({
             await handleSehuatangGetAll(message.payload, sendResponse)
             break
 
+          // ==================== File Download (MAIN world) ====================
+          case 'DOWNLOAD_FILE': {
+            const { url, filename } = message.payload ?? {}
+            if (!url || !filename || !_sender.tab?.id) {
+              sendResponse({ success: false, error: 'Missing params or tab' })
+              return
+            }
+            chrome.scripting.executeScript({
+              target: { tabId: _sender.tab.id },
+              world: 'MAIN',
+              args: [url, filename],
+              func: (u: string, fn: string) => {
+                fetch(u, { credentials: 'include' })
+                  .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob() })
+                  .then((blob) => {
+                    const blobUrl = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = blobUrl
+                    a.download = fn
+                    a.style.display = 'none'
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove()
+                    URL.revokeObjectURL(blobUrl)
+                  })
+                  .catch(() => {
+                    const a = document.createElement('a')
+                    a.href = u
+                    a.target = '_blank'
+                    a.style.display = 'none'
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove()
+                  })
+              },
+            })
+            sendResponse({ success: true })
+            return
+          }
+
           default:
             debugLog('Unknown message type:', message.type)
             sendResponse({ success: false, error: 'Unknown message type' })

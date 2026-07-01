@@ -47,7 +47,6 @@
   position: relative;
   z-index: 9999;
   overflow: visible;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--umm-text-primary);
 }
 

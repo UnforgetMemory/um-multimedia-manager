@@ -6,8 +6,11 @@
   <title>UMManager</title>
   <style>
     html, body { margin: 0; padding: 0; width: 480px; height: 480px; overflow-y: auto; }
+    body { background: transparent !important; }
+    html { background-color: hsl(0 0% 100%); color-scheme: light; }
+    html.dark { background-color: hsl(240 6% 10%); color-scheme: dark; }
     @media (prefers-color-scheme: dark) {
-      html:not([data-theme="light"]) { color-scheme: dark; }
+      html:not(.dark) { color-scheme: dark; }
     }
     *, *::before, *::after { transition: none !important; }
   </style>

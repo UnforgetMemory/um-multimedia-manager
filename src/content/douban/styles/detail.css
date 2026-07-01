@@ -6,15 +6,7 @@
   height: 100%;
   pointer-events: auto;
 
-  /* Text colors — defined here so :host overrides breakpoints.css for detail page */
-  --umm-text-primary: #1a1a1a;
-  --umm-text-secondary: #666666;
-  --umm-text-muted: #aaaaaa;
-  --umm-bg-secondary: #f8f9fa;
-  --umm-link: #1757d6;
-  --umm-link-hover: #0d47b8;
-
-  /* Brand */
+  /* Brand — detail-specific */
   --umm-accent: #6366f1;
   --umm-success: #116f46;
   --umm-success-bg: rgba(17, 111, 70, 0.1);
@@ -30,8 +22,6 @@
   /* Detail-specific font tiers beyond breakpoints.css range */
   --umm-font-3xl: clamp(1.25rem, 1rem + 1.25vw, 2.25rem);
   --umm-font-display: clamp(1.5rem, 1.1rem + 2vw, 3rem);
-
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 :host(.umm-theme--dark) {
@@ -39,8 +29,6 @@
   --umm-text-secondary: #9ca3af;
   --umm-text-muted: #6b7280;
   --umm-bg-secondary: #1f2025;
-  --umm-link: #93bbfd;
-  --umm-link-hover: #b8d4fe;
 
   --umm-accent: #818cf8;
   --umm-success: #34d399;
@@ -79,7 +67,7 @@
   .umm-detail-year { font-size: var(--umm-font-xs, 0.75rem); }
 }
 
-.umm-detail-left { grid-column: 1; display: flex; flex-direction: column; gap: 28px; }
+.umm-detail-left { grid-column: 1; display: flex; flex-direction: column; gap: var(--umm-space-xl, 28px); }
 .umm-poster { position: relative; align-self: start; overflow: hidden; width: 100%; border-radius: var(--umm-card-radius, 8px); }
 .umm-poster a { display: block; width: 100%; overflow: hidden; border-radius: inherit; }
 .umm-poster .umm-image-img { will-change: transform; backface-visibility: hidden; transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); }

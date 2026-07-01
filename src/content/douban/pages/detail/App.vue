@@ -200,6 +200,19 @@ function metaToChips(html: string): string {
       result = result.replace(/\s+$/, '')       // 削掉 / 前的空格
       let j = i + 2
       while (j < core.length && /\s/.test(core[j])) j++ // 跳过 / 后的空格
+      // 跳过紧随其后的闭合标签（如 </span>），避免产生空 chip
+      while (j < core.length && core[j] === '<') {
+        const closeEnd = core.indexOf('>', j)
+        if (closeEnd === -1) break
+        const tag = core.slice(j, closeEnd + 1)
+        if (tag.startsWith('</')) {
+          result += tag // 将闭合标签放在前一个 chip 中
+          j = closeEnd + 1
+          while (j < core.length && /\s/.test(core[j])) j++
+        } else {
+          break
+        }
+      }
       result += '</span><span class="umm-meta-chip">'
       i = j
       continue
@@ -356,8 +369,6 @@ defineExpose({ updateRecord })
                 <span v-if="d.trailerCount" style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/trailer#trailer`)">预告片{{ d.trailerCount }}</span>
                 <template v-if="d.trailerCount && d.photoCount">&nbsp;|&nbsp;</template>
                 <span v-if="d.photoCount" style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/all_photos`)">图片{{ d.photoCount }}</span>
-                <template v-if="d.photoCount">&nbsp;·&nbsp;</template>
-                <span style="cursor:pointer" @click="openLink(`/subject/${d.identity.providerId}/mupload`)">添加</span>
               )</span>
             </h3>
       <div class="umm-photo-grid">

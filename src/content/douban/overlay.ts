@@ -28,7 +28,7 @@ function getPageStyleId(overlayId: string): string {
 }
 
 function getPageCSS(overlayId: string): string {
-  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9998!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important}body{overflow:hidden!important}`
+  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9998!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:hsl(240 6% 10%)!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:hsl(0 0% 100%)!important;color-scheme:light!important}body{overflow:hidden!important}`
 }
 
 /** Apply theme to overlay host element (data-theme + CSS class for :host(.umm-theme--*)) */
@@ -169,6 +169,14 @@ export function mountUmmOverlay(options: MountOptions): void {
   host.classList.add(`umm-theme--${theme}`)
 
   const finalize = async () => {
+    // Sync host theme into page localStorage before Vue mounts —
+    // the theme store (inside Shadow DOM) reads from localStorage on
+    // the page origin (movie.douban.com) via useStorage, NOT from
+    // chrome.storage.local. Without this sync it always defaults to 'auto'.
+    const hostTheme = host.getAttribute('data-theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    try { localStorage.setItem('umm:appearance', JSON.stringify({ theme: hostTheme })) } catch (_) {}
+
     let ctx: unknown
     if (options.beforeMount) {
       ctx = await options.beforeMount(shadow)

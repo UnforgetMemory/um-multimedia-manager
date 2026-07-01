@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.3.0] - 2026-06-29
+## [4.4.0] - 2026-06-30
+
+### Added
+- **预告片/视频页面统一注入**: `/subject/{id}/trailer` 列表页网格 + `/trailer/{id}/` `/video/{id}/` 详情页内嵌视频播放器，原生 DOM 移除防止音频穿透
+- **预告片详情页导航按钮**: 从 `.aside .links` 原生数据提取，"去本片全部视频"/"去影片页" 两个 `@click` 按钮新标签页打开
+- **all_photos 页面导航按钮**: 从 `.aside .links` + `.mb30` 提取，显示剧照/海报/壁纸类型切换 + 影片页链接
+- **全屏画廊 bottom-bar 动画**: Vue `<Transition>` 实现索引数字切换的淡入淡出动画，两端固定布局防重建
+
+### Fixed
+- **trailer selectors DOM 层级修复**: `h2 ~ ul.video-list` 改为 `.mod:has(h2#trailer) > ul.video-list`
+- **trailer 路由优先级**: `isTrailerPage()` 移至 `isDetailPage()` 之前，防止双 overlay 冲突
+- **详情页主演空 chip**: `metaToChips()` 在 `/` 分隔符后跳过闭合标签，展开 `display:none` 演员
+- **照片页 all_photos `extractSidebarLinks` 函数缺失**: 修复 `ReferenceError`
+- **早期注入白色闪烁**: 新增 `overlay.css` 通过 manifest `content_scripts.css` 注入，在浏览器渲染前设置 `<html>` 深色背景
+- **预告片页面 subject ID 提取**: 改为从 DOM `<h1> <a href="/subject/{id}/">` 提取
+- **Popup/Options 白闪及配色紊乱**: WXT CSP (`script-src 'self'`) 禁止 inline script——改用纯 CSS `html.dark { background; color-scheme }` 方案，零 JS 依赖
+- **Popop/Options `color-scheme` 与扩展主题脱节**: CSS `html.dark { color-scheme: dark; }` + `@media` 兜底，消除系统颜色与扩展主题不一致
+- **豆瓣 overlay Vue 主题 store 与宿主 `data-theme` 不同步**: `mountUmmOverlay()` 在 Vue 挂载前写入 `localStorage`，使主题 store 读取正确的扩展主题而非 OS 偏好
+- **popup/options HTML 恢复 `@media (prefers-color-scheme: dark)`**: `color-scheme` 使用 OS 偏好 + 扩展主题兜底
+
+### Changed
+- **版本升至 4.4.0**: package.json + wxt.config.ts manifest
+- **全局设计系统变量统一**: detail.css/photos.css :host 移除与 theme.css 重复的 font-family 和基础变量，统一继承；theme.css 新增 `--umm-link-hover` 变量
+- **search.css 响应式化**: 标题/元数据字体、页面/空状态间距使用 `--umm-font-*` `--umm-space-*` 变量
+- **detail.css 间距变量化**: `.umm-detail-left` gap 改用 `var(--umm-space-xl)`
+
+
 
 ### Added
 - **共享 UmmMediaCard 组件**: defineComponent props 驱动双模式（grid + scroll），grid 模式 `@click="window.open"`，scroll 模式 `<a>` 包裹，详情页推荐区/首页媒体行统一使用

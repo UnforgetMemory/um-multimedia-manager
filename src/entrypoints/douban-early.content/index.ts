@@ -4,6 +4,7 @@
  * Thin WXT entrypoint. All logic lives in @/content/douban/early.ts.
  */
 
+import './overlay.css'
 import { defineContentScript } from 'wxt/utils/define-content-script'
 import { createDoubanEarlyOverlay } from '@/content/douban/early'
 

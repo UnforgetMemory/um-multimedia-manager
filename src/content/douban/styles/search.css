@@ -31,7 +31,7 @@
 }
 
 .umm-search-title {
-  font-size: 1.375rem;
+  font-size: var(--umm-font-lg, 1.375rem);
   font-weight: 700;
   margin: 0;
   color: var(--umm-text-primary);
@@ -39,7 +39,7 @@
 }
 
 .umm-search-hd-meta {
-  font-size: 0.8125rem;
+  font-size: var(--umm-font-sm, 0.8125rem);
   color: var(--umm-text-muted);
   white-space: nowrap;
 }
@@ -161,7 +161,7 @@
 }
 
 .umm-search-card-title {
-  font-size: 1rem;
+  font-size: var(--umm-font-base, 1rem);
   font-weight: 600;
   line-height: 1.4;
   color: var(--umm-text-primary);
@@ -176,7 +176,7 @@
 
 /* ---- Metadata lines ---- */
 .umm-search-meta {
-  font-size: 0.8rem;
+  font-size: var(--umm-font-sm, 0.8rem);
   line-height: 1.5;
   color: var(--umm-text-secondary);
   display: -webkit-box;
@@ -198,7 +198,7 @@
 /* ---- Empty state ---- */
 .umm-search-empty {
   text-align: center;
-  padding: 64px 24px;
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
   color: var(--umm-text-muted);
 }
 

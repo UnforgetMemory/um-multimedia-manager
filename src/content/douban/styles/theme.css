@@ -9,6 +9,7 @@
   --umm-text-muted: #aaaaaa;
   --umm-border: #e5e7eb;
   --umm-link: #1757d6;
+  --umm-link-hover: #0d47b8;
   /* Dynamic Island variables */
   --umm-island-bg: color-mix(in srgb, #ffffff 92%, transparent);
   --umm-island-border: color-mix(in srgb, #e5e7eb 6%, transparent);
@@ -37,6 +38,7 @@
   --umm-text-muted: #666666;
   --umm-border: #3a3b40;
   --umm-link: #60a5fa;
+  --umm-link-hover: #b8d4fe;
   /* Dynamic Island variables (dark) */
   --umm-island-bg: color-mix(in srgb, #1e1f24 92%, transparent);
   --umm-island-border: color-mix(in srgb, #e0e0e0 8%, transparent);

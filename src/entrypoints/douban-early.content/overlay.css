@@ -1,0 +1,2 @@
+/* Prevent white flash on dark theme — injected at document_start before any page render */
+html { background: hsl(240 6% 10%) !important; }

@@ -187,7 +187,15 @@ export async function extractDetailData(): Promise<DetailData | null> {
           }
         }
       }
-      const text = DOMPurify.sanitize(temp.innerHTML.trim())
+      // Expand hidden spans (display:none) by removing the style attribute —
+      // DOMPurify strips style attributes anyway, which would make hidden
+      // items visible without chip wrapping; stripping style here keeps
+      // them in the same code path as visible items
+      // Also remove the "更多..." link since all items are expanded
+      const trimmedHtml = temp.innerHTML.trim()
+        .replace(/<span([^>]*)style="[^"]*display\s*:\s*none[^"]*"([^>]*)>/gi, '<span$1$2>')
+        .replace(/<a[^>]*class="[^"]*more-attrs[^"]*"[^>]*>.*?<\/a>\s*/gi, '')
+      const text = DOMPurify.sanitize(trimmedHtml)
       metaRows.push({ label, html: text })
     }
   }

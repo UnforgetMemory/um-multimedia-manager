@@ -17,6 +17,8 @@ import breakpointsCss from './styles/breakpoints.css?raw'
 import homepageCss from './styles/homepage.css?raw'
 import searchCss from './styles/search.css?raw'
 import detailCss from './styles/detail.css?raw'
+import photosCss from './styles/photos.css?raw'
+import trailerCss from './styles/trailer.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import interestCss from './styles/interest.css?raw'
 import { mountUmmOverlay } from './overlay'
@@ -31,6 +33,18 @@ function isHomepage(url: string): boolean {
 
 function isSearchPage(url: string): boolean {
   return /^https?:\/\/search\.douban\.com\/(movie|music)\/subject_search/.test(url)
+}
+
+function isTrailerPage(url: string): boolean {
+  return /^https?:\/\/movie\.douban\.com\/(subject\/\d+\/trailer|trailer\/\d+)/.test(url)
+}
+
+function isVideoPage(url: string): boolean {
+  return /^https?:\/\/movie\.douban\.com\/video\/\d+/.test(url)
+}
+
+function isPhotosPage(url: string): boolean {
+  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/(photos|all_photos)/.test(url)
 }
 
 function isDetailPage(url: string): boolean {
@@ -146,6 +160,88 @@ async function mountDetail(): Promise<void> {
   })
 }
 
+// ---- Photos page mount ----
+
+async function mountPhotos(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'components', css: photosCss },
+  )
+  const { default: App } = await import('./pages/photos/App.vue')
+  const { extractPhotosPageData } = await import('./pages/photos/photos-data')
+  type PhotosPageData = import('./pages/photos/photos-data').PhotosPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-photos-overlay',
+    css,
+    async beforeMount() {
+      const data = extractPhotosPageData()
+      if (!data) {
+        throw new Error('[UMM] Could not extract photos data from page')
+      }
+      // Hide native page header/nav for clean overlay
+      const globalNav = document.getElementById('db-global-nav')
+      const movieNav = document.getElementById('db-nav-movie')
+      if (globalNav) globalNav.style.display = 'none'
+      if (movieNav) movieNav.style.display = 'none'
+      return data
+    },
+    createApp(_shadow: ShadowRoot, ctx?: unknown) {
+      return createApp(App, { data: ctx as PhotosPageData })
+    },
+  })
+}
+
+// ---- Trailer page mount ----
+
+async function mountTrailer(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'components', css: trailerCss },
+  )
+  const { default: App } = await import('./pages/trailer/App.vue')
+  const { extractTrailerData } = await import('./pages/trailer/trailer-data')
+  type TrailerPageData = import('./pages/trailer/trailer-data').TrailerPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-trailer-overlay',
+    css,
+    async beforeMount() {
+      const data = extractTrailerData()
+      if (!data) throw new Error('[UMM] Could not extract trailer data')
+      const globalNav = document.getElementById('db-global-nav')
+      const movieNav = document.getElementById('db-nav-movie')
+      if (globalNav) globalNav.style.display = 'none'
+      if (movieNav) movieNav.style.display = 'none'
+
+      // Disable native video player to prevent auto-play / audio bleed
+      document.querySelectorAll<HTMLVideoElement>('video').forEach((v) => {
+        v.pause()
+        v.removeAttribute('src')
+        v.load()
+      })
+      // Remove native player containers entirely — pause/hide is insufficient
+      // because video.js may recreate elements or keep audio playing
+      document.querySelectorAll<HTMLElement>(
+        '#player, #movie_player, .html5-video-container, .stage-cont'
+      ).forEach((el) => {
+        el.remove()
+      })
+
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as TrailerPageData })
+    },
+  })
+}
+
 // ---- Public API ----
 
 /**
@@ -159,6 +255,12 @@ export async function mountDoubanMain(): Promise<void> {
       await mountHomepage()
     } else if (isSearchPage(url)) {
       await mountSearch()
+    } else if (isPhotosPage(url)) {
+      await mountPhotos()
+    } else if (isTrailerPage(url)) {
+      await mountTrailer()
+    } else if (isVideoPage(url)) {
+      await mountTrailer()
     } else if (isDetailPage(url)) {
       await mountDetail()
     } else {

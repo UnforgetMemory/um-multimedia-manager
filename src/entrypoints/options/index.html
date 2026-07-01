@@ -6,13 +6,12 @@
   <title>UMM 管理面板</title>
   <style>
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-    :root {
-      --page-margin: 20px;
-      --section-gap: 24px;
-      --card-padding: 16px;
-    }
+    body { background: transparent !important; }
+    html { background-color: hsl(0 0% 100%); color-scheme: light; }
+    html.dark { background-color: hsl(240 6% 10%); color-scheme: dark; }
+    :root { --page-margin: 20px; --section-gap: 24px; --card-padding: 16px; }
     @media (prefers-color-scheme: dark) {
-      html:not([data-theme="light"]) { color-scheme: dark; }
+      html:not(.dark) { color-scheme: dark; }
     }
   </style>
 </head>

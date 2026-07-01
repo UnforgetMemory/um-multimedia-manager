@@ -153,6 +153,7 @@ export type MessageType =
   | 'SEHUATANG_BATCH_ADD'
   | 'SEHUATANG_ADD'
   | 'SEHUATANG_GET_ALL'
+  | 'DOWNLOAD_FILE'
 
 export interface MessagePayloadMap {
   SHOW_TOAST: { type: ToastType; title: string; message?: string }
@@ -184,6 +185,7 @@ export interface MessagePayloadMap {
   ADULT_AV_ADD: { source: string; id: string; rating?: number; url?: string }
   ADULT_AV_BATCH_ADD: { source: string; items: AdultAvIdInput[] }
   ADULT_AV_GET_ALL: { source?: string }
+  DOWNLOAD_FILE: { url: string; filename: string }
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {
