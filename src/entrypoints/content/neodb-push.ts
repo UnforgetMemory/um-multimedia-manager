@@ -138,7 +138,7 @@ export function injectNeoDBPushButtons(
   const neodbActions = overlay?.shadowRoot?.querySelector('#umm-neodb-actions')
   if (neodbActions) {
     neodbActions.appendChild(container)
-  } else if (interestSect.parentNode) {
+  } else if (interestSect?.parentNode) {
     interestSect.parentNode.insertBefore(container, interestSect)
   } else {
     return

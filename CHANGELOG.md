@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.5.0] - 2026-07-01
+## [4.6.0] - 2026-07-05
+
+### Added
+- **设计规范文档体系**: 新增 `docs/DESIGN_GUIDE.md`（1205 行/11 节，含三层样式架构、token 引用、组件层级、命名规范、主题系统）、`docs/CONSISTENCY_CHECKLIST.md`（9 维度/28 条一致性规则）
+- **暗色主题支持 — 全局注入 UI**: `tokens.ts` 新增 32 个 `_DARK` 颜色常量；`global.ts` 新增 `ALL_STYLES_DARK` 块通过 `[data-umm-theme="dark"]` 选择器注入暗色覆盖
+- **主题同步监听**: `content.ts` + `douban.ts` 添加 `chrome.storage.onChanged` 监听 `umm:appearance`，跨上下文（popup/options/overlay）主题实时同步
+- **CSS 架构**: `components.css` 共享 CSS 变量文件；`theme.css` 添加 `--umm-color-*` 统一 token 别名、`--umm-z-*` z-index 层级缩、`--umm-color-error` 变量（light + dark）
+- **`useRecordCache` 共享化**: 从 `homepage/composables/` 提取至 `content/douban/shared/composables/`，消除 homepage/search 页面 DB 加载重复
+- **预存 TS 错误修复**: `douban-neodb.ts` overlay 作用域修复、`neodb-push.ts` optional chaining 修复
+
+### Fixed
+- **早期注入浅色主题闪烁**: `overlay.css` 添加 `@media (prefers-color-scheme: light)` 匹配 OS 偏好；`overlay.ts` JS 注入 `<style>` 覆盖显式主题设置
+- **meta-card a 标签蓝色突兀**: `.umm-meta-chip a` 改为 `color: inherit`，hover 使用 `opacity` 而非蓝色文字
+- **`.umm-photo-badge` 黑字不可读**: `color: #fff`（图片叠加标签始终白色文字）
+- **`.umm-comment-status--wish` 暗色主题不可见**: 添加 `:host(.umm-theme--dark)` 覆盖（`#f59e0b`）
+- **`.umm-rating-better` / `.umm-better-chip` 暗色背景缺失**: 添加 `:host(.umm-theme--dark)` 覆盖
+- **`#e74c3c` 硬编码无暗色变体**: 替换为 `var(--umm-color-error, #e74c3c)` CSS 变量
+
+### Changed
+- **全局注入样式暗色主题修正**: `UI_COMPONENT_STYLES` fallback 从深色默认值（`#1e1e1e`/`#333`）修正为浅色默认值（`#ffffff`/`#e5e7eb`）；新增 `ALL_STYLES_DARK` 响应 `[data-umm-theme="dark"]`
+- **链接统一新标签打开**: 豆瓣重构页面中全部元素跳转默认新标签（`target="_blank" rel="noopener noreferrer"`），搜索页搜索导航除外
+- **遮罩层 z-index 统一**: 所有 overlay 使用 `var(--umm-z-overlay, 999999)`，消除 `9999`/`999999` 不一致
+- **NeoDB 按钮样式对齐**: `global.ts` 与 `interest.css`（canonical source）统一 padding/shadow/transition
+- **`components.json` 配置修正**: CSS/Utils/Tailwind 路径对齐 `src/shared/styles/style.css`
+- **版本升至 4.6.0**: `package.json` + `wxt.config.ts` manifest
+
+[4.5.0] - 2026-07-01
 
 ### Added
 - **全部演职员页面全屏覆盖层**: `/subject/{id}/celebrities` 支持影人分组网格，2/3 头像 + 代表作标签，12 级响应式断点

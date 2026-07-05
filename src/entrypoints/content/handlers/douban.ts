@@ -15,6 +15,7 @@ import { getLocalRecord, syncToLocalStorage } from './douban-sync'
 import { injectNeoDBPushButtons } from './douban-neodb'
 import { initDoulistReplacement } from '../ui/doulist-replace'
 import { setNeoDBInjector } from '../observers/rating'
+import { infoLog } from '@/utils/logger'
 
 const THEME_KEY = 'umm:appearance'
 export const THEME_ATTR = 'data-umm-theme'
@@ -62,6 +63,15 @@ function syncDetailPageTheme(): void {
           }
         })
       } catch { /* silent fallback */ }
+    }
+  })
+
+  // Listen for theme changes from other contexts (popup, options, other tabs)
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return
+    if (changes[THEME_KEY]) {
+      infoLog('Theme changed in storage, applying to page')
+      applyThemeToPage(resolveThemeFromStorage(changes[THEME_KEY].newValue as Record<string, unknown> | undefined))
     }
   })
 }

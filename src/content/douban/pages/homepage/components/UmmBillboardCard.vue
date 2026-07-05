@@ -23,7 +23,7 @@ const rankClass = computed(() => {
 </script>
 
 <template>
-  <a :href="href" class="umm-billboard-card" :class="rankClass ? `umm-billboard-card--${orderNum === 1 ? 'gold' : orderNum === 2 ? 'silver' : 'bronze'}` : ''">
+  <a :href="href" target="_blank" rel="noopener noreferrer" class="umm-billboard-card" :class="rankClass ? `umm-billboard-card--${orderNum === 1 ? 'gold' : orderNum === 2 ? 'silver' : 'bronze'}` : ''">
     <span class="umm-billboard-order" :class="rankClass">{{ order }}</span>
     <span class="umm-billboard-title">{{ title }}</span>
     <UmmStatusBadgeWrapper

@@ -31,7 +31,7 @@ function getPageCSS(overlayId: string): string {
   return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9998!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:hsl(240 6% 10%)!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:hsl(0 0% 100%)!important;color-scheme:light!important}body{overflow:hidden!important}`
 }
 
-/** Apply theme to overlay host element (data-theme + CSS class for :host(.umm-theme--*)) */
+/** Apply theme to overlay host element + sync html background to match */
 export function applyOverlayTheme(host: HTMLElement): void {
   function setTheme(mode: string) {
     const theme = mode === 'dark' ? 'dark'
@@ -40,6 +40,16 @@ export function applyOverlayTheme(host: HTMLElement): void {
     host.setAttribute('data-theme', theme)
     host.classList.remove('umm-theme--light', 'umm-theme--dark')
     host.classList.add(`umm-theme--${theme}`)
+    // Sync html background: overlay.css uses prefers-color-scheme as baseline;
+    // explicit light/dark setting (opposite to OS) needs JS override
+    const bgColor = theme === 'dark' ? 'hsl(240 6% 10%)' : 'hsl(0 0% 100%)'
+    let styleEl = document.getElementById('umm-html-theme') as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = document.createElement('style')
+      styleEl.id = 'umm-html-theme'
+      document.documentElement.appendChild(styleEl)
+    }
+    styleEl.textContent = `html { background: ${bgColor} !important; }`
   }
   const fallback = () => setTheme('auto')
   try {

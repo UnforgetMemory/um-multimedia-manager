@@ -45,7 +45,7 @@
   padding: var(--umm-space-lg) 0;
   background: var(--umm-bg);
   position: relative;
-  z-index: 9999;
+  z-index: var(--umm-z-overlay, 999999);
   overflow: visible;
   color: var(--umm-text-primary);
 }

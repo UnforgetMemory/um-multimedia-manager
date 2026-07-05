@@ -86,7 +86,7 @@
 .umm-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 999999;
+  z-index: var(--umm-z-overlay, 999999);
   background: rgba(0,0,0,.45);
 }
 
@@ -366,7 +366,7 @@
 
 .umm-dialog-error {
   font-size: var(--umm-font-sm, 0.75rem);
-  color: #e74c3c;
+  color: var(--umm-color-error, #e74c3c);
   line-height: 1.4;
 }
 
@@ -419,12 +419,15 @@
   font-size: var(--umm-font-sm, 0.75rem);
   font-weight: 500;
   background: transparent;
-  color: #e74c3c;
+  color: var(--umm-color-error, #e74c3c);
   transition: background .15s;
   margin-left: auto;
 }
 
-.umm-dialog-remove:hover { background: rgba(231,76,60,.08); }
+.umm-dialog-remove:hover { background: var(--umm-color-error-bg, rgba(231,76,60,.08)); }
+:host(.umm-theme--dark) .umm-dialog-error { color: var(--umm-color-error, #f87171); }
+:host(.umm-theme--dark) .umm-dialog-remove { color: var(--umm-color-error, #f87171); }
+:host(.umm-theme--dark) .umm-dialog-remove:hover { background: rgba(248,113,113,0.12); }
 
 /* ── NeoDB push buttons (injected into #umm-neodb-actions) ── */
 

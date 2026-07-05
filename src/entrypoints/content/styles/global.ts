@@ -4,7 +4,7 @@
  */
 
 import {
-  COLOR_PRIMARY_START, COLOR_PRIMARY_END, COLOR_PRIMARY_SHADOW, COLOR_PRIMARY_SHADOW_HOVER, COLOR_PRIMARY_SHADOW_ACTIVE,
+  COLOR_PRIMARY_START, COLOR_PRIMARY_END, COLOR_PRIMARY_SHADOW,
   COLOR_DONE_START, COLOR_DONE_END, COLOR_DONE_TEXT, COLOR_DONE_BORDER, COLOR_DONE_SHADOW,
   COLOR_NONE_START, COLOR_NONE_END, COLOR_NONE_TEXT, COLOR_NONE_BORDER, COLOR_NONE_SHADOW,
   COLOR_MINUS_START, COLOR_MINUS_END, COLOR_MINUS_SHADOW,
@@ -13,6 +13,14 @@ import {
   COLOR_NEOGLOW_BASE, COLOR_NEOGLOW_BRIGHT, COLOR_NEOGLOW_SHADOW_1, COLOR_NEOGLOW_SHADOW_2, COLOR_NEOGLOW_SHADOW_3,
   COLOR_CHIP_SHADOW, COLOR_CHIP_SHADOW_HOVER, COLOR_CHIP_BORDER,
   COLOR_RATING_BG, COLOR_RATING_TEXT,
+  COLOR_PRIMARY_START_DARK, COLOR_PRIMARY_END_DARK, COLOR_PRIMARY_SHADOW_DARK,
+  COLOR_DONE_START_DARK, COLOR_DONE_END_DARK, COLOR_DONE_TEXT_DARK, COLOR_DONE_BORDER_DARK, COLOR_DONE_SHADOW_DARK,
+  COLOR_NONE_START_DARK, COLOR_NONE_END_DARK, COLOR_NONE_TEXT_DARK, COLOR_NONE_BORDER_DARK, COLOR_NONE_SHADOW_DARK,
+  COLOR_MINUS_START_DARK, COLOR_MINUS_END_DARK, COLOR_MINUS_SHADOW_DARK,
+  COLOR_PLUS_START_DARK, COLOR_PLUS_END_DARK, COLOR_PLUS_SHADOW_DARK,
+  COLOR_ORIGINAL_START_DARK, COLOR_ORIGINAL_END_DARK, COLOR_ORIGINAL_SHADOW_DARK,
+  COLOR_NEOGLOW_BASE_DARK, COLOR_NEOGLOW_SHADOW_1_DARK, COLOR_NEOGLOW_SHADOW_2_DARK, COLOR_NEOGLOW_SHADOW_3_DARK,
+  COLOR_RATING_BG_DARK, COLOR_RATING_TEXT_DARK,
 } from './tokens'
 
 /**
@@ -127,13 +135,16 @@ const STATUS_CHIP_STYLES = `
 
 /**
  * NeoDB 推送按钮样式
+ * CANONICAL: interest.css is the canonical Shadow DOM source.
+ * This is the global-injection equivalent for host-page NeoDB push buttons.
+ * Values must match interest.css for visual consistency.
  */
 const NEODB_BUTTON_STYLES = `
 .umm-neodb-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 7px 14px;
   margin: 4px 8px 4px 0;
   font-size: 13px;
   font-weight: 700;
@@ -141,32 +152,32 @@ const NEODB_BUTTON_STYLES = `
   border-radius: 8px;
   background: linear-gradient(180deg, ${COLOR_PRIMARY_START} 0%, ${COLOR_PRIMARY_END} 100%);
   color: white;
-  box-shadow: 0 3px 6px ${COLOR_PRIMARY_SHADOW_ACTIVE};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity 0.15s, transform 0.15s;
   user-select: none;
   position: relative;
   z-index: 1;
+  font-family: inherit;
+  line-height: 1.3;
 }
 .umm-neodb-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px ${COLOR_PRIMARY_SHADOW_HOVER};
+  opacity: 0.85;
+  transform: translateY(-1px);
 }
 .umm-neodb-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px ${COLOR_PRIMARY_SHADOW};
 }
 .umm-neodb-btn--minus {
   background: linear-gradient(180deg, ${COLOR_MINUS_START} 0%, ${COLOR_MINUS_END} 100%);
-  box-shadow: 0 3px 6px ${COLOR_MINUS_SHADOW};
+  box-shadow: 0 2px 4px ${COLOR_MINUS_SHADOW};
 }
 .umm-neodb-btn--plus {
   background: linear-gradient(180deg, ${COLOR_PLUS_START} 0%, ${COLOR_PLUS_END} 100%);
-  box-shadow: 0 3px 6px ${COLOR_PLUS_SHADOW};
+  box-shadow: 0 2px 4px ${COLOR_PLUS_SHADOW};
 }
 .umm-neodb-btn--original {
   background: linear-gradient(180deg, ${COLOR_ORIGINAL_START} 0%, ${COLOR_ORIGINAL_END} 100%);
-  box-shadow: 0 3px 6px ${COLOR_ORIGINAL_SHADOW};
+  box-shadow: 0 2px 4px ${COLOR_ORIGINAL_SHADOW};
 }
 .umm-neodb-btn:disabled {
   opacity: 0.5;
@@ -256,10 +267,15 @@ const HOMEPAGE_BADGE_STYLES = `
  * Uses CSS variables for theme-aware styling
  */
 const UI_COMPONENT_STYLES = `
-/* Panel container */
+/* Panel container.
+ * NOTE: CSS variables here (--umm-*) are NOT available in document scope.
+ * These styles are injected into document.head, not Shadow DOM.
+ * Fallback values are light-theme defaults; dark theme is NOT handled.
+ * TODO: Inject theme CSS variables into document scope for proper theme support.
+ */
 .umm-panel {
-  background: var(--umm-bg, #1e1e1e);
-  border: 1px solid var(--umm-border, #333);
+  background: var(--umm-bg, #ffffff);
+  border: 1px solid var(--umm-border, #e5e7eb);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
@@ -271,7 +287,7 @@ const UI_COMPONENT_STYLES = `
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 9999;
+  z-index: 999999;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -279,14 +295,14 @@ const UI_COMPONENT_STYLES = `
 /* Accent title */
 .umm-panel-title {
   margin: 0;
-  color: var(--umm-link, #03dac6);
+  color: var(--umm-link, #1757d6);
   text-align: center;
 }
 /* Input */
 .umm-input {
-  background: var(--umm-bg-secondary, #2a2a2a);
-  border: 1px solid var(--umm-border, #444);
-  color: var(--umm-text-primary, white);
+  background: var(--umm-bg-secondary, #f8f9fa);
+  border: 1px solid var(--umm-border, #e5e7eb);
+  color: var(--umm-text-primary, #1a1a1a);
   padding: 10px;
   border-radius: 6px;
   outline: none;
@@ -294,7 +310,7 @@ const UI_COMPONENT_STYLES = `
   box-sizing: border-box;
 }
 .umm-input:focus {
-  border-color: var(--umm-link, #03dac6);
+  border-color: var(--umm-link, #1757d6);
 }
 /* Action buttons */
 .umm-btn {
@@ -305,17 +321,17 @@ const UI_COMPONENT_STYLES = `
   font-weight: bold;
 }
 .umm-btn--primary {
-  background: var(--umm-link, #03dac6);
-  color: var(--umm-bg, #000);
+  background: var(--umm-link, #1757d6);
+  color: var(--umm-bg, #ffffff);
 }
 .umm-btn--secondary {
-  background: var(--umm-bg-secondary, #444);
-  color: var(--umm-text-secondary, #ccc);
+  background: var(--umm-bg-secondary, #f8f9fa);
+  color: var(--umm-text-secondary, #666666);
 }
 /* Label text */
 .umm-label-text {
   font-size: 0.9rem;
-  color: var(--umm-text-muted, #aaa);
+  color: var(--umm-text-muted, #aaaaaa);
 }
 /* Flex layouts */
 .umm-flex-col {
@@ -392,6 +408,59 @@ const SCROLLBAR_STYLES = `
 `
 
 /**
+ * 评论页状态徽章样式
+ * 匹配 Shadow DOM common.css 中 .umm-status 系列样式
+ * 用于在宿主页面渲染豆瓣评论页的小型状态徽章
+ */
+const REVIEWS_BADGE_STYLES = `
+.umm-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: var(--umm-font-xs, 11px);
+  font-weight: 700;
+  border-radius: 999px;
+  user-select: none;
+  letter-spacing: 0.04em;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.3;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  min-height: 22px;
+  text-transform: none;
+  cursor: default;
+}
+
+.umm-status--small {
+  padding: 2px 8px;
+  font-size: var(--umm-font-xs, 11px);
+  gap: 3px;
+  min-height: 18px;
+  max-width: 100px;
+}
+
+.umm-status--done {
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.umm-status--none {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+`
+
+/**
  * 所有样式的集合
  */
 const ALL_STYLES = `
@@ -403,6 +472,72 @@ ${HOMEPAGE_BADGE_STYLES}
 ${UI_COMPONENT_STYLES}
 ${FOCUS_VISIBLE_STYLES}
 ${SCROLLBAR_STYLES}
+${REVIEWS_BADGE_STYLES}
+`
+
+/**
+ * Dark theme CSS overrides for globally-injected UI components.
+ * Activates only when [data-umm-theme="dark"] is present on <html>.
+ * Uses _DARK token variants for adapted colors.
+ */
+const ALL_STYLES_DARK = `
+[data-umm-theme="dark"] .umm-search-badge {
+  background: linear-gradient(180deg, ${COLOR_PRIMARY_START_DARK} 0%, ${COLOR_PRIMARY_END_DARK} 100%);
+  box-shadow: 0 2px 4px ${COLOR_PRIMARY_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-search-badge[data-status="done"] {
+  background: linear-gradient(180deg, ${COLOR_DONE_START_DARK}, ${COLOR_DONE_END_DARK});
+  box-shadow: 0 2px 4px ${COLOR_DONE_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-search-badge[data-status="none"] {
+  background: linear-gradient(180deg, ${COLOR_NONE_START_DARK}, ${COLOR_NONE_END_DARK});
+  box-shadow: 0 2px 4px ${COLOR_NONE_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-status-chip[data-status="done"] {
+  color: ${COLOR_DONE_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_DONE_START_DARK}, ${COLOR_DONE_END_DARK}) !important;
+  border-color: ${COLOR_DONE_BORDER_DARK} !important;
+}
+[data-umm-theme="dark"] .umm-status-chip[data-status="none"] {
+  color: ${COLOR_NONE_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_NONE_START_DARK}, ${COLOR_NONE_END_DARK}) !important;
+  border-color: ${COLOR_NONE_BORDER_DARK} !important;
+}
+[data-umm-theme="dark"] .umm-status-chip .umm-rating {
+  background: ${COLOR_RATING_BG_DARK} !important;
+  color: ${COLOR_RATING_TEXT_DARK} !important;
+  -webkit-text-fill-color: ${COLOR_RATING_TEXT_DARK};
+}
+[data-umm-theme="dark"] .umm-neodb-btn--minus {
+  background: linear-gradient(180deg, ${COLOR_MINUS_START_DARK} 0%, ${COLOR_MINUS_END_DARK} 100%);
+  box-shadow: 0 2px 4px ${COLOR_MINUS_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-neodb-btn--plus {
+  background: linear-gradient(180deg, ${COLOR_PLUS_START_DARK} 0%, ${COLOR_PLUS_END_DARK} 100%);
+  box-shadow: 0 2px 4px ${COLOR_PLUS_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-neodb-btn--original {
+  background: linear-gradient(180deg, ${COLOR_ORIGINAL_START_DARK} 0%, ${COLOR_ORIGINAL_END_DARK} 100%);
+  box-shadow: 0 2px 4px ${COLOR_ORIGINAL_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-neodb-synced .umm-neodb-watermark {
+  color: ${COLOR_NEOGLOW_BASE_DARK} !important;
+  text-shadow: 0 0 10px ${COLOR_NEOGLOW_SHADOW_1_DARK}, 0 0 20px ${COLOR_NEOGLOW_SHADOW_2_DARK}, 0 0 30px ${COLOR_NEOGLOW_SHADOW_3_DARK} !important;
+}
+[data-umm-theme="dark"] .umm-homepage-badge[data-status="done"] {
+  background: linear-gradient(180deg, ${COLOR_DONE_START_DARK}, ${COLOR_DONE_END_DARK});
+  border-color: ${COLOR_DONE_BORDER_DARK};
+}
+[data-umm-theme="dark"] .umm-homepage-badge[data-status="none"] {
+  background: linear-gradient(180deg, ${COLOR_NONE_START_DARK}, ${COLOR_NONE_END_DARK});
+  border-color: ${COLOR_NONE_BORDER_DARK};
+}
+[data-umm-theme="dark"] .umm-status--done {
+  background: linear-gradient(180deg, ${COLOR_DONE_START_DARK} 0%, ${COLOR_DONE_END_DARK} 100%);
+}
+[data-umm-theme="dark"] .umm-status--none {
+  background: linear-gradient(180deg, ${COLOR_NONE_START_DARK} 0%, ${COLOR_NONE_END_DARK} 100%);
+}
 `
 
 /**
@@ -417,8 +552,13 @@ export function injectGlobalStyles(): void {
   const styleElement = document.createElement('style')
   styleElement.id = 'umm-global-styles'
   styleElement.textContent = ALL_STYLES
-  
   document.head.appendChild(styleElement)
+  
+  // 暗色主题覆盖样式（仅在 [data-umm-theme="dark"] 时生效）
+  const darkStyleElement = document.createElement('style')
+  darkStyleElement.id = 'umm-global-styles-dark'
+  darkStyleElement.textContent = ALL_STYLES_DARK
+  document.head.appendChild(darkStyleElement)
   
   console.log('[UMM] Global styles injected successfully')
 }

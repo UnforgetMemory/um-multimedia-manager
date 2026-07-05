@@ -22,6 +22,7 @@ import trailerCss from './styles/trailer.css?raw'
 import celebritiesCss from './styles/celebrities.css?raw'
 import personageCss from './styles/personage.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
+import componentsCss from './styles/components.css?raw'
 import interestCss from './styles/interest.css?raw'
 import { mountUmmOverlay } from './overlay'
 import { composeStyles } from './css-composer'
@@ -69,6 +70,7 @@ async function mountHomepage(): Promise<void> {
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: homepageCss },
   )
   const { default: App } = await import('./pages/homepage/App.vue')
@@ -86,6 +88,7 @@ async function mountSearch(): Promise<void> {
     { name: 'theme', css: themeCss },
     { name: 'common', css: commonCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: searchCss },
   )
   const { default: App } = await import('./pages/search/App.vue')
@@ -120,6 +123,7 @@ async function mountDetail(): Promise<void> {
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: detailCss },
     { name: 'interest', css: interestCss },
   )
@@ -178,6 +182,7 @@ async function mountPhotos(): Promise<void> {
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: photosCss },
   )
   const { default: App } = await import('./pages/photos/App.vue')
@@ -213,6 +218,7 @@ async function mountTrailer(): Promise<void> {
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: trailerCss },
   )
   const { default: App } = await import('./pages/trailer/App.vue')
@@ -260,6 +266,7 @@ async function mountCelebrities(): Promise<void> {
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: celebritiesCss },
   )
   const { default: App } = await import('./pages/celebrities/App.vue')
@@ -292,6 +299,7 @@ async function mountPersonage(): Promise<void> {
     { name: 'common', css: commonCss },
     { name: 'breakpoints', css: breakpointsCss },
     { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
     { name: 'components', css: personageCss },
   )
   const { default: App } = await import('./pages/personage/App.vue')

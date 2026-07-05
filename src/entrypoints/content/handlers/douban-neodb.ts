@@ -185,7 +185,7 @@ async function pushToNeoDB(
   const startTime = Date.now()
   
   try {
-    const successMessage = await performNeoDBPush(identity, record, ratingAdjust)
+    const successMessage = await performNeoDBPush(identity, record, ratingAdjust, container)
     
     // ✅ 成功：更新 Toast 为绿色
     const elapsed = Date.now() - startTime
@@ -251,7 +251,8 @@ async function pushToNeoDB(
 async function performNeoDBPush(
   identity: UrlIdentity, 
   record: StoreRecord | null,
-  ratingAdjust: number
+  ratingAdjust: number,
+  buttonsContainer?: HTMLElement
 ) {
   
   // ✅ P2: 验证必要的字段
@@ -314,8 +315,8 @@ async function performNeoDBPush(
     }
     
     // ✅ 更新按钮容器的荧光效果状态
-    const c = document.getElementById('umm-neodb-push-buttons')
-      ?? overlay?.shadowRoot?.getElementById('umm-neodb-push-buttons')
+    const c = buttonsContainer
+      ?? document.getElementById('umm-neodb-push-buttons')
     if (c && updatedRecord) {
       const isSynced = !!(updatedRecord.linkedIds?.neodb)
       if (isSynced) {

@@ -220,6 +220,8 @@ function metaToChips(html: string): string {
     result += ch
     i++
   }
+  // 所有结果中的 <a> 链接添加 target="_blank" 统一新标签打开（搜索页除外）
+  result = result.replace(/<a(?=\s)(?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer"')
   return prefix + '<span class="umm-meta-chip">' + result + '</span>' + suffix
 }
 

@@ -2,6 +2,7 @@
 /* Migrated to content/douban/styles/theme.css */
 
 :host {
+  /* ===== Legacy Shadow DOM tokens (deprecated — use --umm-color-* aliases) ===== */
   --umm-bg: #ffffff;
   --umm-bg-secondary: #f8f9fa;
   --umm-text-primary: #1a1a1a;
@@ -10,6 +11,23 @@
   --umm-border: #e5e7eb;
   --umm-link: #1757d6;
   --umm-link-hover: #0d47b8;
+
+  /* ===== Unified token aliases (aligned with @theme naming in style.css) ===== */
+  --umm-color-surface: var(--umm-bg);
+  --umm-color-surface-secondary: var(--umm-bg-secondary);
+  --umm-color-surface-elevated: var(--umm-bg);
+  --umm-color-text-primary: var(--umm-text-primary);
+  --umm-color-text-secondary: var(--umm-text-secondary);
+  --umm-color-text-muted: var(--umm-text-muted);
+  --umm-color-border: var(--umm-border);
+  --umm-color-link: var(--umm-link);
+  --umm-color-link-hover: var(--umm-link-hover);
+  --umm-color-status-done: #116f46;
+  --umm-color-status-watched: #116f46;
+  --umm-color-status-unknown: #6b7280;
+  --umm-color-status-unwatched: #6b7280;
+  --umm-color-error: #e74c3c;
+
   /* Dynamic Island variables */
   --umm-island-bg: color-mix(in srgb, #ffffff 92%, transparent);
   --umm-island-border: color-mix(in srgb, #e5e7eb 6%, transparent);
@@ -25,12 +43,19 @@
   --umm-rating-gold-low: #b8860b;
   --umm-rating-gold-mid: #c9941a;
   --umm-rating-gold-high: #d4a017;
+  /* ===== Z-index scale ===== */
+  --umm-z-overlay: 999999;
+  --umm-z-dialog: 1000000;
+  --umm-z-toast: 1000001;
+  --umm-z-tooltip: 99999;
+
   background: var(--umm-bg);
   color: var(--umm-text-primary);
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 :host(.umm-theme--dark) {
+  /* ===== Legacy tokens (deprecated) ===== */
   --umm-bg: #1e1f24;
   --umm-bg-secondary: #2a2b30;
   --umm-text-primary: #e0e0e0;
@@ -39,6 +64,22 @@
   --umm-border: #3a3b40;
   --umm-link: #60a5fa;
   --umm-link-hover: #b8d4fe;
+
+  /* ===== Unified token aliases (dark) ===== */
+  --umm-color-surface: var(--umm-bg);
+  --umm-color-surface-secondary: var(--umm-bg-secondary);
+  --umm-color-surface-elevated: var(--umm-bg);
+  --umm-color-text-primary: var(--umm-text-primary);
+  --umm-color-text-secondary: var(--umm-text-secondary);
+  --umm-color-text-muted: var(--umm-text-muted);
+  --umm-color-border: var(--umm-border);
+  --umm-color-link: var(--umm-link);
+  --umm-color-link-hover: var(--umm-link-hover);
+  --umm-color-status-done: #2d8a4e;
+  --umm-color-status-watched: #2d8a4e;
+  --umm-color-status-unknown: #6b7280;
+  --umm-color-status-unwatched: #6b7280;
+  --umm-color-error: #f87171;
   /* Dynamic Island variables (dark) */
   --umm-island-bg: color-mix(in srgb, #1e1f24 92%, transparent);
   --umm-island-border: color-mix(in srgb, #e0e0e0 8%, transparent);

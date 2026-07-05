@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRecordCache } from './composables/useRecordCache'
+import { useRecordCache } from '../../shared/composables/useRecordCache'
 import { useDoubanSection } from './composables/useDoubanSection'
 import { useHomepageObserver } from './composables/useHomepageObserver'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'

@@ -255,6 +255,15 @@ function observeThemeChanges() {
   }
   if (mq.addEventListener) mq.addEventListener('change', themeChangeListener)
   else if (mq.addListener) mq.addListener(themeChangeListener)
+
+  // Listen for UMM theme changes in chrome.storage (popup, options, other tabs)
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return
+    if (changes['umm:appearance']) {
+      infoLog('Theme changed in storage, re-injecting NeoDB buttons')
+      if (currentIdentity) injectNeoDBPushButtons(currentIdentity, currentRecord)
+    }
+  })
 }
 
 // Handle SHOW_TOAST messages from background
