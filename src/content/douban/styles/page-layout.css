@@ -24,7 +24,7 @@
 .umm-layout-header {
   position: sticky;
   top: 0;
-  z-index: 10000;
+  z-index: var(--umm-z-sticky, 50);
   padding-top: var(--umm-space-md, 12px);
   padding-bottom: 0;
   background: var(--umm-bg);

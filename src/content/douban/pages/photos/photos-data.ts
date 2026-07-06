@@ -212,6 +212,13 @@ export function extractPhotosPageData(): PhotosPageData | null {
 
   const pageInfo = extractPagination()
 
+  // When there's no paginator (all photos fit on one page) or
+  // the count element is missing, fall back to actual photo count.
+  const paginator = document.querySelector('.paginator')
+  if (!paginator || !paginator.querySelector('.count')) {
+    pageInfo.totalCount = photos.length
+  }
+
   const photoType = extractPhotoType()
   const { filterTabs, subFilters } = extractFilters()
 

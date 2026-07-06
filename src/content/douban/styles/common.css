@@ -186,7 +186,7 @@
               border-color 0.35s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
-  z-index: 10000;
+  z-index: var(--umm-z-floating, 100);
   cursor: default;
 }
 

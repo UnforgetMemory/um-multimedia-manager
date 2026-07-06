@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.1] - 2026-07-06
+
+### Changed
+- **统一 z-index 层级体系**: 14 个文件中 15 个硬编码 z-index 值全部替换为 8 级语义化 CSS 变量（backdrop:10 / sticky:50 / floating:100 / tooltip:150 / overlay-host:200 / overlay:300 / dialog:400 / toast:500），消除 `9999`/`10000`/`999999`/`2147483647` 等随机值。Toast 从 `999999`（等于 overlay）提升至 `500`，确保始终在 dialog 之上。
+
+### Fixed
+- **照片页面总数显示为 0**: `photos-data.ts` — 单页照片列表无 `.paginator` 元素时 `extractPagination()` 返回 `totalCount=0`，增加回退逻辑使用实际 `photos.length` 作为总数
+
 ## [4.6.0] - 2026-07-05
 
 ### Added

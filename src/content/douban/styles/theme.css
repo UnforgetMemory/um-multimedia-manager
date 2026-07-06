@@ -44,10 +44,14 @@
   --umm-rating-gold-mid: #c9941a;
   --umm-rating-gold-high: #d4a017;
   /* ===== Z-index scale ===== */
-  --umm-z-overlay: 999999;
-  --umm-z-dialog: 1000000;
-  --umm-z-toast: 1000001;
-  --umm-z-tooltip: 99999;
+  --umm-z-backdrop: 10;
+  --umm-z-sticky: 50;
+  --umm-z-floating: 100;
+  --umm-z-tooltip: 150;
+  --umm-z-overlay-host: 200;
+  --umm-z-overlay: 300;
+  --umm-z-dialog: 400;
+  --umm-z-toast: 500;
 
   background: var(--umm-bg);
   color: var(--umm-text-primary);

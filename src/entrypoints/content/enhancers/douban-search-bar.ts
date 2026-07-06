@@ -108,7 +108,7 @@ export function createUmmSearchBar(type: 'movie' | 'music', prefillQuery?: strin
     boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     position: 'relative',
-    zIndex: '10000',
+    zIndex: '100',
     boxSizing: 'border-box',
     transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
     flexShrink: '1',

@@ -287,7 +287,7 @@ const UI_COMPONENT_STYLES = `
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 999999;
+  z-index: 300;
   display: flex;
   justify-content: center;
   align-items: center;

@@ -267,7 +267,7 @@ function buildThemedDialog(
   const overlay = document.createElement('div')
   overlay.id = DL_MODAL_ID
   overlay.style.cssText = [
-    'position:fixed;inset:0;z-index:99999',
+    'position:fixed;inset:0;z-index:300',
     `background:${theme.overlayBg}`,
     'display:flex;align-items:center;justify-content:center',
     'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',

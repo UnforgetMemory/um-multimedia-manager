@@ -13,7 +13,7 @@ export function showCheckViewedPanel(): void {
   const panel = document.createElement('div')
   panel.id = PANEL_ID
   panel.className = 'umm-panel'
-  panel.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);padding:20px;width:350px;display:flex;flex-direction:column;gap:15px;z-index:10001;cursor:move'
+  panel.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);padding:20px;width:350px;display:flex;flex-direction:column;gap:15px;z-index:100;cursor:move'
 
   panel.innerHTML = `
     <h3 class="umm-panel-title" style="padding-bottom:10px;border-bottom:1px solid #333">${t('Check Viewed Title')}</h3>

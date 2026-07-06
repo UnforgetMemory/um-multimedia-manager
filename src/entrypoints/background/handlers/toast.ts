@@ -73,7 +73,7 @@ function __showInlineToast(type: string, title: string, message: string, CORE_CS
       position: fixed;
       bottom: 24px;
       right: 24px;
-      z-index: 999999;
+      z-index: 500;
       display: flex;
       flex-direction: column;
       gap: 12px;

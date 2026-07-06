@@ -45,7 +45,7 @@
   padding: var(--umm-space-lg) 0;
   background: var(--umm-bg);
   position: relative;
-  z-index: var(--umm-z-overlay, 999999);
+  z-index: var(--umm-z-overlay, 300);
   overflow: visible;
   color: var(--umm-text-primary);
 }
@@ -123,7 +123,7 @@
   width: clamp(40px, 3vw, 80px);
   height: 100%;
   pointer-events: none;
-  z-index: 5;
+  z-index: var(--umm-z-backdrop, 10);
 }
 
 .umm-mask--left {

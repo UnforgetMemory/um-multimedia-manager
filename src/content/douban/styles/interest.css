@@ -86,7 +86,7 @@
 .umm-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--umm-z-overlay, 999999);
+  z-index: var(--umm-z-overlay, 300);
   background: rgba(0,0,0,.45);
 }
 
@@ -97,7 +97,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%,-50%);
-  z-index: 1000000;
+  z-index: var(--umm-z-dialog, 400);
   width: var(--umm-dialog-width, 380px);
   background: var(--umm-card-bg, #fff);
   border: 1px solid var(--umm-card-border, #e5e7eb);

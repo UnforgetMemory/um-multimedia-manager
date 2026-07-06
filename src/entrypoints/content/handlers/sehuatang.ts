@@ -163,7 +163,7 @@ function injectStyles() {
     .umm-card-meta { color: #888; font-size: 0.85rem; margin-top: 4px; }
     .umm-card-links { margin-top: auto; display: flex; justify-content: flex-end; gap: 15px; padding-top: 10px; }
     .umm-magnet-link { font-size: 1.5rem; padding: 6px 12px; border-radius: 8px; text-decoration: none; background: #443b17; color: #ffc107; }
-    .umm-sehuatang-header { background: #1e1e1e; color: #a0a0a0; padding: 10px 25px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 1000; }
+    .umm-sehuatang-header { background: #1e1e1e; color: #a0a0a0; padding: 10px 25px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 50; }
     .umm-copy-btn { background: #03dac6; color: #000; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     .umm-copy-btn:disabled { background: #3a3a3a; color: #888; }
   `
