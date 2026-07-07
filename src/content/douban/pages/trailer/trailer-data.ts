@@ -21,12 +21,12 @@ export interface TrailerPageData {
   description: string
 }
 
+import { extractSubjectIdFromUrl } from '@/content/douban/shared/extract-subject-id'
+
 /** Extract subject ID from URL path or page DOM */
 function extractSubjectId(): string {
-  // First try from URL (works for listing pages like /subject/{id}/trailer)
-  const fromUrl = window.location.pathname.match(/\/(\d+)\//)?.[1]
+  const fromUrl = extractSubjectIdFromUrl()
   if (fromUrl) return fromUrl
-  // For detail pages (/trailer/{id}/ or /video/{id}/), get from DOM
   const subjectLink = document.querySelector<HTMLAnchorElement>('#content h1 a[href*="/subject/"]')
   if (subjectLink) {
     const m = subjectLink.getAttribute('href')?.match(/\/(\d+)\//)

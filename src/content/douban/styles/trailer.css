@@ -1,10 +1,6 @@
 /* ===== UMM Douban Trailer Overlay — Shadow DOM styles ===== */
 
 :host {
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-  pointer-events: auto;
   --umm-trailer-radius: 10px;
   --umm-trailer-aspect: 16/9;
 

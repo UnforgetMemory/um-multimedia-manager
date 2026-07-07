@@ -11,119 +11,41 @@
 
 import { createOverlay } from './overlay'
 import type { OverlayOptions } from './overlay'
+import { detectPageType } from './shared/url-detector'
 
-function isAlbumsPage(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
-}
-
-function isDetailPage(url: string): boolean {
-  return /^https?:\/\/(movie|music)\.douban\.com\/subject\//.test(url)
-}
-
-function isMusicHomepage(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/?(\?.*)?$/.test(url)
-}
-
-function isGenrePage(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/artists\/genre_page\/\d+/.test(url)
-}
-
-function isArtistsOverview(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/artists\/?(\?.*)?$/.test(url)
-}
-
-function isPhotosPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/(photos|all_photos)/.test(url)
-}
-
-function isSearchPage(url: string): boolean {
-  return /^https?:\/\/search\.douban\.com\/(movie|music)\/subject_search/.test(url)
-}
-
-function isCelebritiesPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/celebrities/.test(url)
-}
-
-function isPersonagePage(url: string): boolean {
-  return /^https?:\/\/www\.douban\.com\/personage\/\d+/.test(url)
-}
-
-function isTrailerPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/(subject\/\d+\/trailer|trailer\/\d+)/.test(url)
-}
-
-function isVideoPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/video\/\d+/.test(url)
+const SUBTITLE: Record<string, string> = {
+  photos: '加载照片...',
+  trailer: '加载预告片...',
+  video: '加载预告片...',
+  celebrities: '加载演职员...',
+  albums: '专辑版本 · 加载中',
+  detail: '加载中...',
+  search: '加载搜索结果...',
+  personage: '加载影人资料...',
+  'music-homepage': '音乐首页 · 加载中',
+  genre: '音乐人分类 · 加载中',
+  'artists-overview': '音乐人概览 · 加载中',
 }
 
 function getOverlayConfig(): OverlayOptions | null {
-  const url = location.href
-  if (isPhotosPage(url)) {
-    return {
-      overlayId: 'umm-photos-overlay',
-      subtitle: '加载照片...',
-      exposeDismiss: true,
-    }
-  }
-  if (isTrailerPage(url) || isVideoPage(url)) {
-    return {
-      overlayId: 'umm-trailer-overlay',
-      subtitle: '加载预告片...',
-    }
-  }
-  if (isCelebritiesPage(url)) {
-    return {
-      overlayId: 'umm-celebrities-overlay',
-      subtitle: '加载演职员...',
-    }
-  }
-  if (isAlbumsPage(url)) {
-    return {
-      overlayId: 'umm-douban-overlay',
-      subtitle: '专辑版本 · 加载中',
-    }
-  }
-  if (isDetailPage(url)) {
-    return {
-      overlayId: 'umm-detail-mask',
-      subtitle: '加载中...',
-      exposeDismiss: true,
-    }
-  }
-  if (isSearchPage(url)) {
-    return {
-      overlayId: 'umm-search-overlay',
-      subtitle: '加载搜索结果...',
-    }
-  }
-  if (isPersonagePage(url)) {
-    return {
-      overlayId: 'umm-personage-overlay',
-      subtitle: '加载影人资料...',
-    }
-  }
-  if (isMusicHomepage(url)) {
-    return {
-      overlayId: 'umm-douban-overlay',
-      subtitle: '音乐首页 · 加载中',
-    }
-  }
-  if (isGenrePage(url)) {
-    return {
-      overlayId: 'umm-douban-overlay',
-      subtitle: '音乐人分类 · 加载中',
-    }
-  }
-  if (isArtistsOverview(url)) {
-    return {
-      overlayId: 'umm-douban-overlay',
-      subtitle: '音乐人概览 · 加载中',
-    }
-  }
-  // Homepage (movie.douban.com/) or fallback
+  const pageType = detectPageType()
+  if (!pageType) return null
+
+  const exposeTypes = new Set(['photos', 'detail'])
+  const trailerTypes = new Set(['trailer', 'video'])
+  const overlayId =
+    pageType.type === 'photos' ? 'umm-photos-overlay'
+    : trailerTypes.has(pageType.type) ? 'umm-trailer-overlay'
+    : pageType.type === 'celebrities' ? 'umm-celebrities-overlay'
+    : pageType.type === 'detail' ? 'umm-detail-mask'
+    : pageType.type === 'search' ? 'umm-search-overlay'
+    : pageType.type === 'personage' ? 'umm-personage-overlay'
+    : 'umm-douban-overlay'
+
   return {
-    overlayId: 'umm-douban-overlay',
-    subtitle: '多媒体管理器 · 加载中',
+    overlayId,
+    subtitle: SUBTITLE[pageType.type] || '多媒体管理器 · 加载中',
+    exposeDismiss: exposeTypes.has(pageType.type) || undefined,
   }
 }
 

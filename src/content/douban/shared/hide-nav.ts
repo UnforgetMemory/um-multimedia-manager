@@ -1,0 +1,67 @@
+/**
+ * Unified native navigation hiding for Douban pages.
+ *
+ * Consolidates the repeated `document.getElementById('db-global-nav').style.display = 'none'`
+ * pattern that appears in 8+ mount functions across main.ts.
+ *
+ * Usage:
+ *   hideNativeNav({ globalNav: true, movieNav: true })
+ *   hideNavForPage(pageType)  // auto-detect which navs to hide
+ */
+
+import type { PageType } from './url-detector'
+
+/**
+ * Hide specific native Douban navigation elements.
+ */
+export function hideNativeNav(options?: {
+  globalNav?: boolean
+  movieNav?: boolean
+  musicNav?: boolean
+}): void {
+  if (!options) return
+  if (options.globalNav) {
+    const el = document.getElementById('db-global-nav')
+    if (el) el.style.display = 'none'
+  }
+  if (options.movieNav) {
+    const el = document.getElementById('db-nav-movie')
+    if (el) el.style.display = 'none'
+  }
+  if (options.musicNav) {
+    const el = document.getElementById('db-nav-music')
+    if (el) el.style.display = 'none'
+  }
+}
+
+/**
+ * Auto-hide native navigation based on the detected page type.
+ * Movie pages: hide globalNav + movieNav
+ * Music pages: hide globalNav + musicNav
+ * Personage:   hide globalNav only
+ * Homepages:   no nav hiding (native nav is part of the design)
+ */
+export function hideNavForPage(pageType: PageType): void {
+  switch (pageType.type) {
+    case 'detail':
+    case 'photos':
+    case 'trailer':
+    case 'video':
+    case 'celebrities':
+      hideNativeNav({ globalNav: true, movieNav: true })
+      break
+    case 'albums':
+    case 'genre':
+    case 'artists-overview':
+      hideNativeNav({ globalNav: true, musicNav: true })
+      break
+    case 'personage':
+      hideNativeNav({ globalNav: true })
+      break
+    case 'homepage':
+    case 'music-homepage':
+    case 'search':
+      // Native navigation is part of the page design for these types
+      break
+  }
+}

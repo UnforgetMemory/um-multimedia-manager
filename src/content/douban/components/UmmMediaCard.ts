@@ -52,11 +52,9 @@ export const UmmMediaCard = defineComponent({
               }),
             ]),
             h('span', { class: 'umm-rec-title' }, props.title),
-            h(
-              'span',
-              { class: 'umm-rec-rating' },
-              props.rating || '暂无评分',
-            ),
+            h(UmmRating, {
+              score: props.rating || undefined,
+            }),
           ],
         )
     }

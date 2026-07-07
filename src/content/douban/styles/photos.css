@@ -1,17 +1,9 @@
 /* ===== UMM Douban Photos Overlay — Shadow DOM styles ===== */
 
 :host {
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-  pointer-events: auto;
-
   /* Brand — photos page specific */
-  --umm-accent: #6366f1;
   --umm-success: #116f46;
   --umm-success-bg: rgba(17, 111, 70, 0.1);
-  --umm-card-bg: #ffffff;
-  --umm-card-border: #e5e7eb;
   --umm-overlay-bg: rgba(0, 0, 0, 0.5);
   --umm-rating-score: #e0901a;
 }
@@ -20,8 +12,6 @@
   --umm-accent: #818cf8;
   --umm-success: #34d399;
   --umm-success-bg: rgba(52, 211, 153, 0.12);
-  --umm-card-bg: #2a2b30;
-  --umm-card-border: #3a3b40;
   --umm-overlay-bg: rgba(0, 0, 0, 0.7);
   --umm-rating-score: #e0901a;
 }

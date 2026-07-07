@@ -1,22 +1,5 @@
 import type { NewAlbumItem, BannerItem, PopularArtistItem, GenreTag } from './types'
-
-/**
- * Extract a Douban subject ID from an element.
- * Checks (in order):
- * 1. `<a href*="/subject/">` links
- * 2. `data-trainer` attribute
- */
-function extractSubjectId(element: Element): string {
-  const link = element.querySelector<HTMLAnchorElement>('a[href*="/subject/"]')
-  if (link) {
-    const href = link.href || link.getAttribute('href')
-    if (href) {
-      const match = href.match(/\/subject\/(\d+)/)
-      if (match) return match[1]
-    }
-  }
-  return ''
-}
+import { extractSubjectId } from '@/content/douban/shared/extract-subject-id'
 
 /**
  * Extract popular artists from the music homepage.

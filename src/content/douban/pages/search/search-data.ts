@@ -2,8 +2,6 @@
  * Search page data extraction — extracted from douban-search.content/index.ts
  */
 
-import { Store } from '@/features/database'
-import type { StoreRecord } from '@/types'
 import type { DoubanSearchData, SearchItem } from './types'
 
 /** Extract __DATA__ from inline script tags — bypasses CSP and isolated world */
@@ -126,19 +124,4 @@ async function parseSearchDataImpl(): Promise<DoubanSearchData | undefined> {
   return undefined
 }
 
-async function loadRecordMapImpl(type: string): Promise<Map<string, StoreRecord>> {
-  const map = new Map<string, StoreRecord>()
-  try {
-    const entries = await Store.dbGetAll('douban_records')
-    const prefix = `${type}::`
-    for (const { key, record } of entries) {
-      if (key.startsWith(prefix)) {
-        map.set(key.slice(prefix.length), record)
-      }
-    }
-  } catch { /* ignore db errors */ }
-  return map
-}
-
 export const parseSearchData = parseSearchDataImpl
-export const loadRecordMap = loadRecordMapImpl

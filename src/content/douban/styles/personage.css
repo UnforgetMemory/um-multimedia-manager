@@ -1,17 +1,10 @@
 /* ===== UMM Douban Personage Overlay — Shadow DOM styles ===== */
 
 :host {
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-  pointer-events: auto;
-
   --umm-personage-accent: #f43f5e;
   --umm-personage-card-bg: #ffffff;
   --umm-personage-card-border: #e5e7eb;
   --umm-personage-section-border: #e5e7eb;
-  --umm-card-bg: #ffffff;
-  --umm-card-border: #e5e7eb;
   --umm-rating-score: #e0901a;
 }
 
@@ -20,8 +13,6 @@
   --umm-personage-card-bg: #2a2b30;
   --umm-personage-card-border: #3a3b40;
   --umm-personage-section-border: #3a3b40;
-  --umm-card-bg: #2a2b30;
-  --umm-card-border: #3a3b40;
   --umm-rating-score: #e0901a;
 }
 

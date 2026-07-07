@@ -3,6 +3,14 @@
   scrollbar-width: thin;
   scrollbar-color: var(--umm-border) var(--umm-bg-secondary);
 }
+
+/* ===== Shared page host reset ===== */
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  pointer-events: auto;
+}
 :host::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -326,6 +334,11 @@
 @keyframes umm-pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
+}
+
+@keyframes umm-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Island responsive */

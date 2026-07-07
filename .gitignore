@@ -24,21 +24,24 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
+.DS_Store*
 Thumbs.db
+Desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*~
+*.crswap
+*.crswap.*
+*.tmp
+*.temp
 
 # Build output
 build
 extension
-
-# Temporary files
-*.tmp
-*.temp
 
 .agents
 
@@ -58,31 +61,32 @@ review_diff*.txt
 
 # AI-generated documentation and test artifacts
 docs/_generated/
+docs/superpowers/
+.cortexkit/
 
 # Data export/import temporary directories
 data-exports/
 data-imports/
 releases/
 
-# Editor and IDE files
-*.swp
-*~
-
 # Test artifacts
 tests/
 playwright-report/
+test-results/
+coverage/
 
-# Sisyphus agent sessions
+# Sisyphus / OpenCode agent sessions
 .sisyphus/
+.omo/
+.opencode/
 .codegraph
 
 .localref/
 
-# OpenCode agent sessions
-.omo/
-.opencode/
-
 # Environment variable variants (Vite/Node conventions)
+.env
+.env.local
+.env.*.local
 .env.development
 .env.production
 .env.staging
@@ -106,22 +110,3 @@ pnpm-workspace.yaml
 .webpack/
 .output/
 *.tsbuildinfo
-
-# Test coverage output
-coverage/
-# AI agent ephemeral docs
-docs/superpowers/
-.cortexkit/
-
-# OS metadata (cross-platform)
-.DS_Store*
-Thumbs.db
-Desktop.ini
-
-# Playwright test artifacts
-playwright-report/
-test-results/
-
-# Editor crash recovery
-*.crswap
-*.crswap.*

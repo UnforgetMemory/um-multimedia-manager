@@ -30,71 +30,35 @@ import pageLayoutCss from './styles/page-layout.css?raw'
 import componentsCss from './styles/components.css?raw'
 import interestCss from './styles/interest.css?raw'
 import { mountUmmOverlay } from './overlay'
-import { composeStyles } from './css-composer'
+import { composeStylesForPage } from './css-composer'
 import { createApp } from 'vue'
+import { detectPageType } from './shared/url-detector'
+import { hideNavForPage } from './shared/hide-nav'
 
-// ---- URL detection ----
-
-function isHomepage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/?(\?.*)?$/.test(url)
-}
-
-function isMusicHomepage(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/?(\?.*)?$/.test(url)
-}
-
-function isGenrePage(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/artists\/genre_page\/\d+/.test(url)
-}
-
-function isArtistsOverview(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/artists\/?(\?.*)?$/.test(url)
-}
-
-function isSearchPage(url: string): boolean {
-  return /^https?:\/\/search\.douban\.com\/(movie|music)\/subject_search/.test(url)
-}
-
-function isTrailerPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/(subject\/\d+\/trailer|trailer\/\d+)/.test(url)
-}
-
-function isVideoPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/video\/\d+/.test(url)
-}
-
-function isCelebritiesPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/celebrities/.test(url)
-}
-
-function isPersonagePage(url: string): boolean {
-  return /^https?:\/\/www\.douban\.com\/personage\/\d+/.test(url)
-}
-
-function isPhotosPage(url: string): boolean {
-  return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/(photos|all_photos)/.test(url)
-}
-
-function isAlbumsPage(url: string): boolean {
-  return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
-}
-
-function isDetailPage(url: string): boolean {
-  return /^https?:\/\/(movie|music)\.douban\.com\/subject\//.test(url)
+const cssMap: Record<string, string> = {
+  theme: themeCss,
+  common: commonCss,
+  breakpoints: breakpointsCss,
+  'page-layout': pageLayoutCss,
+  'shared-components': componentsCss,
+  homepage: homepageCss,
+  'music-homepage': musicHomepageCss,
+  genre: genreCss,
+  'artists-overview': artistsOverviewCss,
+  search: searchCss,
+  detail: detailCss,
+  photos: photosCss,
+  trailer: trailerCss,
+  celebrities: celebritiesCss,
+  personage: personageCss,
+  albums: albumsCss,
+  interest: interestCss,
 }
 
 // ---- Music Homepage mount ----
 
 async function mountMusicHomepage(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: homepageCss },
-    { name: 'music-homepage', css: musicHomepageCss },
-  )
+  const css = composeStylesForPage('music-homepage', cssMap)
   const { default: App } = await import('./pages/music-homepage/App.vue')
   mountUmmOverlay({
     overlayId: 'umm-douban-overlay',
@@ -106,13 +70,7 @@ async function mountMusicHomepage(): Promise<void> {
 // ---- Genre page mount ----
 
 async function mountGenrePage(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: genreCss },
-  )
+  const css = composeStylesForPage('genre', cssMap)
   const { default: App } = await import('./pages/genre/App.vue')
   const { extractGenrePage } = await import('./pages/genre/extractors')
 
@@ -122,10 +80,7 @@ async function mountGenrePage(): Promise<void> {
     async beforeMount() {
       const data = extractGenrePage()
       if (!data) throw new Error('[UMM] Could not extract genre page data')
-      const nav = document.getElementById('db-global-nav')
-      const musicNav = document.getElementById('db-nav-music')
-      if (nav) nav.style.display = 'none'
-      if (musicNav) musicNav.style.display = 'none'
+      hideNavForPage({ type: 'genre' })
       return data
     },
     createApp(_shadow, ctx) {
@@ -137,13 +92,7 @@ async function mountGenrePage(): Promise<void> {
 // ---- Artists overview mount ----
 
 async function mountArtistsOverview(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: artistsOverviewCss },
-  )
+  const css = composeStylesForPage('artists-overview', cssMap)
   const { default: App } = await import('./pages/artists-overview/App.vue')
   const { extractArtistsOverview } = await import('./pages/artists-overview/extractors')
 
@@ -153,10 +102,7 @@ async function mountArtistsOverview(): Promise<void> {
     async beforeMount() {
       const data = extractArtistsOverview()
       if (!data) throw new Error('[UMM] Could not extract artists overview data')
-      const nav = document.getElementById('db-global-nav')
-      const musicNav = document.getElementById('db-nav-music')
-      if (nav) nav.style.display = 'none'
-      if (musicNav) musicNav.style.display = 'none'
+      hideNavForPage({ type: 'artists-overview' })
       return data
     },
     createApp(_shadow, ctx) {
@@ -168,14 +114,7 @@ async function mountArtistsOverview(): Promise<void> {
 // ---- Homepage mount ----
 
 async function mountHomepage(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: homepageCss },
-  )
+  const css = composeStylesForPage('homepage', cssMap)
   const { default: App } = await import('./pages/homepage/App.vue')
   mountUmmOverlay({
     overlayId: 'umm-douban-overlay',
@@ -187,15 +126,10 @@ async function mountHomepage(): Promise<void> {
 // ---- Search page mount ----
 
 async function mountSearch(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: searchCss },
-  )
+  const css = composeStylesForPage('search', cssMap)
   const { default: App } = await import('./pages/search/App.vue')
-  const { parseSearchData, loadRecordMap } = await import('./pages/search/search-data')
+  const { parseSearchData } = await import('./pages/search/search-data')
+  const { loadRecordMap } = await import('./shared/load-record-map')
 
   mountUmmOverlay({
     overlayId: 'umm-search-overlay',
@@ -221,16 +155,10 @@ async function mountSearch(): Promise<void> {
 // ---- Albums (version list) page mount ----
 
 async function mountAlbums(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: albumsCss },
-  )
+  const css = composeStylesForPage('albums', cssMap)
   const { default: App } = await import('./pages/albums/App.vue')
-  const { extractAlbumsData, loadRecordMap } = await import('./pages/albums/albums-data')
+  const { extractAlbumsData } = await import('./pages/albums/albums-data')
+  const { loadRecordMap } = await import('./shared/load-record-map')
   type AlbumsPageData = import('./pages/albums/types').AlbumsPageData
 
   mountUmmOverlay({
@@ -242,10 +170,7 @@ async function mountAlbums(): Promise<void> {
         loadRecordMap(),
       ])
       if (!data) throw new Error('[UMM] Could not extract albums data')
-      const nav = document.getElementById('db-global-nav')
-      const musicNav = document.getElementById('db-nav-music')
-      if (nav) nav.style.display = 'none'
-      if (musicNav) musicNav.style.display = 'none'
+      hideNavForPage({ type: 'albums' })
       return { data, recordMap }
     },
     createApp(_shadow, ctx) {
@@ -261,15 +186,7 @@ async function mountAlbums(): Promise<void> {
 // ---- Detail page mount ----
 
 async function mountDetail(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: detailCss },
-    { name: 'interest', css: interestCss },
-  )
+  const css = composeStylesForPage('detail', cssMap)
   const { default: App } = await import('./pages/detail/App.vue')
   const { extractDetailData, loadRecord } = await import('./pages/detail/detail-data')
   type DetailData = import('./pages/detail/detail-data').DetailData
@@ -283,14 +200,8 @@ async function mountDetail(): Promise<void> {
         throw new Error('[UMM] Could not extract detail data from page')
       }
       detailData.record = await loadRecord(detailData.identity)
-
-      const globalNav = document.getElementById('db-global-nav')
-      const movieNav = document.getElementById('db-nav-movie')
-      const musicNav = document.getElementById('db-nav-music')
-      if (globalNav) globalNav.style.display = 'none'
-      if (movieNav) movieNav.style.display = 'none'
-      if (musicNav) musicNav.style.display = 'none'
-
+      const mediaType = location.href.includes('music.douban.com') ? 'music' : 'movie'
+      hideNavForPage({ type: 'detail', mediaType })
       return detailData
     },
     createApp(_shadow: ShadowRoot, ctx?: unknown) {
@@ -320,14 +231,7 @@ async function mountDetail(): Promise<void> {
 // ---- Photos page mount ----
 
 async function mountPhotos(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: photosCss },
-  )
+  const css = composeStylesForPage('photos', cssMap)
   const { default: App } = await import('./pages/photos/App.vue')
   const { extractPhotosPageData } = await import('./pages/photos/photos-data')
   type PhotosPageData = import('./pages/photos/photos-data').PhotosPageData
@@ -340,11 +244,7 @@ async function mountPhotos(): Promise<void> {
       if (!data) {
         throw new Error('[UMM] Could not extract photos data from page')
       }
-      // Hide native page header/nav for clean overlay
-      const globalNav = document.getElementById('db-global-nav')
-      const movieNav = document.getElementById('db-nav-movie')
-      if (globalNav) globalNav.style.display = 'none'
-      if (movieNav) movieNav.style.display = 'none'
+      hideNavForPage({ type: 'photos' })
       return data
     },
     createApp(_shadow: ShadowRoot, ctx?: unknown) {
@@ -356,14 +256,7 @@ async function mountPhotos(): Promise<void> {
 // ---- Trailer page mount ----
 
 async function mountTrailer(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: trailerCss },
-  )
+  const css = composeStylesForPage('trailer', cssMap)
   const { default: App } = await import('./pages/trailer/App.vue')
   const { extractTrailerData } = await import('./pages/trailer/trailer-data')
   type TrailerPageData = import('./pages/trailer/trailer-data').TrailerPageData
@@ -374,10 +267,7 @@ async function mountTrailer(): Promise<void> {
     async beforeMount() {
       const data = extractTrailerData()
       if (!data) throw new Error('[UMM] Could not extract trailer data')
-      const globalNav = document.getElementById('db-global-nav')
-      const movieNav = document.getElementById('db-nav-movie')
-      if (globalNav) globalNav.style.display = 'none'
-      if (movieNav) movieNav.style.display = 'none'
+      hideNavForPage({ type: 'trailer' })
 
       // Disable native video player to prevent auto-play / audio bleed
       document.querySelectorAll<HTMLVideoElement>('video').forEach((v) => {
@@ -404,14 +294,7 @@ async function mountTrailer(): Promise<void> {
 // ---- Celebrities page mount ----
 
 async function mountCelebrities(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: celebritiesCss },
-  )
+  const css = composeStylesForPage('celebrities', cssMap)
   const { default: App } = await import('./pages/celebrities/App.vue')
   const { extractCelebritiesPageData } = await import('./pages/celebrities/celebrities-data')
   type CelebritiesPageData = import('./pages/celebrities/celebrities-data').CelebritiesPageData
@@ -422,10 +305,7 @@ async function mountCelebrities(): Promise<void> {
     async beforeMount() {
       const data = extractCelebritiesPageData()
       if (!data) throw new Error('[UMM] Could not extract celebrities data')
-      const globalNav = document.getElementById('db-global-nav')
-      const movieNav = document.getElementById('db-nav-movie')
-      if (globalNav) globalNav.style.display = 'none'
-      if (movieNav) movieNav.style.display = 'none'
+      hideNavForPage({ type: 'celebrities' })
       return data
     },
     createApp(_shadow, ctx) {
@@ -437,14 +317,7 @@ async function mountCelebrities(): Promise<void> {
 // ---- Personage page mount ----
 
 async function mountPersonage(): Promise<void> {
-  const css = composeStyles(
-    { name: 'theme', css: themeCss },
-    { name: 'common', css: commonCss },
-    { name: 'breakpoints', css: breakpointsCss },
-    { name: 'page-layout', css: pageLayoutCss },
-    { name: 'shared-components', css: componentsCss },
-    { name: 'components', css: personageCss },
-  )
+  const css = composeStylesForPage('personage', cssMap)
   const { default: App } = await import('./pages/personage/App.vue')
   const { extractPersonagePageData } = await import('./pages/personage/personage-data')
   type PersonagePageData = import('./pages/personage/personage-data').PersonagePageData
@@ -462,8 +335,7 @@ async function mountPersonage(): Promise<void> {
         await new Promise((r) => setTimeout(r, 500 * (i + 1)))
       }
       if (!data) throw new Error('[UMM] Could not extract personage data')
-      const globalNav = document.getElementById('db-global-nav')
-      if (globalNav) globalNav.style.display = 'none'
+      hideNavForPage({ type: 'personage' })
       return data
     },
     createApp(_shadow, ctx) {
@@ -479,34 +351,22 @@ async function mountPersonage(): Promise<void> {
  * Call from document_idle content script.
  */
 export async function mountDoubanMain(): Promise<void> {
-  const url = location.href
   try {
-    if (isAlbumsPage(url)) {
-      await mountAlbums()
-    } else if (isMusicHomepage(url)) {
-      await mountMusicHomepage()
-    } else if (isGenrePage(url)) {
-      await mountGenrePage()
-    } else if (isArtistsOverview(url)) {
-      await mountArtistsOverview()
-    } else if (isHomepage(url)) {
-      await mountHomepage()
-    } else if (isSearchPage(url)) {
-      await mountSearch()
-    } else if (isPhotosPage(url)) {
-      await mountPhotos()
-    } else if (isCelebritiesPage(url)) {
-      await mountCelebrities()
-    } else if (isTrailerPage(url)) {
-      await mountTrailer()
-    } else if (isVideoPage(url)) {
-      await mountTrailer()
-    } else if (isDetailPage(url)) {
-      await mountDetail()
-    } else if (isPersonagePage(url)) {
-      await mountPersonage()
-    } else {
-      console.warn('[UMM] Unknown Douban page type — skipping mount')
+    const pageType = detectPageType()
+    if (!pageType) throw new Error('Unknown Douban page type')
+    switch (pageType.type) {
+      case 'albums': await mountAlbums(); break
+      case 'music-homepage': await mountMusicHomepage(); break
+      case 'genre': await mountGenrePage(); break
+      case 'artists-overview': await mountArtistsOverview(); break
+      case 'homepage': await mountHomepage(); break
+      case 'search': await mountSearch(); break
+      case 'photos': await mountPhotos(); break
+      case 'celebrities': await mountCelebrities(); break
+      case 'trailer': await mountTrailer(); break
+      case 'video': await mountTrailer(); break
+      case 'detail': await mountDetail(); break
+      case 'personage': await mountPersonage(); break
     }
   } catch (err) {
     console.warn('[UMM] mountDoubanMain error:', err)

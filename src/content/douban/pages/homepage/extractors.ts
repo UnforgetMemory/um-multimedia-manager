@@ -1,38 +1,11 @@
 import type { BillboardItem, HotSectionItem, ReviewItem, ScreeningItem } from './types'
+import { extractSubjectId } from '@/content/douban/shared/extract-subject-id'
 
 function sanitizeHref(href: string): string {
   try {
     const url = new URL(href, window.location.origin)
     if (url.protocol === 'http:' || url.protocol === 'https:') return url.href
   } catch { /* invalid URL */ }
-  return ''
-}
-
-/**
- * Extract a Douban subject ID from an element.
- *
- * Checks (in order):
- * 1. `<a href*="/subject/">`, `<a href*="/movie/">`, `<a href*="/tv/">` links
- * 2. `data-trailer` attribute (e.g. `https://movie.douban.com/subject/{id}/trailer`)
- *
- * Returns empty string when no ID is found.
- */
-export function extractSubjectId(element: Element): string {
-  const link = element.querySelector<HTMLAnchorElement>(
-    'a[href*="/subject/"], a[href*="/movie/"], a[href*="/tv/"]',
-  )
-  if (link) {
-    const href = link.href || link.getAttribute('href')
-    if (href) {
-      const match = href.match(/\/(?:subject|movie|tv)\/(\d+)/)
-      if (match) return match[1]
-    }
-  }
-
-  const trailer = (element as HTMLElement).dataset.trailer || ''
-  const trailerMatch = trailer.match(/\/subject\/(\d+)\//)
-  if (trailerMatch) return trailerMatch[1]
-
   return ''
 }
 

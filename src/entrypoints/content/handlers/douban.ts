@@ -16,62 +16,35 @@ import { injectNeoDBPushButtons } from './douban-neodb'
 import { initDoulistReplacement } from '../ui/doulist-replace'
 import { setNeoDBInjector } from '../observers/rating'
 import { infoLog } from '@/utils/logger'
+import { getThemeFromStorage, resolveTheme } from '@/content/douban/shared/theme-sync'
 
-const THEME_KEY = 'umm:appearance'
 export const THEME_ATTR = 'data-umm-theme'
 
-// ============================================================
-// Theme sync — read UMM theme setting and apply to page
-// ============================================================
-
-
-function resolveThemeFromStorage(raw: Record<string, unknown> | undefined): 'dark' | 'light' {
-  const mode = (raw?.theme as string) ?? 'auto'
-  if (mode === 'dark') return 'dark'
-  if (mode === 'light') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+function applyThemeToPage(mode: string): void {
+  document.documentElement.setAttribute(THEME_ATTR, resolveTheme(mode))
 }
 
-function applyThemeToPage(theme: 'dark' | 'light'): void {
-  document.documentElement.setAttribute(THEME_ATTR, theme)
-}
-
-function syncDetailPageTheme(): void {
-  const apply = (raw: Record<string, unknown> | undefined): void => {
-    applyThemeToPage(resolveThemeFromStorage(raw))
+async function syncDetailPageTheme(): Promise<void> {
+  const apply = async () => {
+    try {
+      const theme = await getThemeFromStorage()
+      applyThemeToPage(theme)
+    } catch {
+      applyThemeToPage('auto')
+    }
   }
 
-  try {
-    chrome.storage.local.get([THEME_KEY], (result) => {
-      if (chrome.runtime.lastError) {
-        applyThemeToPage(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        return
-      }
-      apply(result[THEME_KEY] as Record<string, unknown> | undefined)
-    })
-  } catch {
-    applyThemeToPage(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  }
-
+  await apply()
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      try {
-        chrome.storage.local.get([THEME_KEY], (result) => {
-          if (!chrome.runtime.lastError) {
-            applyThemeToPage(resolveThemeFromStorage(result[THEME_KEY] as Record<string, unknown> | undefined))
-          }
-        })
-      } catch { /* silent fallback */ }
-    }
+    if (document.visibilityState === 'visible') void apply()
   })
 
-  // Listen for theme changes from other contexts (popup, options, other tabs)
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return
-    if (changes[THEME_KEY]) {
+    if (changes['umm:appearance']) {
       infoLog('Theme changed in storage, applying to page')
-      applyThemeToPage(resolveThemeFromStorage(changes[THEME_KEY].newValue as Record<string, unknown> | undefined))
+      applyThemeToPage((changes['umm:appearance'].newValue as Record<string, unknown> | undefined)?.theme as string)
     }
   })
 }

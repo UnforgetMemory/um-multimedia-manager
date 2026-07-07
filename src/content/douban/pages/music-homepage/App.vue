@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRecordCache } from '../../shared/composables/useRecordCache'
 import { useDoubanSection } from '../homepage/composables/useDoubanSection'
-import { useMusicHomepageObserver } from './composables/useMusicHomepageObserver'
+import { usePageObserver } from '../homepage/composables/useHomepageObserver'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
@@ -21,7 +21,7 @@ function refreshFromDom() {
   if (artists.length > 0) popularArtists.value = artists
 }
 
-const { start } = useMusicHomepageObserver(refreshFromDom)
+const { start } = usePageObserver(refreshFromDom, { containerSelectors: '.popular-artists, .new-albums, [data-react-component="NewAlbums"], .album-content' })
 
 onMounted(async () => {
   await load()

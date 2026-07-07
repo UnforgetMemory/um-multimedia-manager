@@ -140,7 +140,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
 
   // Poster
   const posterImg = document.querySelector('#mainpic img') as HTMLImageElement | null
-  const posterSrc = (posterImg?.src || '').replace(/s_ratio_poster/, 'xl')
+  const posterSrc = (posterImg?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/')
   const posterAlt = posterImg?.alt || ''
   const posterLink = (document.querySelector('#mainpic a') as HTMLAnchorElement)?.href || ''
 
@@ -296,10 +296,11 @@ export async function extractDetailData(): Promise<DetailData | null> {
   const trailerCount = trailerMatch?.[1] || ''
   const photoCount = photoMatch?.[1] || ''
 
-  // Recommendations
-  const recEl = document.querySelector('#recommendations')
+  // Recommendations — handle both movie (#recommendations) and music (#db-rec-section) DOM
+  const recEl = document.querySelector('#recommendations') || document.querySelector('#db-rec-section')
   const recItems: RecItem[] = []
-  recEl?.querySelectorAll('.recommendations-bd dl').forEach((dl) => {
+  const container = recEl?.querySelector('.recommendations-bd, .content')
+  ;(container || recEl)?.querySelectorAll('dl').forEach((dl) => {
     const img = dl.querySelector('dt img') as HTMLImageElement | null
     const linkEl = dl.querySelector('dd a') as HTMLAnchorElement | null
     // Use dl.querySelector() not linkEl.querySelector() — .subject-rate is
@@ -310,7 +311,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
     const idMatch = href.match(/\/subject\/(\d+)/)
     recItems.push({
       title: linkEl?.textContent?.trim() || img?.alt || '',
-      poster: img?.src || '',
+      poster: (img?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/'),
       rating: rate,
       link: href,
       subjectId: idMatch ? idMatch[1] : '',

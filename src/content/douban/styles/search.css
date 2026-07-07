@@ -8,11 +8,6 @@
   animation: umm-fade-in 0.35s ease;
 }
 
-@keyframes umm-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 /* ---- Search header ---- */
 .umm-search-hd {
   margin-bottom: 28px;

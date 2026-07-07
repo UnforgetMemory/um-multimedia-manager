@@ -3,8 +3,6 @@
  * Parses music.douban.com/albums/{id} — li.dlist items with cover, title,
  * rating, and abstract metadata (artist/date/type/format/genre).
  */
-import { Store } from '@/features/database'
-import type { StoreRecord } from '@/types'
 import type { AlbumsPageData, AlbumVersionItem } from './types'
 
 function extractAlbumsDataImpl(): AlbumsPageData | null {
@@ -56,19 +54,4 @@ function extractAlbumsDataImpl(): AlbumsPageData | null {
   return { albumTitle, versions: items }
 }
 
-async function loadRecordMapImpl(): Promise<Map<string, StoreRecord>> {
-  const map = new Map<string, StoreRecord>()
-  try {
-    const entries = await Store.dbGetAll('douban_records')
-    const prefix = 'music::'
-    for (const { key, record } of entries) {
-      if (key.startsWith(prefix)) {
-        map.set(key.slice(prefix.length), record)
-      }
-    }
-  } catch { /* ignore */ }
-  return map
-}
-
 export const extractAlbumsData = extractAlbumsDataImpl
-export const loadRecordMap = loadRecordMapImpl

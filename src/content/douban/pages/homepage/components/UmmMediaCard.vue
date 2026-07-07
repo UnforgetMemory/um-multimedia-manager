@@ -11,6 +11,7 @@ interface Props {
   badgeRating: number
   episodes?: string
   type?: 'movie' | 'music'
+  mode?: 'scroll' | 'grid'
 }
 
 const props = defineProps<Props>()
@@ -25,9 +26,10 @@ const cardProps = {
   badgeRating: props.badgeRating,
   episodes: props.episodes || '',
   type: props.type || 'movie',
+  mode: props.mode || 'scroll',
 }
 </script>
 
 <template>
-  <UmmMediaCard mode="scroll" v-bind="cardProps" />
+  <UmmMediaCard v-bind="cardProps" />
 </template>

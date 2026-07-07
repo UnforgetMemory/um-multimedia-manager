@@ -24,6 +24,7 @@ interface Props {
   records: Map<string, StoreRecord>
   showEpisodes?: boolean
   type?: 'movie' | 'music'
+  grid?: boolean
 }
 
 const props = defineProps<Props>()
@@ -35,7 +36,7 @@ function recordFor(item: MediaRowItem) {
 </script>
 
 <template>
-  <UmmScrollRow v-if="items.length > 0" :title="title">
+  <UmmScrollRow v-if="items.length > 0" :title="title" :mode="grid ? 'grid' : 'scroll'">
     <UmmMediaCard
       v-for="item in items"
       :key="item.subjectId"
@@ -48,6 +49,7 @@ function recordFor(item: MediaRowItem) {
       :badge-status="recordFor(item).status"
       :badge-rating="recordFor(item).rating"
       :type="props.type ?? 'movie'"
+      :mode="grid ? 'grid' : 'scroll'"
     />
   </UmmScrollRow>
 </template>

@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0] - 2026-07-07
+
+### Architecture
+- **豆瓣注入架构重构**: 三套并行注入系统（douban-early/douban-main/content.ts）统一通过 `shared/` 模块建立正式契约
+  - 新建 6 个共享模块：`url-detector.ts`、`hide-nav.ts`、`extract-subject-id.ts`、`load-record-map.ts`、`theme-sync.ts`、`useCrossPlatformSync.ts`
+  - `early.ts` 140→60 行（移出内联 URL 检测/CSS 组合/SPA 观察者）
+  - `main.ts` 514→370 行（去除 8+ 处重复 mount 样板、导航隐藏逻辑、CSS 组合代码）
+  - 删除 `useMusicHomepageObserver.ts` 和重复 CSS 声明，净减 ~490 行
+  - 解决 12 类重复模式（R1-R12）和 1 个架构问题（A11 跨平台同步）
+
+### Added
+- **首页横向滚动→Grid 自适应**: 电影首页筛选/热门区域从横向滚动改为 CSS Grid 自适应布局
+  - `.umm-grid-track` 容器：`auto-fill, minmax(150px, 1fr)` → 固定列数（6-9 列，跨 1280-3200px 断点）
+  - `UmmScrollRow` 新增 `mode="grid"` prop 切换滚动/网格模式
+  - `UmmMediaCard` 新增 `mode="grid"` 渲染路径
+  - `homepage.css` 新增 grid 布局、行间距 `var(--umm-space-lg)`、hover 上浮动画
+- **音乐详情推荐区域**: 修复音乐详情页推荐内容缺失（`#db-rec-section` 选择器）
+  - `detail-data.ts` 推荐提取兼容 `#recommendations`（电影）和 `#db-rec-section`（音乐）
+  - 封面使用 1:1 正方形比例（`:type="d.isMusic ? 'music' : 'movie'"`）
+  - 图片 URL 尺寸升级：`s_ratio_poster`→`xl`、`/[slm]/`→`/xl/`、`/[slm]pic/`→`/xl/`
+
+### Fixed
+- **详情页推荐区域 rating 字体巨大**: `detail.css` 中 `.umm-rating-score { font-size: var(--umm-font-display) }` 为裸类选择器，泄漏至 Shadow DOM 内所有评分元素 → 限定作用域为 `.umm-rating-score-section .umm-rating-score`
+- **首页 grid rating 大屏偏小**: 新增 `.umm-grid-track .umm-rec-item .umm-rating` 12 级自适应 `clamp(0.75rem, 0.55rem + 0.45vw, 1.125rem)`
+- **音乐详情推荐封面始终 2:3**: `.umm-rec-cover` 硬编码 `aspect-ratio: var(--umm-aspect-poster)` → 移除以允许内部 `UmmImage` 动态控制
+- **音乐条目主封面 URL 未升级至 xl**: `detail-data.ts:143` 仅处理 `s_ratio_poster`（电影），增加 `/subject/m/`→`/xl/` 替换
+- **详情页添加到片单按钮浅色主题不可见**: W1.9 CSS 清理误删 `--umm-accent: #6366f1` → 恢复 `detail.css` 浅色变量
+- **首页 grid 三明治样式错误**: `homepage.css` 补全 `.umm-rec-item/cover/title/rating` 卡片基类样式
+- **首页 grid 大屏列数过多**: `auto-fill` 改为固定列数断点（6-9 列），宽屏防止过多列挤压
+- **一周口碑榜元素样式**: `.umm-billboard-title` 增加 `max-width: 220px` + ellipsis 截断
+
+### Changed
+- **`.gitignore` 精简**: 去重 `playwright-report`×2 / `Thumbs.db`×2 / `.DS_Store`×2，合并同类条目
+
+### Chore
+- **版本升至 4.9.0**: 同步 `package.json` + `wxt.config.ts` manifest
+- **测试产物清洁**: 删除 `test-results/` 目录，63 个单元测试全部通过
+- **安全审计**: CSP/消息传递/Shadow DOM 隔离/凭据管理确认安全
+- **英文注释补充**: `css-composer.ts` 模块 JSDoc + `?raw` 约束说明，`constants.ts` 导出简短注释
+
 ## [4.8.0] - 2026-07-07
 
 ### Added

@@ -28,7 +28,7 @@ function refreshFromDom() {
   refreshHotTv()
 }
 
-const { start } = useHomepageObserver(refreshFromDom)
+const { start } = useHomepageObserver(refreshFromDom, { containerSelectors: '#screening, .recent-hot, #billboard, #reviews, .review' })
 
 onMounted(async () => {
   await load()
@@ -46,7 +46,7 @@ onMounted(async () => {
   <UmmPageLayout>
     <div class="umm-top-panel">
 
-    <UmmMediaRow title="正在热映" :items="screeningItems" :records="records" />
+    <UmmMediaRow title="正在热映" :items="screeningItems" :records="records" grid />
 
     <UmmScrollRow v-if="billboardItems.length > 0" title="一周口碑榜">
       <UmmBillboardCard
@@ -60,8 +60,8 @@ onMounted(async () => {
       />
     </UmmScrollRow>
 
-    <UmmMediaRow title="最近热门电影" :items="hotMovies" :records="records" />
-    <UmmMediaRow title="最近热门电视剧" :items="hotTv" :records="records" :show-episodes="true" />
+    <UmmMediaRow title="最近热门电影" :items="hotMovies" :records="records" grid />
+    <UmmMediaRow title="最近热门电视剧" :items="hotTv" :records="records" :show-episodes="true" grid />
 
     <UmmReviewsSection :records="records" />
     </div>
