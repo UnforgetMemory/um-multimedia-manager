@@ -104,6 +104,7 @@ function clampJumpInput(): void {
         :key="item.id"
         :item="item"
         :records="recordMap || new Map()"
+        :isMusic="isMusic"
       />
     </div>
     <div v-else class="umm-search-empty">

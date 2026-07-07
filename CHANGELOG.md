@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-07-07
+
+### Added
+- **音乐专辑多版本页面全屏覆盖层**: `music.douban.com/albums/{id}` — 版本列表 grid，1:1 方形专辑封面 + 介质 chip（CD/DVD/磁带/数字/黑胶 等）+ 评分 + IndexedDB 状态徽章
+- **豆瓣音乐搜索结果优化**: 专辑封面宽度比从 2:3 改为 1:1 正方形比例；解析元数据中的介质信息（CD/DVD/磁带/数字/流媒体），在封面下方展示多色系 chip（亮/暗主题）
+- **介质 chip 色系系统**: 11 种介质各配独立色值（亮色/暗色双主题），白字 ≥4.5:1 WCAG AA 可读性
+- **i18n 音乐状态键值**: `common.listened`/`common.unlistened` 三语言（zh-CN/zh-TW/en）
+
+### Fixed
+- **音乐搜索结果状态徽章显示电影用语**: UmmSearchCard 缺失 `:type` prop → 加入 `:type="isMusic ? 'music' : 'movie'"`
+- **专辑版本页状态徽章同问题**: albums/App.vue 固定 `type="music"`
+- **Options RatingTab 音乐类型标签**: `getStatusLabel()` 当 `type='music'` 时返回 `common.listened`/`common.unlistened`
+- **Options LinkedTab 音乐类型标签**: `getStatusText()` 之前忽略 `_type` 参数 → 使用 `type` 参数正确分支音乐/电影
+
+### Changed
+- **删除孤儿代码**: `useStatus.ts` composable（全库零引用）
+
+### Chore
+- **版本升至 4.8.0**: 同步 `package.json` + `wxt.config.ts` manifest
+
 ## [4.7.0] - 2026-07-07
 
 ### Added

@@ -126,12 +126,13 @@ function getPlatformLabel(p: string): string {
   }
   return labels[p] || p
 }
-function getStatusText(s: number, _type: string): string {
+function getStatusText(s: number, type: string): string {
+  const isMusic = type === 'music'
   const labels: Record<number, string> = {
     [-1]: t('common.noData'),
-    0: t('common.unwatched'),
+    0: isMusic ? t('common.unlistened') : t('common.unwatched'),
     1: t('common.rating'),
-    2: t('common.watched'),
+    2: isMusic ? t('common.listened') : t('common.watched'),
   }
   return labels[s] || ''
 }

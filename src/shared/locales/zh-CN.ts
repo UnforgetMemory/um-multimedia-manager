@@ -28,6 +28,8 @@ export default {
   'common.watched': '已看',
   'common.unwatched': '未看',
   'common.wish': '想看',
+  'common.listened': '已听',
+  'common.unlistened': '未听',
   'common.importData': '导入数据',
   'common.exportData': '导出数据',
   'common.startImport': '开始导入',

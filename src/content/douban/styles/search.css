@@ -111,6 +111,19 @@
   border-color: var(--umm-border);
 }
 
+/* ---- Cover area wrapper ---- */
+.umm-search-card-cover-area {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.umm-search-card-cover-area--music {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 8px;
+}
+
 /* ---- Cover image ---- */
 .umm-search-card-cover {
   flex-shrink: 0;
@@ -120,6 +133,12 @@
   overflow: hidden;
   position: relative;
   background: var(--umm-bg);
+}
+
+/* Music album cover: square 1:1 ratio */
+.umm-search-card-cover--music {
+  width: 100px;
+  height: 100px;
 }
 
 .umm-search-card-cover > .umm-image-container > .umm-image-img {
@@ -143,6 +162,60 @@
   background: rgba(0, 0, 0, 0.65);
   color: #fff;
 }
+
+/* ---- Media format row below cover (music search) ---- */
+.umm-search-media-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.umm-search-media-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 4px;
+  background: var(--umm-bg);
+  border: 1px solid var(--umm-border);
+  color: var(--umm-text-secondary);
+  user-select: none;
+  white-space: nowrap;
+}
+
+:host(.umm-theme--dark) .umm-search-media-chip {
+  background: var(--umm-bg-secondary);
+  border-color: var(--umm-border);
+  color: var(--umm-text-secondary, #999999);
+}
+
+/* ---- Media chip color variants (all ≥4.5:1 WCAG AA with white text) ---- */
+.umm-chip-cd       { background: #546e7a; color: #fff; border-color: transparent; }
+.umm-chip-dvd      { background: #7b1fa2; color: #fff; border-color: transparent; }
+.umm-chip-cd-dvd   { background: #4527a0; color: #fff; border-color: transparent; }
+.umm-chip-cassette { background: #5d4037; color: #fff; border-color: transparent; }
+.umm-chip-digital  { background: #00695c; color: #fff; border-color: transparent; }
+.umm-chip-vinyl    { background: #37474f; color: #fff; border-color: transparent; }
+.umm-chip-lp       { background: #4a148c; color: #fff; border-color: transparent; }
+.umm-chip-sacd     { background: #4e342e; color: #fff; border-color: transparent; }
+.umm-chip-bluray   { background: #0d47a1; color: #fff; border-color: transparent; }
+.umm-chip-vcd      { background: #455a64; color: #fff; border-color: transparent; }
+.umm-chip-streaming{ background: #1b5e20; color: #fff; border-color: transparent; }
+
+/* Dark theme: slightly lift background to improve visibility against dark page */
+:host(.umm-theme--dark) .umm-chip-cd       { background: #607d8b; }
+:host(.umm-theme--dark) .umm-chip-dvd      { background: #8e24aa; }
+:host(.umm-theme--dark) .umm-chip-cd-dvd   { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-cassette { background: #6d4c41; }
+:host(.umm-theme--dark) .umm-chip-digital  { background: #00897b; }
+:host(.umm-theme--dark) .umm-chip-vinyl    { background: #455a64; }
+:host(.umm-theme--dark) .umm-chip-lp       { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-sacd     { background: #5d4037; }
+:host(.umm-theme--dark) .umm-chip-bluray   { background: #1565c0; }
+:host(.umm-theme--dark) .umm-chip-vcd      { background: #546e7a; }
+:host(.umm-theme--dark) .umm-chip-streaming{ background: #2e7d32; }
 
 /* ---- Card body ---- */
 .umm-search-card-body {

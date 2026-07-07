@@ -12,6 +12,10 @@
 import { createOverlay } from './overlay'
 import type { OverlayOptions } from './overlay'
 
+function isAlbumsPage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
+}
+
 function isDetailPage(url: string): boolean {
   return /^https?:\/\/(movie|music)\.douban\.com\/subject\//.test(url)
 }
@@ -71,6 +75,12 @@ function getOverlayConfig(): OverlayOptions | null {
     return {
       overlayId: 'umm-celebrities-overlay',
       subtitle: '加载演职员...',
+    }
+  }
+  if (isAlbumsPage(url)) {
+    return {
+      overlayId: 'umm-douban-overlay',
+      subtitle: '专辑版本 · 加载中',
     }
   }
   if (isDetailPage(url)) {

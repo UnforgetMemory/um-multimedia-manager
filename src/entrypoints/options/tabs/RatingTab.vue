@@ -117,7 +117,7 @@ function parseRatingInput() {
 
 function getStatusLabel(status: number, type: string): string {
   if (type === 'music') {
-    const labels: Record<number, string> = { 0: t('common.unwatched'), 1: t('common.rating'), 2: t('common.watched') }
+    const labels: Record<number, string> = { 0: t('common.unlistened'), 1: t('common.rating'), 2: t('common.listened') }
     return labels[status] || ''
   }
   const labels: Record<number, string> = { 0: t('common.unwatched'), 1: t('common.rating'), 2: t('common.watched') }

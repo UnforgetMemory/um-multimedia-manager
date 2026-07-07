@@ -28,6 +28,8 @@ export default {
   'common.watched': 'Watched',
   'common.unwatched': 'Unwatched',
   'common.wish': 'Wish',
+  'common.listened': 'Listened',
+  'common.unlistened': 'Unlistened',
   'common.importData': 'Import Data',
   'common.exportData': 'Export Data',
   'common.startImport': 'Start Import',

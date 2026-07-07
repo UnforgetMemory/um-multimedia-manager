@@ -25,6 +25,7 @@ import photosCss from './styles/photos.css?raw'
 import trailerCss from './styles/trailer.css?raw'
 import celebritiesCss from './styles/celebrities.css?raw'
 import personageCss from './styles/personage.css?raw'
+import albumsCss from './styles/albums.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import componentsCss from './styles/components.css?raw'
 import interestCss from './styles/interest.css?raw'
@@ -72,6 +73,10 @@ function isPersonagePage(url: string): boolean {
 
 function isPhotosPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/(photos|all_photos)/.test(url)
+}
+
+function isAlbumsPage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
 }
 
 function isDetailPage(url: string): boolean {
@@ -209,6 +214,46 @@ async function mountSearch(): Promise<void> {
         recordMap: Map<string, import('@/types').StoreRecord>
       }
       return createApp(App, { searchData, recordMap })
+    },
+  })
+}
+
+// ---- Albums (version list) page mount ----
+
+async function mountAlbums(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
+    { name: 'components', css: albumsCss },
+  )
+  const { default: App } = await import('./pages/albums/App.vue')
+  const { extractAlbumsData, loadRecordMap } = await import('./pages/albums/albums-data')
+  type AlbumsPageData = import('./pages/albums/types').AlbumsPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      const [data, recordMap] = await Promise.all([
+        extractAlbumsData(),
+        loadRecordMap(),
+      ])
+      if (!data) throw new Error('[UMM] Could not extract albums data')
+      const nav = document.getElementById('db-global-nav')
+      const musicNav = document.getElementById('db-nav-music')
+      if (nav) nav.style.display = 'none'
+      if (musicNav) musicNav.style.display = 'none'
+      return { data, recordMap }
+    },
+    createApp(_shadow, ctx) {
+      const { data, recordMap } = ctx as {
+        data: AlbumsPageData
+        recordMap: Map<string, import('@/types').StoreRecord>
+      }
+      return createApp(App, { data, recordMap })
     },
   })
 }
@@ -436,7 +481,9 @@ async function mountPersonage(): Promise<void> {
 export async function mountDoubanMain(): Promise<void> {
   const url = location.href
   try {
-    if (isMusicHomepage(url)) {
+    if (isAlbumsPage(url)) {
+      await mountAlbums()
+    } else if (isMusicHomepage(url)) {
       await mountMusicHomepage()
     } else if (isGenrePage(url)) {
       await mountGenrePage()
