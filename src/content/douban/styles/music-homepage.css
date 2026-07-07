@@ -1,0 +1,229 @@
+/* ===== UMM Douban Music Homepage — Shadow DOM styles ===== */
+/* Follows homepage.css pattern. Shadow DOM provides full style isolation. */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  --umm-border-light: var(--umm-border, #f0f0f0);
+  --umm-card-bg: transparent;
+  --umm-mask-from: var(--umm-color-surface, #ffffff);
+}
+
+:host(.umm-theme--dark) {
+  --umm-border-light: #2c2e33;
+  --umm-card-bg: transparent;
+  --umm-mask-from: var(--umm-color-surface, #1a1b1e);
+}
+
+/* Root panel */
+.umm-top-panel {
+  display: block;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: var(--umm-space-lg) 0;
+  background: var(--umm-bg);
+  position: relative;
+  z-index: var(--umm-z-overlay, 300);
+  overflow: visible;
+  color: var(--umm-text-primary);
+}
+
+/* ---- Sections ---- */
+.umm-section {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--umm-space-xl);
+  padding: 0;
+}
+
+.umm-section-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--umm-space-lg) var(--umm-space-sm);
+  border-bottom: 1px solid var(--umm-border);
+  margin-bottom: var(--umm-space-sm);
+}
+
+.umm-section-hd h2 {
+  font-size: var(--umm-font-md);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+
+/* ---- Album grid ---- */
+.umm-album-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-md);
+  padding: 0 var(--umm-space-lg);
+}
+
+@media (min-width: 480px) { .umm-album-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 768px) { .umm-album-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1024px) { .umm-album-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1440px) { .umm-album-grid { grid-template-columns: repeat(6, 1fr); } }
+
+/* ---- Grid card (UmmMediaCard grid mode) ---- */
+.umm-rec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+}
+
+.umm-rec-item:hover {
+  transform: translateY(-2px);
+}
+
+.umm-rec-cover {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--umm-card-radius, 8px);
+}
+
+.umm-rec-title {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+.umm-rec-rating {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-rating-score);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+/* ---- Artist grid (popular artists) ---- */
+.umm-artist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--umm-space-md, 12px);
+  padding: 0 var(--umm-space-lg);
+}
+
+@media (min-width: 480px) { .umm-artist-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 640px) { .umm-artist-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 768px) { .umm-artist-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1024px) { .umm-artist-grid { grid-template-columns: repeat(7, 1fr); } }
+
+.umm-artist-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+  padding: var(--umm-space-sm, 8px);
+  border-radius: var(--umm-radius-md, 10px);
+  transition: background 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.umm-artist-card:hover {
+  background: var(--umm-bg-secondary);
+  transform: translateY(-2px);
+}
+
+.umm-artist-avatar {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-artist-name {
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.umm-artist-genre {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+  text-align: center;
+}
+
+/* ---- Genre tags ---- */
+.umm-genre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-sm);
+  padding: 0 var(--umm-space-lg);
+}
+
+.umm-genre-tag {
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  background: var(--umm-bg-secondary);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+}
+
+.umm-genre-tag:hover {
+  background: var(--umm-accent);
+  color: #fff;
+}
+
+.umm-album-artist {
+  font-size: var(--umm-font-xs);
+  color: var(--umm-text-muted);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Hide native elements ---- */
+#db-global-nav,
+#db-nav-music,
+.top-banner,
+.popular-artists,
+[data-react-component="NewAlbums"],
+.rec-info,
+.tag-block,
+.contact.mod,
+#dale_music_home_top_right,
+#dale_music_home_bottom_right {
+  display: none !important;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--umm-bg-secondary, #f8f9fa);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--umm-border, #e5e7eb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--umm-text-muted, #9ca3af);
+}

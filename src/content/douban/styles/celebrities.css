@@ -114,7 +114,7 @@
 .umm-celebrity-avatar {
   width: 48px;
   min-width: 48px;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--umm-aspect-poster);
   border-radius: var(--umm-card-radius, 10px);
   background-size: cover;
   background-position: center;

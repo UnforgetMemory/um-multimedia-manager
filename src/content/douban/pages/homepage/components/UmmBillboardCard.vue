@@ -8,6 +8,7 @@ interface Props {
   href: string
   badgeStatus: number
   badgeRating: number
+  type?: 'movie' | 'music'
 }
 
 const props = defineProps<Props>()
@@ -30,6 +31,7 @@ const rankClass = computed(() => {
       :status="badgeStatus"
       :rating="badgeRating"
       variant="small"
+      :type="props.type ?? 'movie'"
     />
   </a>
 </template>

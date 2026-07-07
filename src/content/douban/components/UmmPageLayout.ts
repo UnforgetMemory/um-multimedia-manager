@@ -29,7 +29,7 @@ export const UmmPageLayout = defineComponent({
   },
   setup(props, { slots }) {
     const manifest = typeof chrome !== 'undefined' ? chrome.runtime?.getManifest?.() : undefined
-    const version = (manifest && typeof manifest === 'object' ? manifest.version : undefined) || '4.2.3'
+    const version = (manifest && typeof manifest === 'object' ? manifest.version : undefined) || '4.7.0'
 
     return () => {
       const header = h('header', { class: 'umm-layout-header' }, [

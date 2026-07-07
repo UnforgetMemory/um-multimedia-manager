@@ -117,9 +117,9 @@ interface InterestApiResponse {
  * await submitInterest('collect', 5)
  * ```
  */
-export function useInterest(subjectId: MaybeRefOrGetter<string>): UseInterest {
-  const interestStatus = ref<InterestStatus>(null)
-  const currentRating = ref(0)
+export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: InterestStatus, initialRating?: number): UseInterest {
+  const interestStatus = ref<InterestStatus>(initial ?? null)
+  const currentRating = ref(typeof initialRating === 'number' && initialRating >= 1 && initialRating <= 5 ? initialRating : 0)
   const myTags = ref<string[]>([])
   const savedTags = ref<string[]>([])
   const currentComment = ref('')
@@ -162,23 +162,35 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>): UseInterest {
       try {
         parsed = JSON.parse(text) as InterestApiResponse
       } catch {
-        // Non-JSON response — treat as auth issue or empty
-        interestStatus.value = null
-        currentRating.value = 0
+        // Non-JSON — preserve initial status from IndexedDB/DOM if already set
+        if (interestStatus.value === null) {
+          interestStatus.value = null
+          currentRating.value = 0
+        }
         return
       }
 
+      // Preserve initial status from IndexedDB/DOM when API returns empty —
+      // music albums may omit or return empty interest_status.
       const rawStatus = parsed.interest_status ?? ''
-      interestStatus.value = rawStatus === '' ? null : (rawStatus as 'wish' | 'do' | 'collect')
-      currentRating.value = typeof parsed.rating === 'number' ? parsed.rating : (parsed.html ? extractRatingFromHtml(parsed.html) : 0)
+      if (rawStatus !== '') {
+        interestStatus.value = rawStatus as 'wish' | 'do' | 'collect'
+      }
+      const apiRating = typeof parsed.rating === 'number' ? parsed.rating : (parsed.html ? extractRatingFromHtml(parsed.html) : 0)
+      if (apiRating > 0) {
+        currentRating.value = apiRating
+      }
       myTags.value = Array.isArray(parsed.my_tags) ? parsed.my_tags.filter((t): t is string => typeof t === 'string') : []
       savedTags.value = Array.isArray(parsed.tags) ? parsed.tags.filter((t): t is string => typeof t === 'string') : []
       currentComment.value = parsed.html ? extractCommentFromHtml(parsed.html) : ''
       hasDo.value = parsed.html ? extractHasDoFromHtml(parsed.html) : false
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Network error'
-      interestStatus.value = null
-      currentRating.value = 0
+      // Preserve initial status/rating when network fails
+      if (interestStatus.value === null) {
+        interestStatus.value = null
+        currentRating.value = 0
+      }
       myTags.value = []
       savedTags.value = []
       currentComment.value = ''

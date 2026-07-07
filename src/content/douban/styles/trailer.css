@@ -213,7 +213,7 @@
 .umm-detail-video {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--umm-aspect-wide);
   background: #000;
 }
 

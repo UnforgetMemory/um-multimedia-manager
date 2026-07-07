@@ -10,6 +10,7 @@ interface Props {
   badgeStatus: number
   badgeRating: number
   episodes?: string
+  type?: 'movie' | 'music'
 }
 
 const props = defineProps<Props>()
@@ -23,6 +24,7 @@ const cardProps = {
   badgeStatus: props.badgeStatus,
   badgeRating: props.badgeRating,
   episodes: props.episodes || '',
+  type: props.type || 'movie',
 }
 </script>
 

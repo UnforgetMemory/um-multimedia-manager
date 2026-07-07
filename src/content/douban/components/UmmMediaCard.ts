@@ -2,6 +2,7 @@ import { defineComponent, h, type PropType } from 'vue'
 import { UmmImageWrapper } from './UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from './UmmStatusBadgeWrapper'
 import { UmmRating } from './UmmRating'
+import { ASPECT_RATIO } from '@/content/douban/shared/constants'
 
 export const UmmMediaCard = defineComponent({
   name: 'UmmMediaCard',
@@ -15,6 +16,7 @@ export const UmmMediaCard = defineComponent({
     rating: { type: String, default: '' },
     episodes: { type: String, default: '' },
     intro: { type: String, default: '' },
+    type: { type: String as PropType<'movie' | 'music'>, default: 'movie' },
   },
   setup(props) {
     const handleClick = () => {
@@ -24,6 +26,7 @@ export const UmmMediaCard = defineComponent({
     }
 
     const badgeVariant = props.mode === 'grid' ? 'small' : 'inline'
+    const cardAspect = props.type === 'music' ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER
 
     if (props.mode === 'grid') {
       return () =>
@@ -39,12 +42,13 @@ export const UmmMediaCard = defineComponent({
               status: props.badgeStatus,
               rating: props.badgeRating,
               variant: badgeVariant,
+              type: props.type,
             }),
             h('div', { class: 'umm-rec-cover' }, [
               h(UmmImageWrapper, {
                 src: props.posterUrl,
                 alt: props.title,
-                aspectRatio: '2/3',
+                aspectRatio: cardAspect,
               }),
             ]),
             h('span', { class: 'umm-rec-title' }, props.title),
@@ -73,12 +77,14 @@ export const UmmMediaCard = defineComponent({
             status: props.badgeStatus,
             rating: props.badgeRating,
             variant: badgeVariant,
+            type: props.type,
           }),
           h('div', { class: 'umm-card-cover' }, [
             h(UmmImageWrapper, {
               src: props.posterUrl,
               alt: props.title,
               eager: true,
+              aspectRatio: cardAspect,
             }),
             props.episodes
               ? h('div', { class: 'umm-episodes' }, props.episodes)

@@ -196,7 +196,6 @@
 .umm-card-cover {
   position: relative;
   width: var(--umm-card-width);
-  height: var(--umm-card-height);
   border-radius: var(--umm-card-radius);
   overflow: hidden;
   flex-shrink: 0;

@@ -8,6 +8,7 @@ import type { StoreRecord } from '@/types'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
 import { UmmRating } from '@/content/douban/components/UmmRating'
+import { ASPECT_RATIO } from '@/content/douban/shared/constants'
 
 interface Props {
   item: SearchItem
@@ -28,7 +29,7 @@ const badgeRating = rec?.rating ?? 0
     class="umm-search-card"
   >
     <div class="umm-search-card-cover">
-      <UmmImageWrapper :src="item.cover_url" :alt="item.title" aspect-ratio="2/3" />
+      <UmmImageWrapper :src="item.cover_url" :alt="item.title" :aspect-ratio="ASPECT_RATIO.POSTER" />
       <span v-if="item.labels?.length" class="umm-search-label">{{ item.labels[0].text }}</span>
     </div>
     <div class="umm-search-card-body">

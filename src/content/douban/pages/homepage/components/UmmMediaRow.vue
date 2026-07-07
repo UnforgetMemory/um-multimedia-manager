@@ -23,6 +23,7 @@ interface Props {
   items: MediaRowItem[]
   records: Map<string, StoreRecord>
   showEpisodes?: boolean
+  type?: 'movie' | 'music'
 }
 
 const props = defineProps<Props>()
@@ -46,6 +47,7 @@ function recordFor(item: MediaRowItem) {
       :episodes="showEpisodes ? item.episodes : undefined"
       :badge-status="recordFor(item).status"
       :badge-rating="recordFor(item).rating"
+      :type="props.type ?? 'movie'"
     />
   </UmmScrollRow>
 </template>

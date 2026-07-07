@@ -5,6 +5,7 @@ import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmInterestBar } from '@/content/douban/components/UmmInterestBar'
+import { ASPECT_RATIO } from '@/content/douban/shared/constants'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
 import { Store } from '@/features/database'
 import { injectNeoDBPushButtons } from '@/entrypoints/content/neodb-push'
@@ -27,8 +28,45 @@ const sortedAwards = computed(() => {
   })
 })
 
+const artistName = computed(() => {
+  if (!d.isMusic) return ''
+  const performerRow = d.metaRows.find(r => r.label === '表演者')
+  if (!performerRow) return ''
+  const div = document.createElement('div')
+  div.innerHTML = performerRow.html
+  return div.textContent?.replace(/\s*\/\s*/g, ' / ').trim() || ''
+})
+
 const record = ref<{ status: number; rating: number } | null>(d.record ? { status: d.record.status, rating: d.record.rating } : null)
-const interested = useInterest(() => d.identity.providerId)
+
+/** Scan DOM for native interest status (fallback when d.record is null) */
+function detectStatusFromDom(): 'wish' | 'do' | 'collect' | null {
+  const el = document.getElementById('interest_sect_level')
+  if (!el) return null
+  const text = el.textContent ?? ''
+  if (/我听过/.test(text)) return 'collect'
+  if (/我在听/.test(text)) return 'do'
+  if (/我想听/.test(text)) return 'wish'
+  return null
+}
+
+/** Extract rating from native DOM */
+function detectRatingFromDom(): number {
+  const input = document.getElementById('n_rating') as HTMLInputElement | null
+  if (!input) return 0
+  const v = parseInt(input.value, 10)
+  return v >= 1 && v <= 5 ? v : 0
+}
+
+const initialStatus: 'wish' | 'do' | 'collect' | null =
+  d.record?.status === 1 ? 'wish'
+  : d.record?.status === 3 ? 'do'
+  : d.record?.status === 2 ? 'collect'
+  : detectStatusFromDom()
+const initialRating: number =
+  d.record?.status && d.record?.rating ? d.record.rating
+  : detectRatingFromDom()
+const interested = useInterest(() => d.identity.providerId, initialStatus, initialRating)
 
 onMounted(() => {
   interested.fetchInterest().then(() => {
@@ -149,8 +187,53 @@ async function onInterestSave(interest: 'wish' | 'do' | 'collect', stars: number
               },
             },
           }, { timeout: 10000 })
-          if (syncResponse?.success) {
+          if (syncResponse?.success && syncResponse.catalogUuid) {
+            const neodbFullKey = `${d.identity.type}::${syncResponse.catalogUuid}`
+            // Update Douban record's linkedIds.neodb
+            const existingAfterPush = await Store.dbGet('douban_records', key)
+            if (existingAfterPush) {
+              existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
+              existingAfterPush.linkedIds.neodb = neodbFullKey
+              await Store.dbPut('douban_records', key, existingAfterPush)
+            }
+            // Create or update NeoDB local record
+            const neodbStoreName = 'neodb_records'
+            const existingNeoDB = await Store.dbGet(neodbStoreName, neodbFullKey)
+            const neodbLinkedIds: Record<string, string> = { douban: key }
+            if (mergedLinks.imdb) neodbLinkedIds.imdb = mergedLinks.imdb
+            if (mergedLinks.tmdb) neodbLinkedIds.tmdb = mergedLinks.tmdb
+            if (existingNeoDB) {
+              existingNeoDB.linkedIds = {
+                ...(existingNeoDB.linkedIds || {}),
+                ...neodbLinkedIds,
+              }
+              await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
+            } else {
+              const neodbRecord: StoreRecord = {
+                url: `https://neodb.social/${d.identity.type === 'music' ? 'album' : d.identity.type}/${syncResponse.catalogUuid}/`,
+                status: newStatus,
+                rating: newRating,
+                updatedAt: new Date().toISOString(),
+                linkedIds: neodbLinkedIds,
+              }
+              await Store.dbPut(neodbStoreName, neodbFullKey, neodbRecord)
+            }
+            // Update IMDB/TMDB records' linkedIds to include neodb
+            for (const [pfx, linkKey] of Object.entries({ imdb: mergedLinks.imdb, tmdb: mergedLinks.tmdb } as Record<string, string>)) {
+              if (!linkKey) continue
+              const targetStore = `${pfx}_records`
+              const existingTarget = await Store.dbGet(targetStore, linkKey)
+              if (existingTarget) {
+                existingTarget.linkedIds = existingTarget.linkedIds || {}
+                if (existingTarget.linkedIds.neodb !== neodbFullKey) {
+                  existingTarget.linkedIds.neodb = neodbFullKey
+                  await Store.dbPut(targetStore, linkKey, existingTarget)
+                }
+              }
+            }
             FloatingToast.info('UMM', t('sync.neodb_auto_ok'))
+          } else if (syncResponse?.success) {
+            FloatingToast.info('UMM', t('sync.neodb_auto_no_id'))
           } else {
             FloatingToast.error('UMM', t('sync.neodb_auto_failed'))
           }
@@ -245,6 +328,7 @@ defineExpose({ updateRecord })
         <div class="umm-detail-title-block">
           <div class="umm-detail-title-row">
             <h1 class="umm-detail-title">{{ d.title }}</h1>
+            <span v-if="artistName" class="umm-detail-artist">{{ artistName }}</span>
             <div class="umm-detail-subtitle">
               <span v-if="d.originalTitle" class="umm-detail-original">{{ d.originalTitle }}</span>
               <span v-if="d.year" class="umm-detail-year">{{ d.year }}</span>
@@ -260,6 +344,7 @@ defineExpose({ updateRecord })
               :hasDo="interested.hasDo.value"
               :loading="interested.loading.value"
               :error="interested.error.value"
+              :type="d.isMusic ? 'music' : 'movie'"
               @save="onInterestSave"
             />
             <div v-if="interested.currentComment.value" class="umm-my-comment">
@@ -272,9 +357,9 @@ defineExpose({ updateRecord })
       <div class="umm-detail-left">
         <div v-if="d.posterSrc" class="umm-poster">
           <div v-if="d.posterLink" style="cursor:pointer" @click="openLink(d.posterLink)">
-            <UmmImageWrapper :src="d.posterSrc" :alt="d.posterAlt" aspect-ratio="2/3" eager />
+            <UmmImageWrapper :src="d.posterSrc" :alt="d.posterAlt" :aspect-ratio="d.isMusic ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER" eager />
           </div>
-          <UmmImageWrapper v-else :src="d.posterSrc" :alt="d.posterAlt" aspect-ratio="2/3" eager />
+          <UmmImageWrapper v-else :src="d.posterSrc" :alt="d.posterAlt" :aspect-ratio="d.isMusic ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER" eager />
         </div>
 
         <div v-if="d.ratingNum" class="umm-rating-card">
@@ -331,6 +416,13 @@ defineExpose({ updateRecord })
       </div>
     </div>
 
+    <div v-if="d.trackItems.length > 0" class="umm-track-card">
+      <h3 class="umm-track-heading">曲目</h3>
+      <ol class="umm-track-list">
+        <li v-for="(track, i) in d.trackItems" :key="i" class="umm-track-item">{{ track }}</li>
+      </ol>
+    </div>
+
     <div v-if="sortedAwards.length" class="umm-award-card">
       <h3 class="umm-award-heading">获奖情况</h3>
       <div class="umm-award-list">
@@ -355,7 +447,7 @@ defineExpose({ updateRecord })
             </h3>
       <div class="umm-celeb-grid">
         <div v-for="(c, i) in d.celebItems" :key="i" class="umm-celeb-item" @click="openLink(c.link)">
-          <UmmImageWrapper :src="c.avatar" :alt="c.name" aspect-ratio="2/3" />
+          <UmmImageWrapper :src="c.avatar" :alt="c.name" :aspect-ratio="ASPECT_RATIO.POSTER" />
           <div class="umm-celeb-info">
             <span class="umm-celeb-name">{{ c.name }}</span>
             <span class="umm-celeb-role">{{ c.role }}</span>
@@ -375,7 +467,7 @@ defineExpose({ updateRecord })
             </h3>
       <div class="umm-photo-grid">
         <div v-for="(p, i) in d.photoItems" :key="i" class="umm-photo-item" @click="openLink(p.link)">
-          <UmmImageWrapper :src="p.src" :alt="p.isVideo ? '预告片' : '剧照'" aspect-ratio="16/9" />
+          <UmmImageWrapper :src="p.src" :alt="p.isVideo ? '预告片' : '剧照'" :aspect-ratio="ASPECT_RATIO.WIDE" />
           <span v-if="p.isVideo" class="umm-photo-badge">预告片</span>
         </div>
       </div>

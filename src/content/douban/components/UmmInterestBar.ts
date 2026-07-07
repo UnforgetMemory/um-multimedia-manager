@@ -17,6 +17,7 @@ export const UmmInterestBar = defineComponent({
     comment: { type: String, default: '' },
     loading: { type: Boolean, default: false },
     error: { type: String, default: '' },
+    type: { type: String as () => 'movie' | 'music', default: 'movie' },
   },
   emits: ['save'],
   setup(props, { emit }) {
@@ -72,7 +73,10 @@ export const UmmInterestBar = defineComponent({
     }
 
     return () => {
-      const btnLabel = props.status === 1 ? '想看' : props.status === 3 ? '在看' : props.status === 2 ? '已看' : '标记'
+      const L = props.type === 'music'
+        ? { wish: '想听', do: '在听', collect: '已听', mark: '标记' }
+        : { wish: '想看', do: '在看', collect: '已看', mark: '标记' }
+      const btnLabel = props.status === 1 ? L.wish : props.status === 3 ? L.do : props.status === 2 ? L.collect : L.mark
       const showRating = props.rating > 0 && (props.status === 2 || props.status === 3)
       const children: ReturnType<typeof h>[] = []
 
@@ -100,7 +104,7 @@ export const UmmInterestBar = defineComponent({
             class: cls('umm-dialog-pick', tab.value === 'wish' && 'umm-dialog-pick--active'),
             onClick: () => { tab.value = 'wish' },
             type: 'button',
-          }, '想看'),
+          }, L.wish),
         ]
         if (props.hasDo) {
           pickerRow.push(h('span', { class: 'umm-dialog-sep' }))
@@ -108,7 +112,7 @@ export const UmmInterestBar = defineComponent({
             class: cls('umm-dialog-pick', tab.value === 'do' && 'umm-dialog-pick--active'),
             onClick: () => { tab.value = 'do' },
             type: 'button',
-          }, '在看'))
+          }, L.do))
         }
         pickerRow.push(
           h('span', { class: 'umm-dialog-sep' }),
@@ -116,7 +120,7 @@ export const UmmInterestBar = defineComponent({
             class: cls('umm-dialog-pick', tab.value === 'collect' && 'umm-dialog-pick--active'),
             onClick: () => { tab.value = 'collect' },
             type: 'button',
-          }, '已看'),
+          }, L.collect),
         )
         dc.push(h('div', { class: 'umm-dialog-pickrow' }, pickerRow))
 

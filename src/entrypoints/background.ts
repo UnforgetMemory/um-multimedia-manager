@@ -271,11 +271,15 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
+            const putStore = message.payload.storeName
+            const putKey = message.payload.key
             await dataScheduler.schedule(
-              () => mediaDB.put(message.payload.storeName, message.payload.key, message.payload.record),
-              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `put:${message.payload.storeName}:${message.payload.key}`, invalidateCache: true },
+              () => mediaDB.put(putStore, putKey, message.payload.record),
+              { priority: 'HIGH', storeName: putStore, cacheKey: `put:${putStore}:${putKey}`, invalidateCache: true },
             )
-            broadcast('record:updated', { storeName: message.payload.storeName, key: message.payload.key })
+            // Invalidate GET cache so subsequent reads return fresh data
+            dataScheduler.cacheManager?.invalidate('scheduler', `get:${putStore}:${putKey}`)
+            broadcast('record:updated', { storeName: putStore, key: putKey })
             sendResponse({ success: true })
             break
           }
@@ -283,11 +287,15 @@ export default defineBackground({
             if (!isAllowedStore(message.payload.storeName)) {
               sendResponse({ success: false, error: 'Invalid store name' }); break
             }
+            const delStore = message.payload.storeName
+            const delKey = message.payload.key
             await dataScheduler.schedule(
-              () => mediaDB.delete(message.payload.storeName, message.payload.key),
-              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `delete:${message.payload.storeName}:${message.payload.key}`, invalidateCache: true },
+              () => mediaDB.delete(delStore, delKey),
+              { priority: 'HIGH', storeName: delStore, cacheKey: `delete:${delStore}:${delKey}`, invalidateCache: true },
             )
-            broadcast('record:deleted', { storeName: message.payload.storeName, key: message.payload.key })
+            // Invalidate GET cache so subsequent reads reflect the deletion
+            dataScheduler.cacheManager?.invalidate('scheduler', `get:${delStore}:${delKey}`)
+            broadcast('record:deleted', { storeName: delStore, key: delKey })
             sendResponse({ success: true })
             break
           }
@@ -371,8 +379,8 @@ export default defineBackground({
             break
           }
           case 'DB_SYNC_PAGE_RECORD': {
-            const platform = message.payload.platform
-            if (!isAllowedStore(`${platform}_records`)) {
+            const syncPlatform = message.payload.platform
+            if (!isAllowedStore(`${syncPlatform}_records`)) {
               sendResponse({ success: false, error: 'Invalid platform' }); break
             }
             const linked = message.payload.linked
@@ -387,12 +395,16 @@ export default defineBackground({
             if (linkedInvalid) {
               sendResponse({ success: false, error: 'Invalid linked platform' }); break
             }
-            const result = await dataScheduler.schedule(
-              () => mediaDB.syncPageRecord(platform, message.payload.key, message.payload.record, linked),
-              { priority: 'HIGH', storeName: `${platform}_records`, cacheKey: `sync:${platform}:${message.payload.key}`, invalidateCache: true },
+            const syncStoreName = `${syncPlatform}_records`
+            const syncKey = message.payload.key
+            const syncResult = await dataScheduler.schedule(
+              () => mediaDB.syncPageRecord(syncPlatform, syncKey, message.payload.record, linked),
+              { priority: 'HIGH', storeName: syncStoreName, cacheKey: `sync:${syncPlatform}:${syncKey}`, invalidateCache: true },
             )
-            broadcast('record:updated', { storeName: `${platform}_records`, key: message.payload.key })
-            sendResponse({ success: true, result })
+            // Invalidate GET cache for the synced record
+            dataScheduler.cacheManager?.invalidate('scheduler', `get:${syncStoreName}:${syncKey}`)
+            broadcast('record:updated', { storeName: syncStoreName, key: syncKey })
+            sendResponse({ success: true, result: syncResult })
             break
           }
 

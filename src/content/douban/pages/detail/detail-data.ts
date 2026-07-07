@@ -88,6 +88,7 @@ export interface DetailData {
   rankHref: string
   isMusic: boolean
   record: StoreRecord | null
+  trackItems: string[]
 }
 
 /**
@@ -105,7 +106,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
   const isMusic = location.href.includes('music.douban.com')
 
   // Title
-  const h1 = document.querySelector('#content h1') as HTMLElement | null
+  const h1 = document.querySelector('#content h1, #wrapper > h1') as HTMLElement | null
   const titleSpan = h1?.querySelector('[property="v:itemreviewed"]')
   const yearSpan = h1?.querySelector('.year')
   const title = titleSpan?.textContent?.trim() || h1?.textContent?.trim() || ''
@@ -174,9 +175,25 @@ export async function extractDetailData(): Promise<DetailData | null> {
       const temp = document.createElement('div')
       temp.innerHTML = trimmed
       const pl = temp.querySelector('.pl')
-      const label = pl ? (pl.textContent?.replace(':', '').trim() || '') : ''
+      // Extract label from first text node only, not pl.textContent
+      // (which includes all descendant text like performer names inside <a>)
+      let label = ''
+      if (pl) {
+        if (pl.firstChild?.nodeType === Node.TEXT_NODE) {
+          label = (pl.firstChild.textContent || '').replace(':', '').trim()
+        }
+        if (!label) label = (pl.textContent?.replace(':', '').trim() || '')
+        if (pl.firstChild?.nodeType === Node.TEXT_NODE) {
+          pl.removeChild(pl.firstChild)
+        }
+      }
       if (pl) {
         const parent = pl.parentElement
+        // Move child nodes (e.g. <a> links) out of pl before removing it,
+        // because live page may have <a> inside <span class="pl"> (e.g. 表演者)
+        while (pl.firstChild) {
+          parent?.insertBefore(pl.firstChild, pl.nextSibling)
+        }
         pl.remove()
         if (parent) {
           for (let i = parent.childNodes.length - 1; i >= 0; i--) {
@@ -204,7 +221,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
   const relatedInfo = document.querySelector(
     '#content > .grid-16-8.clearfix > .article > .related-info'
   )
-  const synopsisHeading = '剧情简介'
+  const synopsisHeading = isMusic ? '简介' : '剧情简介'
   const synopsisEl = relatedInfo?.querySelector(
     '[property="v:summary"], [property="v:des"]'
   ) || relatedInfo?.querySelector('span.all.hidden, span:not(.all.hidden)')
@@ -212,7 +229,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
 
   // Celebrities
   const celebEl = document.querySelector('#celebrities')
-  const celebHeading = '演职员'
+  const celebHeading = isMusic ? '表演者' : '演职员'
   const celebItems: CelebItem[] = []
   celebEl?.querySelectorAll('.celebrity').forEach((li) => {
     const nameEl = li.querySelector('.name a')
@@ -354,6 +371,14 @@ export async function extractDetailData(): Promise<DetailData | null> {
     })
   })
 
+  // Track list (music albums only)
+  const trackItems: string[] = []
+  document.querySelectorAll('.track-list .track-items li').forEach(li => {
+    const order = (li as HTMLElement).dataset.trackOrder || ''
+    const text = li.textContent?.trim() || ''
+    if (text) trackItems.push(order ? `${order} ${text}` : text)
+  })
+
   return {
     identity,
     title,
@@ -384,6 +409,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
     rankHref,
     isMusic,
     record: null,
+    trackItems,
   }
 }
 

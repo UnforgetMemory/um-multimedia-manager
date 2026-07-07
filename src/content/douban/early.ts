@@ -16,6 +16,18 @@ function isDetailPage(url: string): boolean {
   return /^https?:\/\/(movie|music)\.douban\.com\/subject\//.test(url)
 }
 
+function isMusicHomepage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/?(\?.*)?$/.test(url)
+}
+
+function isGenrePage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/artists\/genre_page\/\d+/.test(url)
+}
+
+function isArtistsOverview(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/artists\/?(\?.*)?$/.test(url)
+}
+
 function isPhotosPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/subject\/\d+\/(photos|all_photos)/.test(url)
 }
@@ -78,6 +90,24 @@ function getOverlayConfig(): OverlayOptions | null {
     return {
       overlayId: 'umm-personage-overlay',
       subtitle: '加载影人资料...',
+    }
+  }
+  if (isMusicHomepage(url)) {
+    return {
+      overlayId: 'umm-douban-overlay',
+      subtitle: '音乐首页 · 加载中',
+    }
+  }
+  if (isGenrePage(url)) {
+    return {
+      overlayId: 'umm-douban-overlay',
+      subtitle: '音乐人分类 · 加载中',
+    }
+  }
+  if (isArtistsOverview(url)) {
+    return {
+      overlayId: 'umm-douban-overlay',
+      subtitle: '音乐人概览 · 加载中',
     }
   }
   // Homepage (movie.douban.com/) or fallback

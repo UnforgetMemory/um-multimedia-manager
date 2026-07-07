@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-07-07
+
+### Added
+- **豆瓣音乐首页全屏覆盖层**: `music.douban.com/` — 热门音乐人分类 pills + 新碟榜 grid（1:1 封面）+ 流行音乐人圆形头像
+- **豆瓣音乐人概览页全屏覆盖层**: `music.douban.com/artists/` — 推荐艺人轮播、推荐活动、音乐视频、流派导航
+- **豆瓣音乐流派页全屏覆盖层**: `music.douban.com/artists/genre_page/*/` — 流派艺人 grid
+- **全局宽高比常量**: `ASPECT_RATIO.POSTER/SQUARE/WIDE`（TS 常量）+ `--umm-aspect-poster/square/wide`（CSS 变量），消除 33 处硬编码比例值
+- **UmmInterestBar `type` 属性**: movie 上下文显"想看/在看/已看"，music 上下文显"想听/在听/已听"
+- **音乐详情页优化**: 曲目列表（含序号）、表演者标题行、meta row chip 拆分表演者、正方形 1:1 专辑封面、简介/表演者标题适配
+- **音乐详情页标记状态初始化**: 优先 IndexedDB record → DOM 检测（`#interest_sect_level`）→ fallback null，消除 API 返回空值时状态丢失
+
+### Fixed
+- **NeoDB 自动同步不持久化**: `App.vue` `onInterestSave()` 推送成功后将 `catalogUuid` 写入 `linkedIds.neodb` + 创建 `neodb_records` 本地记录 + 更新 IMDb/TMDB 记录的 NeoDB 反向链接
+- **DataScheduler 缓存键隔离 Bug**: `DB_PUT`/`DB_DELETE`/`DB_SYNC_PAGE_RECORD` 写操作仅失效自身前缀的缓存键（`put:*/delete:*/sync:*`），`get:*` 缓存未被清除导致后续读取返回陈旧 null。三个写 handler 新增显式 GET 缓存失效
+- **`DB_SYNC_PAGE_RECORD` 响应破损**: 返回体丢失 `result` 字段，`dbSyncPageRecord()` 始终返回 `{changed:false}`
+- **NeoDB 推送失败 Toast 降级**: 从 `info` 恢复为 `error`，确保用户感知推送失败
+- **豆瓣音乐详情页标记状态覆盖**: `fetchInterest()` API 返回空 `interest_status` 时不再覆盖已有的初始状态（来自 IndexedDB 或 DOM 检测）
+- **音乐表演者标签提取**: `pl.textContent` 误包含嵌套 `<a>` 链接文本 → 改用 `pl.firstChild?.textContent` + 移动子节点至 wrapper 外再移除 `<span class="pl">`
+- **音乐详情页空白标题**: `#content h1` 选择器在音乐页面不命中 → 添加 `#wrapper > h1` 回退
+- **`UmmMediaCard` 滚动模式封面比例**: 缺少 `aspectRatio` prop，图片无约束拉伸
+- **调试日志清理**: 移除 `useInterest.ts` 中遗留的 `console.log`
+
+### Changed
+- **豆瓣音乐首页入口匹配**: `douban-early.content` matches 从 `*://music.douban.com/subject/*` 扩展为 `*://music.douban.com/*`，覆盖首页/流派/艺人页
+- **版本升至 4.7.0**: `package.json` + `wxt.config.ts` manifest
+
 ## [4.6.1] - 2026-07-06
 
 ### Changed

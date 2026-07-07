@@ -44,7 +44,7 @@
 
 .umm-profile-avatar {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--umm-aspect-poster);
   border-radius: var(--umm-card-radius, 10px);
   background-size: cover;
   background-position: center;
@@ -134,7 +134,7 @@
 .umm-photo-thumb {
   width: clamp(80px, 14vw, 160px);
   min-width: clamp(80px, 14vw, 160px);
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--umm-aspect-poster);
   border-radius: var(--umm-card-radius, 8px);
   background-size: cover;
   background-position: center;
@@ -321,7 +321,7 @@
 
 .umm-partner-cover {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--umm-aspect-poster);
   background-size: cover;
   background-position: center;
   background-color: var(--umm-bg-secondary, #f8f9fa);
@@ -365,7 +365,7 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--umm-card-radius, 8px);
-  aspect-ratio: 2/3;
+  aspect-ratio: var(--umm-aspect-poster);
 }
 .umm-rec-cover .umm-image-img {
   will-change: transform;

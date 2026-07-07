@@ -3,6 +3,7 @@
  *
  * Routes to the correct page mount function based on URL:
  * - Homepage (movie.douban.com/) → mountHomepage()
+ * - Music Homepage (music.douban.com/) → mountMusicHomepage()
  * - Search (search.douban.com/*) → mountSearch()
  * - Detail (movie/music.douban.com/subject/*) → mountDetail()
  *
@@ -15,6 +16,9 @@ import themeCss from './styles/theme.css?raw'
 import commonCss from './styles/common.css?raw'
 import breakpointsCss from './styles/breakpoints.css?raw'
 import homepageCss from './styles/homepage.css?raw'
+import musicHomepageCss from './styles/music-homepage.css?raw'
+import genreCss from './styles/genre.css?raw'
+import artistsOverviewCss from './styles/artists-overview.css?raw'
 import searchCss from './styles/search.css?raw'
 import detailCss from './styles/detail.css?raw'
 import photosCss from './styles/photos.css?raw'
@@ -32,6 +36,18 @@ import { createApp } from 'vue'
 
 function isHomepage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/?(\?.*)?$/.test(url)
+}
+
+function isMusicHomepage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/?(\?.*)?$/.test(url)
+}
+
+function isGenrePage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/artists\/genre_page\/\d+/.test(url)
+}
+
+function isArtistsOverview(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/artists\/?(\?.*)?$/.test(url)
 }
 
 function isSearchPage(url: string): boolean {
@@ -60,6 +76,88 @@ function isPhotosPage(url: string): boolean {
 
 function isDetailPage(url: string): boolean {
   return /^https?:\/\/(movie|music)\.douban\.com\/subject\//.test(url)
+}
+
+// ---- Music Homepage mount ----
+
+async function mountMusicHomepage(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'breakpoints', css: breakpointsCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
+    { name: 'components', css: homepageCss },
+    { name: 'music-homepage', css: musicHomepageCss },
+  )
+  const { default: App } = await import('./pages/music-homepage/App.vue')
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    createApp: () => createApp(App),
+  })
+}
+
+// ---- Genre page mount ----
+
+async function mountGenrePage(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
+    { name: 'components', css: genreCss },
+  )
+  const { default: App } = await import('./pages/genre/App.vue')
+  const { extractGenrePage } = await import('./pages/genre/extractors')
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      const data = extractGenrePage()
+      if (!data) throw new Error('[UMM] Could not extract genre page data')
+      const nav = document.getElementById('db-global-nav')
+      const musicNav = document.getElementById('db-nav-music')
+      if (nav) nav.style.display = 'none'
+      if (musicNav) musicNav.style.display = 'none'
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as import('./pages/genre/types').GenrePageData })
+    },
+  })
+}
+
+// ---- Artists overview mount ----
+
+async function mountArtistsOverview(): Promise<void> {
+  const css = composeStyles(
+    { name: 'theme', css: themeCss },
+    { name: 'common', css: commonCss },
+    { name: 'page-layout', css: pageLayoutCss },
+    { name: 'shared-components', css: componentsCss },
+    { name: 'components', css: artistsOverviewCss },
+  )
+  const { default: App } = await import('./pages/artists-overview/App.vue')
+  const { extractArtistsOverview } = await import('./pages/artists-overview/extractors')
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      const data = extractArtistsOverview()
+      if (!data) throw new Error('[UMM] Could not extract artists overview data')
+      const nav = document.getElementById('db-global-nav')
+      const musicNav = document.getElementById('db-nav-music')
+      if (nav) nav.style.display = 'none'
+      if (musicNav) musicNav.style.display = 'none'
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as import('./pages/artists-overview/types').ArtistsOverviewData })
+    },
+  })
 }
 
 // ---- Homepage mount ----
@@ -338,7 +436,13 @@ async function mountPersonage(): Promise<void> {
 export async function mountDoubanMain(): Promise<void> {
   const url = location.href
   try {
-    if (isHomepage(url)) {
+    if (isMusicHomepage(url)) {
+      await mountMusicHomepage()
+    } else if (isGenrePage(url)) {
+      await mountGenrePage()
+    } else if (isArtistsOverview(url)) {
+      await mountArtistsOverview()
+    } else if (isHomepage(url)) {
       await mountHomepage()
     } else if (isSearchPage(url)) {
       await mountSearch()

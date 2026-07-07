@@ -43,6 +43,11 @@
   --umm-rating-gold-low: #b8860b;
   --umm-rating-gold-mid: #c9941a;
   --umm-rating-gold-high: #d4a017;
+  /* ===== Aspect ratio tokens ===== */
+  --umm-aspect-poster: 2/3;
+  --umm-aspect-square: 1;
+  --umm-aspect-wide: 16/9;
+
   /* ===== Z-index scale ===== */
   --umm-z-backdrop: 10;
   --umm-z-sticky: 50;

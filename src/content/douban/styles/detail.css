@@ -56,6 +56,7 @@
 .umm-detail-title-block { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .umm-detail-title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--umm-space-lg, 24px); }
 .umm-detail-title { font-size: var(--umm-font-3xl, 1.75rem); font-weight: 700; line-height: 1.3; color: var(--umm-text-primary); margin: 0; }
+.umm-detail-artist { font-size: var(--umm-font-lg, 1rem); font-weight: 500; color: var(--umm-text-secondary); line-height: 1.4; }
 .umm-detail-subtitle { display: flex; align-items: baseline; gap: var(--umm-space-md, 12px); flex-wrap: wrap; }
 .umm-detail-original { font-size: var(--umm-font-lg, 1.125rem); font-weight: 400; color: var(--umm-text-secondary); font-style: italic; }
 .umm-detail-year { font-size: var(--umm-font-sm, 0.8125rem); font-weight: 500; color: var(--umm-text-secondary); padding: 3px 10px; background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 8px; line-height: 1.4; }
@@ -80,6 +81,13 @@
 .umm-rec-cover:hover .umm-image-img { transform: scale(1.08); }
 
 .umm-rating-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: var(--umm-space-md, 16px); display: flex; flex-direction: column; gap: var(--umm-space-md, 12px); }
+
+/* Track list (music albums) */
+.umm-track-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: var(--umm-space-md, 16px); }
+.umm-track-heading { font-size: var(--umm-font-md, 1rem); font-weight: 600; color: var(--umm-text-primary); margin: 0 0 var(--umm-space-sm, 8px); }
+.umm-track-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.umm-track-item { font-size: var(--umm-font-sm, 0.8125rem); color: var(--umm-text-secondary); padding: 4px 0; border-bottom: 1px solid var(--umm-card-border); line-height: 1.5; }
+.umm-track-item:last-child { border-bottom: none; }
 .umm-rating-score-section { display: flex; align-items: center; gap: var(--umm-space-md, 12px); }
 .umm-rating-score { font-size: var(--umm-font-display, 2rem); font-weight: 800; color: var(--umm-rating-score); line-height: 1; letter-spacing: -0.02em; }
 .umm-rating-meta { display: flex; flex-direction: column; gap: 2px; }
@@ -196,7 +204,7 @@
 .umm-rec-cell { display: flex; flex-direction: column; gap: 0; }
 .umm-rec-item { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; border-radius: var(--umm-card-radius, 8px); overflow: hidden; transition: transform 0.15s ease; }
 .umm-rec-item:hover { transform: translateY(-2px); }
-.umm-rec-cover { position: relative; overflow: hidden; border-radius: var(--umm-card-radius, 8px); aspect-ratio: 2/3; }
+.umm-rec-cover { position: relative; overflow: hidden; border-radius: var(--umm-card-radius, 8px); aspect-ratio: var(--umm-aspect-poster); }
 .umm-rec-title { font-size: var(--umm-font-sm, 0.8125rem); font-weight: 500; color: var(--umm-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
 .umm-rec-rating { font-size: var(--umm-font-xs, 0.75rem); color: var(--umm-rating-score); font-weight: 600; padding: 0 2px; }
 
