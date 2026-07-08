@@ -17,16 +17,20 @@ export const Utils = {
   },
 
   /**
-   * 标准化状态值 (0=未看, 1=在看, 2=已看)
+   * 标准化状态值 (0=无, 1=想看, 2=已看)
+   * 处理遗留字符串格式（'done', 'wish'）和 Tampermonkey 旧版数值
    */
   normalizeStatus(status: unknown): number {
-    if (status === CONFIG.STATUS.DONE || status === 1 || status === 'done' || status === 2) {
-      return 2;  // 已看
+    if (status === 'done' || status === CONFIG.STATUS.DONE || status === 2) {
+      return 2  // 已看
     }
-    if (status === CONFIG.STATUS.WISH || status === 3 || status === 'wish' || status === 1) {
-      return 1;  // 在看
+    if (status === 'wish' || status === CONFIG.STATUS.WISH || status === 1) {
+      return 1  // 想看
     }
-    return 0;  // 未看
+    if (status === 3) {
+      return 3  // 在看
+    }
+    return 0  // 无状态
   },
 
   /**

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **豆瓣同步/关联链路全面优化**: 修复 4 个同步链路问题
+  - 非已看记录（想看/在看）现在也会同步到 IMDb/TMDB/NeoDB（实际状态透传，非硬编码 done）
+  - 状态变更（想看→在看→已看）重新触发 NeoDB 推送，不再仅限首次写入
+  - 跨平台对应记录缺失时自动创建（wish→1, doing→3, done→2）
+  - 新增 "在看"(doing) 状态支持（status=3），映射 NeoDB shelf 'progress'
+  - PT Dimmer `getWatchedIds` 改为仅返回已看(status=2)记录，想看/在看不再触发淡化
+  - `normalizeStatus` 修正 status=1 被错误归为 done 的 bug
+  - 跨平台同步跳过条件修正：永不降级已看记录，非done源按状态级别比较
+
 ### Added
 - **Douban review detail page overlay**: New `review-detail` page type with full DOM data extraction (title, author, rating, date/location, full content paragraphs, read/source/有用 counts, subject metadata). Vue layout: subject card → author bar → title → article body → stats bar. Typography optimized for long-form reading with `white-space: pre-line` for paragraph-internal line breaks.
 - **User reviews list expand/collapse**: Review cards with content >400 chars now show "展开全文" / "收起" toggle button, with reactive state tracking per review.

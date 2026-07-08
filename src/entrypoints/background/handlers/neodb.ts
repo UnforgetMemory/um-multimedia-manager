@@ -22,7 +22,7 @@ function buildDoubanUrl(type: string, providerId: string): string {
 /** Map numeric status to NeoDB shelf type */
 function statusToShelfType(status: number): 'complete' | 'progress' | 'wishlist' {
   if (status === 2) return 'complete'
-  if (status === 1) return 'progress'
+  if (status === 1 || status === 3) return 'progress'
   return 'wishlist'
 }
 
