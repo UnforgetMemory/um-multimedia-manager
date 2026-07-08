@@ -5,6 +5,7 @@
 
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
+import { Identity } from '@/features/identity'
 import { safeSendMessage } from '@/utils/context'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { FloatingToast } from '../utils/toast'
@@ -365,7 +366,7 @@ async function performNeoDBPush(
         infoLog('[Douban] ✅ Updated existing NeoDB record via push:', neodbFullKey, 'linkedIds:', existingNeoDB.linkedIds)
       } else {
         const neodbRecord: StoreRecord = {
-          url: `https://neodb.social/${identity.type === 'music' ? 'album' : identity.type}/${catalogUuid}/`,
+          url: Identity.buildNeoDBUrl(identity.type, catalogUuid),
           status: record?.status ?? 0,
           rating: adjustedRating,
           updatedAt: now,

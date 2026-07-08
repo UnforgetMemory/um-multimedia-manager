@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NeoDB 自动同步 UI 实时刷新**: 自动同步成功后调用 `injectNeoDBPushButtons()` 刷新按钮组件，"打开"按钮和荧光效果即时反映同步状态
+- **跨平台 Record 健康检查**: `checkCrossPlatformRecords()` 每次已看页面加载时检查 IMDb/TMDB/NeoDB record 是否存在且状态正确，缺失则创建，状态不对则升级
+- **NeoDB URL 统一构建**: `Identity.buildNeoDBUrl()` 处理 `show:`/`season:`/`episode:` 前缀，修复 TV 季/集 URL 中冒号被当作路径字符的问题（`season:uuid` → `/season/uuid`）
+- **NeoDB 同步速率限制**: 60s 冷却缓存，防止重复页面加载时频繁 API 调用
+
 ### Fixed
 - **豆瓣同步/关联链路全面优化**: 修复 4 个同步链路问题
   - 非已看记录（想看/在看）现在也会同步到 IMDb/TMDB/NeoDB（实际状态透传，非硬编码 done）

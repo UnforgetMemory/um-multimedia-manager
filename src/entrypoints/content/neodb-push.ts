@@ -9,6 +9,7 @@
 import type { StoreRecord } from '@/types'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
+import { Identity } from '@/features/identity'
 import { safeSendMessage } from '@/utils/context'
 import { FloatingToast } from './utils/toast'
 import { t } from './i18n'
@@ -139,8 +140,7 @@ export function injectNeoDBPushButtons(
     const parts = neodbLinkedId.split('::')
     if (parts.length === 2) {
       const [neodbType, neodbUuid] = parts
-      const neodbPath = neodbType === 'music' ? 'album' : neodbType
-      const neodbUrl = `https://neodb.social/${neodbPath}/${neodbUuid}/`
+      const neodbUrl = Identity.buildNeoDBUrl(neodbType, neodbUuid)
       const openBtn = document.createElement('a')
       openBtn.id = 'umm-neodb-open'
       openBtn.className = 'umm-neodb-btn umm-neodb-btn--open'
@@ -283,7 +283,7 @@ async function pushToNeoDB(
           }
         } else {
           const neodbRecord: StoreRecord = {
-            url: `https://neodb.social/${currentIdentity.type === 'music' ? 'album' : currentIdentity.type}/${response.catalogUuid}/`,
+            url: Identity.buildNeoDBUrl(currentIdentity.type, response.catalogUuid),
             status: 2,
             rating: adjustedRating,
             updatedAt: new Date().toISOString(),

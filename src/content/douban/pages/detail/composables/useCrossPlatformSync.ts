@@ -1,4 +1,5 @@
 import { Store } from '@/features/database'
+import { Identity } from '@/features/identity'
 import { safeSendMessage } from '@/utils/context'
 import { extractCrossPlatformLinks } from '@/entrypoints/content/handlers/douban-scanner'
 import { injectNeoDBPushButtons } from '@/entrypoints/content/neodb-push'
@@ -118,7 +119,7 @@ export async function onCrossPlatformSave(options: SaveOptions): Promise<StoreRe
               await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
             } else {
               const neodbRecord: StoreRecord = {
-                url: `https://neodb.social/${identity.type === 'music' ? 'album' : identity.type}/${syncResponse.catalogUuid}/`,
+                url: Identity.buildNeoDBUrl(identity.type, syncResponse.catalogUuid),
                 status: newStatus,
                 rating: newRating,
                 updatedAt: new Date().toISOString(),
