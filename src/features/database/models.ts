@@ -405,12 +405,15 @@ class MediaDatabase {
   }
 
   /**
-   * Get all keys with status >= 1 (wish/watched).
+   * Get all keys with status == 2 (watched/done only).
    *
    * Uses a store cursor + JS status check instead of the status index because:
    * - Old records may have string status ("done", "wish") saved from earlier code
    * - IndexedDB key ranges are type-sensitive (numeric lowerBound won't match string keys)
-   * - JS comparison handles both numeric (1, 2) and string ("done", "wish") formats
+   * - JS comparison handles both numeric (0, 1, 2) and string ("done", "wish") formats
+   *
+   * NOTE: Only status=2 (watched) is returned — wishlist (status=1) records are
+   * excluded because they should NOT trigger PT site dimming or UI "watched" badges.
    *
    * Returns a Set of record primary keys (e.g., "movie::37332784").
    */
@@ -428,12 +431,11 @@ class MediaDatabase {
         if (cursor) {
           const record = cursor.value
           const rawStatus = record?.status
-          // JS status check — handles numeric (0/1/2) and legacy string ("done"/"wish") formats
           const status = typeof rawStatus === 'number' ? rawStatus
             : rawStatus === 'done' ? 2
             : rawStatus === 'wish' ? 1
             : 0
-          if (status >= 1) {
+          if (status >= 2) {
             ids.add(cursor.primaryKey as string)
           }
           count++

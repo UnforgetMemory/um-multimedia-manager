@@ -81,7 +81,7 @@ export async function dbCount(storeName: string): Promise<number> {
 }
 
 /**
- * Batch query: get watched IDs (status >= 1) from multiple stores in a single message.
+ * Batch query: get watched IDs (status == 2) from multiple stores in a single message.
  * Returns { storeName: string[] } map.
  */
 export async function dbGetWatchedIds(
