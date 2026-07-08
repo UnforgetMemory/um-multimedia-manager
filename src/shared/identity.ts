@@ -196,6 +196,19 @@ export const Identity = {
   },
 
   /**
+   * Build a NeoDB URL from a type and catalog UUID, handling prefixed UUIDs.
+   * NeoDB TV catalog UUIDs use prefixes: show:, season:, episode:
+   * These must be converted to path segments: /tv/{id}/, /tv/season/{id}/
+   */
+  buildNeoDBUrl(type: string, catalogUuid: string): string {
+    if (catalogUuid.startsWith('show:')) return `https://neodb.social/tv/${catalogUuid.slice(5)}/`
+    if (catalogUuid.startsWith('season:')) return `https://neodb.social/tv/season/${catalogUuid.slice(7)}/`
+    if (catalogUuid.startsWith('episode:')) return `https://neodb.social/tv/episode/${catalogUuid.slice(8)}/`
+    const base = type === 'music' ? 'album' : type
+    return `https://neodb.social/${base}/${catalogUuid}/`
+  },
+
+  /**
    * 解析 NeoDB TV 路径
    */
   parseNeoDbTvPath(pathname: string): { providerId?: string; invalid?: string } | null {
