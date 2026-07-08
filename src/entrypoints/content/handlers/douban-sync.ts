@@ -14,6 +14,16 @@ import { showNotification } from './douban-toast'
 
 // ✅ P2: 提取魔法数字为常量
 const STATUS_DONE = 2
+const STATUS_WISH = 1
+const STATUS_DOING = 3
+
+/** Map page status string to numeric DB status */
+function pageStatusToNumeric(pageStatus: string): number {
+  return pageStatus === 'done' ? STATUS_DONE
+    : pageStatus === 'wish' ? STATUS_WISH
+    : pageStatus === 'doing' ? STATUS_DOING
+    : 0
+}
 
 // ✅ P1: 通知防抖缓存（key: providerId, value: timestamp）
 const notificationCache = new Map<string, number>()
@@ -70,52 +80,52 @@ window.addEventListener('beforeunload', () => {
 })
 
 /**
- * 同步页面状态到本地存储
- * @param cachedRecord 可选的缓存记录，避免重复查询
+ * 同步页面状态到本地存储 — 支持已看、想看状态
+ *
+ * 功能：
+ * - 保存豆瓣记录到本地数据库（使用实际状态，非硬编码）
+ * - 为跨平台关联（IMDB/TMDB）创建或更新记录
+ * - 自动同步到 NeoDB（首次或状态变更时）
  */
 export async function syncToLocalStorage(
   identity: UrlIdentity,
+  pageStatus: string,
   pageRating: number,
-  cachedRecord?: StoreRecord | null // ✅ P1: 新增参数
+  cachedRecord?: StoreRecord | null
 ): Promise<void> {
-  console.log('[UMM Douban] Page shows watched status, saving to database...')
+  const statusLabel = pageStatus === 'done' ? 'watched' : pageStatus === 'doing' ? 'watching' : 'wish'
+  console.log(`[UMM Douban] Page shows ${statusLabel} status, saving to database...`)
 
   const storeName = `${identity.provider}_records`
   const key = `${identity.type}::${identity.providerId}`
-
-  // ✅ P1: 使用缓存的记录，避免重复查询
   const existingRecord = cachedRecord || await Store.dbGet(storeName, key)
+  const numericStatus = pageStatusToNumeric(pageStatus)
 
-  // 重新计算变化标志（基于数据库真实数据）
+    // Detect what changed compared to the existing DB record
   const isNewRecord = !existingRecord
-  const isStatusChanged = existingRecord && existingRecord.status !== STATUS_DONE
+  const isStatusChanged = existingRecord && existingRecord.status !== numericStatus
   const isRatingChanged = existingRecord && Math.abs(existingRecord.rating - pageRating) > 0.01
 
-  // 判断是否有任何实质性变化
   const hasRealChange = isNewRecord || isStatusChanged || isRatingChanged
 
-  // 提取页面中的跨平台链接（IMDB/TMDB）并合并到已有链接
   const mergedLinkedIds = extractCrossPlatformLinks(identity, existingRecord?.linkedIds)
-
   const pageComment = extractCommentFromPage()
   const isCommentChanged = existingRecord && existingRecord.comment !== pageComment
-
-  // 更新 hasRealChange 包含评语变化
   const effectiveChange = hasRealChange || isCommentChanged
+
   const recordToSave: StoreRecord = {
     url: identity.url,
-    status: STATUS_DONE,  // 已看
+    status: numericStatus,
     rating: pageRating,
     comment: pageComment,
     updatedAt: new Date().toISOString(),
     linkedIds: mergedLinkedIds,
   }
 
-  // ✅ 为跨平台关联创建对应的平台记录（双向同步）
+  // Cross-platform record creation/update for linked platforms (IMDb/TMDB)
   const now = new Date().toISOString()
   const crossPlatformEntries: Array<{ provider: string; type: string; providerId: string }> = []
 
-  // 解析 linkedIds 中的 full key 格式（如 "movie::tt23810070"）
   function parseLinkedKey(linkedKey: string, fallbackType: string): { type: string; providerId: string } {
     if (linkedKey.includes('::')) {
       const [t, id] = linkedKey.split('::')
@@ -138,16 +148,15 @@ export async function syncToLocalStorage(
     const targetKey = `${entry.type}::${entry.providerId}`
     const existingTarget = await Store.dbGet(targetStore, targetKey)
 
-    // 跳过已存在且状态已同步的记录
-    if (existingTarget && existingTarget.status === STATUS_DONE) {
-      console.log(`[UMM Douban] ⏭️ ${entry.provider} record already synced:`, targetKey)
+    // Skip when target is already done (2 — never downgrade), or source is non-done and target >= source
+    if (existingTarget && (existingTarget.status === 2 || (numericStatus !== 2 && existingTarget.status >= numericStatus))) {
+      console.log(`[UMM Douban] ⏭️ ${entry.provider} record already synced at status ${existingTarget.status}:`, targetKey)
       continue
     }
 
-    // 构建目标记录：反向链接回豆瓣（full key 格式）
     const targetRecord: StoreRecord = {
       url: `${entry.provider === 'imdb' ? 'https://www.imdb.com/title/' : 'https://www.themoviedb.org/movie/'}${entry.providerId}/`,
-      status: STATUS_DONE,
+      status: numericStatus,
       rating: pageRating,
       comment: pageComment,
       updatedAt: now,
@@ -158,31 +167,28 @@ export async function syncToLocalStorage(
     }
 
     await Store.dbPut(targetStore, targetKey, targetRecord)
-    console.log(`[UMM Douban] ✅ Created ${entry.provider} record:`, targetKey)
-
-    // Toast 通知：已同步到对应平台
-    const platformLabel = entry.provider === 'imdb' ? 'IMDb' : entry.provider === 'tmdb' ? 'TMDB' : entry.provider
+    const platformLabel = entry.provider === 'imdb' ? 'IMDb' : 'TMDB'
+    const action = existingTarget ? 'updated' : 'created'
+    console.log(`[UMM Douban] ✅ ${action} ${entry.provider} record:`, targetKey, 'status:', numericStatus)
     showNotification(t('sync.to_platform', { platform: platformLabel, id: entry.providerId }))
   }
-  
+
   console.log('[UMM Douban] Record to save:', recordToSave)
-  console.log('[UMM Douban] Change detection:', { isNewRecord, isStatusChanged, isRatingChanged, isCommentChanged, hasRealChange })
-  
+  console.log('[UMM Douban] Change detection:', { isNewRecord, isStatusChanged, isRatingChanged, isCommentChanged, hasRealChange, numericStatus })
+
   try {
     await Store.dbPut(storeName, key, recordToSave)
-    console.log('[UMM Douban] ✅ Record saved successfully')
-    
-    // ✅ P1: 添加防抖检查
+    console.log(`[UMM Douban] ✅ Record saved (status=${numericStatus})`)
+
     const cacheKey = `${identity.provider}:${identity.providerId}`
     const lastNotificationTime = notificationCache.get(cacheKey) || 0
-    const now = Date.now()
-    
-    if (now - lastNotificationTime < NOTIFICATION_COOLDOWN) {
+    const nowTime = Date.now()
+
+    if (nowTime - lastNotificationTime < NOTIFICATION_COOLDOWN) {
       console.log('[UMM Douban] ⏭️ Notification cooldown, skipped')
       return
     }
-    
-    // ✅ 修复：只在有实质性变化时才发送通知
+
     if (effectiveChange) {
       if (isNewRecord) {
         showNotification(t(identity.type === 'music' ? 'sync.douban_auto_music' : 'sync.douban_auto'))
@@ -193,9 +199,7 @@ export async function syncToLocalStorage(
       } else if (isCommentChanged) {
         showNotification(t('sync.comment_updated'))
       }
-      
-      // 记录通知时间
-      notificationCache.set(cacheKey, now)
+      notificationCache.set(cacheKey, nowTime)
     } else {
       console.log('[UMM Douban] ⏭️ Data unchanged, skipped notification')
     }
@@ -204,20 +208,21 @@ export async function syncToLocalStorage(
     showNotification(t('sync.failed'))
   }
 
-  // ✅ Auto-sync to NeoDB on FIRST record only (independent of notification cooldown)
-  // "首次" = 本地数据库中不存在该豆瓣 key 的记录
-  if (isNewRecord) {
+  // Auto-sync to NeoDB on first write OR status change
+  // (e.g. wish→done transition should re-trigger NeoDB sync)
+  if (isNewRecord || isStatusChanged) {
     try {
       const settings = await Store.getSettings()
       if (settings.autoSyncNeoDB && settings.neodbToken) {
-        console.log('[UMM Douban] 🔄 Auto-syncing to NeoDB (first record)...')
+        const syncReason = isNewRecord ? 'first record' : 'status changed'
+        console.log(`[UMM Douban] 🔄 Auto-syncing to NeoDB (${syncReason})...`)
         const syncResponse = await safeSendMessage({
           type: 'NEODB_PUSH_RATING',
           payload: {
             record: {
               providerId: identity.providerId,
               rating: pageRating,
-              status: STATUS_DONE,
+              status: numericStatus,
               type: identity.type,
               provider: identity.provider,
               comment: pageComment,
@@ -231,11 +236,10 @@ export async function syncToLocalStorage(
           message: syncResponse?.message,
         })
 
-        // 更新 linkedIds.neodb（full key 格式）
         if (syncResponse?.success && syncResponse.catalogUuid) {
           const neodbFullKey = `${identity.type}::${syncResponse.catalogUuid}`
 
-          // 1. 更新 Douban 记录的 linkedIds.neodb
+          // 1. 更新豆瓣 linkedIds.neodb
           const existingAfterPush = await Store.dbGet(storeName, key)
           if (existingAfterPush) {
             existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
@@ -244,39 +248,36 @@ export async function syncToLocalStorage(
             console.log('[UMM Douban] ✅ Updated linkedIds.neodb:', neodbFullKey)
           }
 
-          // 2. 创建或更新 NeoDB 本地记录（双向链接）
+          // 2. 创建/更新 NeoDB 本地记录
           const neodbStoreName = 'neodb_records'
           const neodbKey = neodbFullKey
           const existingNeoDB = await Store.dbGet(neodbStoreName, neodbKey)
           const doubanFullKey = `${identity.type}::${identity.providerId}`
 
-          // 构造 NeoDB 记录的 linkedIds：包含豆瓣 + 已知的跨平台关联（IMDB/TMDB）
           const neodbLinkedIds: Record<string, string> = { douban: doubanFullKey }
           if (mergedLinkedIds.imdb) neodbLinkedIds.imdb = mergedLinkedIds.imdb
           if (mergedLinkedIds.tmdb) neodbLinkedIds.tmdb = mergedLinkedIds.tmdb
 
           if (existingNeoDB) {
-            // 已存在 → 合并关联，确保全部设置
             existingNeoDB.linkedIds = {
               ...(existingNeoDB.linkedIds || {}),
               ...neodbLinkedIds,
             }
             await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
-            console.log('[UMM Douban] ✅ Updated existing NeoDB record linkedIds:', existingNeoDB.linkedIds)
+            console.log('[UMM Douban] ✅ Updated NeoDB record linkedIds:', existingNeoDB.linkedIds)
           } else {
-            // 不存在 → 创建新记录
             const neodbRecord: StoreRecord = {
               url: `https://neodb.social/${identity.type === 'music' ? 'album' : identity.type}/${syncResponse.catalogUuid}/`,
-              status: STATUS_DONE,
+              status: numericStatus,
               rating: pageRating,
               updatedAt: new Date().toISOString(),
               linkedIds: neodbLinkedIds,
             }
             await Store.dbPut(neodbStoreName, neodbKey, neodbRecord)
-            console.log('[UMM Douban] ✅ Created NeoDB local record:', neodbKey, 'linkedIds:', neodbLinkedIds)
+            console.log('[UMM Douban] ✅ Created NeoDB record:', neodbKey, 'linkedIds:', neodbLinkedIds)
           }
 
-          // 3. 反方向：更新 IMDB/TMDB 记录的 linkedIds 以包含 neodb
+          // 3. 更新 IMDB/TMDB 记录的 linkedIds 含 neodb
           for (const entry of crossPlatformEntries) {
             const targetStore = `${entry.provider}_records`
             const entryKey = `${entry.type}::${entry.providerId}`
@@ -290,7 +291,6 @@ export async function syncToLocalStorage(
               }
             }
           }
-          // 全部 linkedIds 保存完后显示结果 Toast
           FloatingToast.info('UMM', t('sync.neodb_auto_ok'))
           console.log('[UMM Douban] ✅ Auto-synced to NeoDB')
         } else if (syncResponse?.success) {

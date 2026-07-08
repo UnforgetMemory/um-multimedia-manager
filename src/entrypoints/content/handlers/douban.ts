@@ -62,8 +62,8 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
     const localRecord = await getLocalRecord(identity)
     const pageState = scanDoubanPageStatus(identity)
 
-    if (pageState.status === 'done') {
-      await syncToLocalStorage(identity, pageState.rating, localRecord)
+    if (pageState.status === 'done' || pageState.status === 'wish' || pageState.status === 'doing') {
+      await syncToLocalStorage(identity, pageState.status, pageState.rating, localRecord)
     }
 
     setNeoDBInjector(() => { injectNeoDBPushButtons(identity, null) })

@@ -36,37 +36,39 @@ export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; r
   const hasWatchedText = hasFullText && (hasRemoveForm || isMusic)
   console.log('[UMM Douban] Looking for text:', watchedText, '| Found:', hasWatchedText, '| FullText:', hasFullText, '| RemoveForm:', hasRemoveForm, '| Dialog:', isDialogVisible)
 
-  if (!hasWatchedText) {
-    return { status: 'none', rating: 0 }
-  }
-
-  // 获取评分
-  let stars = 0
-  const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
-  if (nRatingInput && nRatingInput.value) {
-    stars = Number.parseInt(nRatingInput.value, 10) || 0
-    console.log('[UMM Douban] Rating from input:', stars)
-  }
-  
-  // 如果没有输入框，尝试从 class 中提取
-  if (!stars) {
-    const ratingElement = interestBox.querySelector('[class*="rating"]')
-    if (ratingElement) {
-      const className = Array.from(ratingElement.classList).find(cls => /^rating\d/.test(cls))
-      if (className) {
-        stars = Number.parseInt(className.replace(/[^\d]/g, ''), 10) || 0
-        console.log('[UMM Douban] Rating from class:', stars)
+  if (hasWatchedText) {
+    // 已看 → 提取评分
+    let stars = 0
+    const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
+    if (nRatingInput && nRatingInput.value) {
+      stars = Number.parseInt(nRatingInput.value, 10) || 0
+    }
+    if (!stars) {
+      const ratingElement = interestBox.querySelector('[class*="rating"]')
+      if (ratingElement) {
+        const className = Array.from(ratingElement.classList).find(cls => /^rating\d/.test(cls))
+        if (className) {
+          stars = Number.parseInt(className.replace(/[^\d]/g, ''), 10) || 0
+        }
       }
     }
+    const finalRating = Utils.clampRating10(stars * 2)
+    return { status: 'done', rating: finalRating }
   }
-  
-  const finalRating = Utils.clampRating10(stars * 2)
-  console.log('[UMM Douban] Final rating (stars * 2):', finalRating)
-  
-  return {
-    status: 'done',
-    rating: finalRating,
+
+  // "Watching" (在看) status — check before wish since TV series also show "想看" text
+  const doingText = isMusic ? '在听' : '在看'
+  if (interestBox.innerText.includes(doingText)) {
+    return { status: 'doing', rating: 0 }
   }
+
+  // 想看状态判定
+  const wishText = isMusic ? '想听' : '想看'
+  if (interestBox.innerText.includes(wishText)) {
+    return { status: 'wish', rating: 0 }
+  }
+
+  return { status: 'none', rating: 0 }
 }
 
 /**
