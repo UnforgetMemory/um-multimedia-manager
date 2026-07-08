@@ -104,7 +104,7 @@ async function onInterestSave(interest: 'wish' | 'do' | 'collect', stars: number
   const ok = await interested.submitInterest(interest, stars || undefined, tags || undefined, comment || undefined)
   if (!ok) return
 
-  const newStatus = interest === 'collect' ? 2 : 1
+  const newStatus = interest === 'collect' ? 2 : interest === 'do' ? 3 : 1
   const newRating = stars * 2
   updateRecord({ status: newStatus, rating: newRating })
 

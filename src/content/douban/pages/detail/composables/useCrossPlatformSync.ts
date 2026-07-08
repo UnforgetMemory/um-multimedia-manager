@@ -74,10 +74,13 @@ export async function onCrossPlatformSave(options: SaveOptions): Promise<StoreRe
     }
   }
 
-  // NeoDB auto-sync
-  if (interest === 'collect' || interest === 'do') {
+  // NeoDB auto-sync — trigger on any interest change (wish/do/collect)
+  // when: (a) first time linking (no existing NeoDB ID), or (b) status changed
+  const shouldAutoSyncNeoDB = interest === 'collect' || interest === 'do' || interest === 'wish'
+  if (shouldAutoSyncNeoDB) {
     const hasNeoDBId = existing?.linkedIds?.neodb
-    if (!hasNeoDBId) {
+    const isStatusChanged = existing && existing.status !== newStatus
+    if (!hasNeoDBId || isStatusChanged) {
       try {
         const settings = await Store.getSettings()
         if (settings.autoSyncNeoDB && settings.neodbToken) {
