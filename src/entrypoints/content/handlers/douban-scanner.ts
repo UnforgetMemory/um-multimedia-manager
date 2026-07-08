@@ -56,16 +56,16 @@ export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; r
     return { status: 'done', rating: finalRating }
   }
 
-  // "Watching" (在看) status — check before wish since TV series also show "想看" text
-  const doingText = isMusic ? '在听' : '在看'
-  if (interestBox.innerText.includes(doingText)) {
-    return { status: 'doing', rating: 0 }
+  // Already-marked status uses "我" prefix: "我想看"/"我在看"/"我看过"
+  // Unmarked page shows bare text inside <a> buttons — must distinguish with "我"
+  const markedWishText = isMusic ? '我想听' : '我想看'
+  if (interestBox.innerText.includes(markedWishText)) {
+    return { status: 'wish', rating: 0 }
   }
 
-  // 想看状态判定
-  const wishText = isMusic ? '想听' : '想看'
-  if (interestBox.innerText.includes(wishText)) {
-    return { status: 'wish', rating: 0 }
+  const markedDoingText = isMusic ? '我在听' : '我在看'
+  if (interestBox.innerText.includes(markedDoingText)) {
+    return { status: 'doing', rating: 0 }
   }
 
   return { status: 'none', rating: 0 }

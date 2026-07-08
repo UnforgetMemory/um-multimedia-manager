@@ -9,13 +9,34 @@ import { safeSendMessage } from '@/utils/context'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { FloatingToast } from '../utils/toast'
 import { extractCrossPlatformLinks, extractCommentFromPage } from './douban-scanner'
+import { Identity } from '@/features/identity'
+import { injectNeoDBPushButtons } from '../neodb-push'
 import { t } from '../i18n'
 import { showNotification } from './douban-toast'
 
-// ✅ P2: 提取魔法数字为常量
+// Status constants
 const STATUS_DONE = 2
 const STATUS_WISH = 1
 const STATUS_DOING = 3
+
+/** Linked platform entry extracted from mergedLinkedIds */
+interface CrossPlatformEntry {
+  provider: string
+  type: string
+  providerId: string
+}
+
+/** Params for syncNeoDBRecord extracted from syncToLocalStorage context */
+interface SyncNeoDBParams {
+  identity: UrlIdentity
+  numericStatus: number
+  pageRating: number
+  pageComment: string | undefined
+  mergedLinkedIds: Record<string, string>
+  crossPlatformEntries: CrossPlatformEntry[]
+  doubanStoreName: string
+  doubanKey: string
+}
 
 /** Map page status string to numeric DB status */
 function pageStatusToNumeric(pageStatus: string): number {
@@ -30,6 +51,10 @@ const notificationCache = new Map<string, number>()
 const NOTIFICATION_COOLDOWN = 5000 // 5秒冷却时间
 const MAX_CACHE_SIZE = 100 // 限制缓存大小
 const CACHE_CLEANUP_INTERVAL = 60000 // 每分钟清理一次
+
+// NeoDB sync rate-limit cache — prevents repeated API calls within 60s
+const neodbSyncCache = new Map<string, number>()
+const NEODB_SYNC_COOLDOWN = 60000
 
 /**
  * 清理过期的通知缓存
@@ -124,7 +149,7 @@ export async function syncToLocalStorage(
 
   // Cross-platform record creation/update for linked platforms (IMDb/TMDB)
   const now = new Date().toISOString()
-  const crossPlatformEntries: Array<{ provider: string; type: string; providerId: string }> = []
+  const crossPlatformEntries: CrossPlatformEntry[] = []
 
   function parseLinkedKey(linkedKey: string, fallbackType: string): { type: string; providerId: string } {
     if (linkedKey.includes('::')) {
@@ -183,13 +208,9 @@ export async function syncToLocalStorage(
     const cacheKey = `${identity.provider}:${identity.providerId}`
     const lastNotificationTime = notificationCache.get(cacheKey) || 0
     const nowTime = Date.now()
-
-    if (nowTime - lastNotificationTime < NOTIFICATION_COOLDOWN) {
-      console.log('[UMM Douban] ⏭️ Notification cooldown, skipped')
-      return
-    }
-
-    if (effectiveChange) {
+    const inCooldown = nowTime - lastNotificationTime < NOTIFICATION_COOLDOWN
+    
+    if (effectiveChange && !inCooldown) {
       if (isNewRecord) {
         showNotification(t(identity.type === 'music' ? 'sync.douban_auto_music' : 'sync.douban_auto'))
       } else if (isStatusChanged) {
@@ -201,110 +222,198 @@ export async function syncToLocalStorage(
       }
       notificationCache.set(cacheKey, nowTime)
     } else {
-      console.log('[UMM Douban] ⏭️ Data unchanged, skipped notification')
+      console.log('[UMM Douban] ⏭️ Data unchanged or cooldown, skipped notification')
     }
   } catch (error) {
     console.error('[UMM Douban] ❌ Failed to save record:', error)
     showNotification(t('sync.failed'))
   }
 
-  // Auto-sync to NeoDB on first write OR status change
-  // (e.g. wish→done transition should re-trigger NeoDB sync)
-  if (isNewRecord || isStatusChanged) {
-    try {
-      const settings = await Store.getSettings()
-      if (settings.autoSyncNeoDB && settings.neodbToken) {
-        const syncReason = isNewRecord ? 'first record' : 'status changed'
-        console.log(`[UMM Douban] 🔄 Auto-syncing to NeoDB (${syncReason})...`)
-        const syncResponse = await safeSendMessage({
-          type: 'NEODB_PUSH_RATING',
-          payload: {
-            record: {
-              providerId: identity.providerId,
-              rating: pageRating,
-              status: numericStatus,
-              type: identity.type,
-              provider: identity.provider,
-              comment: pageComment,
-            },
-          },
-        }, { timeout: 10000 })
+  // Enhanced NeoDB trigger: first write, status change, OR when a "done" page
+  // has a missing or wrong-status local NeoDB record
+  let needsNeoDBSync = isNewRecord || isStatusChanged
+  if (!needsNeoDBSync && numericStatus === STATUS_DONE) {
+    const neodbLinkedKey = mergedLinkedIds.neodb
+    if (neodbLinkedKey) {
+      const neodbRecord = await Store.dbGet('neodb_records', neodbLinkedKey)
+      if (!neodbRecord || neodbRecord.status !== STATUS_DONE) {
+        needsNeoDBSync = true
+      }
+    } else {
+      // No NeoDB link yet — attempt sync (syncNeoDBRecord creates it on success)
+      needsNeoDBSync = true
+    }
+  }
+  if (needsNeoDBSync) {
+    await syncNeoDBRecord({
+      identity, numericStatus, pageRating, pageComment,
+      mergedLinkedIds, crossPlatformEntries,
+      doubanStoreName: storeName, doubanKey: key,
+    })
+  }
 
-        console.log('[UMM Douban] NeoDB sync response:', {
-          success: syncResponse?.success,
-          catalogUuid: syncResponse?.catalogUuid,
-          message: syncResponse?.message,
-        })
+  // Fire-and-forget health check: verify all linked platform records on "done" pages
+  if (numericStatus === STATUS_DONE) {
+    checkCrossPlatformRecords(identity, pageRating, pageComment, mergedLinkedIds, numericStatus).catch(err => {
+      console.warn('[UMM Douban] Cross-platform health check failed:', err)
+    })
+  }
+}
 
-        if (syncResponse?.success && syncResponse.catalogUuid) {
-          const neodbFullKey = `${identity.type}::${syncResponse.catalogUuid}`
+/**
+ * Push rating to NeoDB API and create/update local NeoDB record with linkedIds.
+ * Also updates cross-platform (IMDb/TMDB) records to include the NeoDB link.
+ */
+export async function syncNeoDBRecord(params: SyncNeoDBParams): Promise<void> {
+  const { identity, numericStatus, pageRating, pageComment, mergedLinkedIds, crossPlatformEntries, doubanStoreName, doubanKey } = params
+  try {
+    const settings = await Store.getSettings()
+    if (!settings.autoSyncNeoDB || !settings.neodbToken) return
 
-          // 1. 更新豆瓣 linkedIds.neodb
-          const existingAfterPush = await Store.dbGet(storeName, key)
-          if (existingAfterPush) {
-            existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
-            existingAfterPush.linkedIds.neodb = neodbFullKey
-            await Store.dbPut(storeName, key, existingAfterPush)
-            console.log('[UMM Douban] ✅ Updated linkedIds.neodb:', neodbFullKey)
+    // Rate limit: skip if same item was synced within 60s
+    const syncCacheKey = `${identity.type}::${identity.providerId}`
+    const lastSync = neodbSyncCache.get(syncCacheKey) || 0
+    if (Date.now() - lastSync < NEODB_SYNC_COOLDOWN) {
+      console.log('[UMM Douban] NeoDB sync cooldown active, skipping')
+      return
+    }
+
+    console.log('[UMM Douban] Auto-syncing to NeoDB...')
+    const syncResponse = await safeSendMessage({
+      type: 'NEODB_PUSH_RATING',
+      payload: {
+        record: {
+          providerId: identity.providerId,
+          rating: pageRating,
+          status: numericStatus,
+          type: identity.type,
+          provider: identity.provider,
+          comment: pageComment,
+        },
+      },
+    }, { timeout: 10000 })
+
+    if (syncResponse?.success && syncResponse.catalogUuid) {
+      const neodbFullKey = `${identity.type}::${syncResponse.catalogUuid}`
+
+      // 1. Update douban record linkedIds.neodb
+      const existingAfterPush = await Store.dbGet(doubanStoreName, doubanKey)
+      if (existingAfterPush) {
+        existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
+        existingAfterPush.linkedIds.neodb = neodbFullKey
+        await Store.dbPut(doubanStoreName, doubanKey, existingAfterPush)
+      }
+
+      // 2. Create/update NeoDB local record
+      const neodbStoreName = 'neodb_records'
+      const neodbKey = neodbFullKey
+      const existingNeoDB = await Store.dbGet(neodbStoreName, neodbKey)
+      const doubanFullKey = `${identity.type}::${identity.providerId}`
+
+      const neodbLinkedIds: Record<string, string> = { douban: doubanFullKey }
+      if (mergedLinkedIds.imdb) neodbLinkedIds.imdb = mergedLinkedIds.imdb
+      if (mergedLinkedIds.tmdb) neodbLinkedIds.tmdb = mergedLinkedIds.tmdb
+
+      if (existingNeoDB) {
+        existingNeoDB.linkedIds = { ...(existingNeoDB.linkedIds || {}), ...neodbLinkedIds }
+        await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
+      } else {
+        const neodbRecord: StoreRecord = {
+          url: Identity.buildNeoDBUrl(identity.type, syncResponse.catalogUuid),
+          status: numericStatus,
+          rating: pageRating,
+          updatedAt: new Date().toISOString(),
+          linkedIds: neodbLinkedIds,
+        }
+        await Store.dbPut(neodbStoreName, neodbKey, neodbRecord)
+      }
+
+      // 3. Update IMDB/TMDB records to include neodb link
+      for (const entry of crossPlatformEntries) {
+        const targetStore = `${entry.provider}_records`
+        const entryKey = `${entry.type}::${entry.providerId}`
+        const existingTarget = await Store.dbGet(targetStore, entryKey)
+        if (existingTarget) {
+          existingTarget.linkedIds = existingTarget.linkedIds || {}
+          if (existingTarget.linkedIds.neodb !== neodbFullKey) {
+            existingTarget.linkedIds.neodb = neodbFullKey
+            await Store.dbPut(targetStore, entryKey, existingTarget)
           }
-
-          // 2. 创建/更新 NeoDB 本地记录
-          const neodbStoreName = 'neodb_records'
-          const neodbKey = neodbFullKey
-          const existingNeoDB = await Store.dbGet(neodbStoreName, neodbKey)
-          const doubanFullKey = `${identity.type}::${identity.providerId}`
-
-          const neodbLinkedIds: Record<string, string> = { douban: doubanFullKey }
-          if (mergedLinkedIds.imdb) neodbLinkedIds.imdb = mergedLinkedIds.imdb
-          if (mergedLinkedIds.tmdb) neodbLinkedIds.tmdb = mergedLinkedIds.tmdb
-
-          if (existingNeoDB) {
-            existingNeoDB.linkedIds = {
-              ...(existingNeoDB.linkedIds || {}),
-              ...neodbLinkedIds,
-            }
-            await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
-            console.log('[UMM Douban] ✅ Updated NeoDB record linkedIds:', existingNeoDB.linkedIds)
-          } else {
-            const neodbRecord: StoreRecord = {
-              url: `https://neodb.social/${identity.type === 'music' ? 'album' : identity.type}/${syncResponse.catalogUuid}/`,
-              status: numericStatus,
-              rating: pageRating,
-              updatedAt: new Date().toISOString(),
-              linkedIds: neodbLinkedIds,
-            }
-            await Store.dbPut(neodbStoreName, neodbKey, neodbRecord)
-            console.log('[UMM Douban] ✅ Created NeoDB record:', neodbKey, 'linkedIds:', neodbLinkedIds)
-          }
-
-          // 3. 更新 IMDB/TMDB 记录的 linkedIds 含 neodb
-          for (const entry of crossPlatformEntries) {
-            const targetStore = `${entry.provider}_records`
-            const entryKey = `${entry.type}::${entry.providerId}`
-            const existingTarget = await Store.dbGet(targetStore, entryKey)
-            if (existingTarget) {
-              existingTarget.linkedIds = existingTarget.linkedIds || {}
-              if (existingTarget.linkedIds.neodb !== neodbFullKey) {
-                existingTarget.linkedIds.neodb = neodbFullKey
-                await Store.dbPut(targetStore, entryKey, existingTarget)
-                console.log(`[UMM Douban] ✅ Updated ${entry.provider} linkedIds.neodb:`, entryKey)
-              }
-            }
-          }
-          FloatingToast.info('UMM', t('sync.neodb_auto_ok'))
-          console.log('[UMM Douban] ✅ Auto-synced to NeoDB')
-        } else if (syncResponse?.success) {
-          FloatingToast.info('UMM', t('sync.neodb_auto_no_id'))
-          console.warn('[UMM Douban] ⚠️ NeoDB push succeeded but no catalogUuid returned')
-        } else {
-          FloatingToast.info('UMM', t('sync.neodb_auto_failed'))
-          console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed: invalid response')
         }
       }
-    } catch (syncErr) {
-      FloatingToast.error('UMM', t('sync.neodb_auto_failed_err'))
-      console.warn('[UMM Douban] ⚠️ Auto-sync to NeoDB failed:', syncErr)
+      // Mark sync success in rate-limit cache
+      neodbSyncCache.set(syncCacheKey, Date.now())
+      // Refresh NeoDB push buttons UI to reflect the new linked state
+      try {
+        const updatedRecord = await Store.dbGet(doubanStoreName, doubanKey)
+        injectNeoDBPushButtons(identity, updatedRecord)
+      } catch {
+        // UI refresh is non-critical
+      }
+      FloatingToast.info('UMM', t('sync.neodb_auto_ok'))
+      console.log('[UMM Douban] Auto-synced to NeoDB')
+    } else if (syncResponse?.success) {
+      FloatingToast.info('UMM', t('sync.neodb_auto_no_id'))
+    } else {
+      FloatingToast.info('UMM', t('sync.neodb_auto_failed'))
     }
+  } catch (syncErr) {
+    FloatingToast.error('UMM', t('sync.neodb_auto_failed_err'))
+    console.warn('[UMM Douban] NeoDB auto-sync failed:', syncErr)
+  }
+}
+
+/**
+ * Health check: verify all linked platform records exist and have correct status.
+ * Creates missing records and updates wrong-status records following the
+ * never-downgrade-done rule. Runs fire-and-forget after the main sync flow.
+ */
+export async function checkCrossPlatformRecords(
+  identity: UrlIdentity,
+  pageRating: number,
+  pageComment: string | undefined,
+  mergedLinkedIds: Record<string, string>,
+  sourceStatus: number,
+): Promise<void> {
+  const now = new Date().toISOString()
+  const doubanFullKey = `${identity.type}::${identity.providerId}`
+
+  for (const [platform, linkKey] of Object.entries({ imdb: mergedLinkedIds.imdb, tmdb: mergedLinkedIds.tmdb, neodb: mergedLinkedIds.neodb })) {
+    if (!linkKey) continue
+
+    const targetStore = `${platform}_records`
+    const existingTarget = await Store.dbGet(targetStore, linkKey)
+    const [, pid] = linkKey.split('::')
+
+    // Build target URL
+    let targetUrl: string
+    if (platform === 'imdb') targetUrl = `https://www.imdb.com/title/${pid}/`
+    else if (platform === 'tmdb') targetUrl = `https://www.themoviedb.org/movie/${pid}/`
+    else if (platform === 'neodb') targetUrl = Identity.buildNeoDBUrl(identity.type, pid)
+    else continue
+
+    if (!existingTarget) {
+      // Missing record — create with source status
+      await Store.dbPut(targetStore, linkKey, {
+        url: targetUrl,
+        status: sourceStatus,
+        rating: pageRating,
+        comment: pageComment || '',
+        updatedAt: now,
+        linkedIds: { [identity.provider]: doubanFullKey },
+      })
+      console.log(`[UMM Douban] Health check: created ${platform} record:`, linkKey)
+    } else if (existingTarget.status !== 2 && existingTarget.status < sourceStatus) {
+      // Exists with lower status — upgrade (never downgrade done=2)
+      existingTarget.status = sourceStatus
+      existingTarget.rating = pageRating || existingTarget.rating
+      existingTarget.comment = pageComment || existingTarget.comment
+      existingTarget.updatedAt = now
+      existingTarget.linkedIds = { ...(existingTarget.linkedIds || {}), [identity.provider]: doubanFullKey }
+      await Store.dbPut(targetStore, linkKey, existingTarget)
+      console.log(`[UMM Douban] Health check: updated ${platform} status:`, linkKey, '→', sourceStatus)
+    }
+    // If exists and already done (2) or same status — skip
   }
 }
 
