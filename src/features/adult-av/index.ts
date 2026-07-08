@@ -14,8 +14,26 @@ export const AdultAvStore = {
   },
 
   async has(id: string): Promise<boolean> {
-    const res = await sendMsg('ADULT_AV_CHECK', { id })
-    return !!res.exists
+    try {
+      const res = await sendMsg('ADULT_AV_CHECK', { id })
+      return !!(res?.exists ?? res?.watched ?? false)
+    } catch {
+      return false
+    }
+  },
+
+  /** Batch check: send all IDs in one message, return a Set of watched IDs. */
+  async batchCheckExists(ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set()
+    try {
+      const res = await sendMsg('ADULT_AV_CHECK_BATCH', { ids })
+      if (res?.watched && Array.isArray(res.watched)) {
+        return new Set<string>(res.watched.map((id: string) => id.toUpperCase()))
+      }
+      return new Set<string>()
+    } catch {
+      return new Set<string>()
+    }
   },
 
   async add(source: string, id: string, rating: number = 0, url: string = ''): Promise<void> {

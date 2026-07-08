@@ -9,9 +9,24 @@
  */
 
 import { defineBackground } from 'wxt/utils/define-background'
-import type { AppSettings, ExportData, Statistics, RecordStoreName, RemoteMeta, DatasetMeta } from '@/types'
-import * as NeoDB from '@/features/neodb/api'
+import type { LogLevel } from '@/types'
 import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
+import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
+import { STORAGE_KEYS } from '@/config'
+import { broadcast } from '@/utils/event-bus'
+
+import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
+import { CacheManager } from '@/features/cache'
+import { infoLog as schedulerLog } from '@/utils/logger'
+
+// Handler imports
+import { handleWebDAVTest, handleWebDAVUpload, handleWebDAVDownload, handleWebDAVSync } from './background/handlers/webdav'
+import { handleNeoDBPushRating } from './background/handlers/neodb'
+import { handleGetSettings, handleUpdateSettings, handleExportData, handleImportData, handleGetStatistics, handleGetAllRecords, handleGetMigrationStatus } from './background/handlers/data'
+import { handleShowToast } from './background/handlers/toast'
+import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll, handleSehuatangCheckViewed, handleSehuatangAdd, handleSehuatangBatchAdd, handleSehuatangGetAll } from './background/handlers/adult-av'
+import * as NeoDB from '@/features/neodb/api'
+import { settingsCache } from '@/features/settings/cache'
 
 /** Allowed store names for generic DB message handlers */
 const ALLOWED_DB_STORES = new Set<string>([
@@ -25,31 +40,6 @@ function isAllowedStore(storeName: string): boolean {
   return ALLOWED_DB_STORES.has(storeName)
 }
 
-import * as WebDAV from '@/features/webdav/api'
-import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
-import { calculateStoreHash } from '@/utils/hash-utils'
-import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
-import type { LogLevel } from '@/types'
-import { STORAGE_KEYS } from '@/config'
-import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
-import type { AdultAvId } from '@/types'
-
-/** Escape HTML special characters — pure regex, no DOM element creation */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
-import { settingsCache } from '@/features/settings/cache'
-import { broadcast } from '@/utils/event-bus'
-
-/** Valid toast notification types */
-const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const
-
 export default defineBackground({
   type: 'module',
 
@@ -57,6 +47,15 @@ export default defineBackground({
     const startTime = Date.now()
     let dbReady = false
     let dbInitFailed = false
+
+    // CacheManager — L1 in-memory LRU (shared across DataScheduler + MediaDatabase)
+    const cacheManager = new CacheManager({ maxSize: 500, defaultTtlMs: 30_000 })
+
+    // DataScheduler — request queue, rate limiter, retry, monitoring
+    const dataScheduler = new DataScheduler(cacheManager)
+    dataScheduler.onEvent((event) => {
+      schedulerLog(`[Scheduler] ${event.type}${event.taskId ? ` id=${event.taskId}` : ''}${event.duration ? ` dur=${event.duration}ms` : ''}`)
+    })
 
     // Pending message queue for messages arriving before DB is ready
     const MAX_QUEUE_SIZE = 50
@@ -89,7 +88,6 @@ export default defineBackground({
 
     // ==================== Log Config Sync ====================
 
-    /** Read debug settings from storage and configure logger */
     async function initLogConfig() {
       try {
         const result = await chrome.storage.local.get([STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL])
@@ -102,7 +100,6 @@ export default defineBackground({
       }
     }
 
-    // React to settings changes from popup or other contexts
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return
       const enabledChange = changes[STORAGE_KEYS.DEBUG_ENABLED]
@@ -115,9 +112,7 @@ export default defineBackground({
       }
     })
 
-    // Init log config before anything else logs
     initLogConfig()
-
     initBackground()
 
     async function initBackground() {
@@ -183,12 +178,10 @@ export default defineBackground({
         })
         await updateContextMenuStats()
       } else if (details.reason === 'update') {
-        // No migration needed for v6 — fresh schema
         infoLog('Updated — v6 schema, no data migration required')
       }
     })
 
-    // Context menu click
     chrome.contextMenus.onClicked.addListener((info, _tab) => {
       if (info.menuItemId === 'open-popup') {
         chrome.action.openPopup()
@@ -228,7 +221,7 @@ export default defineBackground({
         return
       }
 
-      // ✅ SHOW_TOAST bypasses all DB gates — it's a pure UI message, no DB needed
+      // SHOW_TOAST bypasses all DB gates — pure UI message
       if (message.type === 'SHOW_TOAST') {
         await handleShowToast(message.payload, sendResponse)
         return
@@ -265,61 +258,77 @@ export default defineBackground({
           // ==================== Core DB Operations ====================
           case 'DB_GET': {
             if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' })
-              break
+              sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const record = await mediaDB.get(message.payload.storeName, message.payload.key)
+            const record = await dataScheduler.schedule(
+              () => mediaDB.get(message.payload.storeName, message.payload.key),
+              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `get:${message.payload.storeName}:${message.payload.key}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, record })
             break
           }
           case 'DB_PUT': {
             if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' })
-              break
+              sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            await mediaDB.put(message.payload.storeName, message.payload.key, message.payload.record)
-            broadcast('record:updated', { storeName: message.payload.storeName, key: message.payload.key })
+            const putStore = message.payload.storeName
+            const putKey = message.payload.key
+            await dataScheduler.schedule(
+              () => mediaDB.put(putStore, putKey, message.payload.record),
+              { priority: 'HIGH', storeName: putStore, cacheKey: `put:${putStore}:${putKey}`, invalidateCache: true },
+            )
+            // Invalidate GET cache so subsequent reads return fresh data
+            dataScheduler.cacheManager?.invalidate('scheduler', `get:${putStore}:${putKey}`)
+            broadcast('record:updated', { storeName: putStore, key: putKey })
             sendResponse({ success: true })
             break
           }
           case 'DB_DELETE': {
             if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' })
-              break
+              sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            await mediaDB.delete(message.payload.storeName, message.payload.key)
-            broadcast('record:deleted', { storeName: message.payload.storeName, key: message.payload.key })
+            const delStore = message.payload.storeName
+            const delKey = message.payload.key
+            await dataScheduler.schedule(
+              () => mediaDB.delete(delStore, delKey),
+              { priority: 'HIGH', storeName: delStore, cacheKey: `delete:${delStore}:${delKey}`, invalidateCache: true },
+            )
+            // Invalidate GET cache so subsequent reads reflect the deletion
+            dataScheduler.cacheManager?.invalidate('scheduler', `get:${delStore}:${delKey}`)
+            broadcast('record:deleted', { storeName: delStore, key: delKey })
             sendResponse({ success: true })
             break
           }
           case 'DB_GET_ALL': {
             if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' })
-              break
+              sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const entries = await mediaDB.getAll(message.payload.storeName)
+            const entries = await dataScheduler.schedule(
+              () => mediaDB.getAll(message.payload.storeName),
+              { priority: 'MEDIUM', storeName: message.payload.storeName, cacheKey: `all:${message.payload.storeName}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, entries })
             break
           }
           case 'DB_QUERY': {
             if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' })
-              break
+              sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const entries = await mediaDB.query(
-              message.payload.storeName,
-              message.payload.indexName,
-              message.payload.value
+            const entries = await dataScheduler.schedule(
+              () => mediaDB.query(message.payload.storeName, message.payload.indexName, message.payload.value),
+              { priority: 'MEDIUM', storeName: message.payload.storeName },
             )
             sendResponse({ success: true, entries })
             break
           }
           case 'DB_COUNT': {
             if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' })
-              break
+              sendResponse({ success: false, error: 'Invalid store name' }); break
             }
-            const count = await mediaDB.count(message.payload.storeName)
+            const count = await dataScheduler.schedule(
+              () => mediaDB.count(message.payload.storeName),
+              { priority: 'LOW', storeName: message.payload.storeName, cacheKey: `count:${message.payload.storeName}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, count })
             break
           }
@@ -331,20 +340,28 @@ export default defineBackground({
                 warnLog(`DB_GET_WATCHED_IDS: skipped disallowed store "${storeName}"`)
                 continue
               }
-              const ids = await mediaDB.getWatchedIds(storeName)
+              const ids = await dataScheduler.schedule(
+                () => mediaDB.getWatchedIds(storeName),
+                { priority: 'HIGH', storeName, cacheKey: `watched:${storeName}`, cacheTTL: 10000 },
+              )
               results[storeName] = Array.from(ids)
             }
             sendResponse({ success: true, results })
             break
           }
           case 'PT_ID_CACHE_GET': {
-            const entry = await mediaDB.getCacheEntry(message.payload.ptUrl)
+            const entry = await dataScheduler.schedule(
+              () => mediaDB.getCacheEntry(message.payload.ptUrl),
+              { priority: 'HIGH', cacheKey: `ptcache:${message.payload.ptUrl}`, cacheTTL: 5000 },
+            )
             sendResponse({ success: true, entry })
             break
           }
           case 'PT_ID_CACHE_PUT': {
-            const { entry } = message.payload
-            await mediaDB.putCacheEntry(entry)
+            await dataScheduler.schedule(
+              () => mediaDB.putCacheEntry(message.payload.entry),
+              { priority: 'HIGH', cacheKey: `ptcache:${message.payload.entry.ptUrl}`, invalidateCache: true },
+            )
             sendResponse({ success: true })
             break
           }
@@ -352,41 +369,42 @@ export default defineBackground({
             const { ptUrls } = message.payload
             const entries: Record<string, any> = {}
             for (const ptUrl of ptUrls) {
-              const entry = await mediaDB.getCacheEntry(ptUrl)
+              const entry = await dataScheduler.schedule(
+                () => mediaDB.getCacheEntry(ptUrl),
+                { priority: 'MEDIUM', cacheKey: `ptcache:${ptUrl}`, cacheTTL: 5000 },
+              )
               if (entry) entries[ptUrl] = entry
             }
             sendResponse({ success: true, entries })
             break
           }
           case 'DB_SYNC_PAGE_RECORD': {
-            const platform = message.payload.platform
-            if (!isAllowedStore(`${platform}_records`)) {
-              sendResponse({ success: false, error: 'Invalid platform' })
-              break
+            const syncPlatform = message.payload.platform
+            if (!isAllowedStore(`${syncPlatform}_records`)) {
+              sendResponse({ success: false, error: 'Invalid platform' }); break
             }
-            // Validate linked platforms to prevent writing to arbitrary stores
             const linked = message.payload.linked
             let linkedInvalid = false
             if (linked && Array.isArray(linked)) {
               for (const link of linked) {
                 if (!isAllowedStore(`${link.platform}_records`)) {
-                  linkedInvalid = true
-                  break
+                  linkedInvalid = true; break
                 }
               }
             }
             if (linkedInvalid) {
-              sendResponse({ success: false, error: 'Invalid linked platform' })
-              break
+              sendResponse({ success: false, error: 'Invalid linked platform' }); break
             }
-            const result = await mediaDB.syncPageRecord(
-              platform,
-              message.payload.key,
-              message.payload.record,
-              linked
+            const syncStoreName = `${syncPlatform}_records`
+            const syncKey = message.payload.key
+            const syncResult = await dataScheduler.schedule(
+              () => mediaDB.syncPageRecord(syncPlatform, syncKey, message.payload.record, linked),
+              { priority: 'HIGH', storeName: syncStoreName, cacheKey: `sync:${syncPlatform}:${syncKey}`, invalidateCache: true },
             )
-            broadcast('record:updated', { storeName: `${platform}_records`, key: message.payload.key })
-            sendResponse({ success: true, result })
+            // Invalidate GET cache for the synced record
+            dataScheduler.cacheManager?.invalidate('scheduler', `get:${syncStoreName}:${syncKey}`)
+            broadcast('record:updated', { storeName: syncStoreName, key: syncKey })
+            sendResponse({ success: true, result: syncResult })
             break
           }
 
@@ -394,7 +412,6 @@ export default defineBackground({
           case 'GET_SETTINGS':
             await handleGetSettings(sendResponse)
             break
-
           case 'UPDATE_SETTINGS':
             await handleUpdateSettings(message.payload, sendResponse)
             break
@@ -403,7 +420,6 @@ export default defineBackground({
           case 'EXPORT_DATA':
             await handleExportData(sendResponse)
             break
-
           case 'IMPORT_DATA':
             await handleImportData(message.payload, sendResponse)
             break
@@ -414,55 +430,28 @@ export default defineBackground({
             break
 
           // ==================== Popup Data ====================
-          case 'GET_ALL_RECORDS': {
-            const allRecords: any[] = []
-            const storePlatformMap: Record<string, string> = {
-              [STORE_NAMES.DOUBAN]: 'douban',
-              [STORE_NAMES.IMDB]: 'imdb',
-              [STORE_NAMES.NEODB]: 'neodb',
-              [STORE_NAMES.TMDB]: 'tmdb',
-            }
-            for (const storeName of RECORD_STORES) {
-              const entries = await mediaDB.getAll(storeName)
-              for (const entry of entries) {
-                const [type, ...idParts] = entry.key.split('::')
-                const providerId = idParts.join('::')
-                allRecords.push({
-                  ...entry.record,
-                  type,
-                  provider: storePlatformMap[storeName] || 'unknown',
-                  providerId,
-                })
-              }
-            }
-            sendResponse({ success: true, records: allRecords })
+          case 'GET_ALL_RECORDS':
+            await handleGetAllRecords(sendResponse)
             break
-          }
 
           // ==================== Utility ====================
           case 'HEALTH_CHECK':
             sendResponse({ success: true, dbReady, uptime: Date.now() - startTime })
             break
-
           case 'GET_MIGRATION_STATUS':
-            sendResponse({ success: true, migration: getMigrationInfo() })
+            handleGetMigrationStatus(sendResponse)
             break
-
-          // SHOW_TOAST is handled above the dbReady gate (pure UI message)
 
           // ==================== WebDAV Sync ====================
           case 'WEBDAV_TEST':
             await handleWebDAVTest(message.payload, sendResponse)
             break
-
           case 'WEBDAV_UPLOAD':
             await handleWebDAVUpload(sendResponse)
             break
-
           case 'WEBDAV_DOWNLOAD':
             await handleWebDAVDownload(sendResponse)
             break
-
           case 'WEBDAV_SYNC':
             await handleWebDAVSync(sendResponse)
             break
@@ -473,147 +462,74 @@ export default defineBackground({
             break
 
           // ==================== Adult AV ID Operations ====================
-          case 'ADULT_AV_CHECK': {
-            const { id } = message.payload
-            if (!id) { sendResponse({ success: false, error: 'Missing id' }); break }
-            // Two-level matching: exact → prefix (handles UC/C suffix variants)
-            const cleanId = normalizeAvId(id)
-            const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
-            const knownSources = ['javdb', 'sehuatang']
-            let found: any = null
-            // Level 1: exact match
-            for (const source of knownSources) {
-              const key = `${source}::${cleanId}`
-              const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
-              if (record) { found = { key, record }; break }
-            }
-            // Level 2: prefix match (handles UC/C variants)
-            if (!found && cleanId !== baseId) {
-              for (const source of knownSources) {
-                const key = `${source}::${baseId}`
-                const record = await mediaDB.get(JAV_IDS_STORE_NAME, key)
-                if (record) { found = { key, record }; break }
-              }
-            }
-            sendResponse({ success: true, exists: !!found, record: found?.record })
+          case 'ADULT_AV_CHECK':
+            await handleAdultAvCheck(message.payload, sendResponse)
             break
-          }
-          case 'ADULT_AV_ADD': {
-            const { source, id, rating = 0, url = '' } = message.payload
-            if (!id || !source) { sendResponse({ success: false, error: 'Missing source or id' }); break }
-            const key = `${source}::${normalizeAvId(id)}`
-            await mediaDB.put(JAV_IDS_STORE_NAME, key, {
-              url,
-              status: 2,
-              rating: Math.max(0, Math.min(10, Math.round(rating))),
-              updatedAt: new Date().toISOString(),
-              linkedIds: {},
-            })
-            sendResponse({ success: true })
+          case 'ADULT_AV_CHECK_BATCH':
+            await handleAdultAvCheckBatch(message.payload, sendResponse)
             break
-          }
-          case 'ADULT_AV_BATCH_ADD': {
-            const { source, items } = message.payload
-            if (!source || !Array.isArray(items) || items.length === 0) {
-              sendResponse({ success: false, error: 'Invalid payload' }); break
-            }
-            let addedCount = 0
-            for (const item of items) {
-              if (!item.id) continue
-              const key = `${source}::${normalizeAvId(item.id)}`
-              const existing = await mediaDB.get(JAV_IDS_STORE_NAME, key)
-              await mediaDB.put(JAV_IDS_STORE_NAME, key, {
-                url: item.url || existing?.url || '',
-                status: 2,
-                rating: item.rating ?? existing?.rating ?? 0,
-                updatedAt: item.updatedAt || new Date().toISOString(),
-                linkedIds: existing?.linkedIds || {},
-              })
-              addedCount++
-            }
-            sendResponse({ success: true, addedCount })
+          case 'ADULT_AV_ADD':
+            await handleAdultAvAdd(message.payload, sendResponse)
             break
-          }
-          case 'ADULT_AV_GET_ALL': {
-            const { source } = message.payload || {}
-            let entries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
-            if (source) {
-              entries = entries.filter(e => e.key.startsWith(`${source}::`))
-            }
-            const items: AdultAvId[] = entries.map(e => {
-              const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
-              const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
-              return {
-                source: s,
-                id: avId,
-                url: e.record.url || '',
-                rating: e.record.rating || 0,
-                updatedAt: e.record.updatedAt,
-              }
-            })
-            sendResponse({ success: true, items })
+          case 'ADULT_AV_BATCH_ADD':
+            await handleAdultAvBatchAdd(message.payload, sendResponse)
             break
-          }
+          case 'ADULT_AV_GET_ALL':
+            await handleAdultAvGetAll(message.payload, sendResponse)
+            break
 
-          // Legacy handlers (kept for backward compatibility, delegate to ADULT_AV_*)
-          case 'SEHUATANG_CHECK_VIEWED': {
-            const { id: legacyId } = message.payload
-            if (!legacyId) { sendResponse({ success: false, error: 'Missing id' }); break }
-            const legacyKey = `sehuatang::${normalizeAvId(legacyId)}`
-            const legacyRecord = await mediaDB.get(JAV_IDS_STORE_NAME, legacyKey)
-            sendResponse({ success: true, exists: !!legacyRecord, record: legacyRecord })
+          // Legacy handlers (backward compat)
+          case 'SEHUATANG_CHECK_VIEWED':
+            await handleSehuatangCheckViewed(message.payload, sendResponse)
             break
-          }
-          case 'SEHUATANG_ADD': {
-            const { id: legacyAddId, rating: legacyRating = 0 } = message.payload
-            if (!legacyAddId) { sendResponse({ success: false, error: 'Missing id' }); break }
-            const legacyAddKey = `sehuatang::${normalizeAvId(legacyAddId)}`
-            await mediaDB.put(JAV_IDS_STORE_NAME, legacyAddKey, {
-              url: '',
-              status: 2,
-              rating: legacyRating,
-              updatedAt: new Date().toISOString(),
-              linkedIds: {},
+          case 'SEHUATANG_ADD':
+            await handleSehuatangAdd(message.payload, sendResponse)
+            break
+          case 'SEHUATANG_BATCH_ADD':
+            await handleSehuatangBatchAdd(message.payload, sendResponse)
+            break
+          case 'SEHUATANG_GET_ALL':
+            await handleSehuatangGetAll(message.payload, sendResponse)
+            break
+
+          // ==================== File Download (MAIN world) ====================
+          case 'DOWNLOAD_FILE': {
+            const { url, filename } = message.payload ?? {}
+            if (!url || !filename || !_sender.tab?.id) {
+              sendResponse({ success: false, error: 'Missing params or tab' })
+              return
+            }
+            chrome.scripting.executeScript({
+              target: { tabId: _sender.tab.id },
+              world: 'MAIN',
+              args: [url, filename],
+              func: (u: string, fn: string) => {
+                fetch(u, { credentials: 'include' })
+                  .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob() })
+                  .then((blob) => {
+                    const blobUrl = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = blobUrl
+                    a.download = fn
+                    a.style.display = 'none'
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove()
+                    URL.revokeObjectURL(blobUrl)
+                  })
+                  .catch(() => {
+                    const a = document.createElement('a')
+                    a.href = u
+                    a.target = '_blank'
+                    a.style.display = 'none'
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove()
+                  })
+              },
             })
             sendResponse({ success: true })
-            break
-          }
-          case 'SEHUATANG_BATCH_ADD': {
-            const { items: legacyItems } = message.payload
-            if (!Array.isArray(legacyItems) || legacyItems.length === 0) {
-              sendResponse({ success: false, error: 'Invalid items' }); break
-            }
-            let legacyAddedCount = 0
-            for (const item of legacyItems) {
-              if (!item.id) continue
-              const key = `sehuatang::${normalizeAvId(item.id)}`
-              await mediaDB.put(JAV_IDS_STORE_NAME, key, {
-                url: '',
-                status: 2,
-                rating: item.rating || 0,
-                updatedAt: item.updatedAt || new Date().toISOString(),
-                linkedIds: {},
-              })
-              legacyAddedCount++
-            }
-            sendResponse({ success: true, addedCount: legacyAddedCount })
-            break
-          }
-          case 'SEHUATANG_GET_ALL': {
-            const entries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
-            const items: AdultAvId[] = entries.map(e => {
-              const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
-              const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
-              return {
-                source: s,
-                id: avId,
-                url: e.record.url || '',
-                rating: e.record.rating || 0,
-                updatedAt: e.record.updatedAt,
-              }
-            })
-            sendResponse({ success: true, items })
-            break
+            return
           }
 
           default:
@@ -623,803 +539,6 @@ export default defineBackground({
       } catch (err: any) {
         errorLog(`❌ Error handling '${message.type}':`, err)
         sendResponse({ success: false, error: err?.message || String(err) })
-      }
-    }
-
-    // ==================== Handler Implementations ====================
-
-    async function handleGetSettings(sendResponse: (r?: any) => void) {
-      const settings = settingsCache.get()
-      sendResponse({ success: true, settings })
-    }
-
-    async function handleUpdateSettings(payload: Partial<AppSettings>, sendResponse: (r?: any) => void) {
-      await settingsCache.updateAll(payload)
-      const settings = settingsCache.get()
-      sendResponse({ success: true, settings })
-    }
-
-    async function handleExportData(sendResponse: (r?: any) => void) {
-      const stores = await mediaDB.getAllStores()
-      const appSettings = settingsCache.get()
-      const settings: Partial<AppSettings> = {
-        autoSync: appSettings.autoSync,
-        syncInterval: appSettings.syncInterval,
-        theme: appSettings.theme,
-        notificationEnabled: appSettings.notificationEnabled,
-      }
-
-      const data: ExportData = {
-        schema: 'umm-export',
-        version: 2,
-        exportedAt: new Date().toISOString(),
-        stores,
-        settings,
-      }
-      sendResponse({ success: true, data })
-    }
-
-    async function handleImportData(payload: ExportData, sendResponse: (r?: any) => void) {
-      if (!payload?.stores) {
-        sendResponse({ success: false, error: 'Invalid import data' })
-        return
-      }
-
-      // Validate export data version compatibility
-      try {
-        validateExportVersion(payload.version ?? 1)
-      } catch (err) {
-        if (err instanceof MigrationError) {
-          warnLog(`Import rejected: ${err.message}`)
-          sendResponse({
-            success: false,
-            error: err.message,
-            errorCode: err.code,
-            errorDetails: err.details,
-          })
-          return
-        }
-        throw err
-      }
-
-      // Clear all stores first
-      await mediaDB.clearAll()
-
-      // Import each store — put() auto-stamps schemaVersion
-      let totalImported = 0
-      for (const [storeName, records] of Object.entries(payload.stores)) {
-        // Only import recognized record stores + jav_ids
-        if (!RECORD_STORES.includes(storeName) && storeName !== STORE_NAMES.JAV_IDS) continue
-        for (const [key, record] of Object.entries(records)) {
-          await mediaDB.put(storeName, key, record)
-          totalImported++
-        }
-      }
-
-      // Import settings if present (whitelist allowed keys only)
-      if (payload.settings) {
-        const allowedKeys = new Set<string>(Object.values(STORAGE_KEYS))
-        const filtered: Record<string, any> = {}
-        for (const [key, value] of Object.entries(payload.settings)) {
-          if (allowedKeys.has(key)) {
-            filtered[key] = value
-          }
-        }
-        if (Object.keys(filtered).length > 0) {
-          await chrome.storage.local.set(filtered)
-        }
-      }
-
-      infoLog(`📥 Imported ${totalImported} records across ${Object.keys(payload.stores).length} stores`)
-      sendResponse({ success: true })
-    }
-
-    async function handleGetStatistics(sendResponse: (r?: any) => void) {
-      const stats: Statistics = {
-        total: 0, movie: 0, tv: 0, music: 0, book: 0,
-        douban: 0, imdb: 0, neodb: 0, tmdb: 0,
-      }
-
-      // Per-platform store → platform mapping
-      const storePlatformMap: Record<string, string> = {
-        [STORE_NAMES.DOUBAN]: 'douban',
-        [STORE_NAMES.IMDB]: 'imdb',
-        [STORE_NAMES.NEODB]: 'neodb',
-        [STORE_NAMES.TMDB]: 'tmdb',
-      }
-
-      for (const storeName of RECORD_STORES) {
-        const entries = await mediaDB.getAll(storeName)
-        const platform = storePlatformMap[storeName] || 'unknown'
-
-        stats.total += entries.length
-        if (platform && platform in stats) {
-          (stats as any)[platform] += entries.length
-        }
-
-        // Detect type from key prefix
-        for (const entry of entries) {
-          const type = entry.key.split('::')[0]
-          if (type && type in stats) {
-            (stats as any)[type]++
-          }
-        }
-      }
-
-      sendResponse({ success: true, stats })
-    }
-
-    async function handleShowToast(payload: any, sendResponse: (r?: any) => void) {
-      try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-        if (!tab?.id) {
-          sendResponse({ success: false, error: 'No active tab' })
-          return
-        }
-
-        const toastType = VALID_TOAST_TYPES.includes(payload?.type) ? payload.type : 'info'
-        const toastPayload = { type: toastType, title: payload?.title || '', message: payload?.message }
-
-        // 1) 尝试发送到已加载的内容脚本
-        try {
-          await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', payload: toastPayload })
-          sendResponse({ success: true })
-          return
-        } catch {
-          // 内容脚本未加载 — 走动态注入
-        }
-
-        // 2) 动态注入轻量级 toast（适用于任何页面）
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: __showInlineToast,
-          args: [toastPayload.type, toastPayload.title, toastPayload.message || ''],
-        })
-        sendResponse({ success: true })
-      } catch (err) {
-        sendResponse({ success: false })
-      }
-    }
-
-    /** 轻量级内联 toast — 注入到任意页面，样式与 FloatingToast 完全一致 */
-    function __showInlineToast(type: string, title: string, message: string) {
-      const CONTAINER_ID = 'umm-toast-container'
-      const STYLES_ID = 'umm-toast-styles'
-      const MAX_TOASTS = 3
-      const AUTO_REMOVE_MS = 2800
-
-      // 注入样式（与 toast.ts 完全一致）
-      if (!document.getElementById(STYLES_ID)) {
-        const style = document.createElement('style')
-        style.id = STYLES_ID
-        style.textContent = `
-          .umm-toast {
-            padding: 14px 18px;
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
-            font-size: 14px;
-            min-width: 300px;
-            max-width: 420px;
-            transform: translateX(120%);
-            opacity: 0;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(8px);
-            pointer-events: auto;
-            position: relative;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          }
-          .umm-toast.show {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          .umm-toast--success {
-            background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
-            color: white;
-          }
-          .umm-toast--error {
-            background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
-            color: white;
-          }
-          .umm-toast--info {
-            background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
-            color: white;
-          }
-          .umm-toast--loading {
-            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-          }
-          .umm-toast strong {
-            display: block;
-            margin-bottom: 4px;
-          }
-          .umm-toast p {
-            margin: 0;
-            font-size: 12px;
-            opacity: 0.9;
-          }
-        `
-        document.documentElement.appendChild(style)
-      }
-
-      // 获取或创建容器
-      let ctr = document.getElementById(CONTAINER_ID)
-      if (!ctr) {
-        ctr = document.createElement('div')
-        ctr.id = CONTAINER_ID
-        ctr.style.cssText = `
-          position: fixed;
-          bottom: 24px;
-          right: 24px;
-          z-index: 999999;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          align-items: flex-end;
-          pointer-events: none;
-        `
-        ctr.setAttribute('role', 'region')
-        ctr.setAttribute('aria-label', '通知区域')
-        document.body.appendChild(ctr)
-      }
-
-      // 去重：同标题 2s 内替换
-      const now = Date.now()
-      for (const child of Array.from(ctr.children)) {
-        const el = child as HTMLElement
-        if (el.dataset.ummTitle === title && now - Number(el.dataset.ummTs || 0) < 2000) {
-          el.dataset.ummTs = String(now)
-          const pEl = el.querySelector('p')
-          if (pEl && message) pEl.textContent = message
-          return
-        }
-      }
-
-      // 限制数量
-      while (ctr.children.length >= MAX_TOASTS) {
-        const first = ctr.firstElementChild as HTMLElement | null
-        if (first) {
-          first.classList.remove('show')
-          setTimeout(() => first.remove(), 350)
-        }
-        ctr.firstChild?.remove()
-      }
-
-      // 创建 toast（与 createToastElement 结构一致）
-      const toast = document.createElement('div')
-      toast.className = `umm-toast umm-toast--${type}`
-      toast.dataset.ummTitle = title
-      toast.dataset.ummTs = String(now)
-      toast.setAttribute('role', 'alert')
-      toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite')
-      toast.setAttribute('aria-atomic', 'true')
-
-      const content = document.createElement('div')
-      content.className = 'umm-toast__content'
-      content.innerHTML = `<strong>${escapeHtml(title)}</strong>${message ? `<p>${escapeHtml(message)}</p>` : ''}`
-      toast.appendChild(content)
-
-      ctr.appendChild(toast)
-
-      // 入场动画
-      requestAnimationFrame(() => toast.classList.add('show'))
-
-      // 自动移除
-      setTimeout(() => {
-        toast.classList.remove('show')
-        setTimeout(() => toast.remove(), 350)
-      }, AUTO_REMOVE_MS)
-    }
-
-    // ==================== WebDAV Sync Handlers ====================
-
-    /** Read WebDAV settings from chrome.storage.local */
-    async function getWebDAVSettings() {
-      const result = (await chrome.storage.local.get(null)) as Record<string, any>
-      return {
-        webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
-        webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
-        webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
-      }
-    }
-
-    /** Build local meta for all record stores */
-    async function buildLocalMeta(): Promise<RemoteMeta> {
-      const datasets: DatasetMeta[] = []
-      for (const storeName of RECORD_STORES) {
-        const entries = await mediaDB.getAll(storeName)
-        const hash = await calculateStoreHash(entries)
-        // Find latest updatedAt across entries
-        let latestTs = ''
-        for (const e of entries) {
-          if (e.record.updatedAt > latestTs) latestTs = e.record.updatedAt
-        }
-        datasets.push({
-          key: storeName,
-          hash,
-          updatedAt: latestTs || new Date().toISOString(),
-          recordCount: entries.length,
-          dataVersion: 1,
-        })
-      }
-      // Include jav_ids store in sync metadata
-      const javEntries = await mediaDB.getAll(STORE_NAMES.JAV_IDS)
-      if (javEntries.length > 0) {
-        const javHash = await calculateStoreHash(javEntries)
-        let latestTs = ''
-        for (const e of javEntries) {
-          if (e.record.updatedAt > latestTs) latestTs = e.record.updatedAt
-        }
-        datasets.push({
-          key: STORE_NAMES.JAV_IDS,
-          hash: javHash,
-          updatedAt: latestTs || new Date().toISOString(),
-          recordCount: javEntries.length,
-          dataVersion: 1,
-        })
-      }
-      return {
-        schema: 'umm-meta',
-        version: 1,
-        generatedAt: new Date().toISOString(),
-        datasets,
-      }
-    }
-
-    /** WEBDAV_TEST — check connection */
-    async function handleWebDAVTest(
-      payload: any,
-      sendResponse: (r?: any) => void
-    ) {
-      try {
-        // Popup sends { url, username, password }, but storage uses webdavUrl/Username/Password
-        let webdavUrl: string
-        let webdavUsername: string
-        let webdavPassword: string
-
-        if (payload) {
-          webdavUrl = payload.webdavUrl ?? payload.url ?? ''
-          webdavUsername = payload.webdavUsername ?? payload.username ?? ''
-          webdavPassword = payload.webdavPassword ?? payload.password ?? ''
-        } else {
-          const settings = await getWebDAVSettings()
-          webdavUrl = settings.webdavUrl
-          webdavUsername = settings.webdavUsername
-          webdavPassword = settings.webdavPassword
-        }
-
-        const result = await WebDAV.testConnection(
-          webdavUrl,
-          webdavUsername,
-          webdavPassword
-        )
-        sendResponse({ success: true, ...result })
-      } catch (err: any) {
-        sendResponse({ success: false, message: err?.message || String(err) })
-      }
-    }
-
-    /** WEBDAV_UPLOAD — local → WebDAV */
-    async function handleWebDAVUpload(sendResponse: (r?: any) => void) {
-      try {
-        const { webdavUrl, webdavUsername, webdavPassword } =
-          await getWebDAVSettings()
-        if (!webdavUrl) {
-          sendResponse({ success: false, error: 'WebDAV URL not configured' })
-          return
-        }
-
-        // Ensure directory exists
-        await WebDAV.createDirectory(webdavUrl, webdavUsername, webdavPassword)
-
-        let totalUploaded = 0
-        const datasetMetas: DatasetMeta[] = []
-
-        for (const storeName of RECORD_STORES) {
-          const entries = await mediaDB.getAll(storeName)
-          if (entries.length === 0) {
-            datasetMetas.push({
-              key: storeName,
-              hash: 'empty',
-              updatedAt: new Date().toISOString(),
-              recordCount: 0,
-              dataVersion: 1,
-            })
-            continue
-          }
-
-          const { blob, meta } = await packageDataset(storeName, entries)
-          await WebDAV.uploadDataset(
-            webdavUrl,
-            webdavUsername,
-            webdavPassword,
-            storeName,
-            blob
-          )
-          datasetMetas.push(meta)
-          totalUploaded += entries.length
-        }
-
-        // Upload consolidated meta.json
-        const remoteMeta: RemoteMeta = {
-          schema: 'umm-meta',
-          version: 1,
-          generatedAt: new Date().toISOString(),
-          datasets: datasetMetas,
-        }
-        await WebDAV.uploadMeta(
-          webdavUrl,
-          webdavUsername,
-          webdavPassword,
-          remoteMeta
-        )
-
-        sendResponse({
-          success: true,
-          totalUploaded,
-          timestamp: remoteMeta.generatedAt,
-          direction: 'upload',
-          message: `已上传 ${totalUploaded} 条记录`,
-        })
-      } catch (err: any) {
-        errorLog('WebDAV upload failed:', err)
-        sendResponse({ success: false, error: err?.message || String(err), message: err?.message || '上传失败' })
-      }
-    }
-
-    /** WEBDAV_DOWNLOAD — WebDAV → local */
-    async function handleWebDAVDownload(sendResponse: (r?: any) => void) {
-      try {
-        const { webdavUrl, webdavUsername, webdavPassword } =
-          await getWebDAVSettings()
-        if (!webdavUrl) {
-          sendResponse({ success: false, error: 'WebDAV URL not configured' })
-          return
-        }
-
-        const remoteMeta = await WebDAV.fetchRemoteMeta(
-          webdavUrl,
-          webdavUsername,
-          webdavPassword
-        )
-        if (!remoteMeta) {
-          sendResponse({ success: false, error: 'No remote data found', message: '云端没有数据' })
-          return
-        }
-
-        let totalDownloaded = 0
-        for (const ds of remoteMeta.datasets) {
-          if (ds.recordCount === 0) continue
-          try {
-            const blob = await WebDAV.downloadDataset(
-              webdavUrl,
-              webdavUsername,
-              webdavPassword,
-              ds.key
-            )
-            const { data } = await unpackageDataset(blob)
-
-            // Write records to local DB
-            for (const [key, record] of Object.entries(data)) {
-              await mediaDB.put(ds.key as RecordStoreName, key, record)
-            }
-            totalDownloaded += Object.keys(data).length
-          } catch (dsErr: any) {
-            errorLog(`WebDAV download skipped '${ds.key}': ${dsErr?.message || String(dsErr)}`)
-            continue
-          }
-        }
-
-        sendResponse({
-          success: true,
-          totalDownloaded,
-          timestamp: remoteMeta.generatedAt,
-          direction: 'download',
-          message: `已下载 ${totalDownloaded} 条记录`,
-        })
-      } catch (err: any) {
-        errorLog('WebDAV download failed:', err)
-        sendResponse({ success: false, error: err?.message || String(err), message: err?.message || '下载失败' })
-      }
-    }
-
-    /** WEBDAV_SYNC — merge: compare local vs remote, sync each dataset directionally */
-    async function handleWebDAVSync(sendResponse: (r?: any) => void) {
-      try {
-        const { webdavUrl, webdavUsername, webdavPassword } =
-          await getWebDAVSettings()
-        if (!webdavUrl) {
-          sendResponse({ success: false, error: 'WebDAV URL not configured' })
-          return
-        }
-
-        // Build local meta
-        const localMeta = await buildLocalMeta()
-        const localMap = new Map(localMeta.datasets.map(d => [d.key, d]))
-
-        // Fetch remote meta
-        const remoteMeta = await WebDAV.fetchRemoteMeta(
-          webdavUrl,
-          webdavUsername,
-          webdavPassword
-        )
-        const remoteMap = new Map(
-          (remoteMeta?.datasets || []).map(d => [d.key, d])
-        )
-
-        // Get all store names to sync
-        const allKeys = new Set([...localMap.keys(), ...remoteMap.keys()])
-
-        let uploaded = 0
-        let downloaded = 0
-        let skipped = 0
-        const resultingMetas: DatasetMeta[] = []
-
-        for (const key of allKeys) {
-          // Lookup before try so catch can access them
-          const local = localMap.get(key)
-          const remote = remoteMap.get(key)
-
-          // Isolate per-dataset: one failure should not break the whole sync
-          try {
-
-            // Both empty → skip
-            if (
-              (!local || local.recordCount === 0) &&
-              (!remote || remote.recordCount === 0)
-            ) {
-              skipped++
-              resultingMetas.push(
-                local || remote || {
-                  key,
-                  hash: 'empty',
-                  updatedAt: new Date().toISOString(),
-                  recordCount: 0,
-                  dataVersion: 1,
-                }
-              )
-              continue
-            }
-
-            // Only local → upload
-            if (!remote || remote.recordCount === 0) {
-              const entries = await mediaDB.getAll(key as RecordStoreName)
-              const { blob, meta } = await packageDataset(key as RecordStoreName, entries)
-              await WebDAV.uploadDataset(
-                webdavUrl,
-                webdavUsername,
-                webdavPassword,
-                key,
-                blob
-              )
-              resultingMetas.push(meta)
-              uploaded += entries.length
-              continue
-            }
-
-            // Only remote → download
-            if (!local || local.recordCount === 0) {
-              const blob = await WebDAV.downloadDataset(
-                webdavUrl,
-                webdavUsername,
-                webdavPassword,
-                key
-              )
-              const { data } = await unpackageDataset(blob)
-              for (const [recordKey, record] of Object.entries(data)) {
-                await mediaDB.put(key as RecordStoreName, recordKey, record)
-              }
-              resultingMetas.push(remote)
-              downloaded += Object.keys(data).length
-              continue
-            }
-
-            // Both have data — compare hashes
-            if (local.hash === remote.hash) {
-              skipped++
-              resultingMetas.push(local)
-              continue
-            }
-
-            // Different hashes — compare updatedAt, newer wins
-            if (local.updatedAt >= remote.updatedAt) {
-              // Local is newer → upload
-              const entries = await mediaDB.getAll(key as RecordStoreName)
-              const { blob, meta } = await packageDataset(key as RecordStoreName, entries)
-              await WebDAV.uploadDataset(
-                webdavUrl,
-                webdavUsername,
-                webdavPassword,
-                key,
-                blob
-              )
-              resultingMetas.push(meta)
-              uploaded += entries.length
-            } else {
-              // Remote is newer → download
-              const blob = await WebDAV.downloadDataset(
-                webdavUrl,
-                webdavUsername,
-                webdavPassword,
-                key
-              )
-              const { data } = await unpackageDataset(blob)
-              for (const [recordKey, record] of Object.entries(data)) {
-                await mediaDB.put(key as RecordStoreName, recordKey, record)
-              }
-              resultingMetas.push(remote)
-              downloaded += Object.keys(data).length
-            }
-          } catch (dsErr: any) {
-            errorLog(`WebDAV sync skipped dataset '${key}': ${dsErr?.message || String(dsErr)}`)
-            // Keep the old meta entry so the resulting meta stays valid
-            resultingMetas.push(local || remote || {
-              key,
-              hash: 'empty',
-              updatedAt: new Date().toISOString(),
-              recordCount: 0,
-              dataVersion: 1,
-            })
-            continue
-          }
-        }
-
-        // Update remote meta after merge
-        const newRemoteMeta: RemoteMeta = {
-          schema: 'umm-meta',
-          version: 1,
-          generatedAt: new Date().toISOString(),
-          datasets: resultingMetas,
-        }
-        // Ensure directory exists before writing meta
-        await WebDAV.createDirectory(webdavUrl, webdavUsername, webdavPassword)
-        await WebDAV.uploadMeta(
-          webdavUrl,
-          webdavUsername,
-          webdavPassword,
-          newRemoteMeta
-        )
-
-        const parts: string[] = []
-        if (uploaded > 0) parts.push(`上传 ${uploaded} 条`)
-        if (downloaded > 0) parts.push(`下载 ${downloaded} 条`)
-        if (skipped > 0) parts.push(`${skipped} 个数据集无变化`)
-        const msg = parts.length > 0 ? parts.join('，') : '所有数据集均无变化'
-
-        sendResponse({
-          success: true,
-          direction: 'merge',
-          message: msg,
-          uploaded,
-          downloaded,
-          skipped,
-          timestamp: newRemoteMeta.generatedAt,
-        })
-      } catch (err: any) {
-        errorLog('WebDAV sync failed:', err)
-        sendResponse({ success: false, error: err?.message || String(err), message: err?.message || '同步失败' })
-      }
-    }
-
-    // ==================== NeoDB Push ====================
-
-    /**
-     * Build Douban URL from provider info
-     * @returns URL like https://movie.douban.com/subject/1297924/
-     */
-    function buildDoubanUrl(type: string, providerId: string): string {
-      const domain = type === 'music' ? 'music.douban.com'
-        : type === 'book' ? 'book.douban.com'
-        : 'movie.douban.com'
-      return `https://${domain}/subject/${providerId}/`
-    }
-
-    /** Map numeric status to NeoDB shelf type */
-    function statusToShelfType(status: number): 'complete' | 'progress' | 'wishlist' {
-      if (status === 2) return 'complete'
-      if (status === 1) return 'progress'
-      return 'wishlist'
-    }
-
-    /** NEODB_PUSH_RATING — push rating from Douban to NeoDB */
-    async function handleNeoDBPushRating(
-      payload: any,
-      sendResponse: (r?: any) => void
-    ) {
-      try {
-        const record = payload?.record
-        if (!record?.providerId || !record?.type || !record?.provider) {
-          sendResponse({ success: false, message: 'Missing required fields' })
-          return
-        }
-
-        // Get NeoDB token
-        const result = (await chrome.storage.local.get(STORAGE_KEYS.NEODB_TOKEN)) as Record<string, any>
-        const token = result[STORAGE_KEYS.NEODB_TOKEN] || ''
-        if (!token) {
-          sendResponse({ success: false, message: 'NeoDB token not configured' })
-          return
-        }
-
-        const doubanUrl = buildDoubanUrl(record.type, record.providerId)
-        infoLog('[NeoDB] Fetching catalog for:', doubanUrl)
-
-        // 1. Fetch catalog UUID with retry for 404 (NeoDB triggers background fetch on first request)
-        // 429 = NeoDB 无法抓取对应数据，无需重试
-        let catalog: { uuid: string } | null = null
-        const maxRetries = 3
-        const retryDelays = [2000, 3000, 5000] // 2s, 3s, 5s
-
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          try {
-            catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token)
-            infoLog('[NeoDB] Catalog result:', { uuid: catalog.uuid, hasUuid: !!catalog.uuid, attempt })
-            break // Success
-          } catch (fetchErr: any) {
-            if (fetchErr instanceof NeoDB.NeoDBError) {
-              // 429 = NeoDB 无法抓取，直接失败
-              if (fetchErr.status === 429) {
-                warnLog('[NeoDB] Rate limited (429) — NeoDB 无法抓取该作品数据')
-                sendResponse({ success: false, message: '[429] NeoDB 无法抓取该作品数据' })
-                return
-              }
-              // 404 = NeoDB 正在后台拉取，等待后重试
-              if (fetchErr.status === 404 && attempt < maxRetries) {
-                const delay = retryDelays[attempt]
-                warnLog(`[NeoDB] Catalog not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
-                await new Promise(resolve => setTimeout(resolve, delay))
-              } else {
-                throw fetchErr
-              }
-            } else {
-              throw fetchErr
-            }
-          }
-        }
-
-        if (!catalog?.uuid) {
-          sendResponse({ success: false, message: 'NeoDB 未找到该作品（已重试多次）' })
-          return
-        }
-
-        // 2. Mark on shelf with retry for 404 only
-        const shelfType = statusToShelfType(record.status ?? 0)
-        const rating = record.rating ?? 0
-        const comment = record.comment ?? ''
-        let shelfItem: any = null
-
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          try {
-            shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, comment, token)
-            break // Success
-          } catch (markErr: any) {
-            if (markErr instanceof NeoDB.NeoDBError) {
-              if (markErr.status === 429) {
-                warnLog('[NeoDB] Rate limited (429) on markItem')
-                sendResponse({ success: false, message: '[429] NeoDB 请求过于频繁' })
-                return
-              }
-              if (markErr.status === 404 && attempt < maxRetries) {
-                const delay = retryDelays[attempt]
-                warnLog(`[NeoDB] Mark item failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
-                await new Promise(resolve => setTimeout(resolve, delay))
-              } else {
-                throw markErr
-              }
-            } else {
-              throw markErr
-            }
-          }
-        }
-
-        infoLog('[NeoDB] Push success:', { catalogUuid: catalog.uuid, shelfItemUuid: shelfItem?.uuid })
-        sendResponse({ success: true, shelfItem, catalogUuid: catalog.uuid })
-      } catch (err: any) {
-        const msg = err instanceof NeoDB.NeoDBError
-          ? err.message
-          : err?.message || '推送失败'
-        errorLog('NeoDB push failed:', msg)
-        sendResponse({ success: false, message: msg })
       }
     }
 

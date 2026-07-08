@@ -1,0 +1,108 @@
+/* ===== UMM Douban Page Layout — Shared structural styles ===== */
+/* Applied to every Douban page via UmmPageLayout template. */
+/* Page-specific content styles remain in their respective CSS files. */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.umm-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--umm-text-primary);
+  background: var(--umm-bg);
+}
+
+.umm-layout-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--umm-z-sticky, 50);
+  padding-top: var(--umm-space-md, 12px);
+  padding-bottom: 0;
+  background: var(--umm-bg);
+}
+
+.umm-layout-content {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.umm-layout-footer {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--umm-space-lg, 20px) 0;
+  border-top: 1px solid var(--umm-card-border);
+  margin-top: auto;
+}
+
+.umm-footer-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 0 var(--umm-space-xl, 24px);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.umm-footer-copyright {
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+}
+
+.umm-footer-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  color: var(--umm-text-muted);
+}
+
+.umm-footer-links a {
+  color: var(--umm-link, var(--umm-text-secondary));
+  text-decoration: none;
+  transition: color .15s;
+}
+
+.umm-footer-links a:hover {
+  color: var(--umm-link-hover);
+  text-decoration: underline;
+}
+
+.umm-footer-extra {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--umm-space-sm, 8px);
+  padding: 0 var(--umm-space-xl, 24px);
+  font-size: 12px;
+  color: var(--umm-text-muted);
+}
+
+.umm-footer-github {
+  display: inline-flex;
+  align-items: center;
+  color: var(--umm-text-muted);
+  text-decoration: none;
+  transition: color .15s;
+  line-height: 0;
+}
+
+.umm-footer-github:hover {
+  color: var(--umm-text-primary);
+}
+
+.umm-footer-version {
+  color: var(--umm-text-muted);
+}

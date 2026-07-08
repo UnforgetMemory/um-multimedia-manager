@@ -1,0 +1,392 @@
+/* ===== UMM Douban Personage Overlay — Shadow DOM styles ===== */
+
+:host {
+  --umm-personage-accent: #f43f5e;
+  --umm-personage-card-bg: #ffffff;
+  --umm-personage-card-border: #e5e7eb;
+  --umm-personage-section-border: #e5e7eb;
+  --umm-rating-score: #e0901a;
+}
+
+:host(.umm-theme--dark) {
+  --umm-personage-accent: #fb7185;
+  --umm-personage-card-bg: #2a2b30;
+  --umm-personage-card-border: #3a3b40;
+  --umm-personage-section-border: #3a3b40;
+  --umm-rating-score: #e0901a;
+}
+
+/* ===== Root layout ===== */
+
+.umm-personage-root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--umm-space-md, 16px) clamp(16px, 4vw, 64px) var(--umm-space-lg, 24px);
+}
+
+/* ===== Profile header ===== */
+
+.umm-profile-header {
+  display: grid;
+  grid-template-columns: clamp(100px, 16vw, 200px) 1fr;
+  gap: var(--umm-space-lg, 24px);
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+
+.umm-profile-avatar {
+  width: 100%;
+  aspect-ratio: var(--umm-aspect-poster);
+  border-radius: var(--umm-card-radius, 10px);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 2px solid var(--umm-personage-card-border);
+}
+
+.umm-profile-info { min-width: 0; }
+
+.umm-profile-name {
+  font-size: var(--umm-font-2xl, 1.5rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0 0 var(--umm-space-sm, 8px);
+}
+
+.umm-profile-props {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs, 4px);
+}
+
+.umm-profile-prop {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.5;
+}
+
+.umm-profile-prop-label {
+  font-weight: 500;
+  color: var(--umm-text-muted);
+  margin-right: var(--umm-space-xs, 4px);
+}
+
+/* ===== Section ===== */
+
+.umm-section { margin-bottom: var(--umm-space-xl, 32px); }
+
+.umm-section-title {
+  font-size: var(--umm-font-lg, 1rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin: 0 0 var(--umm-space-md, 12px);
+  padding-bottom: var(--umm-space-sm, 8px);
+  border-bottom: 2px solid var(--umm-personage-accent);
+  display: inline-block;
+}
+
+/* ===== Biography ===== */
+
+.umm-bio-text {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  line-height: 1.7;
+  color: var(--umm-text-secondary);
+  margin: 0;
+  max-height: 120px;
+  overflow: hidden;
+  position: relative;
+}
+
+.umm-bio-text--expanded { max-height: none; }
+
+.umm-bio-expand {
+  display: inline-block;
+  margin-top: var(--umm-space-xs, 4px);
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-link, var(--umm-personage-accent));
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+}
+
+/* ===== Photo gallery ===== */
+
+.umm-photo-strip {
+  display: flex;
+  gap: var(--umm-space-sm, 8px);
+  overflow-x: auto;
+  padding-bottom: var(--umm-space-xs, 4px);
+}
+
+.umm-photo-thumb {
+  width: clamp(80px, 14vw, 160px);
+  min-width: clamp(80px, 14vw, 160px);
+  aspect-ratio: var(--umm-aspect-poster);
+  border-radius: var(--umm-card-radius, 8px);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  border: 1px solid var(--umm-personage-card-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.umm-photo-thumb:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+:host(.umm-theme--dark) .umm-photo-thumb:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== Awards list ===== */
+
+.umm-awards-list { list-style: none; margin: 0; padding: 0; }
+
+.umm-award-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 8px);
+  padding: var(--umm-space-xs, 4px) 0;
+  font-size: var(--umm-font-sm, 0.8125rem);
+  border-bottom: 1px solid var(--umm-personage-section-border);
+}
+
+.umm-award-item:last-child { border-bottom: none; }
+
+.umm-award-year {
+  font-weight: 500;
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+  min-width: 48px;
+}
+
+.umm-award-name {
+  color: var(--umm-text-primary);
+  text-decoration: none;
+}
+
+.umm-award-name:hover { color: var(--umm-link, var(--umm-personage-accent)); }
+
+.umm-award-status { color: var(--umm-text-secondary); }
+
+.umm-award-work {
+  color: var(--umm-text-primary);
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.umm-award-work:hover { color: var(--umm-link, var(--umm-personage-accent)); }
+
+/* ===== Works grid — 12-level responsive ===== */
+
+.umm-works-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-md, 12px);
+}
+
+@media (min-width: 375px) { .umm-works-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 480px) { .umm-works-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 640px) { .umm-works-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 768px) { .umm-works-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1024px) { .umm-works-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1280px) { .umm-works-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1536px) { .umm-works-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1920px) { .umm-works-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 2560px) { .umm-works-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 3200px) { .umm-works-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 3840px) { .umm-works-grid { grid-template-columns: repeat(8, 1fr); } }
+@media (min-width: 5120px) { .umm-works-grid { grid-template-columns: repeat(8, 1fr); } }
+
+/* ===== Unreleased works grid — 12-level responsive ===== */
+
+.umm-unreleased-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-xs, 4px);
+}
+
+@media (min-width: 480px) { .umm-unreleased-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 640px) { .umm-unreleased-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .umm-unreleased-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1536px) { .umm-unreleased-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 2560px) { .umm-unreleased-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 3840px) { .umm-unreleased-grid { grid-template-columns: repeat(7, 1fr); } }
+
+.umm-unreleased-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-xs, 4px);
+  padding: var(--umm-space-xs, 4px) var(--umm-space-sm, 8px);
+  border-radius: var(--umm-card-radius, 6px);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+  font-size: var(--umm-font-sm, 0.8125rem);
+}
+
+.umm-unreleased-item:hover { background: var(--umm-bg-secondary); }
+
+.umm-unreleased-title {
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-unreleased-year {
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+  font-size: var(--umm-font-xs, 0.75rem);
+}
+
+/* ===== Button (consistent with .umm-nav-btn from photos) ===== */
+
+.umm-personage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--umm-space-xs, 4px);
+  padding: 7px 18px;
+  border: 1px solid var(--umm-card-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--umm-card-bg, #ffffff);
+  color: var(--umm-text-primary, #1a1a1a);
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+.umm-personage-btn:hover {
+  background: var(--umm-bg-secondary, #f8f9fa);
+  border-color: var(--umm-text-muted, #aaaaaa);
+}
+
+/* ===== Partners grid — 12-level responsive ===== */
+
+.umm-partners-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-md, 12px);
+}
+
+@media (min-width: 480px) { .umm-partners-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 640px) { .umm-partners-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1024px) { .umm-partners-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1280px) { .umm-partners-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1920px) { .umm-partners-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 2560px) { .umm-partners-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 3200px) { .umm-partners-grid { grid-template-columns: repeat(8, 1fr); } }
+@media (min-width: 3840px) { .umm-partners-grid { grid-template-columns: repeat(8, 1fr); } }
+@media (min-width: 5120px) { .umm-partners-grid { grid-template-columns: repeat(9, 1fr); } }
+
+.umm-partner-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+  background: var(--umm-card-bg, #ffffff);
+  border: 1px solid var(--umm-card-border, #e5e7eb);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.umm-partner-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+:host(.umm-theme--dark) .umm-partner-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.umm-partner-cover {
+  width: 100%;
+  aspect-ratio: var(--umm-aspect-poster);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary, #f8f9fa);
+}
+
+.umm-partner-body {
+  padding: var(--umm-space-sm, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs, 4px);
+}
+
+.umm-partner-name {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 600;
+  color: var(--umm-text-primary, #1a1a1a);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-partner-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted, #aaaaaa);
+}
+
+/* UmmMediaCard grid-mode styles (shared with detail page) */
+.umm-rec-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs, 4px);
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+  transition: transform 0.15s ease;
+}
+.umm-rec-item:hover { transform: translateY(-2px); }
+.umm-rec-cover {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--umm-card-radius, 8px);
+  aspect-ratio: var(--umm-aspect-poster);
+}
+.umm-rec-cover .umm-image-img {
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.umm-rec-cover:hover .umm-image-img { transform: scale(1.08); }
+.umm-rec-title {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  color: var(--umm-text-primary, #1a1a1a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+.umm-rec-rating {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-rating-score, #e0901a);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+/* ===== Empty / fallback states ===== */
+
+.umm-personage-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--umm-space-2xl, 32px) var(--umm-space-lg, 24px);
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted, #aaaaaa);
+}

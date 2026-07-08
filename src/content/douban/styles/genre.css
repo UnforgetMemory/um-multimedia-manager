@@ -1,0 +1,168 @@
+/* ===== UMM Douban Genre Page — Shadow DOM styles ===== */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Root panel */
+.umm-genre-root {
+  padding: var(--umm-space-lg, 20px) 0;
+}
+
+/* Genre header */
+.umm-genre-header {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-md, 12px);
+  padding: 0 var(--umm-space-xl, 24px);
+  margin-bottom: var(--umm-space-lg, 20px);
+}
+
+.umm-genre-title {
+  font-size: var(--umm-font-2xl, 1.5rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+
+/* Genre nav links */
+.umm-genre-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-xs, 4px);
+  padding: 0 var(--umm-space-xl, 24px);
+  margin-bottom: var(--umm-space-lg, 20px);
+}
+
+.umm-genre-nav-link,
+.umm-genre-nav-current {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: var(--umm-font-sm, 0.8125rem);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.umm-genre-nav-link {
+  color: var(--umm-text-secondary);
+  background: var(--umm-bg-secondary);
+}
+
+.umm-genre-nav-link:hover {
+  background: var(--umm-accent);
+  color: #fff;
+}
+
+.umm-genre-nav-current {
+  color: #fff;
+  background: var(--umm-accent);
+  font-weight: 600;
+}
+
+/* Artist grid — responsive */
+.umm-artist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-md, 12px);
+  padding: 0 var(--umm-space-xl, 24px);
+}
+
+@media (min-width: 480px) { .umm-artist-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 640px) { .umm-artist-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 768px) { .umm-artist-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1024px) { .umm-artist-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 1440px) { .umm-artist-grid { grid-template-columns: repeat(8, 1fr); } }
+
+/* Artist card */
+.umm-artist-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--umm-space-xs, 6px);
+  text-decoration: none;
+  color: inherit;
+  padding: var(--umm-space-md, 12px);
+  border-radius: var(--umm-radius-md, 10px);
+  transition: background 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.umm-artist-card:hover {
+  background: var(--umm-bg-secondary);
+  transform: translateY(-2px);
+}
+
+.umm-artist-avatar {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-artist-name {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.umm-artist-likes {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+}
+
+/* Pagination */
+.umm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--umm-space-sm, 8px);
+  padding: var(--umm-space-lg, 20px) var(--umm-space-xl, 24px);
+}
+
+.umm-page-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: var(--umm-font-sm, 0.8125rem);
+  border-radius: var(--umm-radius-md, 8px);
+  text-decoration: none;
+  color: var(--umm-text-secondary);
+  background: var(--umm-bg-secondary);
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+.umm-page-btn:hover {
+  background: var(--umm-accent);
+  color: #fff;
+}
+
+.umm-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.umm-page-info {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+  padding: 0 var(--umm-space-sm, 8px);
+}
+
+/* Hide native elements */
+#db-global-nav,
+#db-nav-music {
+  display: none !important;
+}

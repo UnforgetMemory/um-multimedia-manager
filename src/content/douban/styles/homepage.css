@@ -1,0 +1,505 @@
+/* ===== UMM Douban Homepage — Shadow DOM styles ===== */
+/* Migrated to content/douban/styles/homepage.css */
+/* Shadow DOM provides full style isolation. No !important needed. */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  --umm-border-light: var(--umm-border, #f0f0f0);
+  --umm-card-bg: transparent;
+  --umm-mask-from: var(--umm-color-surface, #ffffff);
+}
+
+:host(.umm-theme--dark) {
+  --umm-border-light: #2c2e33;
+  --umm-card-bg: transparent;
+  --umm-mask-from: var(--umm-color-surface, #1a1b1e);
+}
+
+/* Scrollbar track inside scroll rows */
+.umm-scroll-track::-webkit-scrollbar {
+  height: 4px;
+}
+.umm-scroll-track::-webkit-scrollbar-track {
+  background: var(--umm-bg-secondary, #f8f9fa);
+  border-radius: 2px;
+}
+.umm-scroll-track::-webkit-scrollbar-thumb {
+  background: var(--umm-border, #e5e7eb);
+  border-radius: 2px;
+}
+.umm-scroll-track {
+  scrollbar-width: thin;
+  scrollbar-color: var(--umm-border, #e5e7eb) var(--umm-bg-secondary, #f8f9fa);
+}
+
+/* ---- Root panel ---- */
+.umm-top-panel {
+  display: block;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: var(--umm-space-lg) 0;
+  background: var(--umm-bg);
+  position: relative;
+  z-index: var(--umm-z-overlay, 300);
+  overflow: visible;
+  color: var(--umm-text-primary);
+}
+
+/* ---- Sections ---- */
+
+/* ---- Sections ---- */
+.umm-section {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--umm-space-xl);
+  padding: 0;
+}
+
+.umm-section-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--umm-space-lg) var(--umm-space-sm);
+  border-bottom: 1px solid var(--umm-border);
+  margin-bottom: var(--umm-space-sm);
+}
+
+.umm-section-hd h2 {
+  font-size: var(--umm-font-md);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+
+/* ---- Scroll row ---- */
+.umm-scroll-wrap {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.umm-scroll-track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--umm-space-md);
+  padding: var(--umm-space-sm) var(--umm-space-2xl);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--umm-border) var(--umm-bg-secondary);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.umm-scroll-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.umm-scroll-track::-webkit-scrollbar-track {
+  background: var(--umm-bg-secondary);
+  border-radius: 3px;
+}
+
+.umm-scroll-track::-webkit-scrollbar-thumb {
+  background: var(--umm-border);
+  border-radius: 3px;
+}
+
+.umm-scroll-track::-webkit-scrollbar-thumb:hover {
+  background: var(--umm-text-muted);
+}
+
+/* ---- Scroll masks (fade edges) ---- */
+.umm-mask {
+  position: absolute;
+  top: 0;
+  width: clamp(40px, 3vw, 80px);
+  height: 100%;
+  pointer-events: none;
+  z-index: var(--umm-z-backdrop, 10);
+}
+
+.umm-mask--left {
+  left: 0;
+  background: linear-gradient(to right, var(--umm-mask-from), transparent);
+}
+
+.umm-mask--right {
+  right: 0;
+  background: linear-gradient(to left, var(--umm-mask-from), transparent);
+}
+
+/* ---- Item reset helpers ---- */
+.umm-item-reset {
+  display: block;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.umm-item-inner {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- Media card ---- */
+.umm-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs);
+  width: var(--umm-card-width);
+  min-width: var(--umm-card-width);
+  position: relative;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.umm-card:link,
+.umm-card:visited,
+.umm-card:hover,
+.umm-card:active {
+  color: inherit;
+  text-decoration: none;
+  background: transparent;
+  outline: none;
+  border: none;
+}
+
+.umm-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.umm-card:active {
+  transform: translateY(-2px) scale(1);
+  transition: transform 0.1s ease;
+}
+
+/* ---- Card cover ---- */
+.umm-card-cover {
+  position: relative;
+  width: var(--umm-card-width);
+  border-radius: var(--umm-card-radius);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--umm-bg-secondary);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.umm-card-cover > .umm-image-container > .umm-image-img {
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.umm-card-cover:hover > .umm-image-container > .umm-image-img {
+  transform: scale(1.08);
+}
+
+.umm-card:hover .umm-card-cover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
+              0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.umm-card-title {
+  display: block;
+  margin-top: var(--umm-space-xs);
+  font-size: var(--umm-font-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: var(--umm-card-width);
+}
+
+.umm-card-rating {
+  display: inline-block;
+  font-size: var(--umm-font-xs);
+  color: var(--umm-text-muted);
+}
+
+/* ---- Billboard card (enhanced with medal visuals) ---- */
+.umm-billboard-card {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--umm-space-sm);
+  padding: var(--umm-space-xs) var(--umm-space-md);
+  padding-left: var(--umm-space-lg);
+  border-radius: var(--umm-card-radius);
+  text-decoration: none;
+  color: var(--umm-text-primary);
+  background: var(--umm-bg-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+  border: 1px solid var(--umm-border-light);
+  border-left: 3px solid var(--umm-border-light);
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+/* Left accent stripe by rank */
+.umm-billboard-card--gold {
+  border-left-color: #daa520;
+}
+.umm-billboard-card--silver {
+  border-left-color: #a0a0a0;
+}
+.umm-billboard-card--bronze {
+  border-left-color: #cd7f32;
+}
+
+.umm-billboard-card:link,
+.umm-billboard-card:visited,
+.umm-billboard-card:hover,
+.umm-billboard-card:active {
+  color: var(--umm-text-primary);
+  text-decoration: none;
+  background: inherit;
+  outline: none;
+  border-color: inherit;
+}
+.umm-billboard-card--gold:link,
+.umm-billboard-card--gold:visited,
+.umm-billboard-card--gold:hover,
+.umm-billboard-card--gold:active {
+  border-left-color: #daa520;
+}
+.umm-billboard-card--silver:link,
+.umm-billboard-card--silver:visited,
+.umm-billboard-card--silver:hover,
+.umm-billboard-card--silver:active {
+  border-left-color: #a0a0a0;
+}
+.umm-billboard-card--bronze:link,
+.umm-billboard-card--bronze:visited,
+.umm-billboard-card--bronze:hover,
+.umm-billboard-card--bronze:active {
+  border-left-color: #cd7f32;
+}
+
+.umm-billboard-card:hover {
+  background: var(--umm-bg);
+  border-color: var(--umm-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.umm-billboard-card:active {
+  transform: translateY(0);
+  transition: transform 0.1s ease;
+}
+
+/* ---- Rank order number (medal badge) ---- */
+.umm-billboard-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--umm-font-lg);
+  height: var(--umm-font-lg);
+  min-width: var(--umm-font-lg);
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: calc(var(--umm-font-xs) * 0.85);
+  text-align: center;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  color: #ffffff;
+  background: var(--umm-text-muted);
+}
+.umm-billboard-card:hover .umm-billboard-order {
+  transform: scale(1.15);
+}
+
+/* Gold medal — #1 */
+.umm-billboard-order--gold {
+  background: linear-gradient(135deg, #ffd700 0%, #daa520 60%, #b8860b 100%);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: var(--umm-font-sm);
+}
+.umm-billboard-card:hover .umm-billboard-order--gold {
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Silver medal — #2 */
+.umm-billboard-order--silver {
+  background: linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 50%, #a0a0a0 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: #fff;
+}
+.umm-billboard-card:hover .umm-billboard-order--silver {
+  box-shadow: 0 0 12px rgba(192, 192, 192, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Bronze medal — #3 */
+.umm-billboard-order--bronze {
+  background: linear-gradient(135deg, #e8a060 0%, #cd7f32 50%, #a0522d 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: #fff;
+}
+.umm-billboard-card:hover .umm-billboard-order--bronze {
+  box-shadow: 0 0 12px rgba(205, 127, 50, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark theme — adjust left accent and medal */
+:host(.umm-theme--dark) .umm-billboard-card--gold {
+  border-left-color: #b8860b;
+}
+:host(.umm-theme--dark) .umm-billboard-card--silver {
+  border-left-color: #808080;
+}
+:host(.umm-theme--dark) .umm-billboard-card--bronze {
+  border-left-color: #8b5a2b;
+}
+:host(.umm-theme--dark) .umm-billboard-order--gold {
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+:host(.umm-theme--dark) .umm-billboard-order--silver {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+:host(.umm-theme--dark) .umm-billboard-order--bronze {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.umm-billboard-title {
+  font-size: var(--umm-font-sm);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  transition: color 0.2s ease;
+  max-width: 220px;
+}
+
+/* ---- Hot card wrapper ---- */
+.umm-hot-card {
+  flex-shrink: 0;
+}
+
+/* ---- Episodes badge ---- */
+.umm-episodes {
+  position: absolute;
+  bottom: var(--umm-space-xs);
+  left: var(--umm-space-xs);
+  padding: var(--umm-space-xs) var(--umm-space-sm);
+  border-radius: var(--umm-card-radius);
+  font-size: var(--umm-font-xs);
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* ---- Hide original Douban elements ---- */
+#db-global-nav,
+#db-nav-movie,
+#db-nav-music,
+#screening,
+#billboard,
+.recent-hot-movie,
+.recent-hot-tv,
+#reviews {
+  display: none !important;
+}
+
+.umm-grid-wrap {
+  width: 100%;
+  padding: var(--umm-space-sm) var(--umm-space-2xl);
+  box-sizing: border-box;
+}
+
+.umm-grid-track {
+  display: grid;
+  column-gap: var(--umm-space-md);
+  row-gap: var(--umm-space-lg);
+  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.umm-rec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+}
+
+.umm-rec-item:hover {
+  transform: translateY(-2px);
+}
+
+.umm-rec-cover {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--umm-card-radius, 8px);
+}
+
+.umm-rec-title {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+.umm-rec-rating {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-rating-score);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.umm-grid-track .umm-rec-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.umm-grid-track .umm-rec-item .umm-rating {
+  font-size: clamp(0.75rem, 0.55rem + 0.45vw, 1.125rem);
+}
+
+.umm-grid-track .umm-rec-cover {
+  width: 100%;
+}
+
+@media (min-width: 1280px) {
+  .umm-grid-track { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (min-width: 1920px) {
+  .umm-grid-track { grid-template-columns: repeat(7, 1fr); }
+}
+
+@media (min-width: 2560px) {
+  .umm-grid-track { grid-template-columns: repeat(8, 1fr); }
+}
+
+@media (min-width: 3200px) {
+  .umm-grid-track { grid-template-columns: repeat(9, 1fr); }
+}

@@ -5,15 +5,8 @@
 import { Utils } from '@/utils'
 import { t } from '../i18n'
 
-/** Escape HTML special characters — pure regex, no DOM element creation */
-export function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+import { escapeHtml } from '@/utils/escape-html'
+export { escapeHtml }
 
 /**
  * 等待元素出现（Promise 版本）

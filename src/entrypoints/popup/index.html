@@ -3,20 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UMManager</title>
+  <title>UMManager</title>
   <style>
     html, body { margin: 0; padding: 0; width: 480px; height: 480px; overflow-y: auto; }
-    :root {
-      --popup-max-width: 560px;
-      --page-margin: 20px;
-      --section-gap: 24px;
-      --card-padding: 16px;
-    }
-    /* System dark mode: apply immediately via CSS */
+    body { background: transparent !important; }
+    html { background-color: hsl(0 0% 100%); color-scheme: light; }
+    html.dark { background-color: hsl(240 6% 10%); color-scheme: dark; }
     @media (prefers-color-scheme: dark) {
-      html:not([data-theme="light"]) { color-scheme: dark; }
+      html:not(.dark) { color-scheme: dark; }
     }
-    /* Popup: no transition — instant theme switch to prevent flash */
     *, *::before, *::after { transition: none !important; }
   </style>
 </head>

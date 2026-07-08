@@ -5,9 +5,469 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.9.0] - 2026-07-07
+
+### Architecture
+- **豆瓣注入架构重构**: 三套并行注入系统（douban-early/douban-main/content.ts）统一通过 `shared/` 模块建立正式契约
+  - 新建 6 个共享模块：`url-detector.ts`、`hide-nav.ts`、`extract-subject-id.ts`、`load-record-map.ts`、`theme-sync.ts`、`useCrossPlatformSync.ts`
+  - `early.ts` 140→60 行（移出内联 URL 检测/CSS 组合/SPA 观察者）
+  - `main.ts` 514→370 行（去除 8+ 处重复 mount 样板、导航隐藏逻辑、CSS 组合代码）
+  - 删除 `useMusicHomepageObserver.ts` 和重复 CSS 声明，净减 ~490 行
+  - 解决 12 类重复模式（R1-R12）和 1 个架构问题（A11 跨平台同步）
 
 ### Added
+- **首页横向滚动→Grid 自适应**: 电影首页筛选/热门区域从横向滚动改为 CSS Grid 自适应布局
+  - `.umm-grid-track` 容器：`auto-fill, minmax(150px, 1fr)` → 固定列数（6-9 列，跨 1280-3200px 断点）
+  - `UmmScrollRow` 新增 `mode="grid"` prop 切换滚动/网格模式
+  - `UmmMediaCard` 新增 `mode="grid"` 渲染路径
+  - `homepage.css` 新增 grid 布局、行间距 `var(--umm-space-lg)`、hover 上浮动画
+- **音乐详情推荐区域**: 修复音乐详情页推荐内容缺失（`#db-rec-section` 选择器）
+  - `detail-data.ts` 推荐提取兼容 `#recommendations`（电影）和 `#db-rec-section`（音乐）
+  - 封面使用 1:1 正方形比例（`:type="d.isMusic ? 'music' : 'movie'"`）
+  - 图片 URL 尺寸升级：`s_ratio_poster`→`xl`、`/[slm]/`→`/xl/`、`/[slm]pic/`→`/xl/`
+
+### Fixed
+- **详情页推荐区域 rating 字体巨大**: `detail.css` 中 `.umm-rating-score { font-size: var(--umm-font-display) }` 为裸类选择器，泄漏至 Shadow DOM 内所有评分元素 → 限定作用域为 `.umm-rating-score-section .umm-rating-score`
+- **首页 grid rating 大屏偏小**: 新增 `.umm-grid-track .umm-rec-item .umm-rating` 12 级自适应 `clamp(0.75rem, 0.55rem + 0.45vw, 1.125rem)`
+- **音乐详情推荐封面始终 2:3**: `.umm-rec-cover` 硬编码 `aspect-ratio: var(--umm-aspect-poster)` → 移除以允许内部 `UmmImage` 动态控制
+- **音乐条目主封面 URL 未升级至 xl**: `detail-data.ts:143` 仅处理 `s_ratio_poster`（电影），增加 `/subject/m/`→`/xl/` 替换
+- **详情页添加到片单按钮浅色主题不可见**: W1.9 CSS 清理误删 `--umm-accent: #6366f1` → 恢复 `detail.css` 浅色变量
+- **首页 grid 三明治样式错误**: `homepage.css` 补全 `.umm-rec-item/cover/title/rating` 卡片基类样式
+- **首页 grid 大屏列数过多**: `auto-fill` 改为固定列数断点（6-9 列），宽屏防止过多列挤压
+- **一周口碑榜元素样式**: `.umm-billboard-title` 增加 `max-width: 220px` + ellipsis 截断
+
+### Changed
+- **`.gitignore` 精简**: 去重 `playwright-report`×2 / `Thumbs.db`×2 / `.DS_Store`×2，合并同类条目
+
+### Chore
+- **版本升至 4.9.0**: 同步 `package.json` + `wxt.config.ts` manifest
+- **测试产物清洁**: 删除 `test-results/` 目录，63 个单元测试全部通过
+- **安全审计**: CSP/消息传递/Shadow DOM 隔离/凭据管理确认安全
+- **英文注释补充**: `css-composer.ts` 模块 JSDoc + `?raw` 约束说明，`constants.ts` 导出简短注释
+
+## [4.8.0] - 2026-07-07
+
+### Added
+- **音乐专辑多版本页面全屏覆盖层**: `music.douban.com/albums/{id}` — 版本列表 grid，1:1 方形专辑封面 + 介质 chip（CD/DVD/磁带/数字/黑胶 等）+ 评分 + IndexedDB 状态徽章
+- **豆瓣音乐搜索结果优化**: 专辑封面宽度比从 2:3 改为 1:1 正方形比例；解析元数据中的介质信息（CD/DVD/磁带/数字/流媒体），在封面下方展示多色系 chip（亮/暗主题）
+- **介质 chip 色系系统**: 11 种介质各配独立色值（亮色/暗色双主题），白字 ≥4.5:1 WCAG AA 可读性
+- **i18n 音乐状态键值**: `common.listened`/`common.unlistened` 三语言（zh-CN/zh-TW/en）
+
+### Fixed
+- **音乐搜索结果状态徽章显示电影用语**: UmmSearchCard 缺失 `:type` prop → 加入 `:type="isMusic ? 'music' : 'movie'"`
+- **专辑版本页状态徽章同问题**: albums/App.vue 固定 `type="music"`
+- **Options RatingTab 音乐类型标签**: `getStatusLabel()` 当 `type='music'` 时返回 `common.listened`/`common.unlistened`
+- **Options LinkedTab 音乐类型标签**: `getStatusText()` 之前忽略 `_type` 参数 → 使用 `type` 参数正确分支音乐/电影
+
+### Changed
+- **删除孤儿代码**: `useStatus.ts` composable（全库零引用）
+
+### Chore
+- **版本升至 4.8.0**: 同步 `package.json` + `wxt.config.ts` manifest
+
+## [4.7.0] - 2026-07-07
+
+### Added
+- **豆瓣音乐首页全屏覆盖层**: `music.douban.com/` — 热门音乐人分类 pills + 新碟榜 grid（1:1 封面）+ 流行音乐人圆形头像
+- **豆瓣音乐人概览页全屏覆盖层**: `music.douban.com/artists/` — 推荐艺人轮播、推荐活动、音乐视频、流派导航
+- **豆瓣音乐流派页全屏覆盖层**: `music.douban.com/artists/genre_page/*/` — 流派艺人 grid
+- **全局宽高比常量**: `ASPECT_RATIO.POSTER/SQUARE/WIDE`（TS 常量）+ `--umm-aspect-poster/square/wide`（CSS 变量），消除 33 处硬编码比例值
+- **UmmInterestBar `type` 属性**: movie 上下文显"想看/在看/已看"，music 上下文显"想听/在听/已听"
+- **音乐详情页优化**: 曲目列表（含序号）、表演者标题行、meta row chip 拆分表演者、正方形 1:1 专辑封面、简介/表演者标题适配
+- **音乐详情页标记状态初始化**: 优先 IndexedDB record → DOM 检测（`#interest_sect_level`）→ fallback null，消除 API 返回空值时状态丢失
+
+### Fixed
+- **NeoDB 自动同步不持久化**: `App.vue` `onInterestSave()` 推送成功后将 `catalogUuid` 写入 `linkedIds.neodb` + 创建 `neodb_records` 本地记录 + 更新 IMDb/TMDB 记录的 NeoDB 反向链接
+- **DataScheduler 缓存键隔离 Bug**: `DB_PUT`/`DB_DELETE`/`DB_SYNC_PAGE_RECORD` 写操作仅失效自身前缀的缓存键（`put:*/delete:*/sync:*`），`get:*` 缓存未被清除导致后续读取返回陈旧 null。三个写 handler 新增显式 GET 缓存失效
+- **`DB_SYNC_PAGE_RECORD` 响应破损**: 返回体丢失 `result` 字段，`dbSyncPageRecord()` 始终返回 `{changed:false}`
+- **NeoDB 推送失败 Toast 降级**: 从 `info` 恢复为 `error`，确保用户感知推送失败
+- **豆瓣音乐详情页标记状态覆盖**: `fetchInterest()` API 返回空 `interest_status` 时不再覆盖已有的初始状态（来自 IndexedDB 或 DOM 检测）
+- **音乐表演者标签提取**: `pl.textContent` 误包含嵌套 `<a>` 链接文本 → 改用 `pl.firstChild?.textContent` + 移动子节点至 wrapper 外再移除 `<span class="pl">`
+- **音乐详情页空白标题**: `#content h1` 选择器在音乐页面不命中 → 添加 `#wrapper > h1` 回退
+- **`UmmMediaCard` 滚动模式封面比例**: 缺少 `aspectRatio` prop，图片无约束拉伸
+- **调试日志清理**: 移除 `useInterest.ts` 中遗留的 `console.log`
+
+### Changed
+- **豆瓣音乐首页入口匹配**: `douban-early.content` matches 从 `*://music.douban.com/subject/*` 扩展为 `*://music.douban.com/*`，覆盖首页/流派/艺人页
+- **版本升至 4.7.0**: `package.json` + `wxt.config.ts` manifest
+
+## [4.6.1] - 2026-07-06
+
+### Changed
+- **统一 z-index 层级体系**: 14 个文件中 15 个硬编码 z-index 值全部替换为 8 级语义化 CSS 变量（backdrop:10 / sticky:50 / floating:100 / tooltip:150 / overlay-host:200 / overlay:300 / dialog:400 / toast:500），消除 `9999`/`10000`/`999999`/`2147483647` 等随机值。Toast 从 `999999`（等于 overlay）提升至 `500`，确保始终在 dialog 之上。
+
+### Fixed
+- **照片页面总数显示为 0**: `photos-data.ts` — 单页照片列表无 `.paginator` 元素时 `extractPagination()` 返回 `totalCount=0`，增加回退逻辑使用实际 `photos.length` 作为总数
+
+## [4.6.0] - 2026-07-05
+
+### Added
+- **设计规范文档体系**: 新增 `docs/DESIGN_GUIDE.md`（1205 行/11 节，含三层样式架构、token 引用、组件层级、命名规范、主题系统）、`docs/CONSISTENCY_CHECKLIST.md`（9 维度/28 条一致性规则）
+- **暗色主题支持 — 全局注入 UI**: `tokens.ts` 新增 32 个 `_DARK` 颜色常量；`global.ts` 新增 `ALL_STYLES_DARK` 块通过 `[data-umm-theme="dark"]` 选择器注入暗色覆盖
+- **主题同步监听**: `content.ts` + `douban.ts` 添加 `chrome.storage.onChanged` 监听 `umm:appearance`，跨上下文（popup/options/overlay）主题实时同步
+- **CSS 架构**: `components.css` 共享 CSS 变量文件；`theme.css` 添加 `--umm-color-*` 统一 token 别名、`--umm-z-*` z-index 层级缩、`--umm-color-error` 变量（light + dark）
+- **`useRecordCache` 共享化**: 从 `homepage/composables/` 提取至 `content/douban/shared/composables/`，消除 homepage/search 页面 DB 加载重复
+- **预存 TS 错误修复**: `douban-neodb.ts` overlay 作用域修复、`neodb-push.ts` optional chaining 修复
+
+### Fixed
+- **早期注入浅色主题闪烁**: `overlay.css` 添加 `@media (prefers-color-scheme: light)` 匹配 OS 偏好；`overlay.ts` JS 注入 `<style>` 覆盖显式主题设置
+- **meta-card a 标签蓝色突兀**: `.umm-meta-chip a` 改为 `color: inherit`，hover 使用 `opacity` 而非蓝色文字
+- **`.umm-photo-badge` 黑字不可读**: `color: #fff`（图片叠加标签始终白色文字）
+- **`.umm-comment-status--wish` 暗色主题不可见**: 添加 `:host(.umm-theme--dark)` 覆盖（`#f59e0b`）
+- **`.umm-rating-better` / `.umm-better-chip` 暗色背景缺失**: 添加 `:host(.umm-theme--dark)` 覆盖
+- **`#e74c3c` 硬编码无暗色变体**: 替换为 `var(--umm-color-error, #e74c3c)` CSS 变量
+
+### Changed
+- **全局注入样式暗色主题修正**: `UI_COMPONENT_STYLES` fallback 从深色默认值（`#1e1e1e`/`#333`）修正为浅色默认值（`#ffffff`/`#e5e7eb`）；新增 `ALL_STYLES_DARK` 响应 `[data-umm-theme="dark"]`
+- **链接统一新标签打开**: 豆瓣重构页面中全部元素跳转默认新标签（`target="_blank" rel="noopener noreferrer"`），搜索页搜索导航除外
+- **遮罩层 z-index 统一**: 所有 overlay 使用 `var(--umm-z-overlay, 999999)`，消除 `9999`/`999999` 不一致
+- **NeoDB 按钮样式对齐**: `global.ts` 与 `interest.css`（canonical source）统一 padding/shadow/transition
+- **`components.json` 配置修正**: CSS/Utils/Tailwind 路径对齐 `src/shared/styles/style.css`
+- **版本升至 4.6.0**: `package.json` + `wxt.config.ts` manifest
+
+[4.5.0] - 2026-07-01
+
+### Added
+- **全部演职员页面全屏覆盖层**: `/subject/{id}/celebrities` 支持影人分组网格，2/3 头像 + 代表作标签，12 级响应式断点
+- **单个影人页面全屏覆盖层**: `www.douban.com/personage/{id}/` 含 profile header（2/3 头像 grid）、简介（meta OG 全文提取）、图片、获奖、作品三明治卡片（UmmMediaCard）、合作人物卡片网格、未上映作品列表
+- **www.douban.com host_permission**: 新增 `*://www.douban.com/*`，扩展 content script 覆盖到豆瓣主站
+- **`Identity.fromUrl()` 影人 ID 解析**: `www.douban.com/personage/{id}` 路径识别，type=movie, provider=douban
+- **作品卡片复用 UmmMediaCard**: personage 页面 recentWorks/popularWorks 复用 UmmMediaCard grid 模式
+- **作品提取重试兜底**: 5 次指数退避重试，解决豆瓣原生 JS 替换底部 sections DOM 的竞态问题
+
+### Fixed
+- **人物简介截断**: 从 `meta[property="og:description"]` 提取全文，替代原生 DOM 截断片段
+- **工作区清洁**: `dist/`、`.wxt/` 构建产物清理
+- **代表作链接新标签**: celebrities 页面代表作标签改为 `@click.prevent` + `window.open` new tab
+- **影人卡片新标签**: celebrities 页面点击影人卡片改为 `@click.prevent` new tab
+- **CSS 变量统一**: celebrities/personage 全量硬编码值替换为 `--umm-*` 带 fallback 变量
+- **12 级断点体系**: 所有 grids 补齐 375px→5120px 完整 12 级断点
+
+### Changed
+- **合作人物卡片**: 从横向 flex 改为纵向卡片网格（2/3 封面 + 名称 + 合作数），hover 上浮阴影
+- **Section heading 主题色**: 下划线统一使用 rosered accent (`--umm-personage-accent`)
+- **"更多影视作品"按钮**: 从 `<a>` 内联样式改为统一 `.umm-personage-btn` 带 hover 效果
+
+### Added
+- **预告片/视频页面统一注入**: `/subject/{id}/trailer` 列表页网格 + `/trailer/{id}/` `/video/{id}/` 详情页内嵌视频播放器，原生 DOM 移除防止音频穿透
+- **预告片详情页导航按钮**: 从 `.aside .links` 原生数据提取，"去本片全部视频"/"去影片页" 两个 `@click` 按钮新标签页打开
+- **all_photos 页面导航按钮**: 从 `.aside .links` + `.mb30` 提取，显示剧照/海报/壁纸类型切换 + 影片页链接
+- **全屏画廊 bottom-bar 动画**: Vue `<Transition>` 实现索引数字切换的淡入淡出动画，两端固定布局防重建
+
+### Fixed
+- **trailer selectors DOM 层级修复**: `h2 ~ ul.video-list` 改为 `.mod:has(h2#trailer) > ul.video-list`
+- **trailer 路由优先级**: `isTrailerPage()` 移至 `isDetailPage()` 之前，防止双 overlay 冲突
+- **详情页主演空 chip**: `metaToChips()` 在 `/` 分隔符后跳过闭合标签，展开 `display:none` 演员
+- **照片页 all_photos `extractSidebarLinks` 函数缺失**: 修复 `ReferenceError`
+- **早期注入白色闪烁**: 新增 `overlay.css` 通过 manifest `content_scripts.css` 注入，在浏览器渲染前设置 `<html>` 深色背景
+- **预告片页面 subject ID 提取**: 改为从 DOM `<h1> <a href="/subject/{id}/">` 提取
+- **Popup/Options 白闪及配色紊乱**: WXT CSP (`script-src 'self'`) 禁止 inline script——改用纯 CSS `html.dark { background; color-scheme }` 方案，零 JS 依赖
+- **Popop/Options `color-scheme` 与扩展主题脱节**: CSS `html.dark { color-scheme: dark; }` + `@media` 兜底，消除系统颜色与扩展主题不一致
+- **豆瓣 overlay Vue 主题 store 与宿主 `data-theme` 不同步**: `mountUmmOverlay()` 在 Vue 挂载前写入 `localStorage`，使主题 store 读取正确的扩展主题而非 OS 偏好
+- **popup/options HTML 恢复 `@media (prefers-color-scheme: dark)`**: `color-scheme` 使用 OS 偏好 + 扩展主题兜底
+
+### Changed
+- **版本升至 4.4.0**: package.json + wxt.config.ts manifest
+- **全局设计系统变量统一**: detail.css/photos.css :host 移除与 theme.css 重复的 font-family 和基础变量，统一继承；theme.css 新增 `--umm-link-hover` 变量
+- **search.css 响应式化**: 标题/元数据字体、页面/空状态间距使用 `--umm-font-*` `--umm-space-*` 变量
+- **detail.css 间距变量化**: `.umm-detail-left` gap 改用 `var(--umm-space-xl)`
+
+
+
+### Added
+- **共享 UmmMediaCard 组件**: defineComponent props 驱动双模式（grid + scroll），grid 模式 `@click="window.open"`，scroll 模式 `<a>` 包裹，详情页推荐区/首页媒体行统一使用
+- **戏票/剧照/推荐 13 级响应式断点**: `detail.css` 网格列数从 3-4 级扩展为 320px-5120px 13 级自适应
+- **meta 信息 chip 化**: 导演/演员/类型等元数据用 `/` 分割为独立 chip（`.umm-meta-chip`），保留原生 `<a>` 链接
+- **better-than chip 化**: 评分对比区"好于 X%"从 `/` 拼接改为独立 chip（`.umm-better-chip`）
+- **个人评分覆盖**: 已看推荐项 badge 显示 IndexedDB 个人评分，替代豆瓣大众评分
+- **默认 footer**: `UmmPageLayout` 默认 footer 包含原生豆瓣链接 + GitHub 图标 + 扩展版本号，可通过 `#footer` slot 覆写
+- **Doulist 主题系统**: 抽取 `createDialogTheme()` 替代 `c(l,d)` 内联 lambda，37 个语义化主题属性
+
+### Fixed
+- **演职员 @click 迁移**: 海报/排行榜/获奖提名/演职员/剧照/短评 9 处 `<a :href target="_blank">` → `@click="openLink()"`
+- **Homepage 异步加载稳定性**: staggered re-parse（800/2500/6000ms）+ observer class 属性跟踪 + 轮询窗口 30s→60s + `start()` 立即首次解析
+- **演职员 grid 列宽撑开**: 添加 `min-width: 0` 阻止长名撑开 CSS Grid `1fr` 列
+- **Dark theme 颜色**: 新增 `--umm-text-primary/secondary/muted/link` 深色主题变量，提升评论、状态文字对比度
+- **douban-neodb.ts 生产日志泄漏**: 15 处 `console.log` → `infoLog()`（production 默认静音）
+- **CSRF 防护缺失**: `addToDoulist`/`removeFromDoulist` 补充 `X-Requested-With: XMLHttpRequest` 头
+- **neodb-push.ts null safety**: `interestSect` 加 `?.` 可选链防止空值错误
+
+### Changed
+- **详情页字号缩减**: section heading `--umm-font-lg`→`--umm-font-md`，meta `--umm-font-md`→`--umm-font-sm`，正文 `--umm-font-md`→`--umm-font-base`
+- **剧照/推荐 grid 最大列数**: 从 8/8 缩减至 4 列（base→480px→768px+ 三级递进）
+- **海报列宽响应式**: 从固定 320px 扩展为 13 级（320px→5120px，320px→700px）
+- **detail.css 移除 `:host` 独立变量**: 9 个 font 变量和 5 个 spacing 变量替换为 breakpoints.css 令牌，仅保留 `--umm-font-3xl`（标题）和 `--umm-font-display`
+- **评分栏标签自适应**: `.umm-bar-label`/`.umm-bar-pct` 固定宽度改为 `flex-shrink: 0; min-width` 防止大字包裹
+
+### Security
+- **background.ts sender 校验**: `chrome.runtime.onMessage` 确认 `sender.id === chrome.runtime.id`（已有）
+- **Doulist fetch**: 补充 CSRF 头 `X-Requested-With: XMLHttpRequest`
+- **日志安全**: NeoDB handler 全部 `console.log` → `infoLog()`（DEVel 环境自动静音）
+
+## [4.2.3] - 2026-06-29
+
+### Added
+- **标记 dialog 完整交互**: 支持"想看/在看/已看"三态选择、5星评分、标签(tags)推荐+自定义、短评输入(350字限制)，POST 豆瓣 API + IndexedDB 持久化
+- **跨平台同步 (IMDb/TMDB/NeoDB)**: 第一次标记已看时自动扫描页面提取 IMDb/TMDB 链接，写入对应平台记录；NeoDB 自动推送（需配置）
+- **我的短评展示**: 标记对话框保存的短评显示在 `#umm-interest-actions` 标记按钮下方
+- **热门短评区域**: 从页面 `#comments-section` 解析热门短评并渲染到详情页 body
+- **NeoDB 同步组件注入 Shadow DOM**: 页面加载+标记保存后注入到 overlay 内 `#umm-neodb-actions`，带按钮 loading 反馈和 toast 通知
+- **演职员/剧照入口链接**: 复用原始页面的计数（全部 N / 预告片N / 图片N），点击跳转豆瓣原生页面
+
+### Fixed
+- **NeoDB 按钮操作失灵**: 使用事件委托 + `container.querySelectorAll` 替代 `document.getElementById` 穿透 Shadow DOM
+- **NeoDB 容器样式丢失**: 移除内联 style，改用 CSS class（`.umm-neodb-push-buttons`）接入 Shadow DOM 设计令牌
+- **NeoDB 首次注入时机**: 初始 `neoDBInjector` 在 Vue 挂载前运行 → 回退原生 DOM 被遮盖；改为 `onMounted` 中 `fetchInterest` 完成后主动触发
+- **NeoDB 容器重复注入**: 清理旧按钮时优先 `shadowRoot?.getElementById`，兜底 `document.getElementById`
+- **NeoDB watermark 层叠错误**: 补回 `.umm-neodb-btn { position: relative; z-index: 1 }`
+- **添加到片单按钮缺 loading**: fetch 期间按钮显示"加载中…" + `[data-loading]` 属性
+- **添加到片单 dialog 简化**: 移除"取消"/"保存"按钮，替换为"关闭"；二次确认携带片单名
+- **"添加到片单"按钮浅色主题兼容**: `color: #fff` 替代 `--umm-text-primary`
+- **年份显示不清晰**: `--umm-text-muted` → `--umm-text-secondary`，提升对比度
+- **标记 dialog 保存无 toast**: 补全 DB 保存/跨平台同步/NeoDB 同步各阶段 toast 反馈
+
+### Changed
+- **UmmInterestBar 改用 Vue 渲染**: 从纯 `defineComponent("h")` 渲染，替代早期内联 HTML；dialog 及其交互状态通过 props 控制
+- **useInterest composable**: 抽取豆瓣 interest API 封装（GET + POST），支持 MaybeRef subjectId，提供 loading/error 响应式状态
+- **extractCrossPlatformLinks 接入**: 从页面 `#info` 提取 IMDb/TMDB 链接并双向同步记录
+
+## [4.2.2] - 2026-06-28
+
+### Added
+- **豆瓣详情页"想看/已看"标记功能**: 在 Shadow DOM 详情页 overlay 中集成 `UmmInterestBar` 组件，支持下方面两项操作并通过豆瓣 API 同步状态:
+  - "想看" / "看过" 开关按钮
+  - 5-星评分选择器（选中"看过"后显示）
+  - POST 至 `/j/subject/{id}/interest` 并持久化到 IndexedDB
+  - CSRF token 从页面 `input[name="ck"]` 和 cookie 自动提取
+
+### Fixed
+- **详情页推荐评分丢失**: 修复 `.subject-rate` 选择器作用域错误（`linkEl` → `dl`），豆瓣 DOM 中评分元素不在 `<a>` 内部
+- **添加到片单按钮在 Shadow DOM 中失灵**: 使用 `e.composedPath()` 替代 `e.target.closest()` 穿透 Shadow DOM 边界
+- **片单 API 首调用返回空列表**: 添加 1 次重试（500ms 延迟），始终打开 dialog
+- **添加到片单 `skind` 参数错误**: 修正为 `subject.cat`（cat_id 如 `1002`），原传入了 `kind`（`movie`）
+
+### Added
+- **创建新片单功能**: POST `/j/doulist/add`，footer 新增"＋ 新建片单"按钮，含名称输入、私密切换、自动刷新列表
+- **加载动画反馈**: dialog 加载中 spinner、toggle 操作旋转动画、保存按钮 spinner+文字反馈
+
+## [4.2.1] - 2026-06-28
+
+### Added
+- **统一模板注入框架 UmmPageLayout**: 创建 defineComponent 布局组件，header (UmmDynamicIsland) + content (slot) + footer (slot) 三明治结构，page-layout.css 共享布局样式
+- **UmmRating 统一评分组件**: defineComponent 渲染分数+金色分段 (5+/7+/8+ 三级 gold low/mid/high)，适配亮暗主题
+- **UmmMediaRow 首页媒体行组件**: 封装 UmmScrollRow + UmmMediaCard + record 查找，消除 3 处重复 App.vue 模板
+- **useDoubanSection 通用工厂**: 替代 3 个 composable 的 ref/parse/watch 重复模式
+- **UmmSearchCard 搜索结果卡片组件**: 多行标题 (2-line clamp)、cover hover 缩放、左边条视觉增强
+- **UmmSearchFilter 搜索结果筛选器**: ALL/电影/剧集三档切换，基于豆瓣 labels 元数据判断类型，右侧结果计数显示
+- **搜索结果卡片重构**: cover 100×140px、视觉层级 (title→rating→meta→cast 渐进淡化)、gap 8px 间距
+- **Cover hover 动画统一优化**: 全线使用 cubic-bezier(0.22, 0.61, 0.36, 1) + will-change + backface-visibility，修复搜索页/详情页 transition 错放 :hover 导致鼠标离开瞬间回弹
+- **12级断点自适应**: .umm-status--inline/--small font-size 从固定 px 改为 var(--umm-font-xs)
+- **统一滚动条美化**: :host::-webkit-scrollbar 6px 圆角细条，Chrome+Firefox 双浏览器覆盖
+
+### Changed
+- **首页组件化**: App.vue 从 4 个独立 UmmScrollRow→3 行 UmmMediaRow，删除 3 个旧 composable
+- **搜索结果组件化**: App.vue 删除内联模板，改用 UmmSearchCard + UmmSearchFilter
+- **详情页图片 hover**: 修复海报/影人/剧照/推荐图片 CSS 选择器（旧 .umm-*-img→实际 .umm-image-img）
+- **首页评分**: 移除 UmmMediaCard 的 starNum 计算 + ★ 渲染，统一使用 UmmRating
+- **首页 Rank 增强**: billboard 金银铜牌勋章圈 + 渐变 + 辉光 + 左边色条
+
+### Fixed
+- **Cover hover 动画瞬间回弹**: transition 属性从 :hover 块移至基态，确保进出双向平滑
+- **搜索结果筛选无效**: isTvItem 从抽象启发式改为直接检查豆瓣 labels 元数据 (.text === '剧集')
+
+### Removed
+- **useDoubanScreeningItems / useDoubanBillboard / useDoubanHotSection**: 被 useDoubanSection 工厂替代
+- **UmmMediaCard 冗余 UmmImageWrapper 内联封装**: 改用共享组件导入
+
+### Added
+- **共享 UI 组件系统**：创建 4 个可复用组件，消除 Options 页面重复渲染模式
+  - `OptionPicker`：提取 AppearanceTab 主题/语言 3 列按钮网格
+  - `PlatformSearchForm`：提取 RatingTab/LinkedTab 重复搜索表单（4字段 Select + Input）
+  - `SettingRow`：提取设置项 label+control 水平布局
+  - `SkeletonLoader`：统一 App.vue/SyncTab 加载骨架屏
+
+### Fixed
+- **Options 页面 Switch 开关不响应**：reka-ui v2 SwitchRoot 改用 `modelValue/update:modelValue`，SettingsTab 绑定改为 `v-model`
+- **Options 页面内容无法渲染**：移除 `<Transition mode="out-in">` 包裹 `<Suspense>`（Vue 3 不兼容）
+- **CardContent 缺少 padding-top**：`px-6 pb-6` → `p-[var(--umm-card-padding)]`，四边统一流体间距
+- **CardHeader 固定间距**：`p-6 pb-4` → `p-[var(--umm-card-padding)] pb-4`
+- **豆瓣注入元素主题实时同步**：`applyOverlayTheme` 同时更新 `data-theme` 和 `umm-theme--*` CSS 类
+- **Options 统计图颜色硬编码**：`barColor`/`platformColor` 从 JS `isDark` 检测改为 CSS 变量驱动
+- **WebDAV 跨标签同步**：`chrome.storage.onChanged` 改用 `changes.newValue` 直接读取
+- **Export 数据字段不完整**：`handleExportData` 导出全部 12 个 AppSettings 字段
+
+### Changed
+- **网格间距优化**：StatsGrid/Weekly 统计卡片 grid gap 从 `12px` 扩大为流体 `var(--umm-section-gap)`（16-56px自适应）
+- **`:root` 补充 surface 颜色**：`--umm-color-surface-*` 亮色值补全（之前只在 `.dark` 有定义）
+- **Options 各项 inline style**：统一为 Tailwind class（`umm:mb-3`, `umm:gap-2` 等）
+- **`.gitignore`**：新增 `coverage/`、`*.crswap` 等模式
+
+### Security
+- **热力阴影硬编码 rgba**：`box-shadow` 改用 `hsl(var(--foreground) / 0.2)` 适应双主题
+- **bar chart 样式**：CSS 变量 `--umm-bar-base-s/l`、`--umm-bar-platform-l` 在 `:root`/`.dark` 双定义
+
+### 豆瓣注入体系统一：6个独立 WXT entrypoint 合并为2个薄层入口点 (`douban-early` / `douban-main`)，全部逻辑迁移到 `src/content/douban/`
+  - `early.ts`：3个 early overlay 合并为 URL 路由的工厂函数
+  - `main.ts`：3个 idle 入口合并为 URL 路由工厂，动态导入 page 模块
+  - `UmmImageWrapper` / `UmmStatusBadgeWrapper` 提取到 `components/`，消除搜索/详情页重复 defineComponent
+- **模板统一系统**：创建函数式模板构造架构，消除3个豆瓣入口点的重复代码
+  - 共享 `UmmImage` 组件 (defineComponent + shimmer 覆盖式 loading，修复 `display:none` 导致 lazy 加载死锁)
+  - 共享 `UmmStatusBadge` 组件 (纯渲染函数，无 computed 开销，三态 done/none/wish + 3种变体)
+  - 共享 `mountUmmOverlay` 工厂函数 (beforeMount→createApp→afterMount 生命周期编排)
+  - 共享 `composeStyles` CSS 组合工具
+  - 共享 `douban-theme.css` (:host变量源) + `douban-common.css` (shimmer/status badge 样式)
+  - 共享 `useStatus` composable (MaybeRefOrGetter 适配)
+- **灵动岛统一**：`UmmDynamicIsland` 提取为跨三页共享组件，新增 `newTab`/`type`/`initialQuery` props
+  - 搜索页：`newTab=false` 同标签导航；详情/首页：`newTab=true` 新标签
+- **数据链路 v4：DataScheduler 调度中心** — 请求优先级队列 + 令牌桶限流 + 指数退避重试
+  - `src/features/data-scheduler/`: PriorityQueue (HIGH/MEDIUM/LOW 三级)、RateLimiter (token bucket + timestamp refill)、RetryPolicy (exponential backoff + jitter)、SchedulerMonitor (P50/P95/P99 + 错误率 + 缓存命中率)
+  - DataScheduler 编排器：缓存检查 → 限流 → 排队 → [重试循环] → 监控事件
+  - 集成到 background.ts：所有 DB 消息通过 scheduler.schedule() 执行
+- **多级缓存系统 CacheManager** — L1 (LruCache LRU 内存) + L2 (TtlCacheStore IndexedDB 持久层)
+  - `src/features/cache/`: LruCache (可配 maxSize/TTL、deleteByPrefix)、TtlCacheStore (DbAdapter 接口)
+  - 替换 MediaDatabase.readCache (Map → LruCache 500条 LRU 淘汰)
+  - 替换 DataScheduler 内部缓存 (Map → CacheManager DI 注入)
+- **查询优化层** — `query-utils.ts`: queryPage (limit/offset cursor pagination)、batchGet (单事务批量读取)
+- **乐观锁 OptimisticLock** — 版本式写冲突检测，StoreRecord 新增 recordVersion 字段，put() 自动版本递增，optimisticPut() 条件写入
+- **性能优化工具** — MemoryManager (Observer/Listener/Timer 生命周期管理)、Memoizer (计算结果记忆化缓存)
+- **批量 ADULT_AV_CHECK_BATCH** — 一次性批量查询番号，避免并发消息超时
+- **ADULT_AV_CHECK 跨源扫描** — 超出已知 sources 时游标扫描全 store 匹配任意 source
+- **导入错误诊断增强** — BOM 剥离、JSON 前80字符预览、响应结果校验
+
+### Fixed
+- **vue-i18n SyntaxError: 9** — 双花括号 `{{level}}`/`{{count}}` 被 vue-i18n 解析为嵌套占位符触发 `NOT_ALLOW_NEST_PLACEHOLDER` (错误码 9)，改为单花括号
+- **Toast 背景色丢失** — `@theme` 中 `--umm-color-state-*` 改为 `--color-state-*`，Tailwind 正确生成 `umm:bg-state-*`
+- **图片加载死锁**：UmmImage 从 FunctionalComponent 改为 defineComponent，`loading="lazy"` + `display:none` 导致浏览器不触发加载
+- **UmmStatusBadge**：移除 FunctionalComponent 内的 `computed` 误用
+- **Dark 主题变量**：`--umm-text-muted`/`--umm-text-secondary` 暗色值交换
+- **Promise 拒绝**：`mountUmmOverlay.finalize()` 添加 `.catch()`
+- **CSS 组合**：`composeStyles` 每 chunk 尾部添加换行，防止注释粘连
+- **搜索页重复搜索栏**：移除 `enhanceSearchPageSearch()` 调用，消除与 Vue App 重复注入
+- **详情页灵动岛边距**：`.umm-detail-root` padding-top 0 → 16px
+- **Wrapper 组件 props 类型**：从 loose array props 改为带类型声明的 props 对象
+- **safeSendMessage null 处理** — AdultAvStore.has() 添加 try/catch
+
+### Changed
+- 共享组件和 CSS 集中到 `src/entrypoints/content/shared/`，3个入口点统一引用
+- **CSS 变量集中化**：`--umm-island-*` 系列变量从 homepage.css/detail.css 迁移到 theme.css
+- **CSS 去重**：删除 detail.css 中 `.umm-pill-wrap`/`.umm-search-bar` 等残留样式
+- **构建优化**：`douban-main.js` 215→209 kB；`content.js` 168→162 kB
+- `database/models.ts` — put() 自动 recordVersion、新增 optimisticPut()/queryPage()/batchGet()
+- `data-scheduler/data-scheduler.ts` — CacheManager 构造函数注入
+- `background.ts` — 注入 CacheManager/DataScheduler、新增 ADULT_AV_CHECK_BATCH 路由
+- `locales/*.ts` — 统一单花括号占位符格式
+
+### Removed
+- 6个旧 Douban 入口点目录 (`douban-homepage-overlay.content/`, `douban-search-overlay.content/`, `douban-detail-early.content/`, `douban-homepage.content/`, `douban-search.content/`, `douban-detail.content/`)
+- `entrypoints/content/shared/` 目录
+
+### Security
+- 全面审查 XSS/CSS 注入/数据流：DOMPurify 验证、搜索桥接安全性确认、Shadow DOM 隔离
+- javdb.ts: textContent 替代 innerHTML，AdultAvStore 异常安全返回 false
+
+### Fixed
+- **热力图溢出**：修复活跃度热力图方块在 hover 放大时向上溢出被裁剪的问题
+- **Tooltip 残留**：优化 tooltip 防抖配置，快速移动鼠标时不再出现残留轨迹
+- **Tooltip 暂停**：移除关闭动画，消除 tooltip 关闭时的视觉暂停
+
+### Changed
+- Title card layout: horizontal title + original name + year row, responsive stack on small screens
+- Rating card redesign: larger score (42px), focal score section, better bar design, `border-top` separator
+- Status chip moved from actions area to top of title block
+- Poster URL: `s_ratio_poster` → `xl` for high-resolution images
+- Celebrity card: circular avatars → 2:3 portrait rectangles
+- Search navigation uses `location.href` (same-tab) instead of `window.open` (new tab)
+
+### Added
+- Full-page overlay injection on Douban search page (`search.douban.com/movie|music/subject_search`)
+  - New `src/entrypoints/douban-search-overlay.content/` content script (`document_start`)
+  - New `src/entrypoints/douban-search.content/` Vue app with search results grid
+  - Data extraction via 4-layer fallback: `window.__DATA__` → script tag regex → injected bridge → DOM parsing
+  - Search bar with real-time input normalization and debounce
+  - Watch-status badges integrated from IndexedDB
+  - Dynamic pagination with page window and jump-to-page input
+  - Music/movie search type auto-detection
+  - Same-tab navigation for search, new-tab for result links
+  - Themed scrollbar and fade-in transition
+- Full-page overlay injection on Douban homepage (`movie.douban.com`) with `document_start` CSS blocking
+  - New `src/entrypoints/douban-homepage-overlay.content/` content script
+  - Early CSS injection prevents flash of original content
+  - Shadow root container houses the entire Vue-enhanced homepage UI
+  - Themed scrollbar (5px, `--umm-border` color, light/dark adaptive)
+  - `user-select: none` on overlay (except search input)
+  - Dynamic theme sync via `chrome.storage.onChanged` (`umm:appearance` key)
+- Moved Dynamic Island styles from component `<style scoped>` to shadow DOM stylesheet (`style.css`)
+  - Fixes Vue scoped styles not applying inside Shadow DOM
+- Glassmorphic pill-shaped search bar on Douban detail and search pages, replacing native form
+  - New `src/utils/search-normalizer.ts` shared normalizer (extracted from UmmDynamicIsland)
+  - New `src/entrypoints/content/enhancers/douban-search-bar.ts` enhancer
+  - Detail page integration via `handleDoubanDetailPage` in `douban.ts`
+  - Search page integration via `startSearchEnhancer` in `douban-search.ts`
+  - URL `search_text` prefilling on search result pages
+  - Smart query normalization: PT release names → clean search terms (dots, brackets, season/episode → `Season 1`, year truncation)
+  - 500ms debounce on blur for input normalization (no cursor jump during typing)
+  - CSS isolation via inline styles + injected stylesheet with `!important` overrides
+  - Responsive breakpoints: mobile (40px), tablet (42px), desktop
+  - Dark mode support via `prefers-color-scheme`
+
+### Security
+- XSS prevention: DOMPurify integrated for all `v-html` usage
+- Tabnabbing prevention: `rel="noopener noreferrer"` added to all `target="_blank"` links
+- Dead code cleanup: Removed unused `vue-sonner` and `gsap` dependencies
+
+## [4.1.0] - 2026-06-25
+
+### Added
+- Unified design system with Tailwind CSS v4 `prefix(umm)` configuration (v4 variant-style prefix)
+- Design tokens consolidated in `src/style.css` `@theme` block (merged from `design-tokens.css` and `typography.css`)
+- 13-level responsive breakpoint system (320px to 3200px) with 3K (2880px) support
+- Fluid typography using `clamp()` for all text sizes
+- `src/shared/` module for unified exports (utils, composables, stores, types)
+- `scripts/add-umm-prefix.js` automation for adding `umm:` prefix to Tailwind classes
+
+### Changed
+- All shadcn/vue components now use `umm:` prefixed Tailwind classes (126 files updated)
+- Options page and popup components updated with `umm:` prefix
+- Custom components (HeatmapCalendar, PlatformDistribution, ToastContainer, StatCard, ConfirmDialog) updated with `umm:` prefix
+- Variant files (index.ts) for Button, Badge, Alert, Toggle, Sheet, NavigationMenu, Avatar updated with `umm:` prefix
+- `handleDoubanDetailPage` simplified from 1994→30 lines — overlay handles UI, handler does background sync only
+
+### Fixed
+- Tailwind CSS v4 prefix format: changed from `umm-` (v3 style) to `umm:` (v4 variant style)
+- `data-[state=on]:` prefixed classes now correctly skip shadcn token classes
+- Nested parentheses in `cn()` calls (e.g., `[&:has([role=checkbox])]`) now handled correctly
+- Multi-line `:class="cn(...)"` bindings now processed correctly
+- `size-*` Tailwind utility classes now receive `umm:` prefix
+- `border-b` (without number suffix) now correctly identified as Tailwind utility
+
+### Removed
+- `src/styles/design-tokens.css` (merged into `src/style.css`)
+- `src/styles/typography.css` (merged into `src/style.css`)
+- `src/utils/theme.ts` (consolidated into `src/shared/`)
+- Debug toggle (`Shift+\``) for showing/hiding overlay to inspect original page
+- Status chip moved from actions area to top of title block
+- Poster URL: `s_ratio_poster` → `xl` for high-resolution images
+- Celebrity card: circular avatars → 2:3 portrait rectangles
+
+- Full-page overlay injection on Douban search page (`search.douban.com/movie|music/subject_search`)
+  - New `src/entrypoints/douban-search-overlay.content/` content script (`document_start`)
+  - New `src/entrypoints/douban-search.content/` Vue app with search results grid
+  - Data extraction via 4-layer fallback: `window.__DATA__` → script tag regex → injected bridge → DOM parsing
+  - Search bar with real-time input normalization and debounce
+  - Watch-status badges integrated from IndexedDB
+  - Dynamic pagination with page window and jump-to-page input
+  - Music/movie search type auto-detection
+  - Same-tab navigation for search, new-tab for result links
+  - Themed scrollbar and fade-in transition
+- Full-page overlay injection on Douban homepage (`movie.douban.com`) with `document_start` CSS blocking
+  - New `src/entrypoints/douban-homepage-overlay.content/` content script
+  - Early CSS injection prevents flash of original content
+  - Shadow root container houses the entire Vue-enhanced homepage UI
+  - Themed scrollbar (5px, `--umm-border` color, light/dark adaptive)
+  - `user-select: none` on overlay (except search input)
+  - Dynamic theme sync via `chrome.storage.onChanged` (`umm:appearance` key)
+- Moved Dynamic Island styles from component `<style scoped>` to shadow DOM stylesheet (`style.css`)
+  - Fixes Vue scoped styles not applying inside Shadow DOM
 - Glassmorphic pill-shaped search bar on Douban detail and search pages, replacing native form
   - New `src/utils/search-normalizer.ts` shared normalizer (extracted from UmmDynamicIsland)
   - New `src/entrypoints/content/enhancers/douban-search-bar.ts` enhancer
@@ -22,6 +482,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Search navigation uses `location.href` (same-tab) instead of `window.open` (new tab)
+
+## [4.0.0] - 2026-06-24
+
+### Changed
+- **Background service worker refactored**: Split 1,439-line monolithic `background.ts` into modular handler architecture
+  - `background/handlers/webdav.ts` — WebDAV sync handlers (test, upload, download, merge)
+  - `background/handlers/neodb.ts` — NeoDB push rating handler
+  - `background/handlers/data.ts` — Settings, export, import, statistics handlers
+  - `background/handlers/toast.ts` — Toast notification handler with inline fallback
+  - `background/handlers/adult-av.ts` — Adult AV ID operations + legacy sehuatang handlers
+  - Main `background.ts` reduced to message routing entry point (457 lines)
+- **Content script refactored**: Extracted NeoDB push logic from `content.ts` (707→272 lines)
+  - New `content/neodb-push.ts` — NeoDB push button injection and push logic (312 lines)
+  - New `content/shared/overlay.ts` — Shared shadow DOM overlay creation (127 lines)
+- **Early scripts consolidated**: 3 near-identical douban early scripts now use shared `createOverlay()`
+  - `douban-detail-early.content/index.ts` — 109→25 lines
+  - `douban-homepage-overlay.content/index.ts` — 74→21 lines
+  - `douban-search-overlay.content/index.ts` — 74→21 lines
+- **Design tokens extracted**: New `content/styles/tokens.ts` with shared color constants
+  - `global.ts` updated to import tokens instead of hardcoded values
+  - UI component styles (`umm-panel`, `umm-overlay`, `umm-btn`) added to `global.ts`
+- **UI panels refactored**: `manual-add-panel.ts` and `check-viewed-panel.ts` use CSS classes instead of inline styles
+- Added 3K resolution breakpoint (`--bp-3k: 2880px`) to `design-tokens.css`
+
+### Security
+- Security audit passed: XSS prevention via `escapeHtml()` in toast handler, store name validation in DB operations, settings whitelist in import
+- Known low-risk items deferred to 4.2.0: toast payload input validation, webdav credential leakage in error messages, import data structural validation
 
 ## [3.6.1] - 2026-06-20
 

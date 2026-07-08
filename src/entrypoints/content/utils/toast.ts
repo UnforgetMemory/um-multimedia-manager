@@ -9,18 +9,9 @@
 
 import { escapeHtml } from './dom'
 import { t } from '../i18n'
+import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/shared/types/toast'
+import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
 
-/** 快速 toast 的最大可见数量（持久化 toast 不计入） */
-const MAX_QUICK_TOASTS = 3
-
-/** 去重窗口：相同 hash（title+message）在 500ms 内复用元素 */
-const DEDUP_HASH_MS = 500
-
-/** 去重窗口：相同 title 在 2s 内替换内容 */
-const DEDUP_TITLE_MS = 2000
-
-/** 容器空闲清理时间 */
-const CONTAINER_CLEANUP_MS = 5 * 60 * 1000
 
 // ─── 内部类型 ────────────────────────────────────────────
 
@@ -55,7 +46,7 @@ function ensureContainer(): HTMLElement {
     position: fixed;
     bottom: 24px;
     right: 24px;
-    z-index: 999999;
+    z-index: 500;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -83,7 +74,7 @@ function scheduleContainerCleanup(): void {
       stylesInjected = false
       console.log('[FloatingToast] Container cleaned up due to inactivity')
     }
-  }, CONTAINER_CLEANUP_MS)
+  }, TOAST_CONTAINER_CLEANUP_MS)
 }
 
 // ─── 样式注入 ────────────────────────────────────────────
@@ -96,122 +87,7 @@ function injectStyles(): void {
 
   const style = document.createElement('style')
   style.id = 'umm-toast-styles'
-  style.textContent = `
-    /* ── 基础 toast ─────────────────────────────── */
-    .umm-toast {
-      padding: 14px 18px;
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
-      font-size: 14px;
-      min-width: 300px;
-      max-width: 420px;
-      transform: translateX(120%);
-      opacity: 0;
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(8px);
-      pointer-events: auto;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .umm-toast.show {
-      transform: translateX(0);
-      opacity: 1;
-    }
-
-    /* Toast 配色对比度验证（WCAG AA 标准 ≥ 4.5:1）:
-     * - Success Green (rgba(11, 83, 53, 0.98)) + White: 7.8:1 ✅
-     * - Error Red (rgba(126, 28, 48, 0.98)) + White: 6.2:1 ✅
-     * - Info Blue (#0d47b8) + White: 8.5:1 ✅
-     * - Loading Blue (#2563eb) + White: 5.9:1 ✅
-     */
-    .umm-toast--success {
-      background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
-      color: white;
-    }
-
-    .umm-toast--error {
-      background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
-      color: white;
-    }
-
-    .umm-toast--info {
-      background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
-      color: white;
-    }
-
-    .umm-toast--loading {
-      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-    }
-
-    .umm-toast strong {
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .umm-toast p {
-      margin: 0;
-      font-size: 12px;
-      opacity: 0.9;
-    }
-
-    /* ── 持久化 toast ────────────────────────────── */
-    .umm-toast--persistent {
-      min-width: 340px;
-      max-width: 460px;
-      padding: 16px 40px 20px 18px;
-    }
-
-    .umm-toast__close {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 22px;
-      height: 22px;
-      border: none;
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      line-height: 1;
-      padding: 0;
-      transition: background 0.2s ease;
-    }
-
-    .umm-toast__close:hover,
-    .umm-toast__close:focus-visible {
-      background: rgba(255, 255, 255, 0.35);
-      outline: none;
-    }
-
-    .umm-toast__close:focus-visible {
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
-    }
-
-    /* ── 进度条 ──────────────────────────────────── */
-    .umm-toast__progress-track {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: rgba(0, 0, 0, 0.15);
-      overflow: hidden;
-    }
-
-    .umm-toast__progress-bar {
-      height: 100%;
-      width: 0%;
-      background: rgba(255, 255, 255, 0.7);
-      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 0 2px 2px 0;
-    }
-  `
+  style.textContent = TOAST_CORE_CSS
   document.head.appendChild(style)
   stylesInjected = true
 }
@@ -232,14 +108,14 @@ function tryDedup(title: string, message: string | undefined, hash: string): HTM
   const now = Date.now()
 
   // 1. 相同 hash + 500ms 内 → 复用
-  if (lastQuickToast && lastQuickToast.hash === hash && now - lastQuickToast.timestamp < DEDUP_HASH_MS) {
+  if (lastQuickToast && lastQuickToast.hash === hash && now - lastQuickToast.timestamp < TOAST_DEDUP_HASH_MS) {
     updateQuickToastContent(lastQuickToast.element, title, message)
     lastQuickToast.timestamp = now
     return lastQuickToast.element
   }
 
   // 2. 相同 title + 2s 内 → 替换内容
-  if (lastQuickToast && lastQuickToast.title === title && now - lastQuickToast.timestamp < DEDUP_TITLE_MS) {
+  if (lastQuickToast && lastQuickToast.title === title && now - lastQuickToast.timestamp < TOAST_DEDUP_TITLE_MS) {
     updateQuickToastContent(lastQuickToast.element, title, message)
     lastQuickToast.hash = hash
     lastQuickToast.timestamp = now

@@ -1,0 +1,368 @@
+/* ===== UMM Douban Search — Shadow DOM styles ===== */
+/* Reorganized for better visual hierarchy and readability */
+
+.umm-search-page {
+  padding: 24px 24px 64px;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ---- Search header ---- */
+.umm-search-hd {
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.umm-search-hd-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.umm-search-title {
+  font-size: var(--umm-font-lg, 1.375rem);
+  font-weight: 700;
+  margin: 0;
+  color: var(--umm-text-primary);
+  white-space: nowrap;
+}
+
+.umm-search-hd-meta {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+}
+
+/* ---- Type filter buttons ---- */
+.umm-search-type-group {
+  display: inline-flex;
+  background: var(--umm-bg);
+  border: 1px solid var(--umm-border);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 1px;
+}
+
+.umm-type-btn {
+  padding: 4px 14px;
+  border: none;
+  border-radius: 18px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.umm-type-btn:hover {
+  color: var(--umm-text-primary);
+  background: var(--umm-bg-secondary);
+}
+
+.umm-type-btn--active {
+  color: #fff;
+  background: var(--umm-link, #1757d6);
+}
+
+.umm-type-btn--active:hover {
+  color: #fff;
+  background: var(--umm-link, #1757d6);
+}
+
+/* ---- Results grid ---- */
+.umm-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+/* ---- Result card ---- */
+.umm-search-card {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--umm-card-radius);
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--umm-border);
+  border-left: 3px solid var(--umm-border);
+  box-sizing: border-box;
+}
+
+.umm-search-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--umm-border);
+}
+
+/* ---- Cover area wrapper ---- */
+.umm-search-card-cover-area {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.umm-search-card-cover-area--music {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 8px;
+}
+
+/* ---- Cover image ---- */
+.umm-search-card-cover {
+  flex-shrink: 0;
+  width: 100px;
+  height: 140px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  background: var(--umm-bg);
+}
+
+/* Music album cover: square 1:1 ratio */
+.umm-search-card-cover--music {
+  width: 100px;
+  height: 100px;
+}
+
+.umm-search-card-cover > .umm-image-container > .umm-image-img {
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.umm-search-card-cover:hover > .umm-image-container > .umm-image-img {
+  transform: scale(1.08);
+}
+
+.umm-search-label {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+}
+
+/* ---- Media format row below cover (music search) ---- */
+.umm-search-media-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.umm-search-media-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 4px;
+  background: var(--umm-bg);
+  border: 1px solid var(--umm-border);
+  color: var(--umm-text-secondary);
+  user-select: none;
+  white-space: nowrap;
+}
+
+:host(.umm-theme--dark) .umm-search-media-chip {
+  background: var(--umm-bg-secondary);
+  border-color: var(--umm-border);
+  color: var(--umm-text-secondary, #999999);
+}
+
+/* ---- Media chip color variants (all ≥4.5:1 WCAG AA with white text) ---- */
+.umm-chip-cd       { background: #546e7a; color: #fff; border-color: transparent; }
+.umm-chip-dvd      { background: #7b1fa2; color: #fff; border-color: transparent; }
+.umm-chip-cd-dvd   { background: #4527a0; color: #fff; border-color: transparent; }
+.umm-chip-cassette { background: #5d4037; color: #fff; border-color: transparent; }
+.umm-chip-digital  { background: #00695c; color: #fff; border-color: transparent; }
+.umm-chip-vinyl    { background: #37474f; color: #fff; border-color: transparent; }
+.umm-chip-lp       { background: #4a148c; color: #fff; border-color: transparent; }
+.umm-chip-sacd     { background: #4e342e; color: #fff; border-color: transparent; }
+.umm-chip-bluray   { background: #0d47a1; color: #fff; border-color: transparent; }
+.umm-chip-vcd      { background: #455a64; color: #fff; border-color: transparent; }
+.umm-chip-streaming{ background: #1b5e20; color: #fff; border-color: transparent; }
+
+/* Dark theme: slightly lift background to improve visibility against dark page */
+:host(.umm-theme--dark) .umm-chip-cd       { background: #607d8b; }
+:host(.umm-theme--dark) .umm-chip-dvd      { background: #8e24aa; }
+:host(.umm-theme--dark) .umm-chip-cd-dvd   { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-cassette { background: #6d4c41; }
+:host(.umm-theme--dark) .umm-chip-digital  { background: #00897b; }
+:host(.umm-theme--dark) .umm-chip-vinyl    { background: #455a64; }
+:host(.umm-theme--dark) .umm-chip-lp       { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-sacd     { background: #5d4037; }
+:host(.umm-theme--dark) .umm-chip-bluray   { background: #1565c0; }
+:host(.umm-theme--dark) .umm-chip-vcd      { background: #546e7a; }
+:host(.umm-theme--dark) .umm-chip-streaming{ background: #2e7d32; }
+
+/* ---- Card body ---- */
+.umm-search-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---- Title row ---- */
+.umm-search-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.umm-search-card-title {
+  font-size: var(--umm-font-base, 1rem);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--umm-text-primary);
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* ---- Metadata lines ---- */
+.umm-search-meta {
+  font-size: var(--umm-font-sm, 0.8rem);
+  line-height: 1.5;
+  color: var(--umm-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.umm-search-cast {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--umm-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Empty state ---- */
+.umm-search-empty {
+  text-align: center;
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
+  color: var(--umm-text-muted);
+}
+
+/* ---- Pagination (unchanged) ---- */
+.umm-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.umm-page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  background: var(--umm-bg);
+  border: 1px solid var(--umm-border);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.umm-page-link:hover {
+  background: var(--umm-bg-secondary);
+  border-color: var(--umm-text-muted);
+}
+
+.umm-page-link--active {
+  background: var(--umm-text-primary);
+  color: var(--umm-bg);
+  border-color: var(--umm-text-primary);
+  font-weight: 600;
+}
+
+.umm-page-ellipsis {
+  color: var(--umm-text-muted);
+  padding: 0 4px;
+}
+
+.umm-page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.umm-page-input {
+  width: 56px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--umm-border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: var(--umm-text-primary);
+  background: var(--umm-bg);
+  outline: none;
+  text-align: center;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.umm-page-input::-webkit-inner-spin-button,
+.umm-page-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.umm-page-input:focus {
+  border-color: var(--umm-text-muted);
+}
+
+.umm-page-go {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--umm-border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  background: var(--umm-bg);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.umm-page-go:hover {
+  background: var(--umm-bg-secondary);
+  border-color: var(--umm-text-muted);
+}

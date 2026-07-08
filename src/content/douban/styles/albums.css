@@ -1,0 +1,161 @@
+/* ===== Album versions page ===== */
+
+.umm-albums-root {
+  padding: 24px 24px 64px;
+  max-width: 960px;
+  margin: 0 auto;
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ---- Header ---- */
+.umm-albums-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.umm-albums-title {
+  font-size: var(--umm-font-lg, 1.375rem);
+  font-weight: 700;
+  margin: 0;
+  color: var(--umm-text-primary);
+}
+
+.umm-albums-count {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+}
+
+/* ---- Version list ---- */
+.umm-albums-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- Version card ---- */
+.umm-album-card {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--umm-card-radius);
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--umm-border);
+  border-left: 3px solid var(--umm-border);
+  box-sizing: border-box;
+}
+
+.umm-album-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--umm-border);
+}
+
+/* ---- Cover area: square cover + media chip row ---- */
+.umm-album-cover-wrap {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 6px;
+  width: 120px;
+}
+
+.umm-album-cover-wrap .umm-image-container {
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* ---- Media chip row below cover ---- */
+.umm-album-media-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.umm-album-media-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 4px;
+  color: #fff;
+  border-color: transparent;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Card body */
+.umm-album-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.umm-album-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.umm-album-card-title {
+  font-size: var(--umm-font-base, 1rem);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--umm-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-album-subtitle {
+  font-size: 0.8125rem;
+  color: var(--umm-text-secondary);
+  line-height: 1.4;
+}
+
+.umm-album-abstract {
+  font-size: var(--umm-font-sm, 0.8rem);
+  line-height: 1.5;
+  color: var(--umm-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Media chip colors (matches search.css) ---- */
+.umm-chip-cd       { background: #546e7a; }
+.umm-chip-dvd      { background: #7b1fa2; }
+.umm-chip-cd-dvd   { background: #4527a0; }
+.umm-chip-cassette { background: #5d4037; }
+.umm-chip-digital  { background: #00695c; }
+.umm-chip-vinyl    { background: #37474f; }
+.umm-chip-lp       { background: #4a148c; }
+.umm-chip-sacd     { background: #4e342e; }
+.umm-chip-bluray   { background: #0d47a1; }
+.umm-chip-vcd      { background: #455a64; }
+.umm-chip-streaming{ background: #1b5e20; }
+
+:host(.umm-theme--dark) .umm-chip-cd       { background: #607d8b; }
+:host(.umm-theme--dark) .umm-chip-dvd      { background: #8e24aa; }
+:host(.umm-theme--dark) .umm-chip-cd-dvd   { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-cassette { background: #6d4c41; }
+:host(.umm-theme--dark) .umm-chip-digital  { background: #00897b; }
+:host(.umm-theme--dark) .umm-chip-vinyl    { background: #455a64; }
+:host(.umm-theme--dark) .umm-chip-lp       { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-sacd     { background: #5d4037; }
+:host(.umm-theme--dark) .umm-chip-bluray   { background: #1565c0; }
+:host(.umm-theme--dark) .umm-chip-vcd      { background: #546e7a; }
+:host(.umm-theme--dark) .umm-chip-streaming{ background: #2e7d32; }

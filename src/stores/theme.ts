@@ -1,21 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { useStorage, useMediaQuery } from '@vueuse/core'
+import { STORAGE_KEYS } from '@/config'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
-export type FontSize = 'compact' | 'default' | 'comfortable'
-export type Density = 'compact' | 'default' | 'comfortable'
 
 const STORAGE_KEY = 'umm:appearance'
 
 export const useThemeStore = defineStore('theme', () => {
   const theme = ref<ThemeMode>('auto')
-  const fontSize = ref<FontSize>('default')
-  const density = ref<Density>('default')
   const isDark = useMediaQuery('(prefers-color-scheme: dark)')
-  const storage = useStorage<{ theme: ThemeMode; fontSize: FontSize; density: Density }>(
+  const storage = useStorage<{ theme: ThemeMode }>(
     STORAGE_KEY,
-    { theme: 'auto', fontSize: 'default', density: 'default' },
+    { theme: 'auto' },
   )
 
   function applyTheme(mode: ThemeMode) {
@@ -23,20 +20,8 @@ export const useThemeStore = defineStore('theme', () => {
     document.documentElement.classList.toggle('dark', dark)
   }
 
-  function applyFontSize(size: FontSize) {
-    document.documentElement.classList.remove('font-compact', 'font-default', 'font-comfortable')
-    document.documentElement.classList.add(`font-${size}`)
-  }
-
-  function applyDensity(d: Density) {
-    document.documentElement.classList.remove('density-compact', 'density-default', 'density-comfortable')
-    document.documentElement.classList.add(`density-${d}`)
-  }
-
   function applyAll() {
     applyTheme(theme.value)
-    applyFontSize(fontSize.value)
-    applyDensity(density.value)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         document.documentElement.classList.add('theme-ready')
@@ -44,19 +29,26 @@ export const useThemeStore = defineStore('theme', () => {
     })
   }
 
+  /** Sync theme value to background settingsCache via STORAGE_KEYS.THEME key */
+  function syncThemeToSettings(themeValue: ThemeMode): void {
+    chrome.storage.local.set({ [STORAGE_KEYS.THEME]: themeValue }).catch(() => {
+      // Silent — content scripts and themeStore already have the value via 'umm:appearance'
+    })
+  }
+
   // Init from storage
   if (storage.value) {
     theme.value = storage.value.theme
-    fontSize.value = storage.value.fontSize
-    density.value = storage.value.density
+    syncThemeToSettings(theme.value)
   }
   applyAll()
 
   // Persist on change
-  watch([theme, fontSize, density], () => {
-    storage.value = { theme: theme.value, fontSize: fontSize.value, density: density.value }
+  watch([theme], () => {
+    storage.value = { theme: theme.value }
     applyAll()
     chrome.storage.local.set({ [STORAGE_KEY]: storage.value })
+    syncThemeToSettings(theme.value)
   })
 
   // React to chrome.storage changes (cross-context sync)
@@ -65,10 +57,8 @@ export const useThemeStore = defineStore('theme', () => {
     const saved = changes[STORAGE_KEY]?.newValue as typeof storage.value | undefined
     if (saved) {
       theme.value = saved.theme
-      fontSize.value = saved.fontSize
-      density.value = saved.density
     }
   })
 
-  return { theme, fontSize, density, applyTheme, applyFontSize, applyDensity }
+  return { theme, applyTheme }
 })

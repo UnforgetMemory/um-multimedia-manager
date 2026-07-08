@@ -28,6 +28,9 @@ export function startRatingObserver() {
     lastKnownRating = Number.parseInt(nRatingInput.value, 10) || 0
   }
 
+  // Fire injector once on init so NeoDB buttons appear immediately
+  neoDBInjector?.()
+
   if (ratingObserver) {
     ratingObserver.disconnect()
   }

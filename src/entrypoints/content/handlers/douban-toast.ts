@@ -57,7 +57,7 @@ export function showPageToast(
     padding: 16px 24px;
     border-radius: 12px;
     box-shadow: 0 8px 24px ${color.shadow}, 0 4px 8px rgba(0, 0, 0, 0.1);
-    z-index: 999999;
+    z-index: 500;
     font-size: 14px;
     font-weight: 500;
     letter-spacing: 0.01em;

@@ -1,0 +1,6 @@
+/* Prevent white flash on dark theme — injected at document_start before any page render */
+/* Prevent white flash for dark-theme users; match OS preference for auto-mode users */
+html { background: hsl(240 6% 10%) !important; }
+@media (prefers-color-scheme: light) {
+  html { background: hsl(0 0% 100%) !important; }
+}

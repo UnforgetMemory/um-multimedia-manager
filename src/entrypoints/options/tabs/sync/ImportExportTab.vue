@@ -2,10 +2,12 @@
 import { ref } from 'vue'
 import { safeSendMessage } from '@/utils/context'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Download, Upload, RefreshCw } from 'lucide-vue-next'
+import { Download, Upload } from 'lucide-vue-next'
 import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
+import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
+import LoadingButton from '@/shared/ui/loading-button/LoadingButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -33,7 +35,17 @@ function triggerImport() {
     const reader = new FileReader()
     reader.onload = async (event) => {
       try {
-        const payload = JSON.parse(event.target?.result as string)
+        const raw = (event.target?.result as string) || ''
+        const clean = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw
+        let payload: any
+        try {
+          payload = JSON.parse(clean)
+        } catch (parseErr) {
+          const preview = raw.slice(0, 80).replace(/[\x00-\x1f]/g, ch => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`)
+          console.error('[Import] JSON parse failed. Raw[:80]:', preview, 'length:', raw.length)
+          toast.error(t('toast.importFailed'), `${String(parseErr)}\n\nFile starts with: "${preview}"`)
+          return
+        }
         let recordCount = 0
         if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
         show({
@@ -55,9 +67,18 @@ function triggerImport() {
                 }
                 importPayload = { stores }
               }
-              await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
-              toast.success(t('toast.importSuccess'))
-            } catch (e) { toast.error(t('toast.importFailed'), String(e)) } finally { isImporting.value = false }
+              const res = await safeSendMessage<{ success: boolean; error?: string }>({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
+              if (res?.success) {
+                toast.success(t('toast.importSuccess'))
+              } else {
+                console.error('[Import] background handler returned error:', JSON.stringify(res))
+                throw new Error(res?.error || 'Import returned no response')
+              }
+            } catch (e) {
+              const errMsg = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+              console.error('[Import] action error:', errMsg)
+              toast.error(t('toast.importFailed'), errMsg)
+            } finally { isImporting.value = false }
           },
         })
       } catch (e) { toast.error(t('toast.importFailed'), String(e)) }
@@ -69,16 +90,27 @@ function triggerImport() {
 </script>
 
 <template>
-  <div class="space-y-[var(--section-gap)]">
-    <h3 class="font-h2 text-primary-content">{{ t('tab.importExport') }}</h3>
-    <div class="grid grid-cols-2 gap-3">
-      <Button @click="exportData" variant="outline" :disabled="isExporting || isImporting">
-        <Download class="mr-2 h-4 w-4" />{{ isExporting ? t('common.exporting') : t('common.exportData') }}
-      </Button>
-      <Button @click="triggerImport" variant="outline" :disabled="isExporting || isImporting">
-        <RefreshCw v-if="isImporting" class="mr-2 h-4 w-4 animate-spin" /><Upload v-else class="mr-2 h-4 w-4" />
-        {{ isImporting ? t('common.importing') : t('common.importData') }}
-      </Button>
+  <SectionContainer>
+    <SectionHeader :title="t('tab.importExport')" />
+    <div class="umm:grid umm:grid-cols-2 umm:gap-3">
+      <LoadingButton
+        :icon="Download"
+        :label="t('common.exportData')"
+        :loading="isExporting"
+        :loading-label="t('common.exporting')"
+        variant="outline"
+        :disabled="isExporting || isImporting"
+        @click="exportData"
+      />
+      <LoadingButton
+        :icon="Upload"
+        :label="t('common.importData')"
+        :loading="isImporting"
+        :loading-label="t('common.importing')"
+        variant="outline"
+        :disabled="isExporting || isImporting"
+        @click="triggerImport"
+      />
     </div>
-  </div>
+  </SectionContainer>
 </template>

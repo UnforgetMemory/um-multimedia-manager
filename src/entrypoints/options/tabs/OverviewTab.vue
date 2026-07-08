@@ -2,21 +2,24 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { useStats } from '@/composables/useStats'
+import { useStats, type RecordWithType } from '@/composables/useStats'
 import { PLATFORM_HUES } from '@/composables/usePlatformMeta'
-import StatCard from '@/components/StatCard.vue'
-import HeatmapCalendar from '@/components/HeatmapCalendar.vue'
-import PlatformDistribution from '@/components/PlatformDistribution.vue'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+
+
+import HeatmapCalendar from '@/shared/HeatmapCalendar.vue'
+import PlatformDistribution from '@/shared/PlatformDistribution.vue'
+import { Card, CardHeader, CardContent } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert'
+import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
+import StatsGrid from '@/shared/ui/stats-grid/StatsGrid.vue'
 import { AlertCircle, Database, RefreshCw, Film, Tv, Music, ShieldAlert } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
 const { stats } = useStats(
-  () => appStore.records as any,
-  () => appStore.adultAvItems as any,
+  () => (appStore.records as RecordWithType[]),
+  () => appStore.adultAvItems,
 )
 
 const activeOverviewTab = ref<'overview' | 'weekly' | 'platform'>('overview')
@@ -34,7 +37,7 @@ interface PlatformStat {
 }
 
 const platformStats = computed<PlatformStat[]>(() => {
-  const data = appStore.records as any
+  const data = appStore.records as RecordWithType[]
   const map: Record<string, PlatformStat> = {}
   for (const r of data || []) {
     const provider: string = r.provider || r.storeName?.replace('_records', '') || 'unknown'
@@ -68,7 +71,7 @@ const weekdayNames = computed(() => [
 ])
 
 const weeklyStats = computed(() => {
-  const data = appStore.records as any
+  const data = appStore.records as RecordWithType[]
   const now = new Date()
   const dayMs = 86400000
   const days: DailyStat[] = []
@@ -119,94 +122,89 @@ const statIcons = [Film, Tv, Music, ShieldAlert]
 const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.jav')])
 const statKeys = ['movie', 'tv', 'music', 'jav'] as const
 
+const statsData = computed(() =>
+  statKeys.map((key, i) => ({
+    key,
+    icon: statIcons[i],
+    label: statLabels.value[i],
+    value: stats.value[key],
+  }))
+)
+
 const tooltipData = ref<{ show: boolean; x: number; y: number; text: string }>({ show: false, x: 0, y: 0, text: '' })
 
 function platformColor(hue: number, variant: 'bar' | 'icon'): string {
-  const isDark = document.documentElement.classList.contains('dark')
+  const s = getComputedStyle(document.documentElement)
+  const barL = s.getPropertyValue('--umm-bar-platform-l').trim()
+  const iconL = s.getPropertyValue('--umm-bar-platform-icon-l').trim()
   switch (variant) {
-    case 'bar': return `hsl(${hue}, 55%, ${isDark ? '50%' : '45%'})`
-    case 'icon': return `hsl(${hue}, 55%, ${isDark ? '45%' : '40%'})`
+    case 'bar': return `hsl(${hue}, 55%, ${barL || '45%'})`
+    case 'icon': return `hsl(${hue}, 55%, ${iconL || '40%'})`
   }
 }
 
 function barColor(count: number, maxCount: number): string {
-  const isDark = document.documentElement.classList.contains('dark')
   if (count === 0) return 'hsl(var(--muted))'
+  const s = getComputedStyle(document.documentElement)
+  const baseS = parseFloat(s.getPropertyValue('--umm-bar-base-s')) || 35
+  const baseL = parseFloat(s.getPropertyValue('--umm-bar-base-l')) || 75
   const ratio = count / maxCount
   const level = Math.min(5, Math.ceil(ratio * 5))
-  if (isDark) {
-    return `hsl(210, ${30 + level * 8}%, ${25 + level * 6}%)`
-  }
-  return `hsl(210, ${35 + level * 7}%, ${75 - level * 8}%)`
+  return `hsl(210, ${baseS + level * 7}%, ${baseL - level * 6}%)`
 }
 
 onMounted(async () => { await appStore.loadData() })
 </script>
 
 <template>
-  <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+  <div class="umm:flex umm:flex-col umm:gap-6">
     <!-- Skeleton -->
-    <div v-if="!appStore.dataReady && !appStore.error" class="space-y-6">
-      <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
-        <div v-for="i in 4" :key="i" class="h-28 bg-muted rounded-xl animate-pulse"></div>
+    <div v-if="!appStore.dataReady && !appStore.error" class="umm:flex umm:flex-col umm:gap-6">
+      <div class="umm:grid umm:grid-cols-2 umm:lg:grid-cols-4" :style="{ gap: 'var(--umm-section-gap)' }">
+        <div v-for="i in 4" :key="i" class="umm:h-28 umm:bg-muted umm:rounded-xl umm:animate-pulse"></div>
       </div>
-      <div class="h-48 bg-muted rounded-xl animate-pulse"></div>
+      <div class="umm:h-48 umm:bg-muted umm:rounded-xl umm:animate-pulse"></div>
     </div>
 
     <!-- Error -->
-    <div v-else-if="appStore.error" class="py-12 text-center">
-      <Alert variant="destructive" class="mb-4">
-        <AlertCircle class="h-4 w-4" />
+    <div v-else-if="appStore.error" class="umm:py-12 umm:text-center">
+      <Alert variant="destructive" class="umm:mb-4">
+        <AlertCircle class="umm:h-4 umm:w-4" />
         <AlertTitle>{{ t('common.loadFailed') }}</AlertTitle>
         <AlertDescription>{{ appStore.error }}</AlertDescription>
       </Alert>
-      <Button @click="appStore.loadData" variant="outline">
-        <RefreshCw class="mr-2 h-4 w-4" />{{ t('common.retry') }}
+      <Button @click="appStore.loadData" variant="outline" class="umm:gap-2">
+        <RefreshCw class="umm:h-4 umm:w-4" />{{ t('common.retry') }}
       </Button>
     </div>
 
     <!-- Content -->
     <template v-else>
-      <!-- Sub-tabs with refresh -->
-      <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
-        <div class="flex flex-1 p-1 bg-muted rounded-xl" :style="{ gap: 'var(--space-1)' }">
-          <button
-            v-for="tab in overviewTabs"
-            :key="tab.id"
-            @click="activeOverviewTab = tab.id"
-            :class="[
-              'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-              activeOverviewTab === tab.id
-                ? 'bg-background text-primary-content shadow-sm'
-                : 'text-secondary-content hover:text-primary-content hover:bg-background/50'
-            ]"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
+      <div class="umm:flex umm:items-center umm:gap-2">
+        <SegmentedControl v-model="activeOverviewTab" :options="overviewTabs" class="umm:flex-1" />
         <Button variant="ghost" size="sm" @click="appStore.loadData" :disabled="appStore.loading">
-          <RefreshCw :class="['h-4 w-4', appStore.loading && 'animate-spin']" />
+          <RefreshCw :class="['umm:h-4 umm:w-4', appStore.loading && 'umm:animate-spin']" />
         </Button>
       </div>
 
       <!-- Tab: Overview (Stats + Heatmap) -->
-      <div v-if="activeOverviewTab === 'overview'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+      <div v-if="activeOverviewTab === 'overview'" class="umm:flex umm:flex-col umm:gap-6">
         <!-- Stats Grid -->
-        <div class="grid grid-cols-2 lg:grid-cols-4" :style="{ gap: 'var(--space-3)' }">
-          <StatCard v-for="(key, i) in statKeys" :key="key" :icon="statIcons[i]" :label="statLabels[i]" :value="stats[key]" :loading="!appStore.dataReady" />
-        </div>
+        <StatsGrid :stats="statsData" :loading="!appStore.dataReady" />
 
         <!-- Total -->
         <Card>
-          <div class="flex items-center justify-between" :style="{ padding: 'var(--card-padding)' }">
-            <div class="flex items-center gap-2">
-              <Database class="w-4 h-4 text-secondary-content" />
-              <span class="font-body font-medium text-secondary-content">{{ t('stats.total') }}</span>
+          <CardContent>
+            <div class="umm:flex umm:items-center umm:justify-between">
+              <div class="umm:flex umm:items-center umm:gap-2">
+                <Database class="umm:w-4 umm:h-4 umm:text-secondary-content" />
+                <span class="umm:font-body umm:font-medium umm:text-secondary-content">{{ t('stats.total') }}</span>
+              </div>
+              <span class="umm:font-bold umm:tracking-tight umm:text-primary-content umm:tabular-nums umm:whitespace-nowrap" :style="{ fontSize: '1.75rem' }">
+                {{ stats.total.toLocaleString() }}
+              </span>
             </div>
-            <span class="font-bold tracking-tight text-primary-content tabular-nums whitespace-nowrap" :style="{ fontSize: 'calc(1.75rem * var(--font-scale, 1))' }">
-              {{ stats.total.toLocaleString() }}
-            </span>
-          </div>
+          </CardContent>
         </Card>
 
         <!-- Calendar Heatmap -->
@@ -214,144 +212,150 @@ onMounted(async () => { await appStore.loadData() })
       </div><!-- end overview tab -->
 
       <!-- Tab: Weekly Detail -->
-      <div v-if="activeOverviewTab === 'weekly'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+      <div v-if="activeOverviewTab === 'weekly'" class="umm:flex umm:flex-col umm:gap-6">
       <!-- Weekly Summary Stats -->
-      <div class="grid grid-cols-3" :style="{ gap: 'var(--space-3)' }">
-        <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
-          <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
-            {{ weeklyStats.total }}
-          </div>
-          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ t('stats.weeklyTotal') }}</div>
+      <div class="umm:grid umm:grid-cols-3" :style="{ gap: 'var(--umm-section-gap)' }">
+        <Card class="umm:text-center">
+          <CardContent>
+            <div class="umm:font-bold umm:tabular-nums umm:text-primary-content" :style="{ fontSize: '1.5rem' }">
+              {{ weeklyStats.total }}
+            </div>
+            <div class="umm:font-caption umm:text-secondary-content umm:mt-1">{{ t('stats.weeklyTotal') }}</div>
+          </CardContent>
         </Card>
-        <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
-          <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
-            {{ weeklyStats.avgDaily }}
-          </div>
-          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ t('stats.dailyAvg') }}</div>
+        <Card class="umm:text-center">
+          <CardContent>
+            <div class="umm:font-bold umm:tabular-nums umm:text-primary-content" :style="{ fontSize: '1.5rem' }">
+              {{ weeklyStats.avgDaily }}
+            </div>
+            <div class="umm:font-caption umm:text-secondary-content umm:mt-1">{{ t('stats.dailyAvg') }}</div>
+          </CardContent>
         </Card>
-        <Card class="text-center" :style="{ padding: 'var(--card-padding)' }">
-          <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.5rem * var(--font-scale, 1))' }">
-            {{ weeklyStats.peakDay }}
-          </div>
-          <div class="font-caption text-secondary-content" :style="{ marginTop: 'var(--space-1)' }">{{ t('stats.peakDay') }}</div>
+        <Card class="umm:text-center">
+          <CardContent>
+            <div class="umm:font-bold umm:tabular-nums umm:text-primary-content" :style="{ fontSize: '1.5rem' }">
+              {{ weeklyStats.peakDay }}
+            </div>
+            <div class="umm:font-caption umm:text-secondary-content umm:mt-1">{{ t('stats.peakDay') }}</div>
+          </CardContent>
         </Card>
       </div>
 
       <!-- Daily Bar Chart -->
       <Card>
-        <div :style="{ padding: 'var(--card-padding)' }">
-          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">{{ t('stats.dailyRecords') }}</h3>
-          <div class="flex" :style="{ gap: 'var(--space-2)', height: '8rem' }">
+        <CardHeader>
+          <h3 class="umm:font-h2 umm:text-primary-content">{{ t('stats.dailyRecords') }}</h3>
+        </CardHeader>
+        <CardContent>
+          <div class="umm:flex umm:gap-2" :style="{ height: '8rem' }">
             <div v-for="day in weeklyStats.days" :key="day.date"
-              class="flex-1 flex flex-col items-center" :style="{ gap: 'var(--space-1)', height: '100%' }">
+              class="umm:flex-1 umm:flex umm:flex-col umm:items-center umm:gap-1" :style="{ height: '100%' }">
               <!-- Bar — log scale, flex-1 wrapper provides definite height for percentage -->
-              <div class="flex-1 w-full flex flex-col justify-end min-h-0">
-                <div class="w-full rounded-t-lg transition-all duration-300 relative group cursor-default"
+              <div class="umm:flex-1 umm:w-full umm:flex umm:flex-col umm:justify-end umm:min-h-0">
+                <div class="umm:w-full umm:rounded-t-lg umm:transition-all umm:duration-300 umm:relative group umm:cursor-default"
                   :style="{
                     height: `${Math.max(10, (Math.log(day.total + 1) / Math.log(weeklyStats.maxDaily + 1)) * 100)}%`,
                     backgroundColor: day.isToday ? 'hsl(var(--primary))' : barColor(day.total, weeklyStats.maxDaily),
                     minHeight: '10px',
                     opacity: day.total === 0 ? 0.3 : 1,
                   }">
-                  <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs-scaled font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div class="umm:absolute umm:-top-6 umm:left-1/2 umm:-translate-x-1/2 umm:text-xs umm:font-bold umm:text-primary-content umm:opacity-0 umm:group-hover:opacity-100 umm:transition-opacity umm:whitespace-nowrap">
                     {{ day.total }}
                   </div>
                 </div>
               </div>
               <!-- Label -->
-              <div class="text-center">
-                <div class="font-caption text-secondary-content" :style="{ fontSize: '10px' }">{{ day.weekday }}</div>
-                <div class="font-caption" :style="{ fontSize: '9px', color: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }">{{ day.dateStr }}</div>
+              <div class="umm:text-center">
+                <div class="umm:font-caption umm:text-secondary-content" :style="{ fontSize: '0.625rem' }">{{ day.weekday }}</div>
+                <div class="umm:font-caption umm:text-secondary-content" :style="{ fontSize: '0.625rem', color: day.isToday ? 'hsl(var(--primary))' : undefined }">{{ day.dateStr }}</div>
               </div>
             </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       <!-- Daily Detail List -->
       <Card>
-        <div :style="{ padding: 'var(--card-padding)' }">
-          <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-4)' }">{{ t('stats.dailyDetail') }}</h3>
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }">
+        <CardHeader>
+          <h3 class="umm:font-h2 umm:text-primary-content">{{ t('stats.dailyDetail') }}</h3>
+        </CardHeader>
+        <CardContent>
+          <div class="umm:flex umm:flex-col umm:gap-3">
             <div v-for="day in weeklyStats.days" :key="day.date"
-              class="rounded-xl border transition-all"
-              :class="day.isToday ? 'border-primary/30 bg-primary/[0.03] shadow-sm' : 'border-border hover:border-muted hover:shadow-sm'"
-              :style="{ padding: 'var(--card-padding)' }">
+              class="umm:rounded-xl umm:border umm:transition-all"
+              :class="day.isToday ? 'umm:border-primary/30 umm:bg-primary/[0.03] umm:shadow-sm' : 'umm:border-border umm:hover:border-muted umm:hover:shadow-sm'"
+              :style="{ padding: 'var(--umm-card-padding)' }">
               <!-- Day header row -->
-              <div class="flex items-center justify-between" :style="{ marginBottom: 'var(--space-3)' }">
-                <div class="flex items-center" :style="{ gap: 'var(--space-3)' }">
+              <div class="umm:flex umm:items-center umm:justify-between umm:mb-3">
+                <div class="umm:flex umm:items-center umm:gap-3">
                   <!-- Day badge -->
-                  <div class="w-10 h-10 rounded-xl flex flex-col items-center justify-center"
+                  <div class="umm:w-10 umm:h-10 umm:rounded-xl umm:flex umm:flex-col umm:items-center umm:justify-center"
                     :style="{
                       backgroundColor: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
                       color: day.isToday ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
                     }">
-                    <span class="font-bold leading-none" :style="{ fontSize: 'calc(0.9rem * var(--font-scale, 1))' }">{{ day.weekday.charAt(1) }}</span>
-                    <span class="leading-none" :style="{ fontSize: 'calc(0.55rem * var(--font-scale, 1))', opacity: 0.7 }">{{ day.dateStr }}</span>
-                  </div>
-                  <div>
-                    <div class="font-body font-semibold text-primary-content">{{ day.weekday }}</div>
-                    <div class="font-caption text-secondary-content">{{ day.dateStr }}</div>
+                    <span class="umm:font-bold umm:leading-none" :style="{ fontSize: '0.9rem' }">{{ day.weekday.charAt(1) }}</span>
+                    <span class="umm:leading-none umm:text-secondary-content" :style="{ fontSize: '0.7rem' }">{{ day.dateStr }}</span>
                   </div>
                 </div>
-                <div class="flex items-center" :style="{ gap: 'var(--space-2)' }">
-                  <span v-if="day.isToday" class="text-xs-scaled font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">{{ t('common.today') }}</span>
-                  <div class="font-bold tabular-nums text-primary-content" :style="{ fontSize: 'calc(1.125rem * var(--font-scale, 1))' }">
+                <div class="umm:flex umm:items-center" :style="{ gap: 'var(--umm-spacing-2)' }">
+                  <span v-if="day.isToday" class="umm:text-xs umm:font-medium umm:px-2 umm:py-0.5 umm:rounded-full umm:bg-primary/10 umm:text-primary">{{ t('common.today') }}</span>
+                  <div class="umm:font-bold umm:tabular-nums umm:text-primary-content" :style="{ fontSize: '1.125rem' }">
                     {{ day.total }}
                   </div>
                 </div>
               </div>
 
               <!-- Source breakdown with mini progress bars -->
-              <div v-if="day.items.length > 0" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }">
-                <div v-for="(item, i) in day.items" :key="i" class="flex items-center" :style="{ gap: 'var(--space-2)' }">
-                  <span class="font-body text-secondary-content shrink-0" :style="{ width: '80px', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.label }}</span>
-                  <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-500"
+              <div v-if="day.items.length > 0" class="umm:flex umm:flex-col umm:gap-2">
+                <div v-for="(item, i) in day.items" :key="i" class="umm:flex umm:items-center" :style="{ gap: 'var(--umm-spacing-2)' }">
+                  <span class="umm:font-body umm:text-secondary-content umm:shrink-0" :style="{ width: '80px', fontSize: '0.75rem' }">{{ item.label }}</span>
+                  <div class="umm:flex-1 umm:h-2 umm:rounded-full umm:bg-muted umm:overflow-hidden">
+                    <div class="umm:h-full umm:rounded-full umm:transition-all umm:duration-500"
                       :style="{
                         width: `${(item.count / day.total) * 100}%`,
                         backgroundColor: platformColor(PLATFORM_HUES[item.source] || 0, 'bar'),
                       }" />
                   </div>
-                  <span class="font-body font-medium tabular-nums text-primary-content shrink-0" :style="{ width: '32px', textAlign: 'right', fontSize: 'calc(0.75rem * var(--font-scale, 1))' }">{{ item.count }}</span>
+                  <span class="umm:font-body umm:font-medium umm:tabular-nums umm:text-primary-content umm:shrink-0" :style="{ width: '32px', textAlign: 'right', fontSize: '0.75rem' }">{{ item.count }}</span>
                 </div>
               </div>
-              <div v-else class="py-2 text-center font-caption text-secondary-content" :style="{ fontSize: '11px' }">{{ t('common.noRecords') }}</div>
+              <div v-else class="umm:py-2 umm:text-center umm:font-caption umm:text-secondary-content">{{ t('common.noRecords') }}</div>
             </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
       </div><!-- end weekly tab -->
 
       <!-- Tab: Platform Distribution -->
-      <div v-if="activeOverviewTab === 'platform'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--section-gap)' }">
+      <div v-if="activeOverviewTab === 'platform'" class="umm:flex umm:flex-col umm:gap-6">
       <!-- Platform Distribution -->
       <div>
-        <h3 class="font-h2 text-primary-content" :style="{ marginBottom: 'var(--space-3)' }">{{ t('tab.platformDistribution') }}</h3>
+        <h3 class="umm:font-h2 umm:text-primary-content umm:mb-3">{{ t('tab.platformDistribution') }}</h3>
 
         <!-- Summary bar chart -->
-        <Card :style="{ marginBottom: 'var(--space-4)' }">
-          <div :style="{ padding: 'var(--card-padding)' }">
-            <div class="flex items-end" :style="{ gap: 'var(--space-1)', height: '5rem' }">
+        <Card class="umm:mb-4">
+          <div :style="{ padding: 'var(--umm-card-padding)' }">
+            <div class="umm:flex umm:items-end" :style="{ gap: 'var(--umm-spacing-1)', height: '5rem' }">
               <div
                 v-for="info in platformStats"
                 :key="info.provider"
-                class="flex-1 rounded-t-md transition-all duration-500 relative group cursor-default"
+                class="umm:flex-1 umm:rounded-t-md umm:transition-all umm:duration-500 umm:relative group umm:cursor-default"
                 :style="{
                   height: `${Math.max(8, (info.count / maxCount) * 100)}%`,
                   backgroundColor: platformColor(PLATFORM_HUES[info.provider] || 0, 'bar'),
                 }"
               >
-                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-primary-content opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap tabular-nums">
+                <div class="umm:absolute umm:-top-6 umm:left-1/2 umm:-translate-x-1/2 umm:text-xs umm:font-bold umm:text-primary-content umm:opacity-0 umm:group-hover:opacity-100 umm:transition-opacity umm:whitespace-nowrap umm:tabular-nums">
                   {{ info.count.toLocaleString() }}
                 </div>
               </div>
             </div>
-            <div class="flex items-end" :style="{ gap: 'var(--space-1)', marginTop: 'var(--space-1)' }">
+            <div class="umm:flex umm:items-end" :style="{ gap: 'var(--umm-spacing-1)', marginTop: 'var(--umm-spacing-1)' }">
               <div
                 v-for="info in platformStats"
                 :key="info.provider + '-label'"
-                class="flex-1 text-center font-caption text-secondary-content truncate"
+                class="umm:flex-1 umm:text-center umm:font-caption umm:text-secondary-content umm:truncate"
               >
                 {{ t('platform.' + info.provider, info.provider) }}
               </div>
@@ -362,7 +366,7 @@ onMounted(async () => { await appStore.loadData() })
         <!-- Detailed cards -->
         <PlatformDistribution :platformStats="platformStats" />
 
-        <div v-if="platformStats.length === 0" class="py-8 text-center font-body text-secondary-content">
+        <div v-if="platformStats.length === 0" class="umm:py-8 umm:text-center umm:font-body umm:text-secondary-content">
           {{ t('common.noData') }}
         </div>
       </div>
@@ -373,7 +377,7 @@ onMounted(async () => { await appStore.loadData() })
     <Teleport to="body">
       <div
         v-if="tooltipData.show"
-        class="fixed z-[9999] px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none shadow-lg"
+        class="umm:fixed umm:z-[9999] umm:px-2 umm:py-1 umm:rounded umm:text-xs umm:whitespace-nowrap umm:pointer-events-none umm:shadow-lg"
         :style="{
           left: tooltipData.x + 'px',
           top: tooltipData.y + 'px',
@@ -398,7 +402,7 @@ onMounted(async () => { await appStore.loadData() })
 }
 .heatmap-cell:hover {
   transform: scale(1.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.2);
   z-index: 10;
 }
 </style>

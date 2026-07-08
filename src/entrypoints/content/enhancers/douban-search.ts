@@ -9,7 +9,6 @@ import { Utils } from '@/utils'
 import { debugLog } from '@/utils/logger'
 import { t } from '../i18n'
 import { escapeHtml, waitForElement } from '../utils/dom'
-import { enhanceSearchPageSearch } from './douban-search-bar'
 
 /**
  * 豆瓣搜索页配置
@@ -303,22 +302,20 @@ export async function startSearchEnhancer(): Promise<(() => void) | null> {
     return null
   }
   
-    console.log(`[UMM] Starting search enhancer for ${config.type}`)
+    debugLog(`Starting search enhancer for ${config.type}`)
 
     try {
       // 等待容器加载
       const container = await waitForElement(config.containerSelector, 5000)
 
-      enhanceSearchPageSearch()
-
       // 开始监听并渲染
       const cleanup = observeContainerChanges(container, config)
-    
-    console.log('[UMM] Search enhancer started successfully')
-    
-    return cleanup
-  } catch (error) {
-    console.error('[UMM] Failed to start search enhancer:', error)
-    return null
-  }
+
+      debugLog('Search enhancer started successfully')
+
+      return cleanup
+    } catch (error) {
+      console.error('[UMM] Failed to start search enhancer:', error)
+      return null
+    }
 }

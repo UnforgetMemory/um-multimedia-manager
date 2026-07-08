@@ -6,10 +6,12 @@
  */
 
 import { ref } from 'vue'
+import type { ToastType } from '@/shared/types/toast'
+import { TOAST_AUTO_DISMISS_MS } from '@/shared/types/toast'
 
 interface Toast {
   id: number
-  type: 'success' | 'error' | 'info' | 'loading'
+  type: ToastType
   title: string
   message?: string
 }
@@ -21,9 +23,8 @@ function addToast(type: Toast['type'], title: string, message?: string): number 
   const id = nextId++
   toasts.value.push({ id, type, title, message })
 
-  // Auto-remove after 3 seconds (except loading)
   if (type !== 'loading') {
-    setTimeout(() => removeToast(id), 3000)
+    setTimeout(() => removeToast(id), TOAST_AUTO_DISMISS_MS)
   }
 
   return id

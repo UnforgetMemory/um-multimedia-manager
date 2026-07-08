@@ -45,7 +45,7 @@ export const Utils = {
    * 格式化评分显示
    */
   formatRating10(value: unknown): string {
-    const rating = this.clampRating10(value);
+    const rating = Utils.clampRating10(value);
     if (!rating) {
       return '';
     }

@@ -81,6 +81,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'sync.platform_link_updated': '🔗 {{platform}} link updated',
     // Common
     'common.cache_hint': 'From local cache',
+    'common.rating_unknown': 'N/A',
     // IMDb
     'imdb.saved': '✅ IMDb watch status saved',
     // NeoDB toasts
@@ -185,6 +186,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'sync.platform_link_updated': '🔗 {{platform}} 关联已更新',
     // Common
     'common.cache_hint': '来自本地缓存',
+    'common.rating_unknown': '暂无评分',
     // IMDb
     'imdb.saved': '✅ 已保存 IMDb 观看状态',
     // NeoDB toasts
@@ -289,6 +291,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'sync.platform_link_updated': '🔗 {{platform}} 關聯已更新',
     // Common
     'common.cache_hint': '來自本地緩存',
+    'common.rating_unknown': '暫無評分',
     // IMDb
     'imdb.saved': '✅ 已保存 IMDb 觀看狀態',
     // NeoDB toasts
@@ -393,6 +396,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'sync.platform_link_updated': '🔗 {{platform}} 關聯已更新',
     // Common
     'common.cache_hint': '來自本地緩存',
+    'common.rating_unknown': '暫無評分',
     // IMDb
     'imdb.saved': '✅ 已保存 IMDb 觀看狀態',
     // NeoDB toasts

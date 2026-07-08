@@ -1,0 +1,196 @@
+/* ===== UMM Douban Artists Overview — Shadow DOM styles ===== */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.umm-artists-root {
+  padding: var(--umm-space-lg, 20px) 0;
+}
+
+/* Sections */
+.umm-section {
+  margin-bottom: var(--umm-space-xl, 28px);
+}
+
+.umm-section-title {
+  font-size: var(--umm-font-lg, 1rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin: 0 0 var(--umm-space-md, 12px);
+  padding: 0 var(--umm-space-xl, 24px);
+}
+
+/* Artist grid — recommended artists */
+.umm-artist-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--umm-space-md, 12px);
+  padding: 0 var(--umm-space-xl, 24px);
+}
+
+@media (min-width: 640px) { .umm-artist-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 768px) { .umm-artist-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1024px) { .umm-artist-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 1440px) { .umm-artist-grid { grid-template-columns: repeat(8, 1fr); } }
+
+.umm-artist-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  padding: var(--umm-space-sm, 8px);
+  border-radius: var(--umm-radius-md, 10px);
+  transition: background 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.umm-artist-card:hover {
+  background: var(--umm-bg-secondary);
+  transform: translateY(-2px);
+}
+
+.umm-artist-avatar {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-artist-name {
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Event cards */
+.umm-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-sm, 8px);
+  padding: 0 var(--umm-space-xl, 24px);
+}
+
+.umm-event-card {
+  display: flex;
+  gap: var(--umm-space-md, 12px);
+  padding: var(--umm-space-sm, 8px);
+  border-radius: var(--umm-radius-md, 8px);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+
+.umm-event-card:hover {
+  background: var(--umm-bg-secondary);
+}
+
+.umm-event-image {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--umm-radius-sm, 6px);
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-event-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.umm-event-desc {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+  line-height: 1.4;
+}
+
+/* Video list */
+.umm-video-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-md, 12px);
+  padding: 0 var(--umm-space-xl, 24px);
+}
+
+@media (min-width: 640px) { .umm-video-list { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .umm-video-list { grid-template-columns: repeat(4, 1fr); } }
+
+.umm-video-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--umm-radius-md, 8px);
+  overflow: hidden;
+  cursor: pointer;
+  padding: var(--umm-space-xs, 4px);
+  transition: background 0.15s;
+}
+
+.umm-video-card:hover {
+  background: var(--umm-bg-secondary);
+}
+
+.umm-video-cover {
+  width: 100%;
+  aspect-ratio: var(--umm-aspect-wide, 16/9);
+  border-radius: var(--umm-radius-sm, 6px);
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-video-title {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-video-artist {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+}
+
+/* Genre nav */
+.umm-genre-section {
+  padding: 0 var(--umm-space-xl, 24px);
+}
+
+.umm-genre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-sm, 8px);
+}
+
+/* Hide native elements */
+#db-global-nav,
+#db-nav-music,
+#guess-artists,
+#buzz-songs,
+#artists-events,
+#artists-notes,
+#artists-video,
+.genre-nav,
+#artist-intro,
+#artist-search {
+  display: none !important;
+}

@@ -4,14 +4,17 @@ import { Store } from '@/features/database'
 import { STORAGE_KEYS } from '@/config'
 import { safeSendMessage } from '@/utils/context'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Badge } from '@/shared/ui/badge'
+import { Card, CardContent, CardHeader } from '@/shared/ui/card'
 import { RefreshCw, Download, Upload } from 'lucide-vue-next'
 import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
+import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
+import FormField from '@/shared/ui/form-field/FormField.vue'
+import LoadingButton from '@/shared/ui/loading-button/LoadingButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -35,14 +38,12 @@ onMounted(async () => {
     if (area !== 'local') return
     const relevant = [STORAGE_KEYS.WEBDAV_URL, STORAGE_KEYS.WEBDAV_USERNAME, STORAGE_KEYS.WEBDAV_PASSWORD]
     if (!relevant.some(k => k in changes)) return
-    chrome.storage.local.get([STORAGE_KEYS.WEBDAV_URL, STORAGE_KEYS.WEBDAV_USERNAME, STORAGE_KEYS.WEBDAV_PASSWORD]).then(result => {
-      webdavConfig.value = {
-        url: (result[STORAGE_KEYS.WEBDAV_URL] as string) || '',
-        username: (result[STORAGE_KEYS.WEBDAV_USERNAME] as string) || '',
-        password: (result[STORAGE_KEYS.WEBDAV_PASSWORD] as string) || '',
-      }
-      isConfigSaved.value = !!(result[STORAGE_KEYS.WEBDAV_URL] && result[STORAGE_KEYS.WEBDAV_USERNAME] && result[STORAGE_KEYS.WEBDAV_PASSWORD])
-    })
+    webdavConfig.value = {
+      url: (changes[STORAGE_KEYS.WEBDAV_URL]?.newValue as string) ?? webdavConfig.value.url,
+      username: (changes[STORAGE_KEYS.WEBDAV_USERNAME]?.newValue as string) ?? webdavConfig.value.username,
+      password: (changes[STORAGE_KEYS.WEBDAV_PASSWORD]?.newValue as string) ?? webdavConfig.value.password,
+    }
+    isConfigSaved.value = !!(webdavConfig.value.url && webdavConfig.value.username && webdavConfig.value.password)
   }
   chrome.storage.onChanged.addListener(onChange)
   webdavOnChangedUnsub = () => { chrome.storage.onChanged.removeListener(onChange) }
@@ -126,42 +127,67 @@ async function uploadCloud() {
 </script>
 
 <template>
-  <div class="space-y-[var(--section-gap)]">
-    <div>
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-h2 text-primary-content">{{ t('settings.webdav') }}</h3>
-        <Badge v-if="isConfigSaved" variant="default" class="bg-green-500">{{ t('toast.configSaved') }}</Badge>
-        <Badge v-else variant="outline" class="text-orange-500 border-orange-500">{{ t('common.unsaved') }}</Badge>
-      </div>
-      <div class="space-y-4">
-        <div><Label>{{ t('common.serverUrl') }}</Label><Input v-model="webdavConfig.url" placeholder="https://example.com/dav/" class="mt-2" /></div>
-        <div><Label>{{ t('common.username') }}</Label><Input v-model="webdavConfig.username" class="mt-2" /></div>
-        <div><Label>{{ t('common.password') }}</Label><Input v-model="webdavConfig.password" type="password" class="mt-2" /></div>
-        <div class="flex gap-2">
-          <Button @click="saveConfig" class="flex-1">{{ t('common.saveConfig') }}</Button>
-          <Button @click="testConnection" variant="outline" class="flex-1">{{ t('common.testConnection') }}</Button>
+  <SectionContainer>
+    <Card>
+      <CardHeader class="umm:pb-3">
+        <div class="umm:flex umm:items-center umm:justify-between">
+          <SectionHeader :title="t('settings.webdav')" />
+          <Badge v-if="isConfigSaved" variant="default" class="umm:bg-state-success">{{ t('toast.configSaved') }}</Badge>
+          <Badge v-else variant="outline" class="umm:text-orange-500 umm:border-orange-500">{{ t('common.unsaved') }}</Badge>
         </div>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent class="umm:flex umm:flex-col umm:gap-4">
+        <FormField :label="t('common.serverUrl')">
+          <Input v-model="webdavConfig.url" placeholder="https://example.com/dav/" />
+        </FormField>
+        <FormField :label="t('common.username')">
+          <Input v-model="webdavConfig.username" />
+        </FormField>
+        <FormField :label="t('common.password')">
+          <Input v-model="webdavConfig.password" type="password" />
+        </FormField>
+        <div class="umm:flex umm:gap-2">
+          <Button @click="saveConfig" class="umm:flex-1">{{ t('common.saveConfig') }}</Button>
+          <Button @click="testConnection" variant="outline" class="umm:flex-1">{{ t('common.testConnection') }}</Button>
+        </div>
+      </CardContent>
+    </Card>
 
-    <Separator />
-
-    <div>
-      <h3 class="font-h2 text-primary-content mb-4">{{ t('sync.smartMerge') }}</h3>
-      <div class="space-y-2">
-        <Button @click="downloadCloud" variant="outline" class="w-full" :disabled="!isConfigSaved || isAnyRunning">
-          <RefreshCw v-if="loading.download" class="mr-2 h-4 w-4 animate-spin" /><Download v-else class="mr-2 h-4 w-4" />
-          {{ loading.download ? t('common.downloading') : t('sync.cloudOverwrite') }}
-        </Button>
-        <Button @click="uploadCloud" variant="outline" class="w-full" :disabled="!isConfigSaved || isAnyRunning">
-          <RefreshCw v-if="loading.upload" class="mr-2 h-4 w-4 animate-spin" /><Upload v-else class="mr-2 h-4 w-4" />
-          {{ loading.upload ? t('common.uploading') : t('sync.localOverwrite') }}
-        </Button>
-        <Button @click="syncCloud" class="w-full" :disabled="!isConfigSaved || isAnyRunning">
-          <RefreshCw :class="['mr-2 h-4 w-4', loading.sync && 'animate-spin']" />
-          {{ loading.sync ? t('common.syncing') : t('sync.smartMerge') }}
-        </Button>
-      </div>
-    </div>
-  </div>
+    <Card>
+      <CardHeader class="umm:pb-3">
+        <SectionHeader :title="t('sync.smartMerge')" />
+      </CardHeader>
+      <CardContent class="umm:flex umm:flex-col umm:gap-2">
+        <LoadingButton
+          :icon="Download"
+          :label="t('sync.cloudOverwrite')"
+          :loading="loading.download"
+          :loading-label="t('common.downloading')"
+          variant="outline"
+          class="umm:w-full"
+          :disabled="!isConfigSaved || isAnyRunning"
+          @click="downloadCloud"
+        />
+        <LoadingButton
+          :icon="Upload"
+          :label="t('sync.localOverwrite')"
+          :loading="loading.upload"
+          :loading-label="t('common.uploading')"
+          variant="outline"
+          class="umm:w-full"
+          :disabled="!isConfigSaved || isAnyRunning"
+          @click="uploadCloud"
+        />
+        <LoadingButton
+          :icon="RefreshCw"
+          :label="t('sync.smartMerge')"
+          :loading="loading.sync"
+          :loading-label="t('common.syncing')"
+          class="umm:w-full"
+          :disabled="!isConfigSaved || isAnyRunning"
+          @click="syncCloud"
+        />
+      </CardContent>
+    </Card>
+  </SectionContainer>
 </template>
