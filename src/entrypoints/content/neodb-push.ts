@@ -133,6 +133,26 @@ export function injectNeoDBPushButtons(
   container.appendChild(pushPlusBtn)
   container.appendChild(pushOriginalBtn)
 
+  // Append "Open in NeoDB" link when a NeoDB association already exists
+  const neodbLinkedId = currentRecord?.linkedIds?.neodb
+  if (hasNeoDBLink && neodbLinkedId) {
+    const parts = neodbLinkedId.split('::')
+    if (parts.length === 2) {
+      const [neodbType, neodbUuid] = parts
+      const neodbPath = neodbType === 'music' ? 'album' : neodbType
+      const neodbUrl = `https://neodb.social/${neodbPath}/${neodbUuid}/`
+      const openBtn = document.createElement('a')
+      openBtn.id = 'umm-neodb-open'
+      openBtn.className = 'umm-neodb-btn umm-neodb-btn--open'
+      openBtn.textContent = t('neodb.btn_open')
+      openBtn.title = t('neodb.title_open')
+      openBtn.href = neodbUrl
+      openBtn.target = '_blank'
+      openBtn.rel = 'noopener noreferrer'
+      container.appendChild(openBtn)
+    }
+  }
+
   // Prefer overlay's #umm-neodb-actions (Shadow DOM), fall back to native DOM
   const overlay = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
   const neodbActions = overlay?.shadowRoot?.querySelector('#umm-neodb-actions')

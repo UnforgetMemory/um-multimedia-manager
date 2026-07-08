@@ -494,6 +494,17 @@
   transform: none;
 }
 
+.umm-neodb-btn--open {
+  background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+  box-shadow: 0 2px 4px rgba(109,40,217,0.3);
+  color: #fff;
+  text-decoration: none;
+}
+.umm-neodb-btn--open:hover {
+  box-shadow: 0 4px 8px rgba(109,40,217,0.4);
+  color: #fff;
+}
+
 .umm-neodb-watermark {
   position: absolute;
   right: 20px;

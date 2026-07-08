@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **IMDb clickable links on Douban detail page**: `metaToChips()` now accepts a label parameter; when `label === 'IMDb'`, plain text IMDb IDs (`tt\d+`) are wrapped into `<a>` links pointing to `imdb.com/title/{id}` with `target="_blank"`
+- **NeoDB "Open" button on Douban detail page**: When a local record has `linkedIds.neodb`, the NeoDB push buttons component dynamically renders a purple "打开" button linking to `neodb.social/{type}/{uuid}`
+
+### Security
+- All external links use `target="_blank" rel="noopener noreferrer"`
+- IMDb ID matching uses strict `/^tt\d+$/` regex — no XSS vector
+- NeoDB URL is constructed from internal IndexedDB data, not user input
+
 ## [4.9.0] - 2026-07-07
 
 ### Architecture

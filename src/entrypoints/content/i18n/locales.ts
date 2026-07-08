@@ -45,6 +45,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.title_minus': 'Reduce by 1 and push to NeoDB',
     'neodb.title_plus': 'Increase by 1 and push to NeoDB',
     'neodb.title_original': 'Push with current rating to NeoDB',
+    'neodb.btn_open': 'Open',
+    'neodb.title_open': 'Open in NeoDB',
     // NeoDB flow messages
     'neodb.pushing': 'Syncing to NeoDB...',
     'neodb.push_success': 'Pushed to NeoDB ({{rating}}/10)',
@@ -150,6 +152,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.title_minus': '降低 1 分后推送到 NeoDB',
     'neodb.title_plus': '提高 1 分后推送到 NeoDB',
     'neodb.title_original': '使用当前评分推送到 NeoDB',
+    'neodb.btn_open': '打开',
+    'neodb.title_open': '在 NeoDB 中打开',
     // NeoDB flow messages
     'neodb.pushing': '正在同步到 NeoDB...',
     'neodb.push_success': '已推送到 NeoDB ({{rating}}/10)',
@@ -255,6 +259,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.title_minus': '降低 1 分後推送到 NeoDB',
     'neodb.title_plus': '提高 1 分後推送到 NeoDB',
     'neodb.title_original': '使用當前評分推送到 NeoDB',
+    'neodb.btn_open': '打開',
+    'neodb.title_open': '在 NeoDB 中打開',
     // NeoDB flow messages
     'neodb.pushing': '正在同步到 NeoDB...',
     'neodb.push_success': '已推送到 NeoDB ({{rating}}/10)',
@@ -360,6 +366,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.title_minus': '降低 1 分後推送到 NeoDB',
     'neodb.title_plus': '提高 1 分後推送到 NeoDB',
     'neodb.title_original': '使用當前評分推送到 NeoDB',
+    'neodb.btn_open': '打開',
+    'neodb.title_open': '在 NeoDB 中打開',
     // NeoDB flow messages
     'neodb.pushing': '正在同步到 NeoDB...',
     'neodb.push_success': '已推送到 NeoDB ({{rating}}/10)',

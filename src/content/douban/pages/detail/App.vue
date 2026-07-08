@@ -118,7 +118,7 @@ function formatRatingBarPct(pct: string): string {
   return pct
 }
 
-function metaToChips(html: string): string {
+function metaToChips(html: string, label?: string): string {
   // 提取首尾包裹标签（如 <span class="attrs">...</span>）避免分割后错位
   const leading = html.match(/^(<[^>]+>)+/)
   const trailing = html.match(/(<\/[^>]+>)+$/)
@@ -160,8 +160,13 @@ function metaToChips(html: string): string {
     result += ch
     i++
   }
-  // 所有结果中的 <a> 链接添加 target="_blank" 统一新标签打开（搜索页除外）
+  // Add target="_blank" to all <a> tags that lack it
   result = result.replace(/<a(?=\s)(?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer"')
+  // Wrap plain IMDb text IDs (tt1234567) into clickable links
+  const trimmed = result.trim()
+  if (label === 'IMDb' && /^tt\d+$/.test(trimmed)) {
+    result = `<a href="https://www.imdb.com/title/${trimmed}/" target="_blank" rel="noopener noreferrer">${trimmed}</a>`
+  }
   return prefix + '<span class="umm-meta-chip">' + result + '</span>' + suffix
 }
 
@@ -247,7 +252,7 @@ defineExpose({ updateRecord })
         <div v-if="d.metaRows.length" class="umm-meta-card">
           <div v-for="(row, i) in d.metaRows" :key="i" class="umm-meta-row">
             <span class="umm-meta-label">{{ row.label }}</span>
-            <span class="umm-meta-value" v-html="metaToChips(row.html)"></span>
+            <span class="umm-meta-value" v-html="metaToChips(row.html, row.label)"></span>
           </div>
         </div>
 
