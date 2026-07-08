@@ -1,0 +1,203 @@
+/* ===== UMM Douban User Celebrities — Shadow DOM styles ===== */
+
+:host {
+  --umm-cel-accent: #6366f1;
+}
+:host(.umm-theme--dark) {
+  --umm-cel-accent: #818cf8;
+}
+
+.umm-celebrities-root {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== User Bar ===== */
+.umm-celebrities-userbar {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-md, 16px);
+  padding-bottom: var(--umm-space-sm, 10px);
+  border-bottom: 1px solid var(--umm-border);
+}
+.umm-celebrities-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary);
+  flex-shrink: 0;
+}
+.umm-celebrities-userinfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.umm-celebrities-username {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+}
+.umm-celebrities-username:hover { color: var(--umm-link); }
+.umm-celebrities-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+.umm-celebrities-navlink {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.umm-celebrities-navlink:hover {
+  color: var(--umm-cel-accent);
+  background: color-mix(in srgb, var(--umm-cel-accent) 10%, transparent);
+}
+
+/* ===== Title ===== */
+.umm-celebrities-titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-lg, 24px);
+  padding-left: var(--umm-space-sm, 10px);
+  border-left: 3px solid var(--umm-cel-accent);
+}
+.umm-celebrities-title {
+  font-size: var(--umm-font-md, 1.125rem);
+  font-weight: 800;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+.umm-celebrities-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--umm-text-muted);
+}
+
+/* ===== Grid ===== */
+.umm-celebrities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--umm-space-md, 14px);
+  width: 100%;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) { .umm-celebrities-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .umm-celebrities-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1536px) { .umm-celebrities-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* ===== Card ===== */
+.umm-celebrities-card {
+  display: flex;
+  gap: var(--umm-space-sm, 12px);
+  padding: var(--umm-space-sm, 12px);
+  border-radius: var(--umm-card-radius, 10px);
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.umm-celebrities-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+:host(.umm-theme--dark) .umm-celebrities-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.umm-celebrities-photo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--umm-bg);
+  flex-shrink: 0;
+  border: 2px solid var(--umm-cel-accent);
+}
+
+.umm-celebrities-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  justify-content: center;
+}
+.umm-celebrities-name {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.umm-celebrities-roles {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.umm-celebrities-works {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Paginator ===== */
+.umm-celebrities-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
+  flex-wrap: wrap;
+}
+.umm-celebrities-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.umm-celebrities-page:hover {
+  background: var(--umm-bg);
+  color: var(--umm-text-primary);
+}
+.umm-celebrities-page--active {
+  background: var(--umm-cel-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ===== Empty ===== */
+.umm-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted);
+}

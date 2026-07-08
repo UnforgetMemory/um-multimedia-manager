@@ -1,0 +1,295 @@
+/* ===== UMM Douban User Media — Shadow DOM styles ===== */
+/* Reuses project design system (umm-dash-*) from user-profile sections. */
+
+:host {
+  --umm-umedia-accent: #6366f1;
+  --umm-umedia-accent-soft: #eef2ff;
+}
+:host(.umm-theme--dark) {
+  --umm-umedia-accent: #818cf8;
+  --umm-umedia-accent-soft: #1e1b4b;
+}
+
+/* ===== Root ===== */
+.umm-umedia-root {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== User Bar ===== */
+.umm-umedia-userbar {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-lg, 24px);
+  padding-bottom: var(--umm-space-sm, 10px);
+  border-bottom: 1px solid var(--umm-border);
+}
+.umm-umedia-userbar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary);
+  flex-shrink: 0;
+  border: 2px solid var(--umm-umedia-accent);
+  transition: transform 0.2s ease;
+}
+.umm-umedia-userbar-avatar:hover {
+  transform: scale(1.05);
+}
+.umm-umedia-userbar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.umm-umedia-userbar-name {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.umm-umedia-userbar-name:hover {
+  color: var(--umm-umedia-accent);
+}
+.umm-umedia-userbar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+.umm-umedia-userbar-link {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.umm-umedia-userbar-link:hover {
+  color: var(--umm-umedia-accent);
+  background: var(--umm-umedia-accent-soft);
+}
+
+/* ===== Title Bar ===== */
+.umm-umedia-titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-sm, 10px);
+  padding-left: var(--umm-space-sm, 10px);
+  border-left: 3px solid var(--umm-umedia-accent);
+}
+.umm-umedia-titlebar-label {
+  font-size: var(--umm-font-md, 1.125rem);
+  font-weight: 800;
+  color: var(--umm-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+.umm-umedia-titlebar-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--umm-text-muted);
+}
+
+/* ===== Opt Bar ===== */
+.umm-umedia-optbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--umm-space-xs, 6px) var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-md, 16px);
+  padding: var(--umm-space-xs, 8px) var(--umm-space-sm, 12px);
+  background: var(--umm-bg-secondary);
+  border-radius: var(--umm-card-radius, 10px);
+  font-size: var(--umm-font-xs, 0.75rem);
+}
+.umm-umedia-optgroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.umm-umedia-opt {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--umm-text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.umm-umedia-opt:hover {
+  background: var(--umm-bg);
+  color: var(--umm-text-primary);
+}
+.umm-umedia-opt--active {
+  background: var(--umm-umedia-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.umm-umedia-opt--active:hover {
+  background: var(--umm-umedia-accent);
+  color: #fff;
+}
+.umm-umedia-opt-muted {
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+  font-size: var(--umm-font-xs, 0.7rem);
+}
+
+/* ===== Card Grid ===== */
+.umm-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--umm-space-md, 14px);
+}
+@media (min-width: 768px) { .umm-dash-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .umm-dash-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { .umm-dash-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1920px) { .umm-dash-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 2560px) { .umm-dash-grid { grid-template-columns: repeat(7, 1fr); } }
+
+/* ===== Card ===== */
+.umm-dash-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  border-radius: var(--umm-card-radius, 10px);
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+.umm-dash-card:hover {
+  transform: translateY(-4px);
+}
+.umm-dash-card-cover {
+  width: 100%;
+  aspect-ratio: var(--umm-aspect-poster, 2/3);
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--umm-bg-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.25s ease;
+}
+.umm-dash-card:hover .umm-dash-card-cover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+:host(.umm-theme--dark) .umm-dash-card-cover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+:host(.umm-theme--dark) .umm-dash-card:hover .umm-dash-card-cover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.umm-dash-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 2px;
+}
+.umm-dash-card-title {
+  font-size: var(--umm-font-xs, 0.7rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.umm-dash-card-comment {
+  font-size: var(--umm-font-xs, 0.6rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.umm-dash-card-date {
+  font-size: var(--umm-font-xs, 0.6rem);
+  font-weight: 600;
+  color: var(--umm-text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--umm-bg-secondary);
+  display: inline-block;
+  align-self: flex-start;
+  margin-bottom: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ===== Page Info ===== */
+.umm-umedia-pageinfo {
+  text-align: center;
+  padding: var(--umm-space-md, 16px);
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Paginator ===== */
+.umm-umedia-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
+  flex-wrap: wrap;
+}
+.umm-umedia-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.umm-umedia-page:hover {
+  background: var(--umm-bg-secondary);
+  color: var(--umm-text-primary);
+}
+.umm-umedia-page--active {
+  background: var(--umm-umedia-accent);
+  color: #fff;
+  font-weight: 700;
+}
+.umm-umedia-page--active:hover {
+  background: var(--umm-umedia-accent);
+  color: #fff;
+}
+
+/* ===== Empty State ===== */
+.umm-umedia-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--umm-space-sm, 10px);
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
+  text-align: center;
+}
+.umm-umedia-empty-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  opacity: 0.4;
+}
+.umm-umedia-empty-text {
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted);
+}

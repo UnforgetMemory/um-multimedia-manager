@@ -25,6 +25,13 @@ import photosCss from './styles/photos.css?raw'
 import trailerCss from './styles/trailer.css?raw'
 import celebritiesCss from './styles/celebrities.css?raw'
 import personageCss from './styles/personage.css?raw'
+import userProfileCss from './styles/user-profile.css?raw'
+import movieProfileCss from './styles/movie-profile.css?raw'
+import doulistsCss from './styles/doulists.css?raw'
+import userMediaCss from './styles/user-media.css?raw'
+import userCelebritiesCss from './styles/user-celebrities.css?raw'
+import userReviewsCss from './styles/user-reviews.css?raw'
+import reviewDetailCss from './styles/review-detail.css?raw'
 import albumsCss from './styles/albums.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import componentsCss from './styles/components.css?raw'
@@ -32,7 +39,7 @@ import interestCss from './styles/interest.css?raw'
 import { mountUmmOverlay } from './overlay'
 import { composeStylesForPage } from './css-composer'
 import { createApp } from 'vue'
-import { detectPageType } from './shared/url-detector'
+import { detectPageType, getUserMediaSubType } from './shared/url-detector'
 import { hideNavForPage } from './shared/hide-nav'
 
 const cssMap: Record<string, string> = {
@@ -51,6 +58,13 @@ const cssMap: Record<string, string> = {
   trailer: trailerCss,
   celebrities: celebritiesCss,
   personage: personageCss,
+  'user-profile': userProfileCss,
+  'movie-profile': movieProfileCss,
+  doulists: doulistsCss,
+  'user-media': userMediaCss,
+  'user-celebrities': userCelebritiesCss,
+  'user-reviews': userReviewsCss,
+  'review-detail': reviewDetailCss,
   albums: albumsCss,
   interest: interestCss,
 }
@@ -344,6 +358,197 @@ async function mountPersonage(): Promise<void> {
   })
 }
 
+// ---- User Profile mount ----
+
+async function mountUserProfile(): Promise<void> {
+  const css = composeStylesForPage('user-profile', cssMap)
+  const { default: App } = await import('./pages/user-profile/App.vue')
+  const { extractUserProfileData } = await import('./pages/user-profile/user-profile-data')
+  type UserProfileData = import('./pages/user-profile/types').UserProfileData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      // Retry extraction — movie/music/book sections may load async via /j/mine/page
+      let data: UserProfileData | null = null
+      for (let i = 0; i < 5; i++) {
+        data = extractUserProfileData()
+        if (data && (data.movieStats.collect > 0 || data.musicStats.collect > 0 || data.bookStats.collect > 0)) break
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)))
+      }
+      if (!data) throw new Error('[UMM] Could not extract user profile data')
+      hideNavForPage({ type: 'user-profile' })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as UserProfileData })
+    },
+  })
+}
+
+// ---- Movie Profile mount ----
+
+async function mountMovieProfile(): Promise<void> {
+  const css = composeStylesForPage('movie-profile', cssMap)
+  const { default: App } = await import('./pages/movie-profile/App.vue')
+  const { extractMovieProfileData } = await import('./pages/movie-profile/movie-profile-data')
+  type MovieProfileData = import('./pages/movie-profile/types').MovieProfileData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      let data: MovieProfileData | null = null
+      for (let i = 0; i < 5; i++) {
+        data = extractMovieProfileData()
+        if (data && data.stats.length > 0) break
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)))
+      }
+      if (!data) throw new Error('[UMM] Could not extract movie profile data')
+      hideNavForPage({ type: 'movie-profile' })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as MovieProfileData })
+    },
+  })
+}
+
+// ---- Doulists mount ----
+
+async function mountDoulists(): Promise<void> {
+  const css = composeStylesForPage('doulists', cssMap)
+  const { default: App } = await import('./pages/doulists/App.vue')
+  const { extractDoulistsData } = await import('./pages/doulists/doulists-data')
+  type DoulistsPageData = import('./pages/doulists/types').DoulistsPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      const data = extractDoulistsData()
+      if (!data) throw new Error('[UMM] Could not extract doulists data')
+      hideNavForPage({ type: 'doulists' })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as DoulistsPageData })
+    },
+  })
+}
+
+// ---- User Media (collections/wishlist/doing) mount ----
+
+async function mountUserMedia(): Promise<void> {
+  const css = composeStylesForPage('user-media', cssMap)
+  const { default: App } = await import('./pages/user-media/App.vue')
+  const { extractUserMediaData } = await import('./pages/user-media/user-media-data')
+  type UserMediaPageData = import('./pages/user-media/types').UserMediaPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      // Retry extraction — items may not be in DOM immediately
+      let data: UserMediaPageData | null = null
+      for (let i = 0; i < 8; i++) {
+        data = extractUserMediaData()
+        if (data && (data.items.length > 0 || data.total === 0)) break
+        await new Promise((r) => setTimeout(r, 300 * (i + 1)))
+      }
+      if (!data) {
+        data = { subType: getUserMediaSubType(location.href), userId: '', displayName: '', avatarUrl: '', navLinks: [], sortOptions: [], filterGroups: [], currentPage: '', total: 0, mode: 'grid' as const, items: [], pageLinks: [], prevPageUrl: '', nextPageUrl: '' }
+      }
+      hideNavForPage({ type: 'user-media', subType: getUserMediaSubType(location.href) })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as UserMediaPageData })
+    },
+  })
+}
+
+// ---- User Celebrities mount ----
+
+async function mountUserCelebrities(): Promise<void> {
+  const css = composeStylesForPage('user-celebrities', cssMap)
+  const { default: App } = await import('./pages/user-celebrities/App.vue')
+  const { extractUserCelebritiesData } = await import('./pages/user-celebrities/user-celebrities-data')
+  type UserCelebritiesData = import('./pages/user-celebrities/types').UserCelebritiesData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      const data = extractUserCelebritiesData()
+      if (!data) throw new Error('[UMM] Could not extract celebrity data')
+      hideNavForPage({ type: 'user-celebrities' })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as UserCelebritiesData })
+    },
+  })
+}
+
+// ---- Review Detail mount ----
+
+async function mountReviewDetail(): Promise<void> {
+  const css = composeStylesForPage('review-detail', cssMap)
+  const { default: App } = await import('./pages/review-detail/App.vue')
+  const { extractReviewDetailData } = await import('./pages/review-detail/review-detail-data')
+  type ReviewDetailData = import('./pages/review-detail/types').ReviewDetailData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      let data: ReviewDetailData | null = null
+      for (let i = 0; i < 8; i++) {
+        data = extractReviewDetailData()
+        if (data) break
+        await new Promise(r => setTimeout(r, 300))
+      }
+      if (!data) throw new Error('[UMM] Could not extract review detail data')
+      hideNavForPage({ type: 'review-detail' })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as ReviewDetailData })
+    },
+  })
+}
+
+// ---- User Reviews mount ----
+
+async function mountUserReviews(): Promise<void> {
+  const css = composeStylesForPage('user-reviews', cssMap)
+  const { default: App } = await import('./pages/user-reviews/App.vue')
+  const { extractUserReviewsData } = await import('./pages/user-reviews/user-reviews-data')
+  type UserReviewsData = import('./pages/user-reviews/types').UserReviewsData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      // Retry extraction — DOM may not be immediately accessible
+      let data: UserReviewsData | null = null
+      for (let i = 0; i < 8; i++) {
+        data = extractUserReviewsData()
+        if (data && (data.items.length > 0 || data.total > 0)) break
+        await new Promise(r => setTimeout(r, 300))
+      }
+      if (!data) throw new Error('[UMM] Could not extract reviews data')
+      hideNavForPage({ type: 'user-reviews' })
+      return data
+    },
+    createApp(_shadow, ctx) {
+      return createApp(App, { data: ctx as UserReviewsData })
+    },
+  })
+}
+
 // ---- Public API ----
 
 /**
@@ -367,6 +572,13 @@ export async function mountDoubanMain(): Promise<void> {
       case 'video': await mountTrailer(); break
       case 'detail': await mountDetail(); break
       case 'personage': await mountPersonage(); break
+      case 'user-profile': await mountUserProfile(); break
+case 'movie-profile': await mountMovieProfile(); break
+      case 'doulists': await mountDoulists(); break
+      case 'user-media': await mountUserMedia(); break
+      case 'user-celebrities': await mountUserCelebrities(); break
+      case 'user-reviews': await mountUserReviews(); break
+      case 'review-detail': await mountReviewDetail(); break
     }
   } catch (err) {
     console.warn('[UMM] mountDoubanMain error:', err)

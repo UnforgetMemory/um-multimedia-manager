@@ -1,0 +1,199 @@
+/* ===== UMM Douban Movie Profile — Shadow DOM styles ===== */
+/* Reuses umm-dash-* pattern from user-profile sections. */
+
+:host {
+  --umm-mp-accent: #6366f1;
+}
+:host(.umm-theme--dark) {
+  --umm-mp-accent: #818cf8;
+}
+
+/* ===== Root ===== */
+.umm-movie-profile-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 4vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== Hero ===== */
+.umm-hero {
+  display: flex;
+  gap: var(--umm-space-lg, 24px);
+  align-items: center;
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+.umm-hero-avatar {
+  width: clamp(72px, 10vw, 120px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--umm-bg-secondary);
+  border: 3px solid var(--umm-mp-accent);
+  flex-shrink: 0;
+}
+.umm-hero-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.umm-hero-name {
+  font-size: var(--umm-font-2xl, 1.5rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* ===== Stat Bar (pills) ===== */
+.umm-statbar {
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+.umm-statbar-items {
+  display: flex;
+  gap: var(--umm-space-xs, 6px);
+  flex-wrap: wrap;
+}
+.umm-statbar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--umm-bg-secondary);
+  border: 1px solid var(--umm-border);
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.umm-statbar-item:hover {
+  background: linear-gradient(135deg, var(--umm-mp-accent), #818cf8);
+  border-color: var(--umm-mp-accent);
+}
+.umm-statbar-item:hover .umm-statbar-val,
+.umm-statbar-item:hover .umm-statbar-lbl {
+  color: #fff;
+}
+.umm-statbar-val {
+  font-size: var(--umm-font-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--umm-mp-accent);
+  transition: color 0.15s;
+}
+.umm-statbar-lbl {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-muted);
+  transition: color 0.15s;
+}
+
+/* ===== Dashboard Sections ===== */
+.umm-dash-section {
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+.umm-dash-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--umm-space-sm, 10px);
+}
+.umm-dash-row-lbl {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--umm-text-secondary);
+}
+.umm-dash-more {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-mp-accent);
+  text-decoration: none;
+}
+.umm-dash-more:hover {
+  text-decoration: underline;
+}
+
+/* ===== Card Grid ===== */
+.umm-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--umm-space-sm, 10px);
+}
+.umm-dash-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.umm-dash-card:hover {
+  transform: translateY(-3px);
+}
+.umm-dash-card-cover {
+  width: 100%;
+  aspect-ratio: var(--umm-aspect-poster, 2/3);
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--umm-bg-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+.umm-dash-card:hover .umm-dash-card-cover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+:host(.umm-theme--dark) .umm-dash-card-cover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+:host(.umm-theme--dark) .umm-dash-card:hover .umm-dash-card-cover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.umm-dash-card-title {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+/* ===== Extras Row ===== */
+.umm-movie-profile-extras {
+  display: flex;
+  gap: var(--umm-space-xs, 6px);
+  flex-wrap: wrap;
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+
+/* ===== Doulists ===== */
+.umm-movie-profile-doulist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.umm-movie-profile-doulist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.umm-movie-profile-doulist-item:hover {
+  background: var(--umm-border);
+}
+.umm-movie-profile-doulist-title {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+}
+.umm-movie-profile-doulist-followers {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+}

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Douban review detail page overlay**: New `review-detail` page type with full DOM data extraction (title, author, rating, date/location, full content paragraphs, read/source/有用 counts, subject metadata). Vue layout: subject card → author bar → title → article body → stats bar. Typography optimized for long-form reading with `white-space: pre-line` for paragraph-internal line breaks.
+- **User reviews list expand/collapse**: Review cards with content >400 chars now show "展开全文" / "收起" toggle button, with reactive state tracking per review.
+
+### Fixed
+- **User reviews list data extraction**: `.nlst h3 a` selector fixed to `.nlst h3 > a` — the native Douban list page places unfold/fold buttons as `<a>` children of `<h3>` before the actual title link, causing `querySelector` to match the button (empty textContent) instead of the title. Title field was blank → `if (id && title)` failed → items silently discarded. Direct-child combinator (`> a`) skips the nested button div.
 - **IMDb clickable links on Douban detail page**: `metaToChips()` now accepts a label parameter; when `label === 'IMDb'`, plain text IMDb IDs (`tt\d+`) are wrapped into `<a>` links pointing to `imdb.com/title/{id}` with `target="_blank"`
 - **NeoDB "Open" button on Douban detail page**: When a local record has `linkedIds.neodb`, the NeoDB push buttons component dynamically renders a purple "打开" button linking to `neodb.social/{type}/{uuid}`
 

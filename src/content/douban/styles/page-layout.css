@@ -24,7 +24,7 @@
 .umm-layout-header {
   position: sticky;
   top: 0;
-  z-index: var(--umm-z-sticky, 50);
+  z-index: 1000;
   padding-top: var(--umm-space-md, 12px);
   padding-bottom: 0;
   background: var(--umm-bg);
@@ -34,6 +34,8 @@
   flex: 1;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+  z-index: 0;
 }
 
 .umm-layout-footer {

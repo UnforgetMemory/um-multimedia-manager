@@ -1,0 +1,264 @@
+/* ===== UMM Douban Doulists — Shadow DOM styles ===== */
+
+:host {
+  --umm-doulists-accent: #f43f5e;
+  --umm-doulists-card-bg: #ffffff;
+  --umm-doulists-card-border: #e5e7eb;
+}
+
+:host(.umm-theme--dark) {
+  --umm-doulists-accent: #fb7185;
+  --umm-doulists-card-bg: #2a2b30;
+  --umm-doulists-card-border: #3a3b40;
+}
+
+/* ===== Root layout ===== */
+
+.umm-doulists-root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 20px) clamp(16px, 4vw, 64px) var(--umm-space-2xl, 40px);
+}
+
+/* ===== User Bar ===== */
+
+.umm-doulists-userbar {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-md, 16px);
+  padding-bottom: var(--umm-space-sm, 10px);
+  border-bottom: 1px solid var(--umm-doulists-card-border);
+}
+.umm-doulists-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary);
+  flex-shrink: 0;
+}
+.umm-doulists-userinfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.umm-doulists-username {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+}
+.umm-doulists-username:hover { color: var(--umm-link); }
+.umm-doulists-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+.umm-doulists-navlink {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.umm-doulists-navlink:hover {
+  color: var(--umm-doulists-accent);
+  background: color-mix(in srgb, var(--umm-doulists-accent) 10%, transparent);
+}
+
+/* ===== Tabs ===== */
+
+.umm-doulist-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm, 8px);
+  border-bottom: 1px solid var(--umm-doulists-card-border);
+  margin-bottom: var(--umm-space-lg, 20px);
+  overflow-x: auto;
+}
+
+.umm-doulist-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--umm-space-sm, 8px) var(--umm-space-md, 12px);
+  border: none;
+  background: transparent;
+  color: var(--umm-text-secondary);
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.umm-doulist-tab:hover {
+  color: var(--umm-text-primary);
+}
+
+.umm-doulist-tab--active {
+  color: var(--umm-doulists-accent);
+  border-bottom-color: var(--umm-doulists-accent);
+  font-weight: 600;
+}
+
+/* ===== Count badge ===== */
+
+.umm-doulist-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+  background: var(--umm-bg-secondary);
+  color: var(--umm-text-muted);
+}
+
+.umm-doulist-tab--active .umm-doulist-count {
+  background: var(--umm-doulists-accent);
+  color: #ffffff;
+}
+
+/* ===== Grid ===== */
+
+.umm-doulist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--umm-space-md, 12px);
+}
+
+@media (min-width: 480px) { .umm-doulist-grid { gap: var(--umm-space-md, 14px); } }
+@media (min-width: 768px) { .umm-doulist-grid { gap: var(--umm-space-lg, 18px); } }
+@media (min-width: 1280px) { .umm-doulist-grid { gap: var(--umm-space-lg, 20px); } }
+
+/* ===== Card ===== */
+
+.umm-doulist-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--umm-card-radius, 10px);
+  overflow: hidden;
+  background: var(--umm-doulists-card-bg);
+  border: 1px solid var(--umm-doulists-card-border);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.umm-doulist-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+:host(.umm-theme--dark) .umm-doulist-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.umm-doulist-card:not(:has(.umm-doulist-cover)) {
+  border-left: 3px solid var(--umm-doulists-accent);
+}
+
+/* ===== Cover ===== */
+
+.umm-doulist-cover {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-doulist-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ===== Body ===== */
+
+.umm-doulist-body {
+  padding: var(--umm-space-md, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs, 6px);
+  flex: 1;
+}
+
+.umm-doulist-title {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.4;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.umm-doulist-meta {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-muted);
+  line-height: 1.4;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ===== Empty / fallback states ===== */
+
+.umm-doulists-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--umm-space-2xl, 40px) var(--umm-space-lg, 20px);
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Paginator ===== */
+
+.umm-doulist-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
+  flex-wrap: wrap;
+}
+.umm-doulist-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.umm-doulist-page:hover {
+  background: var(--umm-bg);
+  color: var(--umm-text-primary);
+}
+.umm-doulist-page--active {
+  background: var(--umm-doulists-accent);
+  color: #fff;
+  font-weight: 700;
+}
