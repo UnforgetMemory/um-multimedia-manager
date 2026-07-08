@@ -124,15 +124,17 @@ function openUrl(url: string): void {
         <div v-if="d.recentWorks.length" class="umm-section">
           <h2 class="umm-section-title">最近的 {{ d.recentWorks.length }} 部作品</h2>
           <div class="umm-works-grid">
-            <UmmMediaCard
-              v-for="(work, i) in d.recentWorks"
-              :key="i"
-              mode="grid"
-              :poster-url="work.poster"
-              :title="work.title"
-              :href="work.url"
-              :rating="work.rating"
-            />
+        <UmmMediaCard
+          v-for="(work, i) in d.recentWorks"
+          :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
+          mode="grid"
+          :poster-url="work.poster"
+          :title="work.title"
+          :href="work.url"
+          :rating="work.rating"
+          :badge-status="work.recordStatus ?? 0"
+          :badge-rating="work.recordRating ?? 0"
+        />
           </div>
         </div>
 
@@ -140,15 +142,17 @@ function openUrl(url: string): void {
         <div v-if="d.popularWorks.length" class="umm-section">
           <h2 class="umm-section-title">收藏人数最多的 {{ d.popularWorks.length }} 部作品</h2>
           <div class="umm-works-grid">
-            <UmmMediaCard
-              v-for="(work, i) in d.popularWorks"
-              :key="i"
-              mode="grid"
-              :poster-url="work.poster"
-              :title="work.title"
-              :href="work.url"
-              :rating="work.rating"
-            />
+        <UmmMediaCard
+          v-for="(work, i) in d.popularWorks"
+          :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
+          mode="grid"
+          :poster-url="work.poster"
+          :title="work.title"
+          :href="work.url"
+          :rating="work.rating"
+          :badge-status="work.recordStatus ?? 0"
+          :badge-rating="work.recordRating ?? 0"
+        />
           </div>
           <button
             v-if="d.moreWorksUrl"

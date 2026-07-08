@@ -334,6 +334,7 @@ async function mountPersonage(): Promise<void> {
   const css = composeStylesForPage('personage', cssMap)
   const { default: App } = await import('./pages/personage/App.vue')
   const { extractPersonagePageData } = await import('./pages/personage/personage-data')
+  const { loadRecordMap } = await import('./shared/load-record-map')
   type PersonagePageData = import('./pages/personage/personage-data').PersonagePageData
 
   mountUmmOverlay({
@@ -349,6 +350,21 @@ async function mountPersonage(): Promise<void> {
         await new Promise((r) => setTimeout(r, 500 * (i + 1)))
       }
       if (!data) throw new Error('[UMM] Could not extract personage data')
+
+      // Enrich works with record status from IndexedDB
+      try {
+        const recordMap = await loadRecordMap()
+        for (const work of [...data.recentWorks, ...data.popularWorks]) {
+          const subjectId = work.url.match(/\/subject\/(\d+)/)?.[1]
+          if (!subjectId) continue
+          const rec = recordMap.get(subjectId)
+          if (rec && rec.status > 0) {
+            work.recordStatus = rec.status
+            work.recordRating = rec.rating
+          }
+        }
+      } catch { /* silent */ }
+
       hideNavForPage({ type: 'personage' })
       return data
     },

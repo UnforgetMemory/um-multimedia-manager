@@ -24,7 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 跨平台同步跳过条件修正：永不降级已看记录，非done源按状态级别比较
 
 ### Added
-- **Douban review detail page overlay**: New `review-detail` page type with full DOM data extraction (title, author, rating, date/location, full content paragraphs, read/source/有用 counts, subject metadata). Vue layout: subject card → author bar → title → article body → stats bar. Typography optimized for long-form reading with `white-space: pre-line` for paragraph-internal line breaks.
+- **UmmStatusBadge 4 状态完整支持**: 新增 `doing`（在看/在听）状态类型，所有状态（未看/想看/在看/已看）正确显示对应标签和颜色
+- **Color tokens (wish/doing)**: 新增 `COLOR_WISH_*` / `COLOR_DOING_*` 全套颜色 Token（含 light/dark），CSS 变量和全局注入样式同步支持
+- **i18n 状态标签**: 4 个 locale 新增 `status.wish` / `status.wish_music` / `status.doing` / `status.doing_music` / `search.aria_wish` / `search.aria_doing`
+- **Personage 页面作品记录状态**: `mountPersonage` 提取后加载 `loadRecordMap()`，为 recentWorks / popularWorks 填充 `recordStatus` / `recordRating`
+
+### Fixed
+- **UmmStatusBadge 判断丢失**: 核心组件 `UmmStatusBadge.ts` 未处理 status=3(doing)，导致在看状态错误显示为未看。4 个 consumer 组件的二进制折叠（`status===2?2:0`）修复为实际状态直传
+- **首页/详情页/演员页 Stale Render**: `UmmMediaCard` 在 `v-for` 中使用 `setup()` render function 时，Vue 的 `shouldUpdateComponent` 优化导致 prop 变更不生效。`:key` 从静态 `item.subjectId` / index 改为包含 status/rating 维度的动态键，强制 VNode 重建
+- **详情页推荐区状态折叠**: `RecItem.isDone` 替换为 `recStatus`，DB 查询从 `dbGetWatchedIds`（仅 done）升级为全量 `dbGetAll`，完整支持 wish/doing/done
+- **搜索徽章 / 状态标签 二进制折叠**: `douban-search.ts createSearchBadge`、`dom.ts createStatusChip` 的 status 映射从 done/none 扩展为完整 4 状态，ARIA 标签同步更新 with full DOM data extraction (title, author, rating, date/location, full content paragraphs, read/source/有用 counts, subject metadata). Vue layout: subject card → author bar → title → article body → stats bar. Typography optimized for long-form reading with `white-space: pre-line` for paragraph-internal line breaks.
 - **User reviews list expand/collapse**: Review cards with content >400 chars now show "展开全文" / "收起" toggle button, with reactive state tracking per review.
 
 ### Fixed

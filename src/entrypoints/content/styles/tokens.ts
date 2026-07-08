@@ -31,6 +31,30 @@ export const COLOR_DONE_TEXT_DARK = '#f0fdf4'
 export const COLOR_DONE_BORDER_DARK = 'rgba(187, 247, 208, 0.2)'
 export const COLOR_DONE_SHADOW_DARK = 'rgba(21, 128, 61, 0.3)'
 
+// ==================== Wish Orange ====================
+export const COLOR_WISH_START = '#f97316'
+export const COLOR_WISH_END = '#ea580c'
+export const COLOR_WISH_TEXT = '#fff7ed'
+export const COLOR_WISH_BORDER = 'rgba(255, 237, 213, 0.22)'
+export const COLOR_WISH_SHADOW = 'rgba(234, 88, 12, 0.3)'
+export const COLOR_WISH_START_DARK = '#c2410c'
+export const COLOR_WISH_END_DARK = '#9a3412'
+export const COLOR_WISH_TEXT_DARK = '#fff7ed'
+export const COLOR_WISH_BORDER_DARK = 'rgba(254, 215, 170, 0.2)'
+export const COLOR_WISH_SHADOW_DARK = 'rgba(192, 65, 12, 0.3)'
+
+// ==================== Doing Blue ====================
+export const COLOR_DOING_START = '#3b82f6'
+export const COLOR_DOING_END = '#2563eb'
+export const COLOR_DOING_TEXT = '#eff6ff'
+export const COLOR_DOING_BORDER = 'rgba(219, 234, 254, 0.22)'
+export const COLOR_DOING_SHADOW = 'rgba(37, 99, 235, 0.3)'
+export const COLOR_DOING_START_DARK = '#60a5fa'
+export const COLOR_DOING_END_DARK = '#3b82f6'
+export const COLOR_DOING_TEXT_DARK = '#eff6ff'
+export const COLOR_DOING_BORDER_DARK = 'rgba(191, 219, 254, 0.2)'
+export const COLOR_DOING_SHADOW_DARK = 'rgba(96, 165, 250, 0.3)'
+
 // ==================== Danger Red (None) ====================
 export const COLOR_NONE_START = 'rgba(164, 43, 60, 0.96)'
 export const COLOR_NONE_END = 'rgba(126, 28, 48, 0.98)'

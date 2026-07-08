@@ -16,6 +16,8 @@ export interface WorkItem {
   poster: string
   rating: string
   year?: string
+  recordStatus?: number
+  recordRating?: number
 }
 
 export interface AwardItem {

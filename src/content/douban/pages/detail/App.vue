@@ -339,13 +339,13 @@ defineExpose({ updateRecord })
       <h3 class="umm-rec-heading">推荐</h3>
       <div class="umm-rec-grid">
         <UmmMediaCard
-          v-for="(r, i) in d.recItems"
-          :key="i"
+          v-for="r in d.recItems"
+          :key="`${r.subjectId}-${r.recStatus}-${r.personalRating ?? Number(r.rating) ?? 0}`"
           mode="grid"
           :poster-url="r.poster"
           :title="r.title"
           :href="r.link"
-          :badge-status="r.isDone ? 2 : 0"
+          :badge-status="r.recStatus"
           :badge-rating="r.personalRating ?? Number(r.rating)"
           :rating="r.rating || ''"
           :type="d.isMusic ? 'music' : 'movie'"

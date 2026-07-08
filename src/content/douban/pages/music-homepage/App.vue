@@ -75,7 +75,7 @@ function recordFor(item: { subjectId: string }) {
         <div v-if="newAlbums.length > 0" class="umm-album-grid">
           <UmmMediaCard
             v-for="item in newAlbums"
-            :key="item.subjectId"
+            :key="`${item.subjectId}-${recordFor(item).status}-${recordFor(item).rating}`"
             mode="grid"
             :poster-url="item.posterUrl"
             :title="item.title"

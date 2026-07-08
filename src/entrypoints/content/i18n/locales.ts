@@ -244,10 +244,16 @@ const locales: Record<Locale, Record<string, string>> = {
     'status.done_music': '✅ 已聽',
     'status.done_local': '📦 已看(本地)',
     'status.done_local_music': '📦 已聽(本地)',
+    'status.wish': '⭐ 想看',
+    'status.wish_music': '⭐ 想聽',
+    'status.doing': '▶️ 在看',
+    'status.doing_music': '▶️ 在聽',
     'status.none': '⏳ 未看',
     'status.none_music': '⏳ 未聽',
     // Search badge ARIA
     'search.aria_done': '已標記為已看',
+    'search.aria_wish': '已標記為想看',
+    'search.aria_doing': '已標記為在看',
     'search.aria_none': '未標記',
     // Toast ARIA
     'toast.aria_region': '通知區域',
@@ -351,10 +357,16 @@ const locales: Record<Locale, Record<string, string>> = {
     'status.done_music': '✅ 已聽',
     'status.done_local': '📦 已看(本地)',
     'status.done_local_music': '📦 已聽(本地)',
+    'status.wish': '⭐ 想看',
+    'status.wish_music': '⭐ 想聽',
+    'status.doing': '▶️ 在看',
+    'status.doing_music': '▶️ 在聽',
     'status.none': '⏳ 未看',
     'status.none_music': '⏳ 未聽',
     // Search badge ARIA
     'search.aria_done': '已標記為已看',
+    'search.aria_wish': '已標記為想看',
+    'search.aria_doing': '已標記為在看',
     'search.aria_none': '未標記',
     // Toast ARIA
     'toast.aria_region': '通知區域',

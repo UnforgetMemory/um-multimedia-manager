@@ -44,19 +44,23 @@ export function waitForElement(selector: string, timeout = 5000): Promise<Elemen
  */
 export function createStatusChip(
   type: string,      // movie/tv/music/book
-  status: number,    // 0/1/2
+  status: number,    // 0=none, 1=wish, 2=done, 3=doing
   rating: number,
   note: string = ''
 ): HTMLElement {
   const chip = document.createElement('div')
   chip.className = 'umm-status-chip'
-  chip.dataset.status = status === 2 ? 'done' : 'none'
+  chip.dataset.status = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
   
   const label = status === 2
     ? (note 
         ? t(type === 'music' ? 'status.done_local_music' : 'status.done_local')
         : t(type === 'music' ? 'status.done_music' : 'status.done'))
-    : t(type === 'music' ? 'status.none_music' : 'status.none')
+    : status === 3
+      ? t(type === 'music' ? 'status.doing_music' : 'status.doing')
+      : status === 1
+        ? t(type === 'music' ? 'status.wish_music' : 'status.wish')
+        : t(type === 'music' ? 'status.none_music' : 'status.none')
   
   const ratingText = rating > 0 ? `${Utils.formatRating10(rating)}/10` : ''
   

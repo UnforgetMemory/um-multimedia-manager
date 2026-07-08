@@ -25,9 +25,11 @@ function enhanceReviews(): void {
     const meta = review.querySelector('.review-meta')
     if (!meta) return
 
-    const statusType = status === 2 ? 'done' : 'none'
+    const statusType = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
     const statusText = status === 2
       ? (userRating > 0 ? `已看 ${userRating}` : '已看')
+      : status === 3 ? '在看'
+      : status === 1 ? '想看'
       : '未看'
 
     const badge = document.createElement('span')

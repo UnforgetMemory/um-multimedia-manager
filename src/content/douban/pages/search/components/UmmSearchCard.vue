@@ -47,7 +47,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { isMusic: false })
 
 const rec = props.records.get(String(props.item.id))
-const badgeStatus = rec?.status === 2 ? 2 : 0
+const badgeStatus = rec?.status ?? 0
 const badgeRating = rec?.rating ?? 0
 
 /** Extract media format from abstract metadata string */

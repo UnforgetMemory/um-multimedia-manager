@@ -40,7 +40,7 @@ const FORMAT_COLORS: Record<string, string> = {
 function getRecordStatus(item: AlbumVersionItem): { status: number; rating: number } {
   const rec = props.recordMap.get(String(item.id))
   if (!rec) return { status: 0, rating: 0 }
-  return { status: rec.status === 2 ? 2 : 0, rating: rec.rating ?? 0 }
+  return { status: rec.status ?? 0, rating: rec.rating ?? 0 }
 }
 
 function extractMediaFormat(abstract: string): { label: string; colorClass: string } | null {

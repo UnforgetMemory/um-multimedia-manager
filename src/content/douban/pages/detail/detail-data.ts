@@ -44,7 +44,7 @@ export interface RecItem {
   rating: string
   link: string
   subjectId: string
-  isDone: boolean
+  recStatus: number    // 0=none 1=wish 2=done 3=doing
   personalRating?: number
 }
 
@@ -315,35 +315,30 @@ export async function extractDetailData(): Promise<DetailData | null> {
       rating: rate,
       link: href,
       subjectId: idMatch ? idMatch[1] : '',
-      isDone: false,
+      recStatus: 0,
     })
   })
 
-  // Batch-check watched status from IndexedDB
+  // Load full record status for all rec items from IndexedDB
   if (recItems.length > 0) {
-    const subjectIds = new Set(recItems.map(r => r.subjectId).filter(Boolean))
-    if (subjectIds.size > 0) {
-      try {
-        const watchedMap = await Store.dbGetWatchedIds(['douban_records'])
-        const watchedIds = watchedMap['douban_records'] || []
-        const doneSet = new Set(watchedIds.map(id => id.replace(/^(movie|music|tv)::/, '')))
-        for (const item of recItems) {
-          if (doneSet.has(item.subjectId)) item.isDone = true
+    try {
+      const entries = await Store.dbGetAll('douban_records')
+      const recordMap = new Map<string, { status: number; rating: number }>()
+      for (const { key, record } of entries) {
+        const id = key.split('::')[1]
+        if (id && (record.status ?? 0) > 0) {
+          recordMap.set(id, { status: record.status, rating: record.rating || 0 })
         }
-      } catch { /* silent */ }
-    }
-  }
-
-  // Fetch personal ratings for watched rec items
-  if (recItems.length > 0) {
-    const promises = recItems.filter(r => r.isDone).map(async r => {
-      try {
-        const key = `${identity.type}::${r.subjectId}`
-        const record = await Store.dbGet('douban_records', key)
-        if (record?.rating) r.personalRating = record.rating
-      } catch { /* silent */ }
-    })
-    await Promise.all(promises)
+      }
+      for (const item of recItems) {
+        if (!item.subjectId) continue
+        const rec = recordMap.get(item.subjectId)
+        if (rec) {
+          item.recStatus = rec.status
+          if (rec.rating > 0) item.personalRating = rec.rating
+        }
+      }
+    } catch { /* silent */ }
   }
 
   // Short comments

@@ -31,7 +31,9 @@ const props = defineProps<Props>()
 
 function recordFor(item: MediaRowItem) {
   const rec = props.records.get(item.subjectId)
-  return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 }
+  const status = rec?.status ?? 0
+  const rating = rec?.rating ?? 0
+  return { status, rating }
 }
 </script>
 
@@ -39,7 +41,7 @@ function recordFor(item: MediaRowItem) {
   <UmmScrollRow v-if="items.length > 0" :title="title" :mode="grid ? 'grid' : 'scroll'">
     <UmmMediaCard
       v-for="item in items"
-      :key="item.subjectId"
+      :key="`${item.subjectId}-${recordFor(item).status}-${recordFor(item).rating}`"
       :poster-url="item.posterUrl"
       :title="item.title"
       :href="item.href"

@@ -6,6 +6,8 @@
 import {
   COLOR_PRIMARY_START, COLOR_PRIMARY_END, COLOR_PRIMARY_SHADOW,
   COLOR_DONE_START, COLOR_DONE_END, COLOR_DONE_TEXT, COLOR_DONE_BORDER, COLOR_DONE_SHADOW,
+  COLOR_WISH_START, COLOR_WISH_END, COLOR_WISH_TEXT, COLOR_WISH_BORDER, COLOR_WISH_SHADOW,
+  COLOR_DOING_START, COLOR_DOING_END, COLOR_DOING_TEXT, COLOR_DOING_BORDER, COLOR_DOING_SHADOW,
   COLOR_NONE_START, COLOR_NONE_END, COLOR_NONE_TEXT, COLOR_NONE_BORDER, COLOR_NONE_SHADOW,
   COLOR_MINUS_START, COLOR_MINUS_END, COLOR_MINUS_SHADOW,
   COLOR_PLUS_START, COLOR_PLUS_END, COLOR_PLUS_SHADOW,
@@ -15,6 +17,8 @@ import {
   COLOR_RATING_BG, COLOR_RATING_TEXT,
   COLOR_PRIMARY_START_DARK, COLOR_PRIMARY_END_DARK, COLOR_PRIMARY_SHADOW_DARK,
   COLOR_DONE_START_DARK, COLOR_DONE_END_DARK, COLOR_DONE_TEXT_DARK, COLOR_DONE_BORDER_DARK, COLOR_DONE_SHADOW_DARK,
+  COLOR_WISH_START_DARK, COLOR_WISH_END_DARK, COLOR_WISH_TEXT_DARK, COLOR_WISH_BORDER_DARK, COLOR_WISH_SHADOW_DARK,
+  COLOR_DOING_START_DARK, COLOR_DOING_END_DARK, COLOR_DOING_TEXT_DARK, COLOR_DOING_BORDER_DARK, COLOR_DOING_SHADOW_DARK,
   COLOR_NONE_START_DARK, COLOR_NONE_END_DARK, COLOR_NONE_TEXT_DARK, COLOR_NONE_BORDER_DARK, COLOR_NONE_SHADOW_DARK,
   COLOR_MINUS_START_DARK, COLOR_MINUS_END_DARK, COLOR_MINUS_SHADOW_DARK,
   COLOR_PLUS_START_DARK, COLOR_PLUS_END_DARK, COLOR_PLUS_SHADOW_DARK,
@@ -56,6 +60,16 @@ const SEARCH_BADGE_STYLES = `
 .umm-search-badge[data-status="none"] {
   background: linear-gradient(180deg, ${COLOR_NONE_START}, ${COLOR_NONE_END});
   box-shadow: 0 2px 4px ${COLOR_NONE_SHADOW};
+}
+
+.umm-search-badge[data-status="wish"] {
+  background: linear-gradient(180deg, ${COLOR_WISH_START}, ${COLOR_WISH_END});
+  box-shadow: 0 2px 4px ${COLOR_WISH_SHADOW};
+}
+
+.umm-search-badge[data-status="doing"] {
+  background: linear-gradient(180deg, ${COLOR_DOING_START}, ${COLOR_DOING_END});
+  box-shadow: 0 2px 4px ${COLOR_DOING_SHADOW};
 }
 
 .umm-search-badge:hover {
@@ -106,6 +120,16 @@ const STATUS_CHIP_STYLES = `
   color: ${COLOR_NONE_TEXT} !important;
   background: linear-gradient(180deg, ${COLOR_NONE_START}, ${COLOR_NONE_END}) !important;
   border-color: ${COLOR_NONE_BORDER} !important;
+}
+.umm-status-chip[data-status="wish"] {
+  color: ${COLOR_WISH_TEXT} !important;
+  background: linear-gradient(180deg, ${COLOR_WISH_START}, ${COLOR_WISH_END}) !important;
+  border-color: ${COLOR_WISH_BORDER} !important;
+}
+.umm-status-chip[data-status="doing"] {
+  color: ${COLOR_DOING_TEXT} !important;
+  background: linear-gradient(180deg, ${COLOR_DOING_START}, ${COLOR_DOING_END}) !important;
+  border-color: ${COLOR_DOING_BORDER} !important;
 }
 .umm-status-chip .umm-label {
   font-weight: 700;
@@ -259,6 +283,16 @@ const HOMEPAGE_BADGE_STYLES = `
   background: linear-gradient(180deg, ${COLOR_NONE_START}, ${COLOR_NONE_END});
   color: ${COLOR_NONE_TEXT};
   border: 1px solid ${COLOR_NONE_BORDER};
+}
+.umm-homepage-badge[data-status="wish"] {
+  background: linear-gradient(180deg, ${COLOR_WISH_START}, ${COLOR_WISH_END});
+  color: ${COLOR_WISH_TEXT};
+  border: 1px solid ${COLOR_WISH_BORDER};
+}
+.umm-homepage-badge[data-status="doing"] {
+  background: linear-gradient(180deg, ${COLOR_DOING_START}, ${COLOR_DOING_END});
+  color: ${COLOR_DOING_TEXT};
+  border: 1px solid ${COLOR_DOING_BORDER};
 }
 `
 
@@ -458,6 +492,16 @@ const REVIEWS_BADGE_STYLES = `
   background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
+
+.umm-status--wish {
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.umm-status--doing {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
 `
 
 /**
@@ -485,6 +529,14 @@ const ALL_STYLES_DARK = `
   background: linear-gradient(180deg, ${COLOR_PRIMARY_START_DARK} 0%, ${COLOR_PRIMARY_END_DARK} 100%);
   box-shadow: 0 2px 4px ${COLOR_PRIMARY_SHADOW_DARK};
 }
+[data-umm-theme="dark"] .umm-search-badge[data-status="wish"] {
+  background: linear-gradient(180deg, ${COLOR_WISH_START_DARK}, ${COLOR_WISH_END_DARK});
+  box-shadow: 0 2px 4px ${COLOR_WISH_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-search-badge[data-status="doing"] {
+  background: linear-gradient(180deg, ${COLOR_DOING_START_DARK}, ${COLOR_DOING_END_DARK});
+  box-shadow: 0 2px 4px ${COLOR_DOING_SHADOW_DARK};
+}
 [data-umm-theme="dark"] .umm-search-badge[data-status="done"] {
   background: linear-gradient(180deg, ${COLOR_DONE_START_DARK}, ${COLOR_DONE_END_DARK});
   box-shadow: 0 2px 4px ${COLOR_DONE_SHADOW_DARK};
@@ -492,6 +544,16 @@ const ALL_STYLES_DARK = `
 [data-umm-theme="dark"] .umm-search-badge[data-status="none"] {
   background: linear-gradient(180deg, ${COLOR_NONE_START_DARK}, ${COLOR_NONE_END_DARK});
   box-shadow: 0 2px 4px ${COLOR_NONE_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-status-chip[data-status="wish"] {
+  color: ${COLOR_WISH_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_WISH_START_DARK}, ${COLOR_WISH_END_DARK}) !important;
+  border-color: ${COLOR_WISH_BORDER_DARK} !important;
+}
+[data-umm-theme="dark"] .umm-status-chip[data-status="doing"] {
+  color: ${COLOR_DOING_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_DOING_START_DARK}, ${COLOR_DOING_END_DARK}) !important;
+  border-color: ${COLOR_DOING_BORDER_DARK} !important;
 }
 [data-umm-theme="dark"] .umm-status-chip[data-status="done"] {
   color: ${COLOR_DONE_TEXT_DARK} !important;
@@ -524,6 +586,14 @@ const ALL_STYLES_DARK = `
   color: ${COLOR_NEOGLOW_BASE_DARK} !important;
   text-shadow: 0 0 10px ${COLOR_NEOGLOW_SHADOW_1_DARK}, 0 0 20px ${COLOR_NEOGLOW_SHADOW_2_DARK}, 0 0 30px ${COLOR_NEOGLOW_SHADOW_3_DARK} !important;
 }
+[data-umm-theme="dark"] .umm-homepage-badge[data-status="wish"] {
+  background: linear-gradient(180deg, ${COLOR_WISH_START_DARK}, ${COLOR_WISH_END_DARK});
+  border-color: ${COLOR_WISH_BORDER_DARK};
+}
+[data-umm-theme="dark"] .umm-homepage-badge[data-status="doing"] {
+  background: linear-gradient(180deg, ${COLOR_DOING_START_DARK}, ${COLOR_DOING_END_DARK});
+  border-color: ${COLOR_DOING_BORDER_DARK};
+}
 [data-umm-theme="dark"] .umm-homepage-badge[data-status="done"] {
   background: linear-gradient(180deg, ${COLOR_DONE_START_DARK}, ${COLOR_DONE_END_DARK});
   border-color: ${COLOR_DONE_BORDER_DARK};
@@ -537,6 +607,12 @@ const ALL_STYLES_DARK = `
 }
 [data-umm-theme="dark"] .umm-status--none {
   background: linear-gradient(180deg, ${COLOR_NONE_START_DARK} 0%, ${COLOR_NONE_END_DARK} 100%);
+}
+[data-umm-theme="dark"] .umm-status--wish {
+  background: linear-gradient(180deg, ${COLOR_WISH_START_DARK} 0%, ${COLOR_WISH_END_DARK} 100%);
+}
+[data-umm-theme="dark"] .umm-status--doing {
+  background: linear-gradient(180deg, ${COLOR_DOING_START_DARK} 0%, ${COLOR_DOING_END_DARK} 100%);
 }
 `
 

@@ -106,9 +106,9 @@ function getSearchPageConfig(): SearchPageConfig | null {
 function createSearchBadge(status: number, rating: number): HTMLElement {
   const badge = document.createElement('span')
   badge.className = 'umm-search-badge'
-  badge.dataset.status = status === 2 ? 'done' : 'none'
+  badge.dataset.status = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
   
-  const label = status === 2 ? '✅' : '⏳'
+  const label = status === 2 ? '✅' : status === 3 ? '▶️' : status === 1 ? '⭐' : '⏳'
   const ratingText = rating > 0 ? ` ${Utils.formatRating10(rating)}/10` : ''
   
   // XSS 防护
@@ -118,7 +118,7 @@ function createSearchBadge(status: number, rating: number): HTMLElement {
   badge.innerHTML = `${escapedLabel}${escapedRatingText}`
   
   // ARIA 属性
-  const ariaLabel = status === 2 ? t('search.aria_done') : t('search.aria_none')
+  const ariaLabel = status === 2 ? t('search.aria_done') : status === 3 ? t('search.aria_doing') : status === 1 ? t('search.aria_wish') : t('search.aria_none')
   badge.setAttribute('role', 'status')
   badge.setAttribute('aria-label', `${ariaLabel}${ratingText ? `,${ratingText}` : ''}`)
   

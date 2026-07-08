@@ -51,7 +51,7 @@ onMounted(async () => {
     <UmmScrollRow v-if="billboardItems.length > 0" title="一周口碑榜">
       <UmmBillboardCard
         v-for="item in billboardItems"
-        :key="item.subjectId"
+        :key="`${item.subjectId}-${records.get(item.subjectId)?.status ?? 0}-${records.get(item.subjectId)?.rating ?? 0}`"
         :order="item.order"
         :title="item.title"
         :href="item.href"

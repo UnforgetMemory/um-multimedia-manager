@@ -145,6 +145,11 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
+.umm-status--doing {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
 .umm-status--inline {
   padding: 3px 8px;
   font-size: var(--umm-font-xs, 11px);
@@ -171,6 +176,10 @@
 
 :host(.umm-theme--dark) .umm-status--wish {
   background: linear-gradient(180deg, #c2410c 0%, #9a3412 100%);
+}
+
+:host(.umm-theme--dark) .umm-status--doing {
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
 }
 
 /* ---- Dynamic Island (shared across all pages) ---- */
