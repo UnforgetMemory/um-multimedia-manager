@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * UmmSearchCard — search result card for Douban movie/TV/music search page.
- * Displays cover, title, status badge, rating, metadata, cast, and media format chips.
+ * UmmSearchCard — search result card for Douban movie/TV/music/book search page.
+ * Displays cover, title, status badge, rating, metadata, and media format chips (music only).
  */
 import type { SearchItem } from '../types'
 import type { StoreRecord } from '@/types'
@@ -41,18 +41,21 @@ const FORMAT_COLORS: Record<string, string> = {
 interface Props {
   item: SearchItem
   records: Map<string, StoreRecord>
-  isMusic?: boolean
+  type?: 'movie' | 'music' | 'book'
 }
 
-const props = withDefaults(defineProps<Props>(), { isMusic: false })
+const props = withDefaults(defineProps<Props>(), { type: 'movie' })
 
 const rec = props.records.get(String(props.item.id))
 const badgeStatus = rec?.status ?? 0
 const badgeRating = rec?.rating ?? 0
 
-/** Extract media format from abstract metadata string */
+const isMusic = props.type === 'music'
+const isBook = props.type === 'book'
+
+/** Extract media format from abstract metadata string (music only) */
 const mediaFormat = computed(() => {
-  if (!props.isMusic || !props.item.abstract) return null
+  if (!isMusic || !props.item.abstract) return null
   const segments = props.item.abstract.split(' / ')
   for (const seg of segments) {
     const trimmed = seg.trim()
@@ -78,7 +81,7 @@ const mediaFormat = computed(() => {
           :alt="item.title"
           :aspect-ratio="isMusic ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER"
         />
-        <span v-if="item.labels?.length" class="umm-search-label">{{ item.labels[0].text }}</span>
+        <span v-if="item.labels?.length && !isBook" class="umm-search-label">{{ item.labels[0].text }}</span>
       </div>
       <div v-if="isMusic && mediaFormat" class="umm-search-media-row">
         <span class="umm-search-media-chip" :class="FORMAT_COLORS[mediaFormat] || ''">{{ mediaFormat }}</span>
@@ -91,12 +94,12 @@ const mediaFormat = computed(() => {
           :status="badgeStatus"
           :rating="badgeRating"
           variant="small"
-          :type="isMusic ? 'music' : 'movie'"
+          :type="type"
         />
       </div>
       <UmmRating :score="item.rating.value.toFixed(1)" :count="item.rating.count" />
       <div v-if="item.abstract" class="umm-search-meta">{{ item.abstract }}</div>
-      <div v-if="item.abstract_2" class="umm-search-cast">{{ item.abstract_2 }}</div>
+      <div v-if="item.abstract_2 && !isBook" class="umm-search-cast">{{ item.abstract_2 }}</div>
     </div>
   </a>
 </template>

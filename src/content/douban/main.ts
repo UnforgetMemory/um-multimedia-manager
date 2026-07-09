@@ -153,19 +153,20 @@ async function mountSearch(): Promise<void> {
     overlayId: 'umm-search-overlay',
     css,
     async beforeMount() {
-      const type = location.href.includes('search.douban.com/music') ? 'music' : 'movie'
+      const type = location.href.includes('search.douban.com/music') ? 'music' : location.href.includes('search.douban.com/book') ? 'book' : 'movie'
       const [searchData, recordMap] = await Promise.all([
         parseSearchData(),
         loadRecordMap(type),
       ])
-      return { searchData, recordMap }
+      return { searchData, recordMap, type }
     },
     createApp(_shadow, ctx) {
-      const { searchData, recordMap } = ctx as {
+      const { searchData, recordMap, type } = ctx as {
         searchData: import('./pages/search/types').DoubanSearchData | undefined
         recordMap: Map<string, import('@/types').StoreRecord>
+        type: 'movie' | 'music' | 'book'
       }
-      return createApp(App, { searchData, recordMap })
+      return createApp(App, { searchData, recordMap, type })
     },
   })
 }

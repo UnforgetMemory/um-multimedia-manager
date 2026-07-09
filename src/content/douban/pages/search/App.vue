@@ -9,11 +9,10 @@ import UmmSearchFilter, { type FilterType } from './components/UmmSearchFilter.v
 const props = defineProps<{
   searchData?: DoubanSearchData
   recordMap?: Map<string, StoreRecord>
+  type: 'movie' | 'music' | 'book'
 }>()
 
-const isMusic = location.href.includes('search.douban.com/music')
-const type = isMusic ? 'music' : 'movie'
-const cat = isMusic ? '1003' : '1002'
+const cat = props.type === 'book' ? '1001' : props.type === 'music' ? '1003' : '1002'
 
 const perPage = computed(() => props.searchData?.count || 15)
 const totalPages = computed(() => props.searchData ? Math.ceil(props.searchData.total / perPage.value) : 0)
@@ -50,7 +49,7 @@ const pageWindow = computed(() => {
 function pageUrl(page: number): string {
   const q = encodeURIComponent(props.searchData?.text || '')
   const start = page ? (page - 1) * perPage.value : 0
-  return `https://search.douban.com/${type}/subject_search?search_text=${q}&cat=${cat}${start > 0 ? `&start=${start}` : ''}`
+  return `https://search.douban.com/${props.type}/subject_search?search_text=${q}&cat=${cat}${start > 0 ? `&start=${start}` : ''}`
 }
 
 function navigate(url: string): void {
@@ -82,7 +81,7 @@ function clampJumpInput(): void {
     <div class="umm-search-page">
 
     <UmmSearchFilter
-      v-if="searchData && !isMusic"
+      v-if="searchData && type === 'movie'"
       v-model="filterType"
       :total="searchData.total"
       :filtered="filteredItems.length"
@@ -91,7 +90,7 @@ function clampJumpInput(): void {
 
     <div v-else-if="searchData" class="umm-search-hd">
       <div class="umm-search-hd-left">
-        <h1 class="umm-search-title">{{ isMusic ? '音乐搜索' : '搜索结果' }}</h1>
+        <h1 class="umm-search-title">{{ type === 'music' ? '音乐搜索' : type === 'book' ? '图书搜索' : '搜索结果' }}</h1>
       </div>
       <span class="umm-search-hd-meta">
         "{{ searchData.text }}" · {{ searchData.total }} 个结果
@@ -104,7 +103,7 @@ function clampJumpInput(): void {
         :key="item.id"
         :item="item"
         :records="recordMap || new Map()"
-        :isMusic="isMusic"
+        :type="type"
       />
     </div>
     <div v-else class="umm-search-empty">

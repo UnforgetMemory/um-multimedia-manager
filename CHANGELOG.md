@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **豆瓣图书搜索结果页面深度适配**: `search.douban.com/book/subject_search` 全屏覆盖层
+  - 3 个 entrypoint matches 全面注册，`url-detector.ts` 新增 `book` mediaType
+  - 主 overlay 挂载流程支持 book 类型：`cat=1001` URL 构造，`loadRecordMap('book')` 加载记录
+  - 搜索结果卡片适配：POSTER 比例封面（同电影），隐藏 labels/chips/演职员行
+  - 分页器完整支持（首页/上一页/下一页/末页/跳转输入）
+  - 搜索标题显示"图书搜索"，不显示 all/movie/TV 筛选器
+
+### Chore
+- 测试产物清洁：删除 `test-results/` 目录
+- 安全审计通过：仅 URL 匹配和条件渲染变更，零用户输入处理，Vue 模板自动转义
+- `.gitignore` 复核：所有 AI 目录/产物模式已覆盖
+- 简洁英文注释补充：`UmmSearchCard` 组件 JSDoc 更新
+
 ## [4.11.0] - 2026-07-09
 
 ### Added
