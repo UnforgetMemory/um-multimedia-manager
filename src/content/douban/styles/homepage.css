@@ -468,6 +468,16 @@
   padding: 0 2px;
 }
 
+.umm-rec-author {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+  margin-top: -2px;
+}
+
 .umm-rec-rating {
   font-size: var(--umm-font-xs, 0.75rem);
   color: var(--umm-rating-score);

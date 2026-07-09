@@ -1,7 +1,7 @@
 import { h, type FunctionalComponent } from 'vue'
 
 type StatusType = 'done' | 'none' | 'wish' | 'doing'
-type UmmBadgeType = 'movie' | 'music'
+type UmmBadgeType = 'movie' | 'music' | 'book'
 
 interface UmmStatusBadgeProps {
   status: number
@@ -13,6 +13,7 @@ interface UmmStatusBadgeProps {
 const BADGE_LABELS: Record<UmmBadgeType, { done: string; wish: string; none: string; doing: string }> = {
   movie: { done: '已看', wish: '想看', none: '未看', doing: '在看' },
   music: { done: '已听', wish: '想听', none: '未听', doing: '在听' },
+  book: { done: '已读', wish: '想读', none: '未读', doing: '在读' },
 }
 
 export const UmmStatusBadge: FunctionalComponent<UmmStatusBadgeProps> = (props) => {

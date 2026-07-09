@@ -23,7 +23,7 @@ function GitHubIcon() {
 export const UmmPageLayout = defineComponent({
   name: 'UmmPageLayout',
   props: {
-    type: { type: String as () => 'movie' | 'music', default: 'movie' },
+    type: { type: String as () => 'movie' | 'music' | 'book', default: 'movie' },
     newTab: { type: Boolean, default: true },
     initialQuery: { type: String, default: '' },
   },

@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0] - 2026-07-09
+
+### Added
+- **豆瓣图书首页深度适配**: `book.douban.com/` 页面全覆蓋
+  - 新书速递：响应式 Grid 卡片区，复用 `UmmMediaRow`/`UmmMediaCard` 组件（`type="book"`）
+  - 每月热门图书榜：排行列表 + 排行趋势指示器（↑↓N）
+  - 读书活动：背景覆盖式活动卡片
+  - 封面 `aspect-ratio: 2/3` 自适应 + hover 上浮动效
+- **图书状态徽章全链路**: `UmmStatusBadge` 新增 `book` 类型（已读/想读/未读/在读）
+  - 新书速递 Grid 卡片：悬浮于封面上角（`variant="small"`）
+  - 排行榜列表：inline 嵌入标题前（`variant="inline"`）
+  - 状态从 IndexedDB 异步加载
+- **图书身份识别**: `Identity.fromUrl()` 支持 `book.douban.com/subject/{id}` → type `'book'`
+  - `Identity.buildUrl()` 新增 `douban + book` 路径
+- **图书详情页扫描**: `douban-scanner.ts` 图书状态文字适配（我读过/我想读/我在读）
+- **图书首页导航入口**: UmmDynamicIsland 新增「图书」按钮（书本 SVG 图标）
+- **全链路统计集成**: `useStats.ts` 新增 `book` 计数器
+  - Popup Dashboard 新增 Book 统计卡片（Book 图标）
+  - Options OverviewTab StatsGrid 新增 Book 条目 + platformStats 推断
+- **图书类型埋点**: `host_permissions` + `matches` 三入口注册 `*://book.douban.com/*`
+- **图书详情页路由**: `router.ts` 新增 `book.douban.com/subject/` 路由 → `handleDoubanDetailPage()`
+- **图书详情页隐藏导航**: `hide-nav.ts` 支持 `bookNav`（`#db-nav-book`）
+
+### Fixed
+- **封面全屏溢出**: `css-composer.ts` 补充 `homepage.css` 到 book-homepage CSS preset，grid-track 约束 `aspect-ratio`
+
+### Security
+- 安全审计通过：所有 DOM 读取使用 `textContent`（非 `innerHTML`），URL 经 `new URL()` + 协议白名单过滤，Vue 模板 `{{ }}` 自动转义，无 `v-html`，外部链接含 `rel="noopener noreferrer"`
+
 ## [4.10.0] - 2026-07-09
 
 ### Added

@@ -25,6 +25,7 @@ export function composeStyles(...chunks: CssChunk[]): string {
 const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: string[] }> = {
   'homepage':         { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['homepage'] },
   'music-homepage':   { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['homepage', 'music-homepage'] },
+  'book-homepage':    { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['homepage', 'book-homepage'] },
   'detail':           { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['detail', 'interest'] },
   'search':           { shared: ['theme', 'common', 'page-layout', 'shared-components'], page: ['search'] },
   'photos':           { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['photos'] },

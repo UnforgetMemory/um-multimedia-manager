@@ -20,6 +20,7 @@ const SUBTITLE: Record<string, string> = {
   celebrities: '加载演职员...',
   albums: '专辑版本 · 加载中',
   detail: '加载中...',
+  'book-homepage': '读书首页 · 加载中',
   search: '加载搜索结果...',
   personage: '加载影人资料...',
   'user-profile': '用户主页 · 加载中',

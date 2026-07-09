@@ -1,0 +1,294 @@
+/* ===== UMM Douban Book Homepage — Shadow DOM styles ===== */
+/* Follows homepage.css pattern. Shadow DOM provides full style isolation. */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  --umm-border-light: var(--umm-border, #f0f0f0);
+  --umm-card-bg: transparent;
+  --umm-mask-from: var(--umm-color-surface, #ffffff);
+}
+
+:host(.umm-theme--dark) {
+  --umm-border-light: #2c2e33;
+  --umm-card-bg: transparent;
+  --umm-mask-from: var(--umm-color-surface, #1a1b1e);
+}
+
+/* Root panel */
+.umm-top-panel {
+  display: block;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: var(--umm-space-lg) 0;
+  background: var(--umm-bg);
+  position: relative;
+  z-index: var(--umm-z-overlay, 300);
+  overflow: visible;
+  color: var(--umm-text-primary);
+}
+
+/* ---- Sections ---- */
+.umm-section {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--umm-space-xl);
+  padding: 0;
+}
+
+.umm-section-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--umm-space-lg) var(--umm-space-sm);
+  border-bottom: 1px solid var(--umm-border);
+  margin-bottom: var(--umm-space-sm);
+}
+
+.umm-section-hd h2 {
+  font-size: var(--umm-font-md);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+
+/* ---- Book Express Grid (新书速递) ---- */
+.umm-book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--umm-space-md);
+  padding: 0 var(--umm-space-lg);
+}
+
+@media (min-width: 480px) { .umm-book-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 640px) { .umm-book-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 768px) { .umm-book-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1024px) { .umm-book-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1440px) { .umm-book-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 1920px) { .umm-book-grid { grid-template-columns: repeat(8, 1fr); } }
+
+/* ---- Activities Grid (读书活动) ---- */
+.umm-activity-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--umm-space-md);
+  padding: 0 var(--umm-space-lg);
+}
+
+@media (min-width: 640px) { .umm-activity-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .umm-activity-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1440px) { .umm-activity-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.umm-activity-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  min-height: 200px;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.umm-activity-card:link,
+.umm-activity-card:visited,
+.umm-activity-card:hover,
+.umm-activity-card:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+.umm-activity-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.umm-activity-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.umm-activity-card:hover .umm-activity-bg {
+  transform: scale(1.05);
+}
+
+.umm-activity-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.15) 70%, transparent 100%);
+}
+
+.umm-activity-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 1;
+  padding: 20px 16px 16px;
+  min-height: 200px;
+}
+
+.umm-activity-label {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: var(--umm-font-xs);
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  margin-bottom: auto;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.umm-activity-title {
+  font-size: var(--umm-font-sm);
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  margin-top: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.umm-activity-date {
+  font-size: var(--umm-font-xs);
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+/* ---- Popular Books (热门图书榜) ---- */
+.umm-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-sm);
+  padding: 0 var(--umm-space-lg);
+}
+
+.umm-ranking-item {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-md);
+  padding: var(--umm-space-sm) var(--umm-space-md);
+  border-radius: var(--umm-card-radius, 8px);
+  text-decoration: none;
+  color: inherit;
+  background: var(--umm-bg-secondary);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.umm-ranking-item:hover {
+  background: var(--umm-bg-tertiary);
+  transform: translateX(4px);
+}
+
+.umm-rank-number {
+  min-width: 28px;
+  font-size: var(--umm-font-lg);
+  font-weight: 800;
+  text-align: center;
+  color: var(--umm-text-muted);
+}
+
+.umm-rank-number--top3 {
+  color: var(--umm-accent);
+}
+
+.umm-ranking-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---- Ranking Cover (thumbnail + inline badge) ---- */
+.umm-ranking-cover {
+  position: relative;
+  width: 48px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--umm-bg-tertiary);
+}
+
+.umm-ranking-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.umm-ranking-title {
+  font-size: var(--umm-font-sm);
+  font-weight: 500;
+  color: var(--umm-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-ranking-meta {
+  font-size: var(--umm-font-xs);
+  color: var(--umm-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-ranking-rating {
+  flex-shrink: 0;
+  font-size: var(--umm-font-sm);
+  font-weight: 600;
+  color: var(--umm-rating-score, #e09040);
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--umm-bg-secondary, #f8f9fa);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--umm-border, #e5e7eb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--umm-text-muted, #9ca3af);
+}
+
+/* ---- Activities placeholder bg fallback ---- */
+.umm-activity-card--placeholder .umm-activity-body {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.umm-activity-card--placeholder .umm-activity-title {
+  font-size: var(--umm-font-md);
+}
+
+/* ---- Hide native elements ---- */
+#db-global-nav,
+#db-nav-book,
+#content {
+  display: none !important;
+}

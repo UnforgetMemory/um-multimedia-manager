@@ -50,7 +50,8 @@ const ROUTES: RouteRule[] = [
   {
     match: (url) =>
       url.includes('movie.douban.com/subject/') ||
-      url.includes('music.douban.com/subject/'),
+      url.includes('music.douban.com/subject/') ||
+      url.includes('book.douban.com/subject/'),
     handler: async (identity) => {
       if (identity) {
         await handleDoubanDetailPage(identity)

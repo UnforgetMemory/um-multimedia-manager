@@ -11,12 +11,13 @@ export const UmmMediaCard = defineComponent({
     posterUrl: { type: String, required: true },
     title: { type: String, required: true },
     href: { type: String, default: '' },
+    author: { type: String, default: '' },
     badgeStatus: { type: Number, default: 0 },
     badgeRating: { type: Number, default: 0 },
     rating: { type: String, default: '' },
     episodes: { type: String, default: '' },
     intro: { type: String, default: '' },
-    type: { type: String as PropType<'movie' | 'music'>, default: 'movie' },
+    type: { type: String as PropType<'movie' | 'music' | 'book'>, default: 'movie' },
   },
   setup(props) {
     const handleClick = () => {
@@ -51,8 +52,11 @@ export const UmmMediaCard = defineComponent({
                 aspectRatio: cardAspect,
               }),
             ]),
-            h('span', { class: 'umm-rec-title' }, props.title),
-            h(UmmRating, {
+h('span', { class: 'umm-rec-title' }, props.title),
+      props.author
+        ? h('span', { class: 'umm-rec-author' }, props.author)
+        : null,
+      h(UmmRating, {
               score: props.rating || undefined,
             }),
           ],

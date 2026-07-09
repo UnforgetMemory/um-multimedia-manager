@@ -18,6 +18,7 @@ export function hideNativeNav(options?: {
   globalNav?: boolean
   movieNav?: boolean
   musicNav?: boolean
+  bookNav?: boolean
 }): void {
   if (!options) return
   if (options.globalNav) {
@@ -30,6 +31,10 @@ export function hideNativeNav(options?: {
   }
   if (options.musicNav) {
     const el = document.getElementById('db-nav-music')
+    if (el) el.style.display = 'none'
+  }
+  if (options.bookNav) {
+    const el = document.getElementById('db-nav-book')
     if (el) el.style.display = 'none'
   }
 }
@@ -48,7 +53,13 @@ export function hideNavForPage(pageType: PageType): void {
     case 'trailer':
     case 'video':
     case 'celebrities':
-      hideNativeNav({ globalNav: true, movieNav: true })
+      if (pageType.type === 'detail') {
+        if (pageType.mediaType === 'music') hideNativeNav({ globalNav: true, musicNav: true })
+        else if (pageType.mediaType === 'book') hideNativeNav({ globalNav: true })
+        else hideNativeNav({ globalNav: true, movieNav: true })
+      } else {
+        hideNativeNav({ globalNav: true, movieNav: true })
+      }
       break
     case 'albums':
     case 'genre':
@@ -69,6 +80,7 @@ export function hideNavForPage(pageType: PageType): void {
       break
     case 'homepage':
     case 'music-homepage':
+    case 'book-homepage':
     case 'search':
       // Native navigation is part of the page design for these types
       break

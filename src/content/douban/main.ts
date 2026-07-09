@@ -17,6 +17,7 @@ import commonCss from './styles/common.css?raw'
 import breakpointsCss from './styles/breakpoints.css?raw'
 import homepageCss from './styles/homepage.css?raw'
 import musicHomepageCss from './styles/music-homepage.css?raw'
+import bookHomepageCss from './styles/book-homepage.css?raw'
 import genreCss from './styles/genre.css?raw'
 import artistsOverviewCss from './styles/artists-overview.css?raw'
 import searchCss from './styles/search.css?raw'
@@ -51,6 +52,7 @@ const cssMap: Record<string, string> = {
   'shared-components': componentsCss,
   homepage: homepageCss,
   'music-homepage': musicHomepageCss,
+  'book-homepage': bookHomepageCss,
   genre: genreCss,
   'artists-overview': artistsOverviewCss,
   search: searchCss,
@@ -199,6 +201,18 @@ async function mountAlbums(): Promise<void> {
   })
 }
 
+// ---- Book Homepage mount ----
+
+async function mountBookHomepage(): Promise<void> {
+  const css = composeStylesForPage('book-homepage', cssMap)
+  const { default: App } = await import('./pages/book-homepage/App.vue')
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    createApp: () => createApp(App),
+  })
+}
+
 // ---- Detail page mount ----
 
 async function mountDetail(): Promise<void> {
@@ -216,7 +230,7 @@ async function mountDetail(): Promise<void> {
         throw new Error('[UMM] Could not extract detail data from page')
       }
       detailData.record = await loadRecord(detailData.identity)
-      const mediaType = location.href.includes('music.douban.com') ? 'music' : 'movie'
+      const mediaType = location.href.includes('music.douban.com') ? 'music' : location.href.includes('book.douban.com') ? 'book' : 'movie'
       hideNavForPage({ type: 'detail', mediaType })
       return detailData
     },
@@ -615,6 +629,7 @@ export async function mountDoubanMain(): Promise<void> {
     switch (pageType.type) {
       case 'albums': await mountAlbums(); break
       case 'music-homepage': await mountMusicHomepage(); break
+      case 'book-homepage': await mountBookHomepage(); break
       case 'genre': await mountGenrePage(); break
       case 'artists-overview': await mountArtistsOverview(); break
       case 'homepage': await mountHomepage(); break

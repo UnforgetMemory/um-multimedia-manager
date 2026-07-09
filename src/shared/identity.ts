@@ -130,6 +130,11 @@ export const Identity = {
       return `https://movie.douban.com/subject/${providerId}/`;
     }
 
+    // 豆瓣图书
+    if (provider === 'douban' && type === 'book') {
+      return `https://book.douban.com/subject/${providerId}/`;
+    }
+
     // 豆瓣音乐
     if (provider === 'douban' && type === 'music') {
       return `https://music.douban.com/subject/${providerId}/`;
@@ -302,6 +307,12 @@ export const Identity = {
       const doubanMusic = pathname.match(/^\/subject\/(\d+)/i);
       if (host === 'music.douban.com' && doubanMusic) {
         return this.make('music', 'douban', doubanMusic[1], normalized);
+      }
+
+      // 豆瓣图书
+      const doubanBook = pathname.match(/^\/subject\/(\d+)/i);
+      if (host === 'book.douban.com' && doubanBook) {
+        return this.make('book', 'douban', doubanBook[1], normalized);
       }
 
       // IMDB

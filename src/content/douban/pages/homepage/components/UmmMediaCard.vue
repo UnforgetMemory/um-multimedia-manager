@@ -10,7 +10,8 @@ interface Props {
   badgeStatus: number
   badgeRating: number
   episodes?: string
-  type?: 'movie' | 'music'
+  author?: string
+  type?: 'movie' | 'music' | 'book'
   mode?: 'scroll' | 'grid'
 }
 
@@ -22,6 +23,7 @@ const cardProps = {
   href: props.href,
   rating: props.rate,
   intro: props.intro || '',
+  author: props.author || '',
   badgeStatus: props.badgeStatus,
   badgeRating: props.badgeRating,
   episodes: props.episodes || '',

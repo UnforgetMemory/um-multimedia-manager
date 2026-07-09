@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{
   /** Open links in new tab (default: true). Search page uses false */
   newTab?: boolean
   /** Search category type */
-  type?: 'movie' | 'music'
+  type?: 'movie' | 'music' | 'book'
   /** Pre-fill search input */
   initialQuery?: string
 }>(), {
@@ -28,8 +28,8 @@ const searchQuery = ref(props.initialQuery)
 const isSearching = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
-const catMap: Record<string, string> = { movie: '1002', music: '1003' }
-const labelMap: Record<string, string> = { movie: '电影', music: '音乐' }
+const catMap: Record<string, string> = { movie: '1002', music: '1003', book: '1001' }
+const labelMap: Record<string, string> = { movie: '电影', music: '音乐', book: '图书' }
 
 function open(url: string): void {
   if (props.newTab) {
@@ -100,6 +100,20 @@ onUnmounted(() => {
         </svg>
         <span class="umm-island-nav-label">音乐</span>
       </button>
+      <button
+        type="button"
+        class="umm-island-nav-link"
+        :class="{ 'umm-island-nav-link--active': type === 'book' }"
+        aria-label="图书"
+        @click="open('https://book.douban.com/')"
+      >
+        <svg class="umm-island-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          <path d="M8 7h8M8 11h6"></path>
+        </svg>
+        <span class="umm-island-nav-label">图书</span>
+      </button>
       <div class="umm-island-divider"></div>
       <button
         type="button"
@@ -120,7 +134,7 @@ onUnmounted(() => {
         name="search_text"
         type="search"
         class="umm-island-input"
-        :placeholder="type === 'music' ? '搜索音乐、歌手、专辑' : '搜索电影、电视剧、影人'"
+        :placeholder="type === 'music' ? '搜索音乐、歌手、专辑' : type === 'book' ? '搜索图书、作者、出版社' : '搜索电影、电视剧、影人'"
         autocomplete="off"
         :aria-label="'搜索豆瓣' + labelMap[type]"
         @input="searchQuery = ($event.target as HTMLInputElement).value; handleInput()"

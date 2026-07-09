@@ -19,7 +19,8 @@ export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; r
   // 检测是否包含"我看过"或"我听过"
   // ✅ 修复：弹窗可见时跳过 + 精确匹配已看状态信号
   const isMusic = identity.type === 'music'
-  const watchedText = isMusic ? '我听过' : '我看过'
+  const isBook = identity.type === 'book'
+  const watchedText = isBook ? '我读过' : isMusic ? '我听过' : '我看过'
   // 如果豆瓣弹窗(#dialog)可见，直接返回 none，避免弹窗内容干扰
   const doubanDialog = document.getElementById('dialog')
   const isDialogVisible = doubanDialog && doubanDialog.offsetParent !== null
@@ -58,12 +59,12 @@ export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; r
 
   // Already-marked status uses "我" prefix: "我想看"/"我在看"/"我看过"
   // Unmarked page shows bare text inside <a> buttons — must distinguish with "我"
-  const markedWishText = isMusic ? '我想听' : '我想看'
+  const markedWishText = isBook ? '我想读' : isMusic ? '我想听' : '我想看'
   if (interestBox.innerText.includes(markedWishText)) {
     return { status: 'wish', rating: 0 }
   }
 
-  const markedDoingText = isMusic ? '我在听' : '我在看'
+  const markedDoingText = isBook ? '我在读' : isMusic ? '我在听' : '我在看'
   if (interestBox.innerText.includes(markedDoingText)) {
     return { status: 'doing', rating: 0 }
   }

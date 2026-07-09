@@ -36,6 +36,7 @@ export default defineContentScript({
     '*://movie.douban.com/typerank*',
     '*://music.douban.com/subject/*',
     '*://music.douban.com/top250*',
+    '*://book.douban.com/*',
     '*://search.douban.com/movie/subject_search*',
     '*://search.douban.com/music/subject_search*',
     '*://www.imdb.com/title/tt*',
@@ -243,7 +244,7 @@ async function loadCurrentRecord() {
 function isDoubanDetailPage(): boolean {
   return (
     currentIdentity?.provider === 'douban' &&
-    (window.location.hostname === 'movie.douban.com' || window.location.hostname === 'music.douban.com') &&
+    (window.location.hostname === 'movie.douban.com' || window.location.hostname === 'music.douban.com' || window.location.hostname === 'book.douban.com') &&
     window.location.pathname.includes('/subject/')
   )
 }

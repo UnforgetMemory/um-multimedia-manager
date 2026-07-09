@@ -16,6 +16,7 @@ interface MediaRowItem {
   href: string
   intro?: string
   episodes?: string
+  author?: string
 }
 
 interface Props {
@@ -23,7 +24,7 @@ interface Props {
   items: MediaRowItem[]
   records: Map<string, StoreRecord>
   showEpisodes?: boolean
-  type?: 'movie' | 'music'
+  type?: 'movie' | 'music' | 'book'
   grid?: boolean
 }
 
@@ -47,6 +48,7 @@ function recordFor(item: MediaRowItem) {
       :href="item.href"
       :rate="item.rate"
       :intro="item.intro"
+      :author="item.author"
       :episodes="showEpisodes ? item.episodes : undefined"
       :badge-status="recordFor(item).status"
       :badge-rating="recordFor(item).rating"

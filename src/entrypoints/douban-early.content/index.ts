@@ -9,7 +9,7 @@ import { defineContentScript } from 'wxt/utils/define-content-script'
 import { createDoubanEarlyOverlay } from '@/content/douban/early'
 
 export default defineContentScript({
-  matches: ['*://movie.douban.com/*', '*://music.douban.com/*', '*://music.douban.com/subject/*', '*://search.douban.com/movie/subject_search*', '*://search.douban.com/music/subject_search*', '*://www.douban.com/personage/*', '*://www.douban.com/people/*', '*://www.douban.com/doulist/*'],
+  matches: ['*://movie.douban.com/*', '*://music.douban.com/*', '*://music.douban.com/subject/*', '*://book.douban.com/*', '*://search.douban.com/movie/subject_search*', '*://search.douban.com/music/subject_search*', '*://www.douban.com/personage/*', '*://www.douban.com/people/*', '*://www.douban.com/doulist/*'],
   runAt: 'document_start',
 
   main() {
