@@ -5,31 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.10.0] - 2026-07-09
 
 ### Added
 - **豆瓣「用户片单」分类导航栏 UI**: `www.douban.com/people/{uid}/subject_doulists/{category}` 页面适配
   - 新增 `.xbar` 分类标签（豆列/片单/书单/地点）的提取与 UI 重建，胶囊式标签 + 当前 tab 高亮
   - 新增 `XbarCategory` 接口和 `xbarCategories` 数据字段
-
-### Fixed
-- **豆瓣「片单列表」navLinks 域名错误**: 所有导航链接（广播/相册/日记/豆列/片单/书单）被错误重写为
-  `movie.douban.com` 域名；现仅在 `movie.douban.com` 页面执行重写，`www.douban.com` 保持原始链接
-- **豆瓣「片单列表」meta 提取不兼容书单/音乐**: 状态正则从固定 `看过` 扩展为 `(?:看过|读过|听过)`，
-  支持 "读过10/10本"、"听过X/Y张" 等格式；同时 normalize `/` 周围空格处理不一致
-- **豆瓣「片单列表」activeTab 检测**: 新增 `?owned=followed` 查询参数检查，
-  新 `/subject_doulists/` 页面使用此参数而非 `/doulists/collect` 路径
-
-### Changed
-- **依赖升级**: 升级多个依赖至最新兼容版本
-  - `@types/chrome` 0.1.x → 0.2.x, `@types/node` 25.x → 26.x, `@types/archiver` 7.x → 8.x
-  - `reka-ui` → 2.10.1, `vue` → 3.5.39, `vue-tsc` → 3.3.7, `vite` → 8.1.4
-  - `wxt` → 0.20.27, `playwright` → 1.61.1, `tailwindcss` → 4.3.2, `tsx` → 4.23.0
-  - `sharp` → 0.35.3, `adm-zip` → 0.5.18
-- **url-detector.ts**: `isDoulistsPage()` 正则扩展，同时匹配 `/doulists` 和
-  `/subject_doulists/{category}` 两种 URL 模式
-
-### Added
 - **豆瓣「片单详情页」深度适配**: `www.douban.com/doulist/{id}/` 页面信息提取与 UI 重建
   - 水平三明治布局：固定封面列 + 信息列（垂直三明治：标题/创建者 → 统计/筛选/条目网格 → 分页器）
   - 条目卡片展示：海报、标题、星级评分（含评价人数）、导演/演员/类型/年份元数据
@@ -38,77 +19,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 数字排序分页器，正确识别当前页 `thispage` 位置
   - 共享 `umm-status` 组件样式（渐变胶囊徽章）
   - 浅色/深色主题自动适配（通过 `--dd-*` 本地变量 + `theme.css`）
-- WXT 内容脚本匹配：`*://www.douban.com/doulist/*` 加入 3 个入口点（content.ts、douban-early、douban-main）
+- **NeoDB 自动同步 UI 实时刷新**: 自动同步成功后调用 `injectNeoDBPushButtons()` 刷新按钮组件
+- **跨平台 Record 健康检查**: 每次已看页面加载时检查 IMDb/TMDB/NeoDB record 是否存在且状态正确
+- **NeoDB URL 统一构建**: 处理 `show:`/`season:`/`episode:` 前缀
+- **UmmStatusBadge 4 状态完整支持**: 新增 `doing`（在看/在听）状态类型
+- **Color tokens (wish/doing)**: 全套颜色 Token（含 light/dark）
+- **i18n 状态标签**: 4 个 locale 新增 wish/doing 相关标签
+- **Personage 页面作品记录状态**: 加载 `loadRecordMap()` 填充记录状态与评分
+- **豆瓣个人主页全面重建**: 新增 `#doulist`/`#friend`/`#review`/`#statuses` 区块提取
+- WXT 内容脚本匹配：`*://www.douban.com/doulist/*` 加入 3 个入口点
+
+### Fixed
+- **豆瓣「片单列表」navLinks 域名错误**: `www.douban.com` 页面导航链接被错误重写为 `movie.douban.com`
+- **豆瓣「片单列表」meta 提取不兼容书单/音乐**: 正则扩展为 `(?:看过|读过|听过)`，支持多介质格式
+- **豆瓣「片单列表」activeTab 检测**: 新增 `?owned=followed` 查询参数检查
+- **豆瓣同步/关联链路全面优化**: 修复 4 个同步链路问题
+  - 非已看记录（想看/在看）同步到 IMDb/TMDB/NeoDB
+  - 状态变更重新触发 NeoDB 推送
+  - 跨平台对应记录缺失时自动创建
+  - 新增 "在看"(doing) 状态支持（status=3）
+  - `normalizeStatus` 修正 status=1 归为 done 的 bug
+- **UmmStatusBadge 判断丢失**: 核心组件未处理 status=3(doing)
+- **首页/详情页/演员页 Stale Render**: `UmmMediaCard` 动态 key 修复
+- **详情页推荐区状态折叠**: `RecItem.isDone` → `recStatus`
+- **搜索徽章 / 状态标签 二进制折叠**: status 映射扩展为完整 4 状态
+- **User reviews list expand/collapse**: 超过 400 字显示展开/收起
+- **User reviews list data extraction**: `.nlst h3 a` → `.nlst h3 > a` 选择器修复
+- **IMDb clickable links on Douban detail page**: IMDb ID 包装为可点击链接
+- **NeoDB "Open" button on Douban detail page**: 动态渲染打开按钮
+- **豆瓣个人主页豆列/关注/广播提取**: 区块选择器和解析逻辑修复
+- **Stat Bar 用户ID**: 从硬编码改为动态 `data.userId`
 
 ### Changed
-- **url-detector.ts**: 新增 `isDoulistDetailPage()` 检测函数和 `{ type: 'doulist-detail' }` PageType 变体
+- **依赖升级**: 升级多个依赖至最新兼容版本
+  - `@types/chrome` 0.1.x → 0.2.x, `@types/node` 25.x → 26.x, `@types/archiver` 7.x → 8.x
+  - `reka-ui` → 2.10.1, `vue` → 3.5.39, `vue-tsc` → 3.3.7, `vite` → 8.1.4
+  - `wxt` → 0.20.27, `playwright` → 1.61.1, `tailwindcss` → 4.3.2, `tsx` → 4.23.0
+  - `sharp` → 0.35.3, `adm-zip` → 0.5.18
+- **url-detector.ts**: 新增 `isDoulistDetailPage()`, 扩展 `isDoulistsPage()` 正则
 - **early.ts/main.ts/css-composer.ts/hide-nav.ts**: 新页面类型全链路注册
 - **App.vue**: 移除未使用的 `activeFilter` ref（代码清理）
-  - 三明治卡片结构：标题 → 1:1 封面(含分类徽章) → 已看/总数统计 → 描述 → 更新时间/关注数
-  - 12 级自适应断点字体系统（`--umm-font-sm`/`--umm-font-xs`）
-  - 创建/关注双 tab 导航，自动识别当前页激活状态
-  - 支持 `/doulist/` 和 `/subject_collection/` 两种 URL 格式的豆列 ID 提取
-  - 封面悬浮缩放动效（`cubic-bezier(0.23, 1, 0.32, 1)` + `scale(1.05)`）
-  - 浅色/深色主题自动适配
-  - 分类徽章（片单/音乐/书单/地点）浮于封面右上角，带 backdrop-filter 玻璃质感
-  - 已看数量精确解析（看过 X/Y 部 → watchedCount=Y, itemCount=X）
-  - 用户名正确提取（www.douban.com 页面从 avatar alt 获取）
-  - 分页器完整支持
-
-### Added
-- **NeoDB 自动同步 UI 实时刷新**: 自动同步成功后调用 `injectNeoDBPushButtons()` 刷新按钮组件，"打开"按钮和荧光效果即时反映同步状态
-- **跨平台 Record 健康检查**: `checkCrossPlatformRecords()` 每次已看页面加载时检查 IMDb/TMDB/NeoDB record 是否存在且状态正确，缺失则创建，状态不对则升级
-- **NeoDB URL 统一构建**: `Identity.buildNeoDBUrl()` 处理 `show:`/`season:`/`episode:` 前缀，修复 TV 季/集 URL 中冒号被当作路径字符的问题（`season:uuid` → `/season/uuid`）
-- **NeoDB 同步速率限制**: 60s 冷却缓存，防止重复页面加载时频繁 API 调用
-
-### Fixed
-- **豆瓣同步/关联链路全面优化**: 修复 4 个同步链路问题
-  - 非已看记录（想看/在看）现在也会同步到 IMDb/TMDB/NeoDB（实际状态透传，非硬编码 done）
-  - 状态变更（想看→在看→已看）重新触发 NeoDB 推送，不再仅限首次写入
-  - 跨平台对应记录缺失时自动创建（wish→1, doing→3, done→2）
-  - 新增 "在看"(doing) 状态支持（status=3），映射 NeoDB shelf 'progress'
-  - PT Dimmer `getWatchedIds` 改为仅返回已看(status=2)记录，想看/在看不再触发淡化
-  - `normalizeStatus` 修正 status=1 被错误归为 done 的 bug
-  - 跨平台同步跳过条件修正：永不降级已看记录，非done源按状态级别比较
-
-### Added
-- **UmmStatusBadge 4 状态完整支持**: 新增 `doing`（在看/在听）状态类型，所有状态（未看/想看/在看/已看）正确显示对应标签和颜色
-- **Color tokens (wish/doing)**: 新增 `COLOR_WISH_*` / `COLOR_DOING_*` 全套颜色 Token（含 light/dark），CSS 变量和全局注入样式同步支持
-- **i18n 状态标签**: 4 个 locale 新增 `status.wish` / `status.wish_music` / `status.doing` / `status.doing_music` / `search.aria_wish` / `search.aria_doing`
-- **Personage 页面作品记录状态**: `mountPersonage` 提取后加载 `loadRecordMap()`，为 recentWorks / popularWorks 填充 `recordStatus` / `recordRating`
-
-### Fixed
-- **UmmStatusBadge 判断丢失**: 核心组件 `UmmStatusBadge.ts` 未处理 status=3(doing)，导致在看状态错误显示为未看。4 个 consumer 组件的二进制折叠（`status===2?2:0`）修复为实际状态直传
-- **首页/详情页/演员页 Stale Render**: `UmmMediaCard` 在 `v-for` 中使用 `setup()` render function 时，Vue 的 `shouldUpdateComponent` 优化导致 prop 变更不生效。`:key` 从静态 `item.subjectId` / index 改为包含 status/rating 维度的动态键，强制 VNode 重建
-- **详情页推荐区状态折叠**: `RecItem.isDone` 替换为 `recStatus`，DB 查询从 `dbGetWatchedIds`（仅 done）升级为全量 `dbGetAll`，完整支持 wish/doing/done
-- **搜索徽章 / 状态标签 二进制折叠**: `douban-search.ts createSearchBadge`、`dom.ts createStatusChip` 的 status 映射从 done/none 扩展为完整 4 状态，ARIA 标签同步更新 with full DOM data extraction (title, author, rating, date/location, full content paragraphs, read/source/有用 counts, subject metadata). Vue layout: subject card → author bar → title → article body → stats bar. Typography optimized for long-form reading with `white-space: pre-line` for paragraph-internal line breaks.
-- **User reviews list expand/collapse**: Review cards with content >400 chars now show "展开全文" / "收起" toggle button, with reactive state tracking per review.
-
-### Fixed
-- **User reviews list data extraction**: `.nlst h3 a` selector fixed to `.nlst h3 > a` — the native Douban list page places unfold/fold buttons as `<a>` children of `<h3>` before the actual title link, causing `querySelector` to match the button (empty textContent) instead of the title. Title field was blank → `if (id && title)` failed → items silently discarded. Direct-child combinator (`> a`) skips the nested button div.
-- **IMDb clickable links on Douban detail page**: `metaToChips()` now accepts a label parameter; when `label === 'IMDb'`, plain text IMDb IDs (`tt\d+`) are wrapped into `<a>` links pointing to `imdb.com/title/{id}` with `target="_blank"`
-- **NeoDB "Open" button on Douban detail page**: When a local record has `linkedIds.neodb`, the NeoDB push buttons component dynamically renders a purple "打开" button linking to `neodb.social/{type}/{uuid}`
+- **豆瓣注入架构**: 12 级自适应断点字体系统、分类徽章、悬浮缩放在封面动效等 UI 优化
 
 ### Security
 - All external links use `target="_blank" rel="noopener noreferrer"`
 - IMDb ID matching uses strict `/^tt\d+$/` regex — no XSS vector
 - NeoDB URL is constructed from internal IndexedDB data, not user input
-
-### Added
-- **豆瓣个人主页全面重建**: 从离线参考文件 `.localref/douban/个人/UnforgetMemory.html` 出发，基于登录态真实 DOM 重写提取逻辑
-  - 新增 `#doulist` 区块提取：豆列列表（标题 + 条目数），标签式按钮网格，最多 10 条 + "更多…" 链接
-  - 新增 `#friend` 区块提取：关注列表（认证/普通账号头像 + 名称），圆角头像网格，最多 12 人
-  - 新增 `#review` 区块提取：评论标题、关联作品、海报、星级评分、摘要
-  - 新增 `#statuses` 区块提取：广播动作文本（DOM 文本节点提取）、目标作品、星级评分、正文、时间戳
-  - 新增 Stat Bar 社交组：评论/被关注统计项 + 动态用户ID 跳转链接
-  - 新增 `doulistSection`/`friendSection` 类型和数据字段
-
-### Fixed
-- **豆瓣个人主页豆列提取**: 从 `#movie`/`#book` h2 的 `subject_doulists` 链接改为提取独立的 `#doulist` 区块
-- **豆瓣个人主页关注提取**: 从 `.user-opt .a-btn-add` 按钮改为提取独立的 `#friend` 区块，包括认证账号头像（`verify-avatar` 双 URL 取最后一个）
-- **豆瓣个人主页广播提取**: 动作文本从 DOM 文本节点正确提取（用户名 `<a>` 和作品 `<a>` 之间的文本节点），评分改用 `parseRating()` 正确解析 allstar class
-- **Stat Bar 用户ID**: 所有用户跳转链接从硬编码 `148839064` 改为动态 `data.userId`
-- **移除废弃类型**: 清理 `DoulistLink` 类型及相关字段
 
 ## [4.9.0] - 2026-07-07
 
