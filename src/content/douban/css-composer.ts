@@ -35,6 +35,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'user-profile':     { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['user-profile'] },
   'movie-profile':    { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['movie-profile'] },
   'doulists':         { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['doulists'] },
+  'doulist-detail':   { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['doulist-detail'] },
   'user-media':       { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['user-media'] },
   'user-celebrities': { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['user-celebrities'] },
   'user-reviews':     { shared: ['theme', 'common', 'breakpoints', 'page-layout', 'shared-components'], page: ['user-reviews'] },

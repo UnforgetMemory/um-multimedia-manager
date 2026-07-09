@@ -28,6 +28,7 @@ const SUBTITLE: Record<string, string> = {
 'user-reviews': '我的影评 · 加载中',
   'review-detail': '影评详情 · 加载中',
   doulists: '豆列 · 加载中',
+  'doulist-detail': '片单 · 加载中',
   'user-media': '影音收藏 · 加载中',
   'music-homepage': '音乐首页 · 加载中',
   genre: '音乐人分类 · 加载中',
@@ -47,6 +48,7 @@ function getOverlayConfig(): OverlayOptions | null {
     : pageType.type === 'detail' ? 'umm-detail-mask'
     : pageType.type === 'search' ? 'umm-search-overlay'
     : pageType.type === 'personage' ? 'umm-personage-overlay'
+    : pageType.type === 'doulist-detail' ? 'umm-douban-overlay'
     : 'umm-douban-overlay'
 
   return {

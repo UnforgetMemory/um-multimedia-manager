@@ -113,7 +113,8 @@ export default defineContentScript({
     '*://*.piggo.me/torrents.php*',
     '*://piggo.me/details.php*',
     '*://*.piggo.me/details.php*',
-    '*://javdb.com/*'
+    '*://javdb.com/*',
+    '*://www.douban.com/doulist/*'
   ],
   runAt: 'document_idle',
 

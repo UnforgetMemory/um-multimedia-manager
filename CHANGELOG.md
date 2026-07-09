@@ -8,7 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **豆瓣「我的豆列」页面适配**: `www.douban.com/people/{uid}/doulists/all` 页面信息提取与 UI 重建
+- **豆瓣「片单详情页」深度适配**: `www.douban.com/doulist/{id}/` 页面信息提取与 UI 重建
+  - 水平三明治布局：固定封面列 + 信息列（垂直三明治：标题/创建者 → 统计/筛选/条目网格 → 分页器）
+  - 条目卡片展示：海报、标题、星级评分（含评价人数）、导演/演员/类型/年份元数据
+  - 记录状态集成：已看（含用户评分）和想看徽章，通过 IndexedDB recordMap 异步加载
+  - 全部分类筛选 tab（全部/我没看过的/我看过的/可播放）
+  - 数字排序分页器，正确识别当前页 `thispage` 位置
+  - 共享 `umm-status` 组件样式（渐变胶囊徽章）
+  - 浅色/深色主题自动适配（通过 `--dd-*` 本地变量 + `theme.css`）
+- WXT 内容脚本匹配：`*://www.douban.com/doulist/*` 加入 3 个入口点（content.ts、douban-early、douban-main）
+
+### Changed
+- **url-detector.ts**: 新增 `isDoulistDetailPage()` 检测函数和 `{ type: 'doulist-detail' }` PageType 变体
+- **early.ts/main.ts/css-composer.ts/hide-nav.ts**: 新页面类型全链路注册
+- **App.vue**: 移除未使用的 `activeFilter` ref（代码清理）
   - 三明治卡片结构：标题 → 1:1 封面(含分类徽章) → 已看/总数统计 → 描述 → 更新时间/关注数
   - 12 级自适应断点字体系统（`--umm-font-sm`/`--umm-font-xs`）
   - 创建/关注双 tab 导航，自动识别当前页激活状态

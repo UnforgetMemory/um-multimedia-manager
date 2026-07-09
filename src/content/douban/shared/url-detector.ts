@@ -23,6 +23,7 @@ export type PageType =
   | { type: 'user-profile' }
   | { type: 'movie-profile' }
   | { type: 'doulists' }
+  | { type: 'doulist-detail' }
   | { type: 'user-media'; subType: 'collect' | 'wish' | 'doing' }
   | { type: 'user-celebrities' }
   | { type: 'user-reviews' }
@@ -103,6 +104,10 @@ export function isDoulistsPage(url: string): boolean {
   return /^https?:\/\/(www|movie)\.douban\.com\/people\/[^/]+\/doulists/.test(url)
 }
 
+export function isDoulistDetailPage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/doulist\/\d+/.test(url)
+}
+
 export function isUserMediaPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/(people\/[^/]+\/(collect|wish|do)|mine)/.test(url)
 }
@@ -131,6 +136,7 @@ export function detectPageType(url: string = location.href): PageType | null {
     return { type: 'search', mediaType }
   }
   if (isPersonagePage(url))  return { type: 'personage' }
+  if (isDoulistDetailPage(url)) return { type: 'doulist-detail' }
   if (isDoulistsPage(url))   return { type: 'doulists' }
   if (isUserCelebritiesPage(url)) return { type: 'user-celebrities' }
   if (isUserReviewsPage(url)) return { type: 'user-reviews' }

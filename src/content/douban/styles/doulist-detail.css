@@ -1,0 +1,374 @@
+/* ============================================================
+   doulist-detail.css — 片单详情页
+   Covers: header info, stats bar, item grid, paginator
+   Uses only variables from theme.css + components.css
+   ============================================================ */
+
+:host {
+  --dd-accent: var(--umm-link, #1757d6);
+  --dd-accent-bg: color-mix(in srgb, var(--umm-link, #1757d6) 10%, transparent);
+  --dd-card-bg: var(--umm-card-bg, #ffffff);
+  --dd-card-border: var(--umm-card-border, #e5e7eb);
+  --dd-rating-color: var(--umm-rating-gold-high, #d4a017);
+}
+
+:host(.umm-theme--dark) {
+  --dd-accent: var(--umm-link, #60a5fa);
+  --dd-accent-bg: color-mix(in srgb, var(--umm-link, #60a5fa) 12%, transparent);
+  --dd-card-bg: var(--umm-card-bg, #2a2b30);
+  --dd-card-border: var(--umm-card-border, #3a3b40);
+  --dd-rating-color: var(--umm-rating-gold-high, #e8c030);
+}
+
+/* ── Root container ── */
+
+.umm-dlist-root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+/* ── Horizontal sandwich: cover-col | info-col ── */
+
+.umm-dlist-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.umm-dlist-cover-col {
+  flex-shrink: 0;
+  width: 120px;
+  position: sticky;
+  top: 16px;
+}
+
+/* ── Vertical sandwich within info column ── */
+
+.umm-dlist-info-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.umm-dlist-info-mid {
+  flex: 1;
+}
+
+.umm-dlist-info-bot {
+  flex-shrink: 0;
+}
+
+/* ── Cover ── */
+
+.umm-dlist-cover {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--umm-radius-lg, 12px);
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-dlist-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Info top: title, creator, times, desc ── */
+
+.umm-dlist-info-top {
+  flex-shrink: 0;
+}
+
+.umm-dlist-title {
+  font-size: var(--umm-font-xl, 22px);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.umm-dlist-creator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.umm-dlist-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-dlist-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.umm-dlist-creator-name {
+  font-size: var(--umm-font-sm, 13px);
+  color: var(--dd-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.umm-dlist-creator-name:hover {
+  text-decoration: underline;
+}
+
+.umm-dlist-creator-location {
+  font-size: var(--umm-font-xs, 12px);
+  color: var(--umm-text-muted);
+}
+
+.umm-dlist-times {
+  font-size: var(--umm-font-xs, 12px);
+  color: var(--umm-text-muted);
+  margin-bottom: 10px;
+}
+
+.umm-dlist-times span + span::before {
+  content: " · ";
+}
+
+.umm-dlist-desc {
+  font-size: var(--umm-font-sm, 13px);
+  color: var(--umm-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Stats bar ── */
+
+.umm-dlist-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--umm-bg-secondary);
+  border-radius: var(--umm-radius-md, 8px);
+  margin-bottom: 20px;
+  font-size: var(--umm-font-sm, 13px);
+  color: var(--umm-text-secondary);
+}
+
+.umm-dlist-stat-value {
+  font-weight: 600;
+  color: var(--umm-text-primary);
+}
+
+.umm-dlist-stat-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--umm-border);
+}
+
+/* ── Filter tabs ── */
+
+.umm-dlist-filters {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.umm-dlist-filter-btn {
+  padding: 6px 16px;
+  font-size: var(--umm-font-sm, 13px);
+  color: var(--umm-text-secondary);
+  background: transparent;
+  border: 1px solid var(--umm-border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.umm-dlist-filter-btn:hover {
+  border-color: var(--dd-accent);
+  color: var(--dd-accent);
+}
+
+.umm-dlist-filter-btn--active {
+  background: var(--dd-accent);
+  color: #fff;
+  border-color: var(--dd-accent);
+}
+
+.umm-dlist-filter-btn--active:hover {
+  color: #fff;
+}
+
+/* ── Item card ── */
+
+.umm-dlist-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.umm-dlist-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  background: var(--dd-card-bg);
+  border: 1px solid var(--dd-card-border);
+  border-radius: var(--umm-radius-lg, 12px);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.umm-dlist-item:hover {
+  border-color: var(--dd-accent);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.umm-dlist-item-poster {
+  width: 80px;
+  height: 112px;
+  border-radius: var(--umm-radius-sm, 6px);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--umm-bg-secondary);
+}
+
+.umm-dlist-item-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.umm-dlist-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.umm-dlist-item-title {
+  font-size: var(--umm-font-base, 14px);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.umm-dlist-item-title:hover {
+  color: var(--dd-accent);
+  text-decoration: underline;
+}
+
+.umm-dlist-item-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--umm-font-sm, 13px);
+}
+
+.umm-dlist-item-stars {
+  display: flex;
+  gap: 1px;
+}
+
+.umm-dlist-item-star {
+  width: 12px;
+  height: 12px;
+  background: var(--umm-border);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.umm-dlist-item-star--filled {
+  background: var(--dd-rating-color);
+}
+
+.umm-dlist-item-star--half {
+  background: linear-gradient(90deg, var(--dd-rating-color) 50%, var(--umm-border) 50%);
+}
+
+.umm-dlist-item-score {
+  font-weight: 600;
+  color: var(--dd-rating-color);
+}
+
+.umm-dlist-item-count {
+  color: var(--umm-text-muted);
+  font-size: var(--umm-font-xs, 12px);
+}
+
+.umm-dlist-item-meta {
+  font-size: var(--umm-font-xs, 12px);
+  color: var(--umm-text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Paginator ── */
+
+.umm-dlist-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 0;
+}
+
+.umm-dlist-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  font-size: var(--umm-font-sm, 13px);
+  color: var(--umm-text-secondary);
+  background: transparent;
+  border: 1px solid var(--umm-border);
+  border-radius: var(--umm-radius-md, 8px);
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.umm-dlist-page-btn:hover {
+  border-color: var(--dd-accent);
+  color: var(--dd-accent);
+}
+
+.umm-dlist-page-btn--active {
+  background: var(--dd-accent);
+  color: #fff;
+  border-color: var(--dd-accent);
+}
+
+.umm-dlist-page-btn--active:hover {
+  color: #fff;
+}
+
+/* ── Empty state ── */
+
+.umm-dlist-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--umm-text-muted);
+  font-size: var(--umm-font-base, 14px);
+}

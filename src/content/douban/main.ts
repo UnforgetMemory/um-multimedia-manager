@@ -28,6 +28,7 @@ import personageCss from './styles/personage.css?raw'
 import userProfileCss from './styles/user-profile.css?raw'
 import movieProfileCss from './styles/movie-profile.css?raw'
 import doulistsCss from './styles/doulists.css?raw'
+import doulistDetailCss from './styles/doulist-detail.css?raw'
 import userMediaCss from './styles/user-media.css?raw'
 import userCelebritiesCss from './styles/user-celebrities.css?raw'
 import userReviewsCss from './styles/user-reviews.css?raw'
@@ -61,6 +62,7 @@ const cssMap: Record<string, string> = {
   'user-profile': userProfileCss,
   'movie-profile': movieProfileCss,
   doulists: doulistsCss,
+  'doulist-detail': doulistDetailCss,
   'user-media': userMediaCss,
   'user-celebrities': userCelebritiesCss,
   'user-reviews': userReviewsCss,
@@ -454,6 +456,41 @@ async function mountDoulists(): Promise<void> {
   })
 }
 
+// ---- Doulist Detail mount ----
+
+async function mountDoulistDetail(): Promise<void> {
+  const css = composeStylesForPage('doulist-detail', cssMap)
+  const { default: App } = await import('./pages/doulist-detail/App.vue')
+  const { extractDoulistDetailData } = await import('./pages/doulist-detail/doulist-detail-data')
+  const { loadRecordMap } = await import('./shared/load-record-map')
+  type DoulistDetailPageData = import('./pages/doulist-detail/types').DoulistDetailPageData
+
+  mountUmmOverlay({
+    overlayId: 'umm-douban-overlay',
+    css,
+    async beforeMount() {
+      const data = extractDoulistDetailData()
+      if (!data) throw new Error('[UMM] Could not extract doulist detail data')
+      hideNavForPage({ type: 'doulist-detail' })
+
+      // Enrich items with record status from IndexedDB
+      try {
+        const recordMap = await loadRecordMap()
+        return { data, recordMap }
+      } catch {
+        return { data, recordMap: undefined }
+      }
+    },
+    createApp(_shadow, ctx) {
+      const { data, recordMap } = ctx as {
+        data: DoulistDetailPageData
+        recordMap?: Map<string, import('@/types').StoreRecord>
+      }
+      return createApp(App, { data, recordMap })
+    },
+  })
+}
+
 // ---- User Media (collections/wishlist/doing) mount ----
 
 async function mountUserMedia(): Promise<void> {
@@ -591,6 +628,7 @@ export async function mountDoubanMain(): Promise<void> {
       case 'user-profile': await mountUserProfile(); break
 case 'movie-profile': await mountMovieProfile(); break
       case 'doulists': await mountDoulists(); break
+      case 'doulist-detail': await mountDoulistDetail(); break
       case 'user-media': await mountUserMedia(); break
       case 'user-celebrities': await mountUserCelebrities(); break
       case 'user-reviews': await mountUserReviews(); break
