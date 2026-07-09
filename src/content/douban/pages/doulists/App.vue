@@ -32,6 +32,20 @@ defineProps<{
         </div>
       </div>
 
+      <!-- Xbar Category Tabs -->
+      <div v-if="data.xbarCategories.length > 0" class="umm-doulist-xbar">
+        <a
+          v-for="cat in data.xbarCategories"
+          :key="cat.label"
+          :href="cat.url"
+          :class="['umm-doulist-xbar-tab', cat.current ? 'umm-doulist-xbar-tab--active' : '']"
+          target="_blank"
+        >
+          {{ cat.label }}
+          <span class="umm-doulist-count">{{ cat.count }}</span>
+        </a>
+      </div>
+
       <!-- Tab Navigation -->
       <div class="umm-doulists-tabs">
         <template v-if="data.collectedUrl">

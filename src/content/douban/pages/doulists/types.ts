@@ -32,6 +32,14 @@ export interface DoulistItem {
   category: DoulistCategory
 }
 
+/** A category tab in the xbar — e.g. 豆列(62), 片单(52), 书单(2) */
+export interface XbarCategory {
+  label: string
+  url: string
+  count: number
+  current: boolean
+}
+
 export interface DoulistsPageData {
   userId: string
   displayName: string
@@ -42,6 +50,7 @@ export interface DoulistsPageData {
   collectedCount: number
   collectedUrl: string
   activeTab: 'created' | 'collected'
+  xbarCategories: XbarCategory[]
   items: DoulistItem[]
   pageLinks: { label: string; url: string; current: boolean }[]
   prevPageUrl: string

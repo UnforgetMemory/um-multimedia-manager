@@ -73,6 +73,59 @@
   background: var(--dc-accent-bg);
 }
 
+/* ===== Xbar Category Tabs ===== */
+
+.umm-doulist-xbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--umm-space-xs) 0;
+  margin-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.umm-doulist-xbar::-webkit-scrollbar { display: none; }
+
+.umm-doulist-xbar-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: var(--umm-font-xs);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  background: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.umm-doulist-xbar-tab:hover {
+  color: var(--dc-accent);
+  background: var(--dc-accent-bg);
+  border-color: color-mix(in srgb, var(--dc-accent) 20%, transparent);
+}
+
+.umm-doulist-xbar-tab--active {
+  color: #fff;
+  background: var(--dc-accent);
+  border-color: var(--dc-accent);
+  font-weight: 600;
+}
+
+.umm-doulist-xbar-tab--active .umm-doulist-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.umm-doulist-xbar-tab--active:hover {
+  background: var(--dc-accent);
+  border-color: var(--dc-accent);
+}
+
 /* ===== Tabs ===== */
 
 .umm-doulist-tabs {

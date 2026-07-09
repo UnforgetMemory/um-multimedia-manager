@@ -101,7 +101,7 @@ export function isReviewDetailPage(url: string): boolean {
 }
 
 export function isDoulistsPage(url: string): boolean {
-  return /^https?:\/\/(www|movie)\.douban\.com\/people\/[^/]+\/doulists/.test(url)
+  return /^https?:\/\/(www|movie)\.douban\.com\/people\/[^/]+\/(doulists|subject_doulists(?:\/\w+)?)/.test(url)
 }
 
 export function isDoulistDetailPage(url: string): boolean {

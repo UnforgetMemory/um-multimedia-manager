@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **豆瓣「用户片单」分类导航栏 UI**: `www.douban.com/people/{uid}/subject_doulists/{category}` 页面适配
+  - 新增 `.xbar` 分类标签（豆列/片单/书单/地点）的提取与 UI 重建，胶囊式标签 + 当前 tab 高亮
+  - 新增 `XbarCategory` 接口和 `xbarCategories` 数据字段
+
+### Fixed
+- **豆瓣「片单列表」navLinks 域名错误**: 所有导航链接（广播/相册/日记/豆列/片单/书单）被错误重写为
+  `movie.douban.com` 域名；现仅在 `movie.douban.com` 页面执行重写，`www.douban.com` 保持原始链接
+- **豆瓣「片单列表」meta 提取不兼容书单/音乐**: 状态正则从固定 `看过` 扩展为 `(?:看过|读过|听过)`，
+  支持 "读过10/10本"、"听过X/Y张" 等格式；同时 normalize `/` 周围空格处理不一致
+- **豆瓣「片单列表」activeTab 检测**: 新增 `?owned=followed` 查询参数检查，
+  新 `/subject_doulists/` 页面使用此参数而非 `/doulists/collect` 路径
+
+### Changed
+- **url-detector.ts**: `isDoulistsPage()` 正则扩展，同时匹配 `/doulists` 和
+  `/subject_doulists/{category}` 两种 URL 模式
+
+### Added
 - **豆瓣「片单详情页」深度适配**: `www.douban.com/doulist/{id}/` 页面信息提取与 UI 重建
   - 水平三明治布局：固定封面列 + 信息列（垂直三明治：标题/创建者 → 统计/筛选/条目网格 → 分页器）
   - 条目卡片展示：海报、标题、星级评分（含评价人数）、导演/演员/类型/年份元数据

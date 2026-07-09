@@ -1,4 +1,4 @@
-import type { DoulistsPageData, DoulistItem, DoulistCategory } from './types'
+import type { DoulistsPageData, DoulistItem, DoulistCategory, XbarCategory } from './types'
 import { parseCategory } from './types'
 
 export function extractDoulistsData(): DoulistsPageData | null {
@@ -31,7 +31,12 @@ export function extractDoulistsData(): DoulistsPageData | null {
     let href = a.getAttribute('href') ?? ''
     const text = a.textContent?.trim()
     if (text && href && text !== '|') {
-      href = href.replace('https://www.douban.com', 'https://movie.douban.com')
+      // Keep native www.douban.com URLs on www pages — many links (statuses,
+      // photos, notes, doulists/all, subject_doulists/*) only exist on www.
+      // Only rewrite to movie subdomain when on movie.douban.com.
+      if (isMovie) {
+        href = href.replace('https://www.douban.com', 'https://movie.douban.com')
+      }
       navLinks.push({ label: text, url: href })
     }
   })
@@ -88,11 +93,51 @@ export function extractDoulistsData(): DoulistsPageData | null {
           createdUrl = isCurrent ? window.location.href : (link?.getAttribute('href') ?? link?.href ?? '')
         }
       })
-      // Determine which tab is active based on current URL
-      if (window.location.pathname.includes('/doulists/collect')) {
+      // Determine which tab is active based on current URL.
+      // Old /doulists/collect path for movie.douban.com,
+      // new ?owned=followed query param for www.douban.com/subject_doulists/
+      if (
+        window.location.pathname.includes('/doulists/collect') ||
+        new URLSearchParams(window.location.search).get('owned') === 'followed'
+      ) {
         activeTab = 'collected'
       } else {
         activeTab = 'created'
+      }
+    }
+  }
+
+  // ---- Xbar categories (www.douban.com only) ----
+  const xbarCategories: XbarCategory[] = []
+  if (isWWW) {
+    const xbar = document.querySelector('.xbar > div')
+    if (xbar) {
+      xbar.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
+        const text = a.textContent?.trim() ?? ''
+        const href = a.getAttribute('href') ?? ''
+        if (!text || !href) return
+        const m = text.match(/^(.+?)\((\d+)\)$/)
+        if (m) {
+          xbarCategories.push({
+            label: m[1].trim(),
+            url: href,
+            count: parseInt(m[2], 10),
+            current: false,
+          })
+        }
+      })
+      const nowSpan = xbar.querySelector<HTMLElement>('span.now > span, span.now')
+      if (nowSpan) {
+        const text = nowSpan.textContent?.trim() ?? ''
+        const m = text.match(/^(.+?)\((\d+)\)$/)
+        if (m) {
+          xbarCategories.push({
+            label: m[1].trim(),
+            url: window.location.href,
+            count: parseInt(m[2], 10),
+            current: true,
+          })
+        }
       }
     }
   }
@@ -134,16 +179,22 @@ export function extractDoulistsData(): DoulistsPageData | null {
       const id = doulistMatch?.[1] ?? collectionMatch?.[1] ?? ''
       if (!id) return
       const metaText = metaEl?.textContent?.trim() ?? ''
-      // meta format: "看过X/Y部" or "看过X部"
-      const totalMatch = metaText.match(/看过\s*(\d+)\/(\d+)/)
+      // Normalize spacing around / for consistent matching across formats:
+      //   movie: "看过17/17部"    book: "读过10/10本"    music: "听过X/Y张"
+      //   or single-count: "看过X部", "读过X本"
+      const normalized = metaText.replace(/\s*\/\s*/g, '/')
+      const statusMatch = normalized.match(/(?:看过|读过|听过)\s*(\d+)(?:\/(\d+))?/)
       let watchedCount = 0
       let itemCount = 0
-      if (totalMatch) {
-        watchedCount = parseInt(totalMatch[1], 10)
-        itemCount = parseInt(totalMatch[2], 10)
-      } else {
-        const countMatch = metaText.match(/看过\s*(\d+)/)
-        itemCount = countMatch ? parseInt(countMatch[1], 10) : 0
+      if (statusMatch) {
+        if (statusMatch[2] !== undefined) {
+          // Ratio format: "看过17/17部"
+          watchedCount = parseInt(statusMatch[1], 10)
+          itemCount = parseInt(statusMatch[2], 10)
+        } else {
+          // Single-count format: "看过X部"
+          itemCount = parseInt(statusMatch[1], 10)
+        }
       }
       const followerMatch = collectEl?.textContent?.match(/(\d+)/)
       const followerCount = followerMatch ? parseInt(followerMatch[1], 10) : 0
@@ -207,6 +258,7 @@ export function extractDoulistsData(): DoulistsPageData | null {
   return {
     userId, displayName, avatarUrl, navLinks,
     createdCount, createdUrl, collectedCount, collectedUrl, activeTab,
+    xbarCategories,
     items, pageLinks, prevPageUrl, nextPageUrl,
   }
 }
