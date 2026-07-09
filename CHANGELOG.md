@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   新 `/subject_doulists/` 页面使用此参数而非 `/doulists/collect` 路径
 
 ### Changed
+- **依赖升级**: 升级多个依赖至最新兼容版本
+  - `@types/chrome` 0.1.x → 0.2.x, `@types/node` 25.x → 26.x, `@types/archiver` 7.x → 8.x
+  - `reka-ui` → 2.10.1, `vue` → 3.5.39, `vue-tsc` → 3.3.7, `vite` → 8.1.4
+  - `wxt` → 0.20.27, `playwright` → 1.61.1, `tailwindcss` → 4.3.2, `tsx` → 4.23.0
+  - `sharp` → 0.35.3, `adm-zip` → 0.5.18
 - **url-detector.ts**: `isDoulistsPage()` 正则扩展，同时匹配 `/doulists` 和
   `/subject_doulists/{category}` 两种 URL 模式
 
