@@ -1,15 +1,17 @@
 /* ===== UMM Douban Doulists — Shadow DOM styles ===== */
 
 :host {
-  --umm-doulists-accent: #f43f5e;
-  --umm-doulists-card-bg: #ffffff;
-  --umm-doulists-card-border: #e5e7eb;
+  --dc-accent: #f43f5e;
+  --dc-accent-bg: color-mix(in srgb, #f43f5e 10%, transparent);
+  --dc-card-bg: #ffffff;
+  --dc-card-border: #e5e7eb;
 }
 
 :host(.umm-theme--dark) {
-  --umm-doulists-accent: #fb7185;
-  --umm-doulists-card-bg: #2a2b30;
-  --umm-doulists-card-border: #3a3b40;
+  --dc-accent: #fb7185;
+  --dc-accent-bg: color-mix(in srgb, #fb7185 10%, transparent);
+  --dc-card-bg: #2a2b30;
+  --dc-card-border: #3a3b40;
 }
 
 /* ===== Root layout ===== */
@@ -17,7 +19,7 @@
 .umm-doulists-root {
   max-width: 1400px;
   margin: 0 auto;
-  padding: var(--umm-space-lg, 20px) clamp(16px, 4vw, 64px) var(--umm-space-2xl, 40px);
+  padding: var(--umm-space-lg) clamp(16px, 4vw, 64px) var(--umm-space-2xl);
 }
 
 /* ===== User Bar ===== */
@@ -25,10 +27,10 @@
 .umm-doulists-userbar {
   display: flex;
   align-items: center;
-  gap: var(--umm-space-sm, 12px);
-  margin-bottom: var(--umm-space-md, 16px);
-  padding-bottom: var(--umm-space-sm, 10px);
-  border-bottom: 1px solid var(--umm-doulists-card-border);
+  gap: var(--umm-space-sm);
+  margin-bottom: var(--umm-space-md);
+  padding-bottom: var(--umm-space-sm);
+  border-bottom: 1px solid var(--dc-card-border);
 }
 .umm-doulists-avatar {
   width: 36px;
@@ -46,7 +48,7 @@
   min-width: 0;
 }
 .umm-doulists-username {
-  font-size: var(--umm-font-sm, 0.85rem);
+  font-size: var(--umm-font-sm);
   font-weight: 600;
   color: var(--umm-text-primary);
   text-decoration: none;
@@ -58,17 +60,17 @@
   gap: 2px 6px;
 }
 .umm-doulists-navlink {
-  font-size: var(--umm-font-xs, 0.65rem);
+  font-size: var(--umm-font-xs);
   color: var(--umm-text-muted);
   text-decoration: none;
   white-space: nowrap;
   padding: 1px 4px;
   border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 .umm-doulists-navlink:hover {
-  color: var(--umm-doulists-accent);
-  background: color-mix(in srgb, var(--umm-doulists-accent) 10%, transparent);
+  color: var(--dc-accent);
+  background: var(--dc-accent-bg);
 }
 
 /* ===== Tabs ===== */
@@ -76,9 +78,9 @@
 .umm-doulist-tabs {
   display: flex;
   align-items: center;
-  gap: var(--umm-space-sm, 8px);
-  border-bottom: 1px solid var(--umm-doulists-card-border);
-  margin-bottom: var(--umm-space-lg, 20px);
+  gap: var(--umm-space-xs);
+  border-bottom: 1px solid var(--dc-card-border);
+  margin-bottom: calc(var(--umm-space-2xl) + var(--umm-space-lg));
   overflow-x: auto;
 }
 
@@ -86,11 +88,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: var(--umm-space-sm, 8px) var(--umm-space-md, 12px);
+  padding: var(--umm-space-xs) var(--umm-space-sm);
   border: none;
   background: transparent;
   color: var(--umm-text-secondary);
-  font-size: var(--umm-font-sm, 0.8125rem);
+  font-size: var(--umm-font-sm);
   font-weight: 500;
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -105,12 +107,10 @@
 }
 
 .umm-doulist-tab--active {
-  color: var(--umm-doulists-accent);
-  border-bottom-color: var(--umm-doulists-accent);
+  color: var(--dc-accent);
+  border-bottom-color: var(--dc-accent);
   font-weight: 600;
 }
-
-/* ===== Count badge ===== */
 
 .umm-doulist-count {
   display: inline-flex;
@@ -119,7 +119,7 @@
   min-width: 20px;
   padding: 2px 7px;
   border-radius: 999px;
-  font-size: var(--umm-font-xs, 0.75rem);
+  font-size: var(--umm-font-xs);
   font-weight: 600;
   line-height: 1.2;
   background: var(--umm-bg-secondary);
@@ -127,56 +127,89 @@
 }
 
 .umm-doulist-tab--active .umm-doulist-count {
-  background: var(--umm-doulists-accent);
-  color: #ffffff;
+  background: var(--dc-accent);
+  color: #fff;
 }
 
 /* ===== Grid ===== */
 
 .umm-doulist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--umm-space-md, 12px);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--umm-space-md);
+  padding-top: var(--umm-space-md);
 }
 
-@media (min-width: 480px) { .umm-doulist-grid { gap: var(--umm-space-md, 14px); } }
-@media (min-width: 768px) { .umm-doulist-grid { gap: var(--umm-space-lg, 18px); } }
-@media (min-width: 1280px) { .umm-doulist-grid { gap: var(--umm-space-lg, 20px); } }
+@media (min-width: 640px) { .umm-doulist-grid { gap: var(--umm-space-md); } }
+@media (min-width: 1024px) { .umm-doulist-grid { gap: var(--umm-space-lg); } }
+@media (min-width: 1400px) { .umm-doulist-grid { gap: var(--umm-space-xl); } }
 
-/* ===== Card ===== */
+/* ===== Card — Sandwich hierarchy =====
+ *  Layer 1: Title (header, --umm-font-sm, w600)
+ *  Layer 2: Cover hero (1:1 square, focal point)
+ *  Layer 3: Body (stats --umm-font-xs w500 → intro w400 → footer w400)
+ *
+ *  Font cascade across 12 breakpoints (320px → 5120px):
+ *    --umm-font-sm: 0.75rem → 1.875rem  (title)
+ *    --umm-font-xs: 0.65rem → 1.5rem    (stats, intro, footer, badge)
+ *  Weight cascade: 600 (title) → 500 (stats) → 400 (intro/footer)
+ *
+ *  Visual flow: Title (what) → Cover (visual) → Stats (how much) → Footer (when/whom)
+ */
 
 .umm-doulist-card {
   display: flex;
   flex-direction: column;
-  border-radius: var(--umm-card-radius, 10px);
+  border-radius: var(--umm-card-radius, 8px);
   overflow: hidden;
-  background: var(--umm-doulists-card-bg);
-  border: 1px solid var(--umm-doulists-card-border);
+  background: var(--dc-card-bg);
+  border: 1px solid var(--dc-card-border);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
 }
 
 .umm-doulist-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 
 :host(.umm-theme--dark) .umm-doulist-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
-.umm-doulist-card:not(:has(.umm-doulist-cover)) {
-  border-left: 3px solid var(--umm-doulists-accent);
+/* ===== Layer 1: Title (header) ===== */
+
+.umm-doulist-title {
+  margin: 0;
+  padding: var(--umm-space-sm) var(--umm-space-md) var(--umm-space-xs);
+  font-size: var(--umm-font-sm);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
-/* ===== Cover ===== */
+/* ===== Layer 2: Cover hero ===== */
+
+.umm-doulist-cover-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+  flex-shrink: 0;
+}
 
 .umm-doulist-cover {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  background: var(--umm-bg-secondary);
+  height: 100%;
 }
 
 .umm-doulist-cover img {
@@ -184,23 +217,93 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* ===== Body ===== */
+.umm-doulist-card:hover .umm-doulist-cover img {
+  transform: scale(1.05);
+}
+
+.umm-doulist-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.umm-doulist-cover-icon {
+  font-size: 2rem;
+  opacity: 0.3;
+}
+
+/* Category badge — overlaid on cover top-right */
+
+.umm-doulist-cat-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: var(--umm-font-xs);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.umm-doulist-cat--movie { background: rgba(238, 242, 255, 0.92); color: #4f46e5; }
+.umm-doulist-cat--music { background: rgba(243, 232, 255, 0.92); color: #9333ea; }
+.umm-doulist-cat--book  { background: rgba(254, 243, 199, 0.92); color: #b45309; }
+.umm-doulist-cat--thing_place { background: rgba(219, 234, 254, 0.92); color: #2563eb; }
+
+:host(.umm-theme--dark) .umm-doulist-cat--movie { background: rgba(30, 27, 75, 0.92); color: #818cf8; }
+:host(.umm-theme--dark) .umm-doulist-cat--music { background: rgba(46, 16, 101, 0.92); color: #a855f7; }
+:host(.umm-theme--dark) .umm-doulist-cat--book  { background: rgba(66, 32, 6, 0.92); color: #fbbf24; }
+:host(.umm-theme--dark) .umm-doulist-cat--thing_place { background: rgba(23, 37, 84, 0.92); color: #60a5fa; }
+
+/* ===== Layer 3: Body (stats → intro → footer) ===== */
 
 .umm-doulist-body {
-  padding: var(--umm-space-md, 14px);
+  padding: var(--umm-space-sm) var(--umm-space-md) var(--umm-space-md);
   display: flex;
   flex-direction: column;
-  gap: var(--umm-space-xs, 6px);
+  gap: var(--umm-space-xs);
   flex: 1;
+  min-width: 0;
 }
 
-.umm-doulist-title {
-  font-size: var(--umm-font-sm, 0.8125rem);
-  font-weight: 600;
-  color: var(--umm-text-primary);
+/* --- Stats row --- */
+
+.umm-doulist-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-xs);
+}
+
+.umm-doulist-stat-item {
+  font-size: var(--umm-font-xs);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
   line-height: 1.4;
+}
+
+.umm-doulist-stat-divider {
+  width: 1px;
+  height: 1em;
+  background: var(--umm-text-muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* --- Intro (optional) --- */
+
+.umm-doulist-intro {
+  font-size: var(--umm-font-xs);
+  font-weight: 400;
+  color: var(--umm-text-tertiary);
+  line-height: 1.5;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -209,13 +312,39 @@
   -webkit-box-orient: vertical;
 }
 
-.umm-doulist-meta {
-  font-size: var(--umm-font-xs, 0.7rem);
+:host(.umm-theme--dark) .umm-doulist-intro {
+  color: #999;
+}
+
+/* --- Footer: time left, follower right --- */
+
+.umm-doulist-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm);
+  margin-top: auto;
+  padding-top: var(--umm-space-xs);
+}
+
+.umm-doulist-time {
+  font-size: var(--umm-font-xs);
+  font-weight: 400;
   color: var(--umm-text-muted);
   line-height: 1.4;
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  white-space: nowrap;
+}
+
+.umm-doulist-footer-space {
+  flex: 1;
+  min-width: 0;
+}
+
+.umm-doulist-followers {
+  font-size: var(--umm-font-xs);
+  font-weight: 400;
+  color: var(--umm-text-muted);
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 /* ===== Empty / fallback states ===== */
@@ -224,8 +353,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--umm-space-2xl, 40px) var(--umm-space-lg, 20px);
-  font-size: var(--umm-font-base, 0.875rem);
+  padding: var(--umm-space-2xl) var(--umm-space-lg);
+  font-size: var(--umm-font-base);
   color: var(--umm-text-muted);
 }
 
@@ -236,7 +365,7 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
+  padding: var(--umm-space-md) 0 var(--umm-space-lg);
   flex-wrap: wrap;
 }
 .umm-doulist-page {
@@ -247,7 +376,7 @@
   height: 28px;
   padding: 0 7px;
   border-radius: 6px;
-  font-size: var(--umm-font-xs, 0.75rem);
+  font-size: var(--umm-font-xs);
   font-weight: 500;
   color: var(--umm-text-secondary);
   text-decoration: none;
@@ -258,7 +387,7 @@
   color: var(--umm-text-primary);
 }
 .umm-doulist-page--active {
-  background: var(--umm-doulists-accent);
+  background: var(--dc-accent);
   color: #fff;
   font-weight: 700;
 }

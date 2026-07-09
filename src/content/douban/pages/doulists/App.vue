@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { DoulistsPageData } from './types'
+import { CATEGORY_LABELS } from './types'
 
 defineProps<{
   data: DoulistsPageData
@@ -32,29 +33,29 @@ defineProps<{
       </div>
 
       <!-- Tab Navigation -->
-      <div v-if="data.createdUrl || data.collectedUrl" class="umm-doulists-tabs">
-        <a
-          v-if="data.createdUrl"
-          :href="data.createdUrl"
-          :class="['umm-doulist-tab', data.activeTab === 'created' ? 'umm-doulist-tab--active' : '']"
-        >
-          我创建的豆列
-          <span class="umm-doulist-count">{{ data.createdCount }}</span>
-        </a>
-        <a
-          v-if="data.collectedUrl"
-          :href="data.collectedUrl"
-          :class="['umm-doulist-tab', data.activeTab === 'collected' ? 'umm-doulist-tab--active' : '']"
-        >
-          我关注的豆列
-          <span class="umm-doulist-count">{{ data.collectedCount }}</span>
-        </a>
-      </div>
-      <div v-else class="umm-doulists-tabs">
-        <span class="umm-doulist-tab umm-doulist-tab--active">
-          我创建的豆列
-          <span class="umm-doulist-count">{{ data.createdCount }}</span>
-        </span>
+      <div class="umm-doulists-tabs">
+        <template v-if="data.collectedUrl">
+          <a
+            :href="data.createdUrl || '#'"
+            :class="['umm-doulist-tab', data.activeTab === 'created' ? 'umm-doulist-tab--active' : '']"
+          >
+            创建的
+            <span class="umm-doulist-count">{{ data.createdCount }}</span>
+          </a>
+          <a
+            :href="data.collectedUrl"
+            :class="['umm-doulist-tab', data.activeTab === 'collected' ? 'umm-doulist-tab--active' : '']"
+          >
+            关注的
+            <span class="umm-doulist-count">{{ data.collectedCount }}</span>
+          </a>
+        </template>
+        <template v-else>
+          <span class="umm-doulist-tab umm-doulist-tab--active">
+            我创建的豆列
+            <span class="umm-doulist-count">{{ data.createdCount }}</span>
+          </span>
+        </template>
       </div>
 
       <!-- List -->
@@ -66,14 +67,37 @@ defineProps<{
           class="umm-doulist-card"
           target="_blank"
         >
-          <div v-if="item.coverUrl" class="umm-doulist-cover">
-            <img :src="item.coverUrl" :alt="item.title" loading="lazy" />
+          <!-- Layer 1: Title -->
+          <h3 class="umm-doulist-title">{{ item.title }}</h3>
+          <!-- Layer 2: Cover hero -->
+          <div class="umm-doulist-cover-wrap">
+            <div v-if="item.coverUrl" class="umm-doulist-cover">
+              <img :src="item.coverUrl" :alt="item.title" loading="lazy" />
+            </div>
+            <div v-else class="umm-doulist-cover umm-doulist-cover--empty">
+              <span class="umm-doulist-cover-icon">📋</span>
+            </div>
+            <span
+              v-if="item.category !== 'other'"
+              class="umm-doulist-cat-badge"
+              :class="`umm-doulist-cat--${item.category}`"
+            >{{ CATEGORY_LABELS[item.category] }}</span>
           </div>
+          <!-- Layer 3: Body -->
           <div class="umm-doulist-body">
-            <h3 class="umm-doulist-title">{{ item.title }}</h3>
-            <div class="umm-doulist-meta">
-              <span>{{ item.itemCount }} 部</span>
-              <span v-if="item.followerCount > 0"> · {{ item.followerCount }} 人关注</span>
+            <!-- Stats: watched + total -->
+            <div class="umm-doulist-stats">
+              <span class="umm-doulist-stat-item">已看 {{ item.watchedCount }}</span>
+              <span class="umm-doulist-stat-divider" />
+              <span class="umm-doulist-stat-item">{{ item.itemCount }} 项</span>
+            </div>
+            <!-- Description -->
+            <p v-if="item.intro" class="umm-doulist-intro">{{ item.intro }}</p>
+            <!-- Footer: time + followers -->
+            <div class="umm-doulist-footer">
+              <span v-if="item.updateTime" class="umm-doulist-time">{{ item.updateTime }}</span>
+              <span class="umm-doulist-footer-space" />
+              <span v-if="item.followerCount > 0" class="umm-doulist-followers">{{ item.followerCount }} 关注</span>
             </div>
           </div>
         </a>

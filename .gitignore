@@ -86,6 +86,7 @@ coverage/
 .codegraph
 
 .localref/
+localref/
 
 # Environment variable variants (Vite/Node conventions)
 .env

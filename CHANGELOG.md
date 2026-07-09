@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **豆瓣「我的豆列」页面适配**: `www.douban.com/people/{uid}/doulists/all` 页面信息提取与 UI 重建
+  - 三明治卡片结构：标题 → 1:1 封面(含分类徽章) → 已看/总数统计 → 描述 → 更新时间/关注数
+  - 12 级自适应断点字体系统（`--umm-font-sm`/`--umm-font-xs`）
+  - 创建/关注双 tab 导航，自动识别当前页激活状态
+  - 支持 `/doulist/` 和 `/subject_collection/` 两种 URL 格式的豆列 ID 提取
+  - 封面悬浮缩放动效（`cubic-bezier(0.23, 1, 0.32, 1)` + `scale(1.05)`）
+  - 浅色/深色主题自动适配
+  - 分类徽章（片单/音乐/书单/地点）浮于封面右上角，带 backdrop-filter 玻璃质感
+  - 已看数量精确解析（看过 X/Y 部 → watchedCount=Y, itemCount=X）
+  - 用户名正确提取（www.douban.com 页面从 avatar alt 获取）
+  - 分页器完整支持
+
+### Added
 - **NeoDB 自动同步 UI 实时刷新**: 自动同步成功后调用 `injectNeoDBPushButtons()` 刷新按钮组件，"打开"按钮和荧光效果即时反映同步状态
 - **跨平台 Record 健康检查**: `checkCrossPlatformRecords()` 每次已看页面加载时检查 IMDb/TMDB/NeoDB record 是否存在且状态正确，缺失则创建，状态不对则升级
 - **NeoDB URL 统一构建**: `Identity.buildNeoDBUrl()` 处理 `show:`/`season:`/`episode:` 前缀，修复 TV 季/集 URL 中冒号被当作路径字符的问题（`season:uuid` → `/season/uuid`）

@@ -1,4 +1,5 @@
-import type { DoulistsPageData, DoulistItem } from './types'
+import type { DoulistsPageData, DoulistItem, DoulistCategory } from './types'
+import { parseCategory } from './types'
 
 export function extractDoulistsData(): DoulistsPageData | null {
   const url = location.href
@@ -7,16 +8,22 @@ export function extractDoulistsData(): DoulistsPageData | null {
   if (!userId) return null
 
   const isMovie = url.includes('movie.douban.com')
+  const isWWW = url.includes('www.douban.com')
 
   // ---- User info ----
   const avatarImg = document.querySelector<HTMLImageElement>('#db-usr-profile .pic img, .side-info-avatar img')
   const avatarUrl = avatarImg?.src ?? ''
 
-  const nameEl = document.querySelector('.side-info-txt h3, #db-usr-profile h1')
-  let displayName = nameEl?.textContent?.trim() ?? userId
-  displayName = displayName.replace('的电影', '').replace('的豆列', '').trim()
-  if (displayName === userId) {
+  let displayName = userId
+  if (isWWW) {
+    // www.douban.com/people/{uid}/doulists — h1 is "我的豆列" (page title),
+    // so use the avatar alt text which holds the actual display name
     displayName = avatarImg?.getAttribute('alt') ?? userId
+  } else {
+    const nameEl = document.querySelector('.side-info-txt h3, #db-usr-profile h1')
+    let name = nameEl?.textContent?.trim() ?? userId
+    name = name.replace('的电影', '').replace('的豆列', '').trim()
+    displayName = name === userId ? (avatarImg?.getAttribute('alt') ?? userId) : name
   }
 
   const navLinks: { label: string; url: string }[] = []
@@ -49,7 +56,6 @@ export function extractDoulistsData(): DoulistsPageData | null {
         createdCount = countMatch ? parseInt(countMatch[1], 10) : 0
       }
     })
-    // Active tab is a <span.now> not an <a> — construct URL from current page
     const nowEl = document.querySelector<HTMLElement>('.xbar .now')
     if (nowEl) {
       const text = nowEl.textContent?.trim() ?? ''
@@ -65,9 +71,30 @@ export function extractDoulistsData(): DoulistsPageData | null {
       }
     }
   } else {
-    const tabEl = document.querySelector('.switch_tabs .current')
-    const match = tabEl?.textContent?.match(/(\d+)/)
-    createdCount = match ? parseInt(match[1], 10) : 0
+    // www.douban.com uses .switch_tabs for created/collected toggle
+    const switchTabs = document.querySelector('.switch_tabs')
+    if (switchTabs) {
+      const spans = switchTabs.querySelectorAll<HTMLElement>('span')
+      spans.forEach((span) => {
+        const txt = span.textContent?.trim() ?? ''
+        const count = parseInt(txt.match(/(\d+)/)?.[1] ?? '0', 10) || 0
+        const link = span.querySelector<HTMLAnchorElement>('a')
+        const isCurrent = span.className.includes('current')
+        if (txt.includes('关注') || txt.includes('collect')) {
+          collectedCount = count
+          collectedUrl = isCurrent ? window.location.href : (link?.getAttribute('href') ?? link?.href ?? '')
+        } else if (txt.includes('创建') || isCurrent) {
+          createdCount = count
+          createdUrl = isCurrent ? window.location.href : (link?.getAttribute('href') ?? link?.href ?? '')
+        }
+      })
+      // Determine which tab is active based on current URL
+      if (window.location.pathname.includes('/doulists/collect')) {
+        activeTab = 'collected'
+      } else {
+        activeTab = 'created'
+      }
+    }
   }
 
   // ---- Items ----
@@ -88,26 +115,55 @@ export function extractDoulistsData(): DoulistsPageData | null {
       const itemCount = itemMatch ? parseInt(itemMatch[1], 10) : 0
       const numCells = tr.querySelectorAll<HTMLTableCellElement>('td.num')
       const followerCount = numCells[0] ? parseInt(numCells[0].textContent?.trim() ?? '0', 10) : 0
-      items.push({ id, title, coverUrl: '', itemCount, updateTime: '', followerCount, url: href })
+      items.push({
+        id, title, coverUrl: '', itemCount, watchedCount: 0,
+        updateTime: '', followerCount, url: href, intro: '', category: 'other',
+      })
     })
   } else {
     document.querySelectorAll('.doulist-list > li').forEach((li) => {
-      const link = li.querySelector<HTMLAnchorElement>('h3 a, .doulist-cover a')
+      // Title comes from h3 a (text content). URL can also come from the cover a.
+      const titleLink = li.querySelector<HTMLAnchorElement>('h3 a')
+      const coverLink = li.querySelector<HTMLAnchorElement>('.doulist-cover a')
       const img = li.querySelector<HTMLImageElement>('img')
       const metaEl = li.querySelector('.meta')
       const collectEl = li.querySelector('.collect-num')
-      const href = link?.getAttribute('href') ?? ''
-      const idMatch = href.match(/\/doulist\/(\d+)/)
-      const id = idMatch?.[1] ?? ''
+      const href = titleLink?.getAttribute('href') ?? coverLink?.getAttribute('href') ?? ''
+      const doulistMatch = href.match(/\/doulist\/(\d+)/)
+      const collectionMatch = href.match(/\/subject_collection\/([A-Z0-9]+)/)
+      const id = doulistMatch?.[1] ?? collectionMatch?.[1] ?? ''
       if (!id) return
       const metaText = metaEl?.textContent?.trim() ?? ''
-      const countMatch = metaText.match(/看过\s*(\d+)/)
-      const itemCount = countMatch ? parseInt(countMatch[1], 10) : 0
+      // meta format: "看过X/Y部" or "看过X部"
+      const totalMatch = metaText.match(/看过\s*(\d+)\/(\d+)/)
+      let watchedCount = 0
+      let itemCount = 0
+      if (totalMatch) {
+        watchedCount = parseInt(totalMatch[1], 10)
+        itemCount = parseInt(totalMatch[2], 10)
+      } else {
+        const countMatch = metaText.match(/看过\s*(\d+)/)
+        itemCount = countMatch ? parseInt(countMatch[1], 10) : 0
+      }
       const followerMatch = collectEl?.textContent?.match(/(\d+)/)
       const followerCount = followerMatch ? parseInt(followerMatch[1], 10) : 0
+
+      // Parse category from the CSS class on the doulist-cover anchor
+      const coverCls = coverLink?.className ?? ''
+      const category: DoulistCategory = coverCls ? parseCategory(coverCls) : 'other'
+
+      // Clean updateTime: "2026-07-07 20:09:42  更新" → "2026-07-07 20:09"
+      let updateTime = metaText.split('·')[0]?.trim() ?? ''
+      updateTime = updateTime.replace(/\s*更新\s*$/, '').trim()
+
+      // Intro paragraph (optional)
+      const introEl = li.querySelector<HTMLElement>('p.intro')
+      const intro = introEl?.textContent?.trim() ?? ''
+
       items.push({
-        id, title: link?.textContent?.trim() ?? '', coverUrl: img?.src ?? '',
-        itemCount, updateTime: metaText.split('·')[0]?.trim() ?? '', followerCount, url: href,
+        id, title: titleLink?.textContent?.trim() ?? '', coverUrl: img?.src ?? '',
+        itemCount, watchedCount, updateTime, followerCount, url: href,
+        intro, category,
       })
     })
   }
