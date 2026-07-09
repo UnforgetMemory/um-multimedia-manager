@@ -39,6 +39,7 @@ export default defineContentScript({
     '*://book.douban.com/*',
     '*://search.douban.com/movie/subject_search*',
     '*://search.douban.com/music/subject_search*',
+    '*://search.douban.com/book/subject_search*',
     '*://www.imdb.com/title/tt*',
     '*://neodb.social/movie/*',
     '*://neodb.social/tv/*',

@@ -87,6 +87,7 @@ const ROUTES: RouteRule[] = [
     match: (url) =>
       url.includes('search.douban.com/movie/subject_search') ||
       url.includes('search.douban.com/music/subject_search') ||
+      url.includes('search.douban.com/book/subject_search') ||
       url.includes('movie.douban.com/chart') ||
       url.includes('movie.douban.com/typerank') ||
       url.includes('music.douban.com/top250'),
