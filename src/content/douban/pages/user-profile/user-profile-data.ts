@@ -1,4 +1,4 @@
-import type { UserProfileData, UserProfileSection } from './types'
+import type { UserProfileData, UserProfileSection, ReviewItem, StatusItem, FollowingInfo, DoulistSectionData, DoulistSectionItem, FriendSectionData, FollowingItem } from './types'
 
 /**
  * Extract the first text node from an element, before its child elements.
@@ -22,6 +22,15 @@ function getFirstTextNode(el: Element): string {
 function parseStatCount(text: string): number {
   const m = text.match(/(\d+)/)
   return m ? parseInt(m[1], 10) : 0
+}
+
+/**
+ * Parse a rating class like "allstar50" → 5.0
+ */
+function parseRating(className: string): number {
+  const m = className.match(/allstar(\d+)/)
+  if (!m) return 0
+  return parseInt(m[1], 10) / 10
 }
 
 /**
@@ -168,6 +177,156 @@ export function extractUserProfileData(): UserProfileData | null {
   // ---- Sandwich sections (movie/music/book/game) ----
   const sections = extractAllSections()
 
+  // ---- Doulist section from #doulist ----
+  let doulistSection: DoulistSectionData | null = null
+  const doulistContainer = document.getElementById('doulist')
+  if (doulistContainer) {
+    const statLink = doulistContainer.querySelector<HTMLAnchorElement>('h2 .pl a')
+    const totalMatch = statLink?.textContent?.match(/(\d+)/)
+    const totalCount = totalMatch ? parseInt(totalMatch[1], 10) : 0
+    const totalUrl = statLink?.href ?? ''
+    const items: DoulistSectionItem[] = []
+    doulistContainer.querySelectorAll<HTMLLIElement>('ul.doulist-list li').forEach((li) => {
+      const a = li.querySelector<HTMLAnchorElement>('a')
+      if (!a) return
+      const text = a.textContent?.trim() ?? ''
+      const url = a.href
+      const itemMatch = text.match(/\((\d+)\)\s*$/)
+      const title = itemMatch ? text.slice(0, text.lastIndexOf('(')).trim() : text
+      const itemCount = itemMatch ? parseInt(itemMatch[1], 10) : 0
+      items.push({ title, url, itemCount })
+    })
+    doulistSection = { totalCount, totalUrl, items }
+  }
+
+  // ---- Friend section from #friend ----
+  let friendSection: FriendSectionData | null = null
+  const friendContainer = document.getElementById('friend')
+  if (friendContainer) {
+    const statLinks = friendContainer.querySelectorAll<HTMLAnchorElement>('h2 .pl a')
+    const firstLink = statLinks[0]
+    const totalMatch = firstLink?.textContent?.match(/(\d+)/)
+    const totalCount = totalMatch ? parseInt(totalMatch[1], 10) : 0
+    const totalUrl = firstLink?.href ?? ''
+    const items: FollowingItem[] = []
+    friendContainer.querySelectorAll<HTMLDListElement>('dl.obu').forEach((dl) => {
+      const nameLink = dl.querySelector<HTMLAnchorElement>('dd a')
+      const name = nameLink?.textContent?.trim() ?? ''
+      const url = nameLink?.href ?? ''
+      // Avatar: normal user has <img> in .pic, verified account has .verify-avatar with bg
+      let avatarUrl = ''
+      const img = dl.querySelector<HTMLImageElement>('dt .pic a img, dt img')
+      if (img?.src) {
+        avatarUrl = img.src
+      } else {
+        const va = dl.querySelector<HTMLElement>('dt .verify-avatar')
+        if (va) {
+          const bg = va.style.backgroundImage
+          // background-image has two urls: url(verify-icon), url(avatar)
+          // take the LAST url() match (the actual avatar)
+          const urls: string[] = []
+          bg.replace(/url\(['"]?([^'")\s]+)['"]?\)/g, (_m: string, u: string) => { urls.push(u); return '' })
+          avatarUrl = urls[urls.length - 1] ?? ''
+        }
+      }
+      if (name) items.push({ name, url, avatarUrl })
+    })
+    friendSection = { totalCount, totalUrl, items }
+  }
+
+  // ---- Review count from #review h2 .pl a ----
+  let reviewCount = 0
+  const reviewSection = document.getElementById('review')
+  const reviewStatLink = reviewSection?.querySelector('h2 .pl a')
+  if (reviewStatLink) {
+    const rt = reviewStatLink.textContent ?? ''
+    const rm = rt.match(/(\d+)/)
+    if (rm) reviewCount = parseInt(rm[1], 10)
+  }
+
+  // ---- Reviews from #review .tlst ----
+  const reviews: ReviewItem[] = []
+  document.querySelectorAll('#review > ul.tlst').forEach((ul) => {
+    const titleEl = ul.querySelector<HTMLAnchorElement>('li.pl2.clst a')
+    const title = titleEl?.textContent?.trim() ?? ''
+    const url = titleEl?.href ?? ''
+    const idMatch = url.match(/\/review\/(\d+)/)
+    const id = idMatch?.[1] ?? ''
+    if (!id || !title) return
+    const posterImg = ul.querySelector<HTMLImageElement>('li.ilst img')
+    const posterUrl = posterImg?.src ?? ''
+    const subjectLink = ul.querySelector<HTMLAnchorElement>('li.ilst a[href*="/subject/"]')
+    const subjectUrl = subjectLink?.href ?? ''
+    const subjectTitle = subjectLink?.getAttribute('title') ?? ''
+    const starEl = ul.querySelector<HTMLElement>('[class*="allstar"]')
+    const rating = starEl ? parseRating(starEl.className) : 0
+    const excerptEl = ul.querySelector<HTMLElement>('.review-short')
+    const excerpt = excerptEl?.textContent?.trim() ?? ''
+    reviews.push({ id, title, url, subjectTitle, subjectUrl, posterUrl, rating, excerpt })
+  })
+
+  // ---- Statuses from #statuses .status-item ----
+  const statuses: StatusItem[] = []
+  document.querySelectorAll('#statuses .status-item').forEach((item) => {
+    const sid = item.getAttribute('data-sid') ?? ''
+    const targetType = item.getAttribute('data-target-type') ?? ''
+    if (!sid) return
+    const textP = item.querySelector<HTMLParagraphElement>('p.text')
+    if (!textP) return
+    // Subject link (second anchor inside p.text)
+    const anchors = textP.querySelectorAll<HTMLAnchorElement>('a')
+    const subjectAnchor = anchors[1]
+    const targetTitle = subjectAnchor?.textContent?.trim() ?? ''
+    const targetUrl = subjectAnchor?.href ?? ''
+    if (!targetTitle) return
+    // Action text: the text node between first and second <a> in p.text
+    let actionText = ''
+    const childNodes = Array.from(textP.childNodes)
+    let foundFirst = false
+    for (const node of childNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'A') {
+        if (!foundFirst) { foundFirst = true; continue }
+        break
+      }
+      if (foundFirst && node.nodeType === Node.TEXT_NODE) {
+        actionText = node.textContent?.trim() || ''
+        break
+      }
+    }
+    // Rating from allstar class
+    let ratingVal = 0
+    const starEl = item.querySelector<HTMLElement>('[class*="allstar"]')
+    if (starEl) ratingVal = parseRating(starEl.className)
+    // User content
+    const contentEl = item.querySelector<HTMLElement>('.status-content .status-text')
+    const content = contentEl?.textContent?.trim() ?? ''
+    // Time
+    const timeLink = item.querySelector<HTMLAnchorElement>('.created_at a')
+    const time = timeLink?.textContent?.trim() ?? ''
+    const timeUrl = timeLink?.href ?? ''
+    statuses.push({
+      id: sid, action: actionText, targetType, targetTitle, targetUrl,
+      rating: ratingVal.toString(), content, time, timeUrl,
+    })
+  })
+
+  // ---- Following info from sidebar .user-opt ----
+  let following: FollowingInfo | null = null
+  const followBtn = document.querySelector('.user-opt .a-btn-add')
+  if (followBtn) {
+    const text = followBtn.textContent?.trim() ?? ''
+    following = { label: text, url: `/people/${userId}/contacts`, isFollowing: text.includes('已关注') }
+  }
+
+  // ---- Follower count from sidebar text (粉丝 X) ----
+  let followerCount = 0
+  const sidebarPl = document.querySelector('.basic-info .pl')
+  if (sidebarPl) {
+    const allText = sidebarPl.parentElement?.textContent ?? ''
+    const fanMatch = allText.match(/(?:粉丝|被关注)\s*(\d+)/)
+    if (fanMatch) followerCount = parseInt(fanMatch[1], 10)
+  }
+
   return {
     userId,
     displayName,
@@ -181,5 +340,12 @@ export function extractUserProfileData(): UserProfileData | null {
     bookStats,
     gameStats,
     sections,
+    doulistSection,
+    reviews,
+    reviewCount,
+    statuses,
+    friendSection,
+    following,
+    followerCount,
   }
 }

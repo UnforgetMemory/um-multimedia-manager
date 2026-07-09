@@ -46,6 +46,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - IMDb ID matching uses strict `/^tt\d+$/` regex — no XSS vector
 - NeoDB URL is constructed from internal IndexedDB data, not user input
 
+### Added
+- **豆瓣个人主页全面重建**: 从离线参考文件 `.localref/douban/个人/UnforgetMemory.html` 出发，基于登录态真实 DOM 重写提取逻辑
+  - 新增 `#doulist` 区块提取：豆列列表（标题 + 条目数），标签式按钮网格，最多 10 条 + "更多…" 链接
+  - 新增 `#friend` 区块提取：关注列表（认证/普通账号头像 + 名称），圆角头像网格，最多 12 人
+  - 新增 `#review` 区块提取：评论标题、关联作品、海报、星级评分、摘要
+  - 新增 `#statuses` 区块提取：广播动作文本（DOM 文本节点提取）、目标作品、星级评分、正文、时间戳
+  - 新增 Stat Bar 社交组：评论/被关注统计项 + 动态用户ID 跳转链接
+  - 新增 `doulistSection`/`friendSection` 类型和数据字段
+
+### Fixed
+- **豆瓣个人主页豆列提取**: 从 `#movie`/`#book` h2 的 `subject_doulists` 链接改为提取独立的 `#doulist` 区块
+- **豆瓣个人主页关注提取**: 从 `.user-opt .a-btn-add` 按钮改为提取独立的 `#friend` 区块，包括认证账号头像（`verify-avatar` 双 URL 取最后一个）
+- **豆瓣个人主页广播提取**: 动作文本从 DOM 文本节点正确提取（用户名 `<a>` 和作品 `<a>` 之间的文本节点），评分改用 `parseRating()` 正确解析 allstar class
+- **Stat Bar 用户ID**: 所有用户跳转链接从硬编码 `148839064` 改为动态 `data.userId`
+- **移除废弃类型**: 清理 `DoulistLink` 类型及相关字段
+
 ## [4.9.0] - 2026-07-07
 
 ### Architecture
