@@ -8,7 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **豆瓣图书搜索结果页面深度适配**: `search.douban.com/book/subject_search` 全屏覆盖层
+- **豆瓣图书详情页深度适配**: `book.douban.com/subject/*` 全功能覆盖
+  - 书名/副标题/原作名/作者/出版社/ISBN 等元信息完整提取
+  - 评分条平铺结构兼容（`.starstop` + `.power` + `.rating_per` 兄弟节点）
+  - 内容简介从 `#link-report .intro` 提取（支持多段合并）
+  - 创作者/作者信息从 `#authors` 提取（过滤 `.fake` 占位元素）
+  - **作者简介**卡片：提取"作者简介"章节 HTML，DOMPurify 消毒后渲染
+  - **目录**卡片：从 `[id^="dir_"]` 提取按 `<br>` 分隔的目录项
+  - **原文摘录**卡片：从 `.blockquote-list` 提取引用文本/来源/用户/赞数
+  - **其他版本**卡片：从"这本书的其他版本"区域提取版本列表
+  - `UmmInterestBar` 新增 `book` 类型标签（想读/在读/已读）
+  - `detectStatusFromDom()` 支持图书状态文字（我读过/我在读/我想读）
+  - 海报使用 2:3 竖版比例（`ASPECT_RATIO.POSTER`），按钮文字显示"添加到书单"
+  - 推荐项 `.subject-rate` 评分提取兼容图书 `dl` 结构
+  - 过滤空推荐项（跳过 `<dl class="clear">` 占位元素）
+
+### Changed
+- **detail-data.ts** — `extractDetailData()` 新增 `isBook`、`subtitle`、`authorBioHtml`、`tocItems`、`blockquoteItems`、`editionItems` 字段
+- **App.vue** — 提取 `mediaType` computed 属性，消除 4 处重复类型分支
+- 图书简介/作者/目录/原文摘录/其他版本卡片位于创作者区域下方
+
+### Chore
+- code-review 通过：4 文件 +122/-30 行，仅 DOM 读取 + DOMPurify 输出，零安全风险
+- 安全审计通过：所有 HTML 输出经 DOMPurify 消毒，无 XSS 向量，无密钥泄露
+- `.gitignore` 复核通过：`localref/` + `.localref/` 均已覆盖
   - 3 个 entrypoint matches 全面注册，`url-detector.ts` 新增 `book` mediaType
   - 主 overlay 挂载流程支持 book 类型：`cat=1001` URL 构造，`loadRecordMap('book')` 加载记录
   - 搜索结果卡片适配：POSTER 比例封面（同电影），隐藏 labels/chips/演职员行

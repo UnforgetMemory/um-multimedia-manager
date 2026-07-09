@@ -204,6 +204,38 @@
 .umm-rec-title { font-size: var(--umm-font-sm, 0.8125rem); font-weight: 500; color: var(--umm-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
 .umm-rec-rating { font-size: var(--umm-font-xs, 0.75rem); color: var(--umm-rating-score); font-weight: 600; padding: 0 2px; }
 
+/* --- TOC card (books) --- */
+.umm-toc-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: var(--umm-space-md, 16px); }
+.umm-toc-heading { font-size: var(--umm-font-md, 1rem); font-weight: 600; color: var(--umm-text-primary); margin: 0 0 var(--umm-space-sm, 8px); }
+.umm-toc-list { display: flex; flex-direction: column; gap: 4px; }
+.umm-toc-item { font-size: var(--umm-font-sm, 0.8125rem); color: var(--umm-text-secondary); padding: 4px 0; border-bottom: 1px solid var(--umm-card-border); line-height: 1.5; }
+.umm-toc-item:last-child { border-bottom: none; }
+
+/* --- Author bio card (books) — reuses .umm-synopsis-card / .umm-synopsis-text / .umm-synopsis-heading --- */
+.umm-author-bio-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 12px; padding: var(--umm-space-md, 12px) var(--umm-space-md, 16px); }
+
+/* --- Blockquote card (books — 原文摘录) --- */
+.umm-blockquote-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: var(--umm-space-md, 16px); }
+.umm-blockquote-heading { font-size: var(--umm-font-md, 1rem); font-weight: 600; color: var(--umm-text-primary); margin: 0 0 var(--umm-space-md, 12px); }
+.umm-blockquote-list { display: flex; flex-direction: column; gap: var(--umm-space-md, 12px); }
+.umm-blockquote-item { padding: var(--umm-space-md, 12px); border-radius: 8px; background: rgba(0,0,0,0.02); }
+:host(.umm-theme--dark) .umm-blockquote-item { background: rgba(255,255,255,0.03); }
+.umm-blockquote-text { font-size: var(--umm-font-sm, 0.8125rem); line-height: 1.7; color: var(--umm-text-primary); margin-bottom: 8px; }
+.umm-blockquote-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--umm-font-xs, 0.75rem); }
+.umm-blockquote-source { color: var(--umm-text-muted); font-style: italic; }
+.umm-blockquote-user { color: var(--umm-link); }
+.umm-blockquote-votes { color: var(--umm-text-muted); margin-left: auto; }
+
+/* --- Edition card (books — 其他版本) --- */
+.umm-edition-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: var(--umm-space-md, 16px); }
+.umm-edition-heading { font-size: var(--umm-font-md, 1rem); font-weight: 600; color: var(--umm-text-primary); margin: 0 0 var(--umm-space-md, 12px); }
+.umm-edition-list { display: flex; flex-direction: column; gap: 8px; }
+.umm-edition-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,0.02); }
+:host(.umm-theme--dark) .umm-edition-item { background: rgba(255,255,255,0.03); }
+.umm-edition-link { font-size: var(--umm-font-sm, 0.8125rem); font-weight: 500; color: var(--umm-link); text-decoration: none; }
+.umm-edition-link:hover { text-decoration: underline; }
+.umm-edition-meta { font-size: var(--umm-font-xs, 0.75rem); color: var(--umm-text-muted); flex-shrink: 0; }
+
 .umm-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .umm-actions #interest_sect_level { float: none; width: auto; margin-top: 0; padding: 0; background: transparent; border: none; border-radius: 0; }
 .umm-dl-trigger { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border: none; border-radius: 10px; cursor: pointer; font-size: var(--umm-font-base, 0.875rem); font-weight: 600; background: var(--umm-accent); color: #fff; transition: opacity 0.15s, transform 0.1s; flex-shrink: 0; }

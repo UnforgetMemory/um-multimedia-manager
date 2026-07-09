@@ -34,14 +34,16 @@ const artistName = computed(() => {
 
 const record = ref<{ status: number; rating: number } | null>(d.record ? { status: d.record.status, rating: d.record.rating } : null)
 
+const mediaType = computed(() => d.isBook ? 'book' : d.isMusic ? 'music' : 'movie')
+
 /** Scan DOM for native interest status (fallback when d.record is null) */
 function detectStatusFromDom(): 'wish' | 'do' | 'collect' | null {
   const el = document.getElementById('interest_sect_level')
   if (!el) return null
   const text = el.textContent ?? ''
-  if (/我听过/.test(text)) return 'collect'
-  if (/我在听/.test(text)) return 'do'
-  if (/我想听/.test(text)) return 'wish'
+  if (/我听过|我读过/.test(text)) return 'collect'
+  if (/我在听|我在读/.test(text)) return 'do'
+  if (/我想听|我想读/.test(text)) return 'wish'
   return null
 }
 
@@ -183,13 +185,14 @@ defineExpose({ updateRecord })
 </script>
 
 <template>
-  <UmmPageLayout :type="d.isMusic ? 'music' : 'movie'">
+  <UmmPageLayout :type="mediaType">
     <div class="umm-detail-root">
 
     <div class="umm-detail-grid">
         <div class="umm-detail-title-block">
           <div class="umm-detail-title-row">
             <h1 class="umm-detail-title">{{ d.title }}</h1>
+            <h2 v-if="d.subtitle" class="umm-detail-subtitle">{{ d.subtitle }}</h2>
             <span v-if="artistName" class="umm-detail-artist">{{ artistName }}</span>
             <div class="umm-detail-subtitle">
               <span v-if="d.originalTitle" class="umm-detail-original">{{ d.originalTitle }}</span>
@@ -206,7 +209,7 @@ defineExpose({ updateRecord })
               :hasDo="interested.hasDo.value"
               :loading="interested.loading.value"
               :error="interested.error.value"
-              :type="d.isMusic ? 'music' : 'movie'"
+              :type="mediaType"
               @save="onInterestSave"
             />
             <div v-if="interested.currentComment.value" class="umm-my-comment">
@@ -219,9 +222,9 @@ defineExpose({ updateRecord })
       <div class="umm-detail-left">
         <div v-if="d.posterSrc" class="umm-poster">
           <div v-if="d.posterLink" style="cursor:pointer" @click="openLink(d.posterLink)">
-            <UmmImageWrapper :src="d.posterSrc" :alt="d.posterAlt" :aspect-ratio="d.isMusic ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER" eager />
+            <UmmImageWrapper :src="d.posterSrc" :alt="d.posterAlt" :aspect-ratio="mediaType === 'book' ? ASPECT_RATIO.POSTER : mediaType === 'music' ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER" eager />
           </div>
-          <UmmImageWrapper v-else :src="d.posterSrc" :alt="d.posterAlt" :aspect-ratio="d.isMusic ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER" eager />
+          <UmmImageWrapper v-else :src="d.posterSrc" :alt="d.posterAlt" :aspect-ratio="mediaType === 'book' ? ASPECT_RATIO.POSTER : mediaType === 'music' ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER" eager />
         </div>
 
         <div v-if="d.ratingNum" class="umm-rating-card">
@@ -273,7 +276,7 @@ defineExpose({ updateRecord })
 
         <div class="umm-actions">
           <div id="umm-neodb-actions"></div>
-          <button class="umm-dl-trigger">+ 添加到片单</button>
+          <button class="umm-dl-trigger">{{ mediaType === 'book' ? '+ 添加到书单' : '+ 添加到片单' }}</button>
         </div>
       </div>
     </div>
@@ -318,6 +321,43 @@ defineExpose({ updateRecord })
       </div>
     </div>
 
+    <!-- Books: author bio, TOC, blockquotes, editions -->
+    <div v-if="d.authorBioHtml" class="umm-author-bio-card">
+      <h3 class="umm-synopsis-heading">作者简介</h3>
+      <div class="umm-synopsis-text" v-html="d.authorBioHtml"></div>
+    </div>
+
+    <div v-if="d.tocItems.length" class="umm-toc-card">
+      <h3 class="umm-toc-heading">目录</h3>
+      <div class="umm-toc-list">
+        <div v-for="(item, i) in d.tocItems" :key="i" class="umm-toc-item">{{ item }}</div>
+      </div>
+    </div>
+
+    <div v-if="d.blockquoteItems.length" class="umm-blockquote-card">
+      <h3 class="umm-blockquote-heading">原文摘录</h3>
+      <div class="umm-blockquote-list">
+        <div v-for="(bq, i) in d.blockquoteItems" :key="i" class="umm-blockquote-item">
+          <div class="umm-blockquote-text">{{ bq.text }}</div>
+          <div v-if="bq.source || bq.user" class="umm-blockquote-meta">
+            <span v-if="bq.source" class="umm-blockquote-source">—— 引自 {{ bq.source }}</span>
+            <span v-if="bq.user" class="umm-blockquote-user">— {{ bq.user }}</span>
+            <span v-if="bq.votes" class="umm-blockquote-votes">{{ bq.votes }}赞</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="d.editionItems.length" class="umm-edition-card">
+      <h3 class="umm-edition-heading">其他版本</h3>
+      <div class="umm-edition-list">
+        <div v-for="(ed, i) in d.editionItems" :key="i" class="umm-edition-item">
+          <a :href="ed.link" target="_blank" class="umm-edition-link">{{ ed.title }}</a>
+          <span class="umm-edition-meta">{{ ed.rating }} {{ ed.count }}</span>
+        </div>
+      </div>
+    </div>
+
     <div v-if="d.photoItems.length" class="umm-photo-card">
                   <h3 class="umm-photo-heading">
               剧照
@@ -348,7 +388,7 @@ defineExpose({ updateRecord })
           :badge-status="r.recStatus"
           :badge-rating="r.personalRating ?? Number(r.rating)"
           :rating="r.rating || ''"
-          :type="d.isMusic ? 'music' : 'movie'"
+          :type="mediaType"
         />
       </div>
     </div>

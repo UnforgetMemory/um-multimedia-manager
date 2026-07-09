@@ -58,6 +58,20 @@ export interface ShortComment {
   votes: number
 }
 
+export interface BlockquoteItem {
+  text: string
+  user: string
+  source: string
+  votes: number
+}
+
+export interface EditionItem {
+  title: string
+  link: string
+  rating: string
+  count: string
+}
+
 export interface DetailData {
   identity: UrlIdentity
   title: string
@@ -87,6 +101,12 @@ export interface DetailData {
   rankText: string
   rankHref: string
   isMusic: boolean
+  isBook: boolean
+  subtitle: string
+  authorBioHtml: string
+  tocItems: string[]
+  blockquoteItems: BlockquoteItem[]
+  editionItems: EditionItem[]
   record: StoreRecord | null
   trackItems: string[]
 }
@@ -104,15 +124,17 @@ export async function extractDetailData(): Promise<DetailData | null> {
   if (!identity) return null
 
   const isMusic = location.href.includes('music.douban.com')
+  const isBook = location.href.includes('book.douban.com')
 
-  // Title
-  const h1 = document.querySelector('#content h1, #wrapper > h1') as HTMLElement | null
+  const h1 = document.querySelector('#content h1, #wrapper > h1, h1.title') as HTMLElement | null
   const titleSpan = h1?.querySelector('[property="v:itemreviewed"]')
   const yearSpan = h1?.querySelector('.year')
   const title = titleSpan?.textContent?.trim() || h1?.textContent?.trim() || ''
   const year = yearSpan?.textContent?.trim()?.replace(/[()]/g, '') || ''
 
-  // Original name from #info
+  const subtitleEl = document.querySelector('h2.subtitle')
+  const subtitle = subtitleEl?.textContent?.trim() || ''
+
   let originalTitle = ''
   const infoEl = document.querySelector('#info')
   if (infoEl) {
@@ -121,7 +143,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
       const temp = document.createElement('div')
       temp.innerHTML = part.trim()
       const pl = temp.querySelector('.pl')
-      if (pl?.textContent?.includes('原名')) {
+      if (pl?.textContent?.includes('原名') || pl?.textContent?.includes('原作名')) {
         pl.remove()
         const parent = pl.parentElement
         if (parent) {
@@ -157,6 +179,19 @@ export async function extractDetailData(): Promise<DetailData | null> {
     const pct = (item.querySelector('.rating_per') as HTMLElement)?.textContent?.trim() || ''
     if (label) ratingBars.push({ label, pct })
   })
+  if (ratingBars.length === 0 && isBook) {
+    const sectl = document.getElementById('interest_sectl')
+    if (sectl) {
+      const stars = sectl.querySelectorAll('.starstop')
+      stars.forEach((star) => {
+        const label = star.textContent?.trim() || ''
+        const power = star.nextElementSibling as HTMLElement | null
+        const pctEl = power?.nextElementSibling as HTMLElement | null
+        const pct = pctEl?.textContent?.trim() || ''
+        if (label) ratingBars.push({ label, pct })
+      })
+    }
+  }
 
   // Better than
   const betterThan: string[] = []
@@ -220,30 +255,50 @@ export async function extractDetailData(): Promise<DetailData | null> {
   // Synopsis
   const relatedInfo = document.querySelector(
     '#content > .grid-16-8.clearfix > .article > .related-info'
-  )
-  const synopsisHeading = isMusic ? '简介' : '剧情简介'
-  const synopsisEl = relatedInfo?.querySelector(
-    '[property="v:summary"], [property="v:des"]'
-  ) || relatedInfo?.querySelector('span.all.hidden, span:not(.all.hidden)')
-  const synopsisHtml = DOMPurify.sanitize(synopsisEl?.innerHTML || '')
+  ) || (isBook ? document.querySelector('.related_info') : null)
+  const synopsisHeading = isMusic ? '简介' : isBook ? '内容简介' : '剧情简介'
+  let synopsisHtml = ''
+  if (isBook) {
+    const intros = document.querySelectorAll('#link-report .intro')
+    synopsisHtml = DOMPurify.sanitize(Array.from(intros).map(el => el.innerHTML).join('\n'))
+  } else {
+    const synopsisEl = relatedInfo?.querySelector('[property="v:summary"], [property="v:des"]')
+      || relatedInfo?.querySelector('span.all.hidden, span:not(.all.hidden)')
+    synopsisHtml = DOMPurify.sanitize(synopsisEl?.innerHTML || '')
+  }
 
-  // Celebrities
+  // Celebrities / Authors
   const celebEl = document.querySelector('#celebrities')
-  const celebHeading = isMusic ? '表演者' : '演职员'
+  const celebHeading = isMusic ? '表演者' : isBook ? '创作者' : '演职员'
   const celebItems: CelebItem[] = []
-  celebEl?.querySelectorAll('.celebrity').forEach((li) => {
-    const nameEl = li.querySelector('.name a')
-    const roleEl = li.querySelector('.role')
-    const avatarEl = li.querySelector('.avatar') as HTMLElement | null
-    const bgImg = avatarEl?.style.backgroundImage || ''
-    const avatarUrl = bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
-    celebItems.push({
-      name: nameEl?.textContent?.trim() || '',
-      role: roleEl?.textContent?.trim() || '',
-      avatar: avatarUrl,
-      link: (nameEl as HTMLAnchorElement)?.href || '',
+  if (celebEl) {
+    celebEl.querySelectorAll('.celebrity').forEach((li) => {
+      const nameEl = li.querySelector('.name a')
+      const roleEl = li.querySelector('.role')
+      const avatarEl = li.querySelector('.avatar') as HTMLElement | null
+      const bgImg = avatarEl?.style.backgroundImage || ''
+      const avatarUrl = bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
+      celebItems.push({
+        name: nameEl?.textContent?.trim() || '',
+        role: roleEl?.textContent?.trim() || '',
+        avatar: avatarUrl,
+        link: (nameEl as HTMLAnchorElement)?.href || '',
+      })
     })
-  })
+  } else if (isBook) {
+    document.querySelectorAll('#authors .author:not(.fake)').forEach((li) => {
+      const imgEl = li.querySelector('.avatar') as HTMLImageElement | null
+      const nameEl = li.querySelector('.name')
+      const roleEl = li.querySelector('.role')
+      const href = li.querySelector('.name')?.getAttribute('href') || ''
+      celebItems.push({
+        name: nameEl?.textContent?.trim() || '',
+        role: roleEl?.textContent?.trim() || '',
+        avatar: imgEl?.src || '',
+        link: href,
+      })
+    })
+  }
 
   const celebPl = celebEl?.querySelector('.pl')
   const celebCount = celebPl?.textContent?.trim().replace(/[()]/g, '') || ''
@@ -309,12 +364,13 @@ export async function extractDetailData(): Promise<DetailData | null> {
     const rate = dl.querySelector('.subject-rate')?.textContent?.trim() || ''
     const href = linkEl?.href || ''
     const idMatch = href.match(/\/subject\/(\d+)/)
+    if (!idMatch) return // skip empty/placeholder dl items (e.g. <dl class="clear">)
     recItems.push({
       title: linkEl?.textContent?.trim() || img?.alt || '',
       poster: (img?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/'),
       rating: rate,
       link: href,
-      subjectId: idMatch ? idMatch[1] : '',
+      subjectId: idMatch[1],
       recStatus: 0,
     })
   })
@@ -367,6 +423,34 @@ export async function extractDetailData(): Promise<DetailData | null> {
     })
   })
 
+  let authorBioHtml = ''
+  if (isBook) {
+    const h2s = document.querySelectorAll('h2')
+    for (const h2 of h2s) {
+      if (h2.textContent?.includes('作者简介')) {
+        const indent = h2.nextElementSibling as HTMLElement | null
+        const intro = indent?.querySelector('.intro')
+        if (intro) {
+          authorBioHtml = DOMPurify.sanitize(intro.innerHTML)
+        }
+        break
+      }
+    }
+  }
+
+  const tocItems: string[] = []
+  if (isBook) {
+    const dirEl = document.querySelector('[id^="dir_"]')
+    if (dirEl) {
+      const html = dirEl.innerHTML
+      const parts = html.split(/<br\s*\/?>/i)
+      for (const part of parts) {
+        const text = part.replace(/<[^>]+>/g, '').trim()
+        if (text) tocItems.push(text)
+      }
+    }
+  }
+
   // Track list (music albums only)
   const trackItems: string[] = []
   document.querySelectorAll('.track-list .track-items li').forEach(li => {
@@ -374,6 +458,51 @@ export async function extractDetailData(): Promise<DetailData | null> {
     const text = li.textContent?.trim() || ''
     if (text) trackItems.push(order ? `${order} ${text}` : text)
   })
+
+  // Blockquotes (books only — 原文摘录)
+  const blockquoteItems: BlockquoteItem[] = []
+  if (isBook) {
+    document.querySelectorAll('.blockquote-list li').forEach((li) => {
+      const figure = li.querySelector('figure')
+      if (!figure) return
+      const extra = figure.querySelector('.blockquote-extra')
+      let text = ''
+      if (extra) {
+        const clone = figure.cloneNode(true) as HTMLElement
+        clone.querySelector('.blockquote-extra')?.remove()
+        text = clone.textContent?.replace(/\s+/g, ' ').trim() || ''
+      } else {
+        text = figure.textContent?.replace(/\s+/g, ' ').trim() || ''
+      }
+      const meta = extra?.querySelector('.blockquote-meta')
+      const user = meta?.querySelector('.author-name')?.textContent?.trim() || ''
+      const votesText = meta?.textContent?.match(/(\d+)赞/)?.[1] || '0'
+      const figcaption = extra?.querySelector('figcaption')
+      const source = figcaption?.getAttribute('title') || ''
+      if (text) blockquoteItems.push({ text, user, source, votes: parseInt(votesText, 10) || 0 })
+    })
+  }
+
+  // Other editions (books only — 其他版本)
+  const editionItems: EditionItem[] = []
+  if (isBook) {
+    const h2s = document.querySelectorAll('h2')
+    for (const h2 of h2s) {
+      if (h2.textContent?.includes('其他版本')) {
+        const ul = h2.nextElementSibling as HTMLElement | null
+        if (ul && ul.tagName === 'UL') {
+          ul.querySelectorAll('li.mb8').forEach((li) => {
+            const link = li.querySelector('.meta a') as HTMLAnchorElement | null
+            const countEl = li.querySelector('.count')
+            const rating = countEl?.querySelector('span')?.textContent?.trim() || ''
+            const count = countEl?.textContent?.replace(rating, '').trim() || ''
+            if (link) editionItems.push({ title: link.textContent?.trim() || '', link: link.href, rating, count })
+          })
+        }
+        break
+      }
+    }
+  }
 
   return {
     identity,
@@ -404,6 +533,12 @@ export async function extractDetailData(): Promise<DetailData | null> {
     rankText,
     rankHref,
     isMusic,
+    isBook,
+    subtitle,
+    authorBioHtml,
+    tocItems,
+    blockquoteItems,
+    editionItems,
     record: null,
     trackItems,
   }

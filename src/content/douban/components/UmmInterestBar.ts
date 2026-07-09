@@ -17,7 +17,7 @@ export const UmmInterestBar = defineComponent({
     comment: { type: String, default: '' },
     loading: { type: Boolean, default: false },
     error: { type: String, default: '' },
-    type: { type: String as () => 'movie' | 'music', default: 'movie' },
+    type: { type: String as () => 'movie' | 'music' | 'book', default: 'movie' },
   },
   emits: ['save'],
   setup(props, { emit }) {
@@ -75,6 +75,8 @@ export const UmmInterestBar = defineComponent({
     return () => {
       const L = props.type === 'music'
         ? { wish: '想听', do: '在听', collect: '已听', mark: '标记' }
+        : props.type === 'book'
+        ? { wish: '想读', do: '在读', collect: '已读', mark: '标记' }
         : { wish: '想看', do: '在看', collect: '已看', mark: '标记' }
       const btnLabel = props.status === 1 ? L.wish : props.status === 3 ? L.do : props.status === 2 ? L.collect : L.mark
       const showRating = props.rating > 0 && (props.status === 2 || props.status === 3)
