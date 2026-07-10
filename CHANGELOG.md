@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **豆瓣图书详情页目录提取不完整**: `extractTOC()` 增加 `_full` / `.all` 三层回退策略，优先读取隐藏的完整目录 DOM 而非截断版本；同时过滤 `(更多)`/`(收起)` 等截断标记文本
+
+### Chore
+- 安全审计通过：仅 DOM 读取 + strip HTML tags，无 XSS/注入风险
+- 63 项单元测试全部通过
+- `.gitignore` 复核通过：`.localref/` 等 2 项已覆盖
+
 ### Added
 - **领域模型层**: 新建 `src/domain/` 目录，10 个领域实体 (Identity, StoreRecord, Platform, MediaType, Status, Rating) + 仓储接口 + 领域服务
 - **CSS 设计 Token 系统**: 新建 `design-tokens.css`，统一 HSL 色彩体系，浅色/深色双主题覆盖

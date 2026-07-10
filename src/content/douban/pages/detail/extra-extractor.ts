@@ -164,17 +164,37 @@ export function extractAuthorBio(): string {
 
 /**
  * Extract table-of-contents items (books only).
+ *
+ * Douban uses two patterns for truncated TOCs:
+ *   1. `dir_XXXXXX_full` (hidden) + `dir_XXXXXX_short` (visible) — two divs
+ *   2. <span class="all hidden"> + <span class="content">        — two spans
+ *
+ * Strategy: prefer the full-content element (pattern 1 _full div, then
+ * pattern 2 .all span), then fall back to any element with id^="dir_".
+ * Truncation indicators ("· · · · · · (更多)", "(收起)", etc.) are filtered
+ * out.
  */
 export function extractTOC(): string[] {
   const tocItems: string[] = []
-  const dirEl = document.querySelector('[id^="dir_"]')
-  if (dirEl) {
-    const html = dirEl.innerHTML
-    const parts = html.split(/<br\s*\/?>/i)
-    for (const part of parts) {
-      const text = part.replace(/<[^>]+>/g, '').trim()
-      if (text) tocItems.push(text)
-    }
+
+  // Pattern 1: _full div (hidden but contains complete TOC)
+  // Pattern 2: .all span (hidden, full content)
+  // Fallback: any id^="dir_" element
+  const dirEl =
+    document.querySelector('[id$="_full"]')
+    || document.querySelector('[id^="dir_"] .all, [id^="dir_"] > .all')
+    || document.querySelector('[id^="dir_"]')
+
+  if (!dirEl) return tocItems
+  const html = dirEl.innerHTML
+
+  const parts = html.split(/<br\s*\/?>/i)
+  for (const part of parts) {
+    const text = part.replace(/<[^>]+>/g, '').trim()
+    if (!text) continue
+    // Skip truncation indicators and control links
+    if (/展开全部|折叠|\(收起\)|\(更多\)|·\s*·\s*·/.test(text)) continue
+    tocItems.push(text)
   }
   return tocItems
 }
