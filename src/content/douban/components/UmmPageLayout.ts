@@ -23,7 +23,7 @@ function GitHubIcon() {
 export const UmmPageLayout = defineComponent({
   name: 'UmmPageLayout',
   props: {
-    type: { type: String as () => 'movie' | 'music' | 'book', default: 'movie' },
+    type: { type: String as () => 'movie' | 'music' | 'book' | 'game', default: 'movie' },
     newTab: { type: Boolean, default: true },
     initialQuery: { type: String, default: '' },
   },
@@ -58,7 +58,10 @@ export const UmmPageLayout = defineComponent({
             ' · ',
             h('a', { href: 'https://www.douban.com/about/legal', target: '_blank' }, '法律声明'),
             ' · ',
-            h('a', { href: 'https://help.douban.com/?app=movie', target: '_blank' }, '帮助中心'),
+            h('a', {
+              href: `https://help.douban.com/?app=${props.type === 'game' ? 'main' : props.type === 'music' ? 'music' : props.type === 'book' ? 'book' : 'movie'}`,
+              target: '_blank',
+            }, '帮助中心'),
             ' · ',
             h('a', { href: 'https://www.douban.com/doubanapp/', target: '_blank' }, '移动应用'),
           ]),

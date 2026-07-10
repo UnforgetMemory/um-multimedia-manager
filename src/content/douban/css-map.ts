@@ -39,6 +39,8 @@ import bookAuthorsCss from './styles/book-authors.css?raw'
 import userbarCss from './styles/userbar.css?raw'
 import paginatorCss from './styles/paginator.css?raw'
 import albumsCss from './styles/albums.css?raw'
+import gameCollectCss from './styles/game-collect.css?raw'
+import gameDetailCss from './styles/game-detail.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import interestCss from './styles/interest.css?raw'
 
@@ -74,6 +76,8 @@ export {
   bookAuthorsCss,
   userbarCss,
   albumsCss,
+  gameCollectCss,
+  gameDetailCss,
   pageLayoutCss,
   interestCss,
 }
@@ -115,5 +119,7 @@ export const cssMap: Record<string, string> = {
   paginator: paginatorCss,
   'book-authors': bookAuthorsCss,
   albums: albumsCss,
+  'game-collect': gameCollectCss,
+  'game-detail': gameDetailCss,
   interest: interestCss,
 }

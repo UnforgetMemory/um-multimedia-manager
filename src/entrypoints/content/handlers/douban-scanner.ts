@@ -10,6 +10,33 @@ import type { UrlIdentity } from '@/types'
  * 扫描豆瓣页面状态
  */
 export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; rating: number } {
+  const isGame = identity.type === 'game'
+
+  if (isGame) {
+    // Game page uses .collection-section instead of #interest_sect_level
+    const collectionSection = document.querySelector('.collection-section')
+    if (!collectionSection) {
+      console.log('[UMM Douban] .collection-section not found for game')
+      return { status: 'none', rating: 0 }
+    }
+    const resultEl = collectionSection.querySelector('.collection-result')
+    const text = resultEl?.textContent?.trim() || ''
+
+    // Extract rating from #n_rating (hidden input inside this section or elsewhere)
+    let stars = 0
+    const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
+    if (nRatingInput && nRatingInput.value) {
+      stars = Number.parseInt(nRatingInput.value, 10) || 0
+    }
+
+    const finalRating = Utils.clampRating10(stars * 2)
+
+    if (text.includes('玩过')) return { status: 'done', rating: finalRating }
+    if (text.includes('想玩')) return { status: 'wish', rating: 0 }
+    if (text.includes('在玩')) return { status: 'doing', rating: 0 }
+    return { status: 'none', rating: 0 }
+  }
+
   const interestBox = document.getElementById('interest_sect_level')
   if (!interestBox) {
     console.log('[UMM Douban] #interest_sect_level not found')
@@ -76,7 +103,13 @@ export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; r
  * 从豆瓣页面提取用户的短评文字
  * 在评分/状态区域查找用户填写的短评
  */
-export function extractCommentFromPage(): string {
+export function extractCommentFromPage(identity?: UrlIdentity): string {
+  // Game page uses .collection-comment
+  if (identity?.type === 'game') {
+    const commentEl = document.querySelector('.collection-comment')
+    if (commentEl?.textContent?.trim()) return commentEl.textContent.trim()
+  }
+
   const selectors = [
     '#interest_sect_level .user_comment',
     '#interest_sect_level .rating_text',

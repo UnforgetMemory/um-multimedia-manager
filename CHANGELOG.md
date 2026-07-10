@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.12.0] - 2026-07-10
+## [4.13.0] - 2026-07-10
+
+### Added
+- **豆瓣游戏详情页深度适配**: 新增 `www.douban.com/game/{id}` 页面完整注入，沿用电影详情页风格
+  - Vue 覆盖层: 封面海报、评分卡片(分布条)、元数据(类型/平台/开发商等)、简介、媒体画廊(视频+图片16:9)、推荐网格(含UmmMediaCard+DB状态) 和 热门短评(含游戏平台标签)
+  - 列表转芯片: 类型/开发商/发行商等多值字段自动分割为 `umm-meta-chip`
+  - 收藏状态: 玩过/想玩/在玩 通过 UmmInterestBar 按钮状态显示，短评支持从 DOM 回退提取
+- **添加到豆列**: `DOULIST_CAT_MAP`/`LABEL_MAP` 新增 `game` 类型，Vue 模板添加 `.umm-dl-trigger` 按钮
+- **全链路数据同步**: `router.ts` + `content.ts` 添加游戏URL匹配，`fullInit()` 覆盖游戏页；`scanDoubanPageStatus()` 扩展 `.collection-section` DOM 扫描；`extractCommentFromPage()` 增加游戏页 `.collection-comment` 提取
+- **身份标识/组件体系**: `Identity.fromUrl()` 解析 `www.douban.com/game/{id}`；`UmmStatusBadge` 新增 `game` 类型({已玩,想玩,未玩,在玩})；`UmmDynamicIsland`/`UmmMediaCard`/`UmmPageLayout`/`UmmStatusBadgeWrapper` props 支持 `'game'`
+
+### Fixed
+- **游戏详情页子路径误匹配**: 视频/图片/评论等 `/game/{id}/XXXX` 子页面不再触发详情注入 — `isGameDetailPage()`/路由匹配/content.ts 全面加 `\/?$` 结尾约束
+- **NeoDB/cross-platform 异步链路**: `App.vue onMounted` 调用 `fetchInterest()` 后注入 NeoDB 按钮；`onCrossPlatformSave` 完整执行跨平台同步+NeoDB推送
+
+### Chore
+- codereview 通过：Shadow DOM 隔离、`credentials: include` API 调用、textContent/innerHTML 只读提取
+- 安全审计通过：纯 DOM 提取 + Vue 模板插值，无 XSS/注入风险；Content Script Shadow DOM 隔离避免样式污染
+- `.gitignore` 补充 AI 辅助目录、MCP 配置等 11 条模式
+- 清理 `test-results/` 运行产物
+- type-check + build 通过
 
 ### Added
 - **豆瓣读书书评主页适配**: 新增 `book.douban.com/people/{uid}/reviews` 页面类型 `book-reviews`，覆盖用户书评列表的封面、标题、评分、内容预览、阅读统计、分页

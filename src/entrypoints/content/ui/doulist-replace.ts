@@ -35,6 +35,7 @@ const DOULIST_CAT_MAP: Record<string, string> = {
   tv: '1002',
   music: '1003',
   book: '1001',
+  game: '3114',
 }
 
 const DOULIST_LABEL_MAP: Record<string, string> = {
@@ -42,6 +43,7 @@ const DOULIST_LABEL_MAP: Record<string, string> = {
   tv: '片单',
   music: '歌单',
   book: '书单',
+  game: '豆列',
 }
 
 function getDoulistLabel(identity: UrlIdentity): string {

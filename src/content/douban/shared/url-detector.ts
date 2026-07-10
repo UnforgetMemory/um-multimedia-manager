@@ -37,6 +37,8 @@ export type PageType =
   | { type: 'albums' }
   | { type: 'genre' }
   | { type: 'artists-overview' }
+  | { type: 'game-collect'; subType: 'collect' | 'wish' | 'do' }
+  | { type: 'game-detail' }
 
 export function isAlbumsPage(url: string): boolean {
   return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
@@ -94,6 +96,10 @@ export function isPersonagePage(url: string): boolean {
   return /^https?:\/\/www\.douban\.com\/personage\/\d+/.test(url)
 }
 
+export function isGameDetailPage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/game\/\d+\/?$/.test(url)
+}
+
 export function isUserProfilePage(url: string): boolean {
   return /^https?:\/\/www\.douban\.com\/people\/[^/]+(?:\/)?(?:\?.*)?$/.test(url)
 }
@@ -140,6 +146,16 @@ export function isBookCollectPage(url: string): boolean {
 
 export function isBookAuthorsPage(url: string): boolean {
   return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/authors/.test(url)
+}
+
+export function isGameCollectPage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/people\/[^/]+\/games(\?.*)?$/.test(url)
+}
+
+export function getGameCollectSubType(url: string): 'collect' | 'wish' | 'do' {
+  if (url.includes('action=wish')) return 'wish'
+  if (url.includes('action=do')) return 'do'
+  return 'collect'
 }
 
 export function getBookCollectSubType(url: string): 'collect' | 'wish' | 'doing' {
@@ -194,5 +210,9 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isReviewDetailPage(url)) return { type: 'review-detail' }
   if (isBookReviewDetailPage(url)) return { type: 'book-review-detail' }
   if (isHomepage(url))       return { type: 'homepage' }
+  if (isGameDetailPage(url)) return { type: 'game-detail' }
+  if (isGameCollectPage(url)) {
+    return { type: 'game-collect', subType: getGameCollectSubType(url) }
+  }
   return null
 }

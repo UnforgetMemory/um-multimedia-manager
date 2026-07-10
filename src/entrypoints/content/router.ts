@@ -46,12 +46,13 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // 豆瓣详情页（电影/音乐）
+  // 豆瓣详情页（电影/音乐/图书/游戏）
   {
     match: (url) =>
       url.includes('movie.douban.com/subject/') ||
       url.includes('music.douban.com/subject/') ||
-      url.includes('book.douban.com/subject/'),
+      url.includes('book.douban.com/subject/') ||
+      (url.includes('www.douban.com') && /\/game\/\d+\/?$/.test(url)),
     handler: async (identity) => {
       if (identity) {
         await handleDoubanDetailPage(identity)

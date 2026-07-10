@@ -1,0 +1,20 @@
+/* ===== Game Detail — reuses movie detail design tokens and layout ===== */
+/* All layout classes (umm-detail-root, umm-detail-grid, etc.) are shared with
+   the movie detail page — see detail.css for the base styles */
+
+:host {
+  --umm-gd-accent: #4f6ef7;
+}
+:host(.umm-theme--dark) {
+  --umm-gd-accent: #6e8aff;
+}
+
+/* ===== Game comment platform badge ===== */
+.umm-comment-platform {
+  font-size: var(--umm-font-xs, 0.7rem);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--umm-bg-tertiary);
+  color: var(--umm-text-muted);
+  margin-left: 4px;
+}

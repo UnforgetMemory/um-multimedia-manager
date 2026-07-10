@@ -70,7 +70,18 @@ releases/
 .augment/
 .codex/
 .lingma/
+.continue/
+.zed/
+.aider/
+.codeium/
+.tabnine/
+.sourcegraph/
 .github/copilot-instructions.md
+.copilot*
+
+# MCP server configs
+.mcp*.json
+.mcp/
 
 # Sisyphus / OpenCode agent sessions
 .sisyphus/

@@ -132,7 +132,7 @@ export async function syncToLocalStorage(
     identity,
     existingRecord?.linkedIds,
   )
-  const rawPageComment = extractCommentFromPage()
+  const rawPageComment = extractCommentFromPage(identity)
   // Preserve existing comment when page doesn't provide one — avoids
   // overwriting a known-good comment with empty string on pages where
   // the comment element isn't visible or doesn't exist.

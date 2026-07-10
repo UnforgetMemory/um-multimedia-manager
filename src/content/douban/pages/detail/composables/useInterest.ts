@@ -117,7 +117,7 @@ interface InterestApiResponse {
  * await submitInterest('collect', 5)
  * ```
  */
-export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: InterestStatus, initialRating?: number): UseInterest {
+export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: InterestStatus, initialRating?: number, apiPathPrefix?: string): UseInterest {
   const interestStatus = ref<InterestStatus>(initial ?? null)
   const currentRating = ref(typeof initialRating === 'number' && initialRating >= 1 && initialRating <= 5 ? initialRating : 0)
   const myTags = ref<string[]>([])
@@ -127,8 +127,10 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
   const error = ref('')
   const loading = ref(false)
 
+  const apiPath = apiPathPrefix || `/j/subject`
+
   /**
-   * GET `/j/subject/{subjectId}/interest` to load current status.
+   * GET interest API to load current status.
    */
   async function fetchInterest(): Promise<void> {
     const sid = toValue(subjectId)
@@ -138,7 +140,7 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
     error.value = ''
 
     try {
-      const resp = await fetch(`/j/subject/${encodeURIComponent(sid)}/interest`, {
+      const resp = await fetch(`${apiPath}/${encodeURIComponent(sid)}/interest`, {
         credentials: 'include',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
       })
@@ -233,7 +235,7 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
         ck,
       })
 
-      const resp = await fetch(`/j/subject/${encodeURIComponent(sid)}/interest`, {
+      const resp = await fetch(`${apiPath}/${encodeURIComponent(sid)}/interest`, {
         method: 'POST',
         credentials: 'include',
         headers: {

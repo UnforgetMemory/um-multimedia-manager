@@ -116,7 +116,8 @@ export default defineContentScript({
     '*://piggo.me/details.php*',
     '*://*.piggo.me/details.php*',
     '*://javdb.com/*',
-    '*://www.douban.com/doulist/*'
+    '*://www.douban.com/doulist/*',
+    '*://www.douban.com/game/*',
   ],
   excludeMatches: ['*://*.douban.com/settings/*'],
   runAt: 'document_idle',
@@ -154,8 +155,9 @@ export default defineContentScript({
     }
 
     const isMTeamSite = location.href.includes('m-team.cc')
+    const isDoubanGamePage = location.hostname === 'www.douban.com' && /^\/game\/\d+\/?$/.test(location.pathname)
 
-    if (!hasMatchingRoute(location.href) && !isMTeamSite) {
+    if (!hasMatchingRoute(location.href) && !isMTeamSite && !isDoubanGamePage) {
       // Lightweight URL watcher for non-matching pages
       let initialized = false
       const tryInit = async () => {
@@ -244,11 +246,10 @@ async function loadCurrentRecord() {
 }
 
 function isDoubanDetailPage(): boolean {
-  return (
-    currentIdentity?.provider === 'douban' &&
-    (window.location.hostname === 'movie.douban.com' || window.location.hostname === 'music.douban.com' || window.location.hostname === 'book.douban.com') &&
-    window.location.pathname.includes('/subject/')
-  )
+  if (currentIdentity?.provider !== 'douban') return false
+  if (window.location.pathname.includes('/subject/')) return true
+  if (currentIdentity?.type === 'game' && window.location.pathname.startsWith('/game/')) return true
+  return false
 }
 
 function observeThemeChanges() {

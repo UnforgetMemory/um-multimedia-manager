@@ -17,7 +17,7 @@ export const UmmMediaCard = defineComponent({
     rating: { type: String, default: '' },
     episodes: { type: String, default: '' },
     intro: { type: String, default: '' },
-    type: { type: String as PropType<'movie' | 'music' | 'book'>, default: 'movie' },
+    type: { type: String as PropType<'movie' | 'music' | 'book' | 'game'>, default: 'movie' },
   },
   setup(props) {
     const handleClick = () => {

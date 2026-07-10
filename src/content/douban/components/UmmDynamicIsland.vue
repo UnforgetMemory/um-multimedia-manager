@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{
   /** Open links in new tab (default: true). Search page uses false */
   newTab?: boolean
   /** Search category type */
-  type?: 'movie' | 'music' | 'book'
+  type?: 'movie' | 'music' | 'book' | 'game'
   /** Pre-fill search input */
   initialQuery?: string
 }>(), {
@@ -28,8 +28,8 @@ const searchQuery = ref(props.initialQuery)
 const isSearching = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
-const catMap: Record<string, string> = { movie: '1002', music: '1003', book: '1001' }
-const labelMap: Record<string, string> = { movie: '电影', music: '音乐', book: '图书' }
+const catMap: Record<string, string> = { movie: '1002', music: '1003', book: '1001', game: '3114' }
+const labelMap: Record<string, string> = { movie: '电影', music: '音乐', book: '图书', game: '游戏' }
 
 function open(url: string): void {
   if (props.newTab) {
@@ -58,7 +58,12 @@ function doSearch(): void {
   if (!normalized) return
   isSearching.value = true
   const cat = catMap[props.type]
-  const url = `https://search.douban.com/${props.type}/subject_search?search_text=${encodeURIComponent(normalized)}&cat=${cat}`
+  let url: string
+  if (props.type === 'game') {
+    url = `https://search.douban.com/game/subject_search?search_text=${encodeURIComponent(normalized)}&cat=${cat}`
+  } else {
+    url = `https://search.douban.com/${props.type}/subject_search?search_text=${encodeURIComponent(normalized)}&cat=${cat}`
+  }
   open(url)
   searchTimeout = setTimeout(() => { isSearching.value = false }, 800)
 }
@@ -134,7 +139,7 @@ onUnmounted(() => {
         name="search_text"
         type="search"
         class="umm-island-input"
-        :placeholder="type === 'music' ? '搜索音乐、歌手、专辑' : type === 'book' ? '搜索图书、作者、出版社' : '搜索电影、电视剧、影人'"
+        :placeholder="type === 'game' ? '搜索游戏' : type === 'music' ? '搜索音乐、歌手、专辑' : type === 'book' ? '搜索图书、作者、出版社' : '搜索电影、电视剧、影人'"
         autocomplete="off"
         :aria-label="'搜索豆瓣' + labelMap[type]"
         @input="searchQuery = ($event.target as HTMLInputElement).value; handleInput()"

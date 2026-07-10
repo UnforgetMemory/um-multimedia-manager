@@ -38,6 +38,8 @@ const SUBTITLE: Record<string, string> = {
   'music-homepage': '音乐首页 · 加载中',
   genre: '音乐人分类 · 加载中',
   'artists-overview': '音乐人概览 · 加载中',
+  'game-collect': '游戏收藏 · 加载中',
+  'game-detail': '游戏详情 · 加载中',
 }
 
 function getOverlayConfig(): OverlayOptions | null {

@@ -7,7 +7,7 @@ export const UmmStatusBadgeWrapper = defineComponent({
     status: { type: Number, required: true },
     rating: { type: Number, default: undefined },
     variant: { type: String as PropType<'default' | 'small' | 'inline'>, default: 'default' },
-    type: { type: String as PropType<'movie' | 'music' | 'book'>, default: 'movie' },
+    type: { type: String as PropType<'movie' | 'music' | 'book' | 'game'>, default: 'movie' },
   },
   setup(props) {
     return () => h(UmmStatusBadge, { ...props })

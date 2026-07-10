@@ -43,6 +43,8 @@ import { mountBookReviews } from './pages/book-reviews/config'
 import { mountReviewDetail } from './pages/review-detail/config'
 import { mountBookReviewDetail } from './pages/book-review-detail/config'
 import { mountBookCollect } from './pages/book-collect/config'
+import { mountGameCollect } from './pages/game-collect/config'
+import { mountGameDetail } from './pages/game-detail/config'
 
 const registry = new MountRegistry()
 
@@ -70,6 +72,8 @@ registry.register('book-reviews', mountBookReviews)
 registry.register('review-detail', mountReviewDetail)
 registry.register('book-review-detail', mountBookReviewDetail)
 registry.register('book-collect', mountBookCollect)
+registry.register('game-collect', mountGameCollect)
+registry.register('game-detail', mountGameDetail)
 import { mountBookAuthors } from './pages/book-authors/config'
 registry.register('book-authors', mountBookAuthors)
 
