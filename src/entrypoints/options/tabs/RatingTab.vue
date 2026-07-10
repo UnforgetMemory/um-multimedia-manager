@@ -78,7 +78,7 @@ function parseRatingInput() {
   if (doubanMatch) {
     const isBook = input.includes('book'); const isMusic = input.includes('music')
     const id = doubanMatch[1]; const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie'
-    return { type: isBook || !isMusic ? 'movie' : 'music', provider: 'douban' as Provider, providerId: id, url: `https://${subdomain}.douban.com/subject/${id}/`, valid: true }
+    return { type: isBook ? 'book' : isMusic ? 'music' : 'movie', provider: 'douban' as Provider, providerId: id, url: `https://${subdomain}.douban.com/subject/${id}/`, valid: true }
   }
   const imdbMatch = input.match(/imdb\.com\/title\/(tt\d+)/i)
   if (imdbMatch) { const id = imdbMatch[1].toLowerCase(); return { type: 'movie', provider: 'imdb' as Provider, providerId: id, url: `https://www.imdb.com/title/${id}/`, valid: true } }
@@ -108,7 +108,7 @@ function parseRatingInput() {
 
   const nId = validation.normalizedId
   let url = ''
-  if (provider === 'douban') url = type === 'music' ? `https://music.douban.com/subject/${nId}/` : `https://movie.douban.com/subject/${nId}/`
+  if (provider === 'douban') url = type === 'music' ? `https://music.douban.com/subject/${nId}/` : type === 'book' ? `https://book.douban.com/subject/${nId}/` : `https://movie.douban.com/subject/${nId}/`
   else if (provider === 'imdb') url = `https://www.imdb.com/title/${nId}/`
   else if (provider === 'neodb') { const p = type === 'tv' ? 'tv' : type === 'music' ? 'album' : 'movie'; url = `https://neodb.social/${p}/${nId}/` }
   else if (provider === 'tmdb') url = type === 'tv' ? `https://www.themoviedb.org/tv/${nId}/` : `https://www.themoviedb.org/movie/${nId}/`

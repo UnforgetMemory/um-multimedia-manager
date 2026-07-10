@@ -64,6 +64,7 @@ const { t } = useI18n()
           <SelectItem value="movie">{{ t('stats.movie') }}</SelectItem>
           <SelectItem value="tv">{{ t('stats.tv') }}</SelectItem>
           <SelectItem value="music">{{ t('stats.music') }}</SelectItem>
+          <SelectItem value="book">{{ t('stats.book') }}</SelectItem>
         </SelectContent>
       </Select>
     </FormField>

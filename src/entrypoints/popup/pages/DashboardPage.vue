@@ -35,7 +35,7 @@ onMounted(() => appStore.loadData())
     <Separator />
 
     <div class="umm:flex-1 umm:px-5 umm:py-4 umm:overflow-y-auto">
-      <div class="umm:grid umm:grid-cols-2 umm:gap-3 umm:mb-4">
+      <div class="umm:grid umm:grid-cols-4 umm:gap-3 umm:mb-4">
         <StatCard :icon="Film" :label="t('stats.movie')" :value="stats.movie" :loading="!dataReady" />
         <StatCard :icon="Tv" :label="t('stats.tv')" :value="stats.tv" :loading="!dataReady" />
         <StatCard :icon="Music" :label="t('stats.music')" :value="stats.music" :loading="!dataReady" />

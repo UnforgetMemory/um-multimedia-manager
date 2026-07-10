@@ -84,10 +84,10 @@ export function extractCommentFromPage(): string {
     '.user_comment_wrapper .user_comment',
     /**
      * 用户自己的短评：位于 #interest_sect_level 内部最后的 <span>
-     * 结构: #interest_sect_level > .j.a_stars > span:last-child
+     * 结构: #interest_sect_level > div.j.a_stars > span:last-child
      * 示例: <span>都怪我~都怪我~<span class="pl"></span></span>
      */
-    '#interest_sect_level .j.a_stars > span:last-child',
+    '#interest_sect_level div.j.a_stars > span:last-child',
     // 仅当找不到自己的短评时才尝试其他用户的（兜底）
     '#comments .comment-item:first-child .comment',
   ]

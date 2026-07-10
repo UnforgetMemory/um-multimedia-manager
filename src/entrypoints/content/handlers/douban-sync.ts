@@ -134,7 +134,11 @@ export async function syncToLocalStorage(
   const hasRealChange = isNewRecord || isStatusChanged || isRatingChanged
 
   const mergedLinkedIds = extractCrossPlatformLinks(identity, existingRecord?.linkedIds)
-  const pageComment = extractCommentFromPage()
+  const rawPageComment = extractCommentFromPage()
+  // Preserve existing comment when page doesn't provide one — avoids
+  // overwriting a known-good comment with empty string on pages where
+  // the comment element isn't visible or doesn't exist.
+  const pageComment = rawPageComment || existingRecord?.comment || ''
   const isCommentChanged = existingRecord && existingRecord.comment !== pageComment
   const effectiveChange = hasRealChange || isCommentChanged
 

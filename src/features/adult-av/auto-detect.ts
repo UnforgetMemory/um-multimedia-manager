@@ -23,7 +23,7 @@ export function autoDetectPlatform(
   // URL-based detection (always apply)
   if (input.includes('douban.com')) {
     callbacks.setPlatform('douban')
-    callbacks.setDomain?.(input.includes('music.douban.com') ? 'music' : 'movie')
+    callbacks.setDomain?.(input.includes('music.douban.com') ? 'music' : input.includes('book.douban.com') ? 'book' : 'movie')
     return true
   }
   if (input.includes('imdb.com') || /^tt\d+$/i.test(input)) {

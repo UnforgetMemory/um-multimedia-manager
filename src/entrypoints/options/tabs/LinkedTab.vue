@@ -37,7 +37,7 @@ function parseLinkedInput() {
 
   // URL-based parsing
   const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/)
-  if (doubanMatch) { const isBook = input.includes('book'); const isMusic = input.includes('music'); const id = doubanMatch[1]; const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie'; return { type: isBook || !isMusic ? 'movie' : 'music', provider: 'douban' as Provider, providerId: id, url: `https://${subdomain}.douban.com/subject/${id}/`, valid: true } }
+  if (doubanMatch) { const isBook = input.includes('book'); const isMusic = input.includes('music'); const id = doubanMatch[1]; const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie'; return { type: isBook ? 'book' : isMusic ? 'music' : 'movie', provider: 'douban' as Provider, providerId: id, url: `https://${subdomain}.douban.com/subject/${id}/`, valid: true } }
   const imdbMatch = input.match(/imdb\.com\/title\/(tt\d+)/i)
   if (imdbMatch) { const id = imdbMatch[1].toLowerCase(); return { type: 'movie', provider: 'imdb' as Provider, providerId: id, url: `https://www.imdb.com/title/${id}/`, valid: true } }
   const neodbMatch = input.match(/neodb\.social\/(movie|tv|album)\/([\w-]+)/)
@@ -59,7 +59,7 @@ function parseLinkedInput() {
   }
 
   if (/^tt\d+$/i.test(input)) return { type: 'movie', provider: 'imdb' as Provider, providerId: input.toLowerCase(), url: `https://www.imdb.com/title/${input.toLowerCase()}/`, valid: true }
-  if (/^\d+$/.test(input)) { const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : 'movie'; return { type: linkedSelectedDomain.value, provider: 'douban' as Provider, providerId: input, url: `https://${subdomain}.douban.com/subject/${input}/`, valid: true } }
+  if (/^\d+$/.test(input)) { const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : linkedSelectedDomain.value === 'book' ? 'book' : 'movie'; return { type: linkedSelectedDomain.value, provider: 'douban' as Provider, providerId: input, url: `https://${subdomain}.douban.com/subject/${input}/`, valid: true } }
   return { type, provider, providerId: input, url: '', valid: false, error: t('validation.cannotParse') }
 }
 

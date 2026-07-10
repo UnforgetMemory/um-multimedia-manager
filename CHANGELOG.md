@@ -44,6 +44,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.gitignore` 复核：所有 AI 目录/产物模式已覆盖
 - 简洁英文注释补充：`UmmSearchCard` 组件 JSDoc 更新
 
+### Fixed
+- **Options RatingTab/LinkedTab 豆瓣图书适配**: book 类型映射修复
+  - `parseRatingInput()`: `book.douban.com` URL → `type: 'book'`（原被映射为 `'movie'`）
+  - ID 输入时图书 URL 正确构造为 `book.douban.com/subject/{id}`
+  - `autoDetectPlatform()`: `book.douban.com` 域名正确识别为 `'book'`
+  - `Domain` 类型扩展支持 `'book'`，类型约束完整覆盖
+- **豆瓣图书页面短评提取修复**: 嵌套 `.j.a_stars` DOM 结构干扰
+  - 选择器 `.j.a_stars` → `div.j.a_stars`，排除嵌套的 `<span>` 评价格式区
+  - 修复前：提取到 `"我的评价: 力荐"` 而非真实用户短评
+- **短评更新丢失修复**: 空串无条件覆盖已有短评
+  - `syncToLocalStorage()`: 当页面未提取到短评时，保留数据库中已有短评（`|| existingRecord?.comment` 守卫）
+
+### Changed
+- **Popup 布局优化**: 避免统计卡片 Y 轴溢出
+  - 宽度 480px→600px，统计卡片 2 列→4 列（5 卡排成 2 行）
+  - Options 按钮无需滚动直接可见
+
+### Chore
+- `.gitignore` 重构：去重 5 组重复条目（`.env`、`.env.local`、`.env.*.local`、`playwright-report/`、`test-results/`）
+  - 新增 `.vercel/` `.netlify/` `.history/` 模式
+- 63 项单元测试全部通过
+- 安全审计通过：所有变更经正则输入验证 + `textContent` DOM 读取 + 无动态代码执行
+
 ## [4.11.0] - 2026-07-09
 
 ### Added

@@ -42,6 +42,7 @@ Desktop.ini
 # Build output
 build
 extension
+releases/
 
 .agents
 
@@ -56,22 +57,11 @@ extension
 .lingma/
 .github/copilot-instructions.md
 
-# Playwright test output
-playwright-report/
-test-results/
-
-# Temporary review files
-review_diff*.txt
-
-# AI-generated documentation and test artifacts
-docs/_generated/
-docs/superpowers/
-.cortexkit/
-
-# Data export/import temporary directories
-data-exports/
-data-imports/
-releases/
+# Sisyphus / OpenCode agent sessions
+.sisyphus/
+.omo/
+.opencode/
+.codegraph
 
 # Test artifacts
 tests/
@@ -79,18 +69,27 @@ playwright-report/
 test-results/
 coverage/
 
-# Sisyphus / OpenCode agent sessions
-.sisyphus/
-.omo/
-.opencode/
-.codegraph
+# Platform build artifacts
+.vercel/
+.netlify/
 
-.localref/
-localref/
+# Temporary review files
+review_diff*.txt
+
+# AI-generated documentation
+docs/_generated/
+docs/superpowers/
+.cortexkit/
+
+# Data export/import temporary directories
+data-exports/
+data-imports/
+
+# Editor local history
+.history/
 
 # Environment variable variants (Vite/Node conventions)
 .env
-.env.local
 .env.*.local
 .env.development
 .env.production
@@ -115,3 +114,7 @@ pnpm-workspace.yaml
 .webpack/
 .output/
 *.tsbuildinfo
+
+# Misplaced node_modules
+.localref/
+localref/
