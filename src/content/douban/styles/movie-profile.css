@@ -52,6 +52,14 @@
 .umm-statbar {
   margin-bottom: var(--umm-space-xl, 32px);
 }
+
+/* Vue component Shadow DOM overrides */
+.umm-statbar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-md, 14px);
+}
+
 .umm-statbar-items {
   display: flex;
   gap: var(--umm-space-xs, 6px);
@@ -67,6 +75,7 @@
   border: 1px solid var(--umm-border);
   text-decoration: none;
   transition: background-color 0.15s ease, border-color 0.15s ease;
+  flex: 0 0 auto;
 }
 .umm-statbar-item:hover {
   background: linear-gradient(135deg, var(--umm-mp-accent), #818cf8);

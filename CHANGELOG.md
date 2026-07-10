@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **豆瓣个人/电影主页 StatBar 布局修复**: Shadow DOM 内 scoped CSS 失效
+  - `.umm-statbar-grid`: 全局 CSS 中补充 `display: flex; flex-wrap: wrap; gap: 14px;`
+  - `.umm-statbar-item`: 补充 `flex: 0 0 auto;`，防止 item 撑满行宽
+  - 根因：Vue scoped CSS 无法穿透 Shadow DOM，布局回退为 `display: block`
+  - 影响页面：`user-profile` + `movie-profile` 上所有 UmmStatBar 实例
+
+### Chore
+- code-review 通过：3 文件 +17/-2 行，CSS-only 变更
+- 安全审计通过：CSS-only，无用户输入/数据流/执行风险
+- 63 项单元测试全部通过
+- `.gitignore` 复核通过：无需补充
+
 ### Added
 - **豆瓣图书详情页深度适配**: `book.douban.com/subject/*` 全功能覆盖
   - 书名/副标题/原作名/作者/出版社/ISBN 等元信息完整提取

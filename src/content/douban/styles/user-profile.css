@@ -8,7 +8,7 @@
 
 :host(.umm-theme--dark) {
   --umm-profile-accent: #818cf8;
-  --umm-profile-accent-soft: #1e1b4b;
+  --umm-profile-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
 }
 
 /* ===== Root ===== */
@@ -75,6 +75,31 @@
   color: var(--umm-text-muted);
 }
 
+/* ===== Stat Bars wrapper ===== */
+
+.umm-statbars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-lg, 20px);
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+
+/* ===== Stat Bar (Vue component — Shadow DOM override) ===== */
+
+.umm-statbar-title {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin-bottom: var(--umm-space-1-5, 6px);
+  white-space: nowrap;
+}
+
+.umm-statbar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-md, 14px);
+}
+
 /* ===== Stat Bar ===== */
 
 .umm-statbar {
@@ -118,6 +143,7 @@
   color: inherit;
   transition: background-color 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .umm-statbar-item:hover {
