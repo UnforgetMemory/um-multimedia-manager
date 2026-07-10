@@ -130,7 +130,7 @@
 
 .umm-activity-body {
   position: relative;
-  z-index: 1;
+  z-index: var(--umm-z-sticky, 50);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;

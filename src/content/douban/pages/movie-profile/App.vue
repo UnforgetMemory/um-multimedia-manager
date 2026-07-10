@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
+import UmmStatBar from '@/content/douban/components/UmmStatBar.vue'
 import type { MovieProfileData } from './types'
 
 defineProps<{
@@ -23,20 +24,10 @@ defineProps<{
       </div>
 
       <!-- Stat Pills -->
-      <div v-if="data.stats.length > 0" class="umm-statbar">
-        <div class="umm-statbar-items">
-          <a
-            v-for="s in data.stats"
-            :key="s.label"
-            :href="s.url"
-            class="umm-statbar-item"
-            target="_blank"
-          >
-            <span class="umm-statbar-val">{{ s.count.toLocaleString() }}</span>
-            <span class="umm-statbar-lbl">{{ s.label }}</span>
-          </a>
-        </div>
-      </div>
+      <UmmStatBar
+        v-if="data.stats.length > 0"
+        :items="data.stats.map(s => ({ label: s.label, value: s.count, url: s.url }))"
+      />
 
       <!-- Sections -->
       <div v-for="sec in data.sections" :key="sec.label" class="umm-dash-section">
@@ -62,26 +53,13 @@ defineProps<{
       </div>
 
       <!-- Celebrity & Review Row -->
-      <div v-if="data.celebrityCount > 0 || data.reviewCount > 0" class="umm-movie-profile-extras">
-        <a
-          v-if="data.celebrityCount > 0"
-          :href="data.celebrityUrl"
-          class="umm-statbar-item"
-          target="_blank"
-        >
-          <span class="umm-statbar-val">{{ data.celebrityCount }}</span>
-          <span class="umm-statbar-lbl">收藏的影人</span>
-        </a>
-        <a
-          v-if="data.reviewCount > 0"
-          :href="data.reviewUrl"
-          class="umm-statbar-item"
-          target="_blank"
-        >
-          <span class="umm-statbar-val">{{ data.reviewCount }}</span>
-          <span class="umm-statbar-lbl">我的影评</span>
-        </a>
-      </div>
+      <UmmStatBar
+        v-if="data.celebrityCount > 0 || data.reviewCount > 0"
+        :items="[
+          ...(data.celebrityCount > 0 ? [{ label: '收藏的影人', value: data.celebrityCount, url: data.celebrityUrl }] : []),
+          ...(data.reviewCount > 0 ? [{ label: '我的影评', value: data.reviewCount, url: data.reviewUrl }] : []),
+        ]"
+      />
 
       <!-- Doulists -->
       <div v-if="data.doulists.length > 0" class="umm-dash-section">

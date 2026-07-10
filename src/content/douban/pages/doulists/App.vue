@@ -1,36 +1,56 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { DoulistsPageData } from './types'
 import { CATEGORY_LABELS } from './types'
+import UmmPaginator from '@/content/douban/components/UmmPaginator.vue'
+import UmmUserBar from '@/content/douban/components/UmmUserBar.vue'
 
-defineProps<{
+const props = defineProps<{
   data: DoulistsPageData
 }>()
+
+/** Derive current page number from pageLinks */
+const currentPage = computed(() => {
+  const current = props.data.pageLinks.find(p => p.current)
+  if (!current) return 1
+  const n = parseInt(current.label, 10)
+  return isNaN(n) ? 1 : n
+})
+
+/** Derive total pages from last page link label */
+const totalPages = computed(() => {
+  const links = props.data.pageLinks
+  if (links.length === 0) return 1
+  const last = links[links.length - 1].label
+  const n = parseInt(last, 10)
+  return isNaN(n) ? 1 : n
+})
+
+/** Navigate to the URL for the requested page */
+function onPageChange(page: number): void {
+  const link = props.data.pageLinks.find(p => p.label === String(page))
+  if (link?.url) {
+    window.location.href = link.url
+    return
+  }
+  if (page < currentPage.value && props.data.prevPageUrl) {
+    window.location.href = props.data.prevPageUrl
+  } else if (page > currentPage.value && props.data.nextPageUrl) {
+    window.location.href = props.data.nextPageUrl
+  }
+}
 </script>
 
 <template>
   <UmmPageLayout type="movie">
     <div class="umm-doulists-root">
-      <!-- User Bar -->
-      <div v-if="data.displayName" class="umm-doulists-userbar">
-        <div
-          v-if="data.avatarUrl"
-          class="umm-doulists-avatar"
-          :style="{ backgroundImage: `url(${data.avatarUrl})` }"
-        />
-        <div class="umm-doulists-userinfo">
-          <a :href="`/people/${data.userId}/`" class="umm-doulists-username" target="_blank">{{ data.displayName }}</a>
-          <div v-if="data.navLinks.length > 0" class="umm-doulists-nav">
-            <a
-              v-for="link in data.navLinks"
-              :key="link.url"
-              :href="link.url"
-              class="umm-doulists-navlink"
-              target="_blank"
-            >{{ link.label }}</a>
-          </div>
-        </div>
-      </div>
+      <UmmUserBar
+        :avatar-url="data.avatarUrl"
+        :display-name="data.displayName"
+        :user-id="data.userId"
+        :nav-links="data.navLinks"
+      />
 
       <!-- Xbar Category Tabs -->
       <div v-if="data.xbarCategories.length > 0" class="umm-doulist-xbar">
@@ -119,24 +139,11 @@ defineProps<{
       <div v-else class="umm-doulists-empty">暂无豆列</div>
 
       <!-- Paginator -->
-      <div v-if="data.pageLinks.length > 0" class="umm-doulist-paginator">
-        <a
-          v-if="data.prevPageUrl"
-          :href="data.prevPageUrl"
-          class="umm-doulist-page"
-        >‹</a>
-        <a
-          v-for="pl in data.pageLinks"
-          :key="pl.label"
-          :href="pl.url || undefined"
-          :class="['umm-doulist-page', pl.current ? 'umm-doulist-page--active' : '']"
-        >{{ pl.label }}</a>
-        <a
-          v-if="data.nextPageUrl"
-          :href="data.nextPageUrl"
-          class="umm-doulist-page"
-        >›</a>
-      </div>
+      <UmmPaginator
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        @page-change="onPageChange"
+      />
     </div>
   </UmmPageLayout>
 </template>

@@ -1,10 +1,16 @@
-/* ===== Unified scrollbar styles (Chrome + Firefox) ===== */
+/* ===== UMM Douban Base Styles ===== */
+/* Merged from common.css + components.css. Components variables
+   (--umm-card-bg, --umm-card-border, --umm-content-gap) now live in
+   design-tokens.css. Requires design-tokens.css composed before this file. */
+/* WARNING: ?raw import — NO @import statements allowed inside this file */
+
+/* ---- Scrollbar (Chrome + Firefox) ---- */
 :host {
   scrollbar-width: thin;
-  scrollbar-color: var(--umm-border) var(--umm-bg-secondary);
+  scrollbar-color: var(--umm-color-border) var(--umm-color-surface-secondary);
 }
 
-/* ===== Shared page host reset ===== */
+/* ---- Shared page host reset ---- */
 :host {
   display: block;
   width: 100%;
@@ -17,15 +23,15 @@
 }
 :host::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 3px;
+  border-radius: var(--umm-radius-sm, 3px);
 }
 :host::-webkit-scrollbar-thumb {
-  background: var(--umm-border);
-  border-radius: 3px;
+  background: var(--umm-color-border);
+  border-radius: var(--umm-radius-sm, 3px);
   transition: background 0.2s ease;
 }
 :host::-webkit-scrollbar-thumb:hover {
-  background: var(--umm-text-muted);
+  background: var(--umm-color-text-muted);
 }
 
 /* ---- Image shimmer placeholder ---- */
@@ -33,7 +39,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--umm-bg-secondary, #f0f0f0);
+  background: var(--umm-color-surface-secondary);
   overflow: hidden;
 }
 
@@ -59,7 +65,7 @@
 }
 
 :host(.umm-theme--dark) .umm-img-shimmer {
-  background: var(--umm-bg-secondary, #2a2b30);
+  background: var(--umm-color-surface-secondary);
 }
 
 :host(.umm-theme--dark) .umm-img-shimmer::after {
@@ -92,10 +98,10 @@
   color: var(--umm-rating-gold-high);
 }
 .umm-rating-count {
-  color: var(--umm-text-muted);
+  color: var(--umm-color-text-muted);
 }
 .umm-rating-na {
-  color: var(--umm-text-muted);
+  color: var(--umm-color-text-muted);
 }
 
 @keyframes umm-shimmer {

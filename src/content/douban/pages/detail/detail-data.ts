@@ -1,508 +1,76 @@
 /**
- * Detail page data extraction — extracted from douban-detail.content/index.ts
+ * Detail page data extraction and record loading.
+ *
+ * Thin orchestrator: re-exports from submodules and provides the combined
+ * {@link extractDetailData} function that performs both DOM extraction and
+ * IndexedDB enrichment.
  */
 
-import { Identity } from '@/features/identity'
-import type { UrlIdentity, StoreRecord } from '@/types'
-import { Store } from '@/features/database'
-import DOMPurify from 'dompurify'
+// Re-export all types
+export type { RatingBar, MetaRow, CelebItem, AwardItem, PhotoItem, RecItem, ShortComment, BlockquoteItem, EditionItem, DetailData } from './types'
 
-export interface RatingBar {
-  label: string
-  pct: string
-}
+// Re-export core extraction helpers
+export { extractCoreMetadata, extractPosterRating, extractRatingBars, extractBetterThan, extractMetaRows, extractSynopsis, extractAwards, extractRank } from './extractor'
 
-export interface MetaRow {
-  label: string
-  html: string
-}
+// Re-export supplementary extraction helpers
+export { extractCelebrities, extractPhotos, extractRecItemsDom, extractShortComments, extractAuthorBio, extractTOC, extractTrackItems, extractBlockquotes, extractEditions } from './extra-extractor'
 
-export interface CelebItem {
-  name: string
-  role: string
-  avatar: string
-  link: string
-}
+// Re-export record loader
+export { loadRecord, enrichRecItems } from './record-loader'
 
-export interface AwardItem {
-  festival: string
-  category: string
-  nominee: string
-  nomineeLink: string
-  isNomination: boolean
-}
-
-export interface PhotoItem {
-  src: string
-  link: string
-  isVideo: boolean
-}
-
-export interface RecItem {
-  title: string
-  poster: string
-  rating: string
-  link: string
-  subjectId: string
-  recStatus: number    // 0=none 1=wish 2=done 3=doing
-  personalRating?: number
-}
-
-export interface ShortComment {
-  user: string
-  userLink: string
-  avatar: string
-  rating: number
-  content: string
-  time: string
-  votes: number
-}
-
-export interface BlockquoteItem {
-  text: string
-  user: string
-  source: string
-  votes: number
-}
-
-export interface EditionItem {
-  title: string
-  link: string
-  rating: string
-  count: string
-}
-
-export interface DetailData {
-  identity: UrlIdentity
-  title: string
-  originalTitle: string
-  year: string
-  posterSrc: string
-  posterAlt: string
-  posterLink: string
-  ratingNum: string
-  ratingPeople: string
-  bigstarNum: string
-  ratingBars: RatingBar[]
-  betterThan: string[]
-  metaRows: MetaRow[]
-  synopsisHeading: string
-  synopsisHtml: string
-  celebHeading: string
-  celebItems: CelebItem[]
-  celebCount: string
-  awardItems: AwardItem[]
-  photoItems: PhotoItem[]
-  photoCount: string
-  trailerCount: string
-  recItems: RecItem[]
-  shortComments: ShortComment[]
-  rankNo: string
-  rankText: string
-  rankHref: string
-  isMusic: boolean
-  isBook: boolean
-  subtitle: string
-  authorBioHtml: string
-  tocItems: string[]
-  blockquoteItems: BlockquoteItem[]
-  editionItems: EditionItem[]
-  record: StoreRecord | null
-  trackItems: string[]
-}
+import {
+  extractCoreMetadata,
+  extractPosterRating,
+  extractRatingBars,
+  extractBetterThan,
+  extractMetaRows,
+  extractSynopsis,
+  extractAwards,
+  extractRank,
+} from './extractor'
+import {
+  extractCelebrities,
+  extractPhotos,
+  extractRecItemsDom,
+  extractShortComments,
+  extractAuthorBio,
+  extractTOC,
+  extractTrackItems,
+  extractBlockquotes,
+  extractEditions,
+} from './extra-extractor'
+import { enrichRecItems } from './record-loader'
+import type { DetailData } from './types'
 
 /**
  * Parse the current Douban detail page DOM into DetailData.
  *
- * Reads identity (type/providerId) from URL, scrapes meta info, cast/crew,
- * synopsis, ratings, photos, recommendations, and fetches the corresponding
- * IndexedDB record. All HTML from the page is DOMPurify-sanitised before
- * returning. Returns null if no identity can be derived from the URL.
+ * Reads identity (type/providerId) from URL, scrapes all sections, and
+ * enriches recommendation items with personal status from IndexedDB.
+ * All HTML from the page is DOMPurify-sanitised before returning.
+ * Returns null if no identity can be derived from the URL.
  */
 export async function extractDetailData(): Promise<DetailData | null> {
-  const identity = Identity.fromUrl(location.href)
+  const meta = extractCoreMetadata()
+  const { identity, isMusic, isBook, title, originalTitle, year, subtitle } = meta
   if (!identity) return null
 
-  const isMusic = location.href.includes('music.douban.com')
-  const isBook = location.href.includes('book.douban.com')
-
-  const h1 = document.querySelector('#content h1, #wrapper > h1, h1.title') as HTMLElement | null
-  const titleSpan = h1?.querySelector('[property="v:itemreviewed"]')
-  const yearSpan = h1?.querySelector('.year')
-  const title = titleSpan?.textContent?.trim() || h1?.textContent?.trim() || ''
-  const year = yearSpan?.textContent?.trim()?.replace(/[()]/g, '') || ''
-
-  const subtitleEl = document.querySelector('h2.subtitle')
-  const subtitle = subtitleEl?.textContent?.trim() || ''
-
-  let originalTitle = ''
-  const infoEl = document.querySelector('#info')
-  if (infoEl) {
-    const infoParts = infoEl.innerHTML.split(/<br\s*\/?>/i)
-    for (const part of infoParts) {
-      const temp = document.createElement('div')
-      temp.innerHTML = part.trim()
-      const pl = temp.querySelector('.pl')
-      if (pl?.textContent?.includes('原名') || pl?.textContent?.includes('原作名')) {
-        pl.remove()
-        const parent = pl.parentElement
-        if (parent) {
-          for (let i = parent.childNodes.length - 1; i >= 0; i--) {
-            const node = parent.childNodes[i]
-            if (node.nodeType === Node.TEXT_NODE && /^:\s*$/.test(node.textContent || '')) {
-              node.remove()
-            }
-          }
-        }
-        originalTitle = temp.textContent?.trim() || ''
-        break
-      }
-    }
-  }
-
-  // Poster
-  const posterImg = document.querySelector('#mainpic img') as HTMLImageElement | null
-  const posterSrc = (posterImg?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/')
-  const posterAlt = posterImg?.alt || ''
-  const posterLink = (document.querySelector('#mainpic a') as HTMLAnchorElement)?.href || ''
-
-  // Rating
-  const ratingNum = document.querySelector('.rating_num')?.textContent?.trim() || ''
-  const ratingPeople = document.querySelector('.rating_people span')?.textContent?.trim() || ''
-  const ratingStarEl = document.querySelector('.bigstar') as HTMLElement | null
-  const bigstarNum = ratingStarEl?.className?.replace(/\D/g, '') || ''
-
-  // Rating bars
-  const ratingBars: RatingBar[] = []
-  document.querySelectorAll('.ratings-on-weight .item').forEach((item) => {
-    const label = (item.querySelector('.starstop') as HTMLElement)?.textContent?.trim() || ''
-    const pct = (item.querySelector('.rating_per') as HTMLElement)?.textContent?.trim() || ''
-    if (label) ratingBars.push({ label, pct })
-  })
-  if (ratingBars.length === 0 && isBook) {
-    const sectl = document.getElementById('interest_sectl')
-    if (sectl) {
-      const stars = sectl.querySelectorAll('.starstop')
-      stars.forEach((star) => {
-        const label = star.textContent?.trim() || ''
-        const power = star.nextElementSibling as HTMLElement | null
-        const pctEl = power?.nextElementSibling as HTMLElement | null
-        const pct = pctEl?.textContent?.trim() || ''
-        if (label) ratingBars.push({ label, pct })
-      })
-    }
-  }
-
-  // Better than
-  const betterThan: string[] = []
-  document.querySelectorAll('.rating_betterthan a').forEach((a) => {
-    const text = a.textContent?.trim() || ''
-    if (text) betterThan.push(text)
-  })
-
-  // Meta info
-  const metaRows: MetaRow[] = []
-  if (infoEl) {
-    const parts = infoEl.innerHTML.split(/<br\s*\/?>/i)
-    for (const part of parts) {
-      const trimmed = part.trim()
-      if (!trimmed) continue
-      const temp = document.createElement('div')
-      temp.innerHTML = trimmed
-      const pl = temp.querySelector('.pl')
-      // Extract label from first text node only, not pl.textContent
-      // (which includes all descendant text like performer names inside <a>)
-      let label = ''
-      if (pl) {
-        if (pl.firstChild?.nodeType === Node.TEXT_NODE) {
-          label = (pl.firstChild.textContent || '').replace(':', '').trim()
-        }
-        if (!label) label = (pl.textContent?.replace(':', '').trim() || '')
-        if (pl.firstChild?.nodeType === Node.TEXT_NODE) {
-          pl.removeChild(pl.firstChild)
-        }
-      }
-      if (pl) {
-        const parent = pl.parentElement
-        // Move child nodes (e.g. <a> links) out of pl before removing it,
-        // because live page may have <a> inside <span class="pl"> (e.g. 表演者)
-        while (pl.firstChild) {
-          parent?.insertBefore(pl.firstChild, pl.nextSibling)
-        }
-        pl.remove()
-        if (parent) {
-          for (let i = parent.childNodes.length - 1; i >= 0; i--) {
-            const node = parent.childNodes[i]
-            if (node.nodeType === Node.TEXT_NODE && /^:\s*$/.test(node.textContent || '')) {
-              node.remove()
-            }
-          }
-        }
-      }
-      // Expand hidden spans (display:none) by removing the style attribute —
-      // DOMPurify strips style attributes anyway, which would make hidden
-      // items visible without chip wrapping; stripping style here keeps
-      // them in the same code path as visible items
-      // Also remove the "更多..." link since all items are expanded
-      const trimmedHtml = temp.innerHTML.trim()
-        .replace(/<span([^>]*)style="[^"]*display\s*:\s*none[^"]*"([^>]*)>/gi, '<span$1$2>')
-        .replace(/<a[^>]*class="[^"]*more-attrs[^"]*"[^>]*>.*?<\/a>\s*/gi, '')
-      const text = DOMPurify.sanitize(trimmedHtml)
-      metaRows.push({ label, html: text })
-    }
-  }
-
-  // Synopsis
-  const relatedInfo = document.querySelector(
-    '#content > .grid-16-8.clearfix > .article > .related-info'
-  ) || (isBook ? document.querySelector('.related_info') : null)
-  const synopsisHeading = isMusic ? '简介' : isBook ? '内容简介' : '剧情简介'
-  let synopsisHtml = ''
-  if (isBook) {
-    const intros = document.querySelectorAll('#link-report .intro')
-    synopsisHtml = DOMPurify.sanitize(Array.from(intros).map(el => el.innerHTML).join('\n'))
-  } else {
-    const synopsisEl = relatedInfo?.querySelector('[property="v:summary"], [property="v:des"]')
-      || relatedInfo?.querySelector('span.all.hidden, span:not(.all.hidden)')
-    synopsisHtml = DOMPurify.sanitize(synopsisEl?.innerHTML || '')
-  }
-
-  // Celebrities / Authors
-  const celebEl = document.querySelector('#celebrities')
-  const celebHeading = isMusic ? '表演者' : isBook ? '创作者' : '演职员'
-  const celebItems: CelebItem[] = []
-  if (celebEl) {
-    celebEl.querySelectorAll('.celebrity').forEach((li) => {
-      const nameEl = li.querySelector('.name a')
-      const roleEl = li.querySelector('.role')
-      const avatarEl = li.querySelector('.avatar') as HTMLElement | null
-      const bgImg = avatarEl?.style.backgroundImage || ''
-      const avatarUrl = bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
-      celebItems.push({
-        name: nameEl?.textContent?.trim() || '',
-        role: roleEl?.textContent?.trim() || '',
-        avatar: avatarUrl,
-        link: (nameEl as HTMLAnchorElement)?.href || '',
-      })
-    })
-  } else if (isBook) {
-    document.querySelectorAll('#authors .author:not(.fake)').forEach((li) => {
-      const imgEl = li.querySelector('.avatar') as HTMLImageElement | null
-      const nameEl = li.querySelector('.name')
-      const roleEl = li.querySelector('.role')
-      const href = li.querySelector('.name')?.getAttribute('href') || ''
-      celebItems.push({
-        name: nameEl?.textContent?.trim() || '',
-        role: roleEl?.textContent?.trim() || '',
-        avatar: imgEl?.src || '',
-        link: href,
-      })
-    })
-  }
-
-  const celebPl = celebEl?.querySelector('.pl')
-  const celebCount = celebPl?.textContent?.trim().replace(/[()]/g, '') || ''
-
-  // Awards
-  const awardMod = document.querySelector(
-    '#content > .grid-16-8.clearfix > .article > .mod'
-  )
-  const awardItems: AwardItem[] = []
-  awardMod?.querySelectorAll('ul.award').forEach((ul) => {
-    const lis = ul.querySelectorAll('li')
-    if (lis.length >= 2) {
-      const festival = lis[0]?.querySelector('a')?.textContent?.trim() || lis[0]?.textContent?.trim() || ''
-      const category = lis[1]?.textContent?.trim() || ''
-      const nomineeEl = lis[2]?.querySelector('a') as HTMLAnchorElement | null
-      const nominee = nomineeEl?.textContent?.trim() || lis[2]?.textContent?.trim() || ''
-      const nomineeLink = nomineeEl?.href || ''
-      const isNomination = category.includes('提名')
-      if (festival) awardItems.push({ festival, category, nominee, nomineeLink, isNomination })
-    }
-  })
-
-  // Rank
-  const rankLabel = document.querySelector('.rank-label')
-  const rankNo = rankLabel?.querySelector('.rank-label-no')?.textContent?.trim() || ''
-  const rankLink = rankLabel?.querySelector('.rank-label-link a') as HTMLAnchorElement | null
-  const rankText = rankLink?.textContent?.trim() || ''
-  const rankHref = rankLink?.href || ''
-
-  // Photos
-  const photoEl = document.querySelector('#related-pic')
-  const photoItems: PhotoItem[] = []
-  photoEl?.querySelectorAll('.related-pic-bd li').forEach((li) => {
-    const videoEl = li.querySelector('.related-pic-video') as HTMLElement | null
-    const imgEl = li.querySelector('img') as HTMLImageElement | null
-    const linkEl = (li.querySelector('a') as HTMLAnchorElement) || null
-    if (videoEl) {
-      const bgImg = videoEl.style.backgroundImage || ''
-      const src = bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
-      photoItems.push({ src, link: linkEl?.href || '', isVideo: true })
-    } else if (imgEl) {
-      photoItems.push({ src: imgEl.src, link: linkEl?.href || '', isVideo: false })
-    }
-  })
-
-  const photoPl = photoEl?.querySelector('h2 .pl')
-  const photoPlText = photoPl?.textContent || ''
-  const trailerMatch = photoPlText.match(/预告片(\d+)/)
-  const photoMatch = photoPlText.match(/图片(\d+)/)
-  const trailerCount = trailerMatch?.[1] || ''
-  const photoCount = photoMatch?.[1] || ''
-
-  // Recommendations — handle both movie (#recommendations) and music (#db-rec-section) DOM
-  const recEl = document.querySelector('#recommendations') || document.querySelector('#db-rec-section')
-  const recItems: RecItem[] = []
-  const container = recEl?.querySelector('.recommendations-bd, .content')
-  ;(container || recEl)?.querySelectorAll('dl').forEach((dl) => {
-    const img = dl.querySelector('dt img') as HTMLImageElement | null
-    const linkEl = dl.querySelector('dd a') as HTMLAnchorElement | null
-    // Use dl.querySelector() not linkEl.querySelector() — .subject-rate is
-    // a sibling of <a> inside <dd>, not a child of <a>, so scoping to linkEl
-    // (the <a> element) would miss it entirely.
-    const rate = dl.querySelector('.subject-rate')?.textContent?.trim() || ''
-    const href = linkEl?.href || ''
-    const idMatch = href.match(/\/subject\/(\d+)/)
-    if (!idMatch) return // skip empty/placeholder dl items (e.g. <dl class="clear">)
-    recItems.push({
-      title: linkEl?.textContent?.trim() || img?.alt || '',
-      poster: (img?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/'),
-      rating: rate,
-      link: href,
-      subjectId: idMatch[1],
-      recStatus: 0,
-    })
-  })
-
-  // Load full record status for all rec items from IndexedDB
-  if (recItems.length > 0) {
-    try {
-      const entries = await Store.dbGetAll('douban_records')
-      const recordMap = new Map<string, { status: number; rating: number }>()
-      for (const { key, record } of entries) {
-        const id = key.split('::')[1]
-        if (id && (record.status ?? 0) > 0) {
-          recordMap.set(id, { status: record.status, rating: record.rating || 0 })
-        }
-      }
-      for (const item of recItems) {
-        if (!item.subjectId) continue
-        const rec = recordMap.get(item.subjectId)
-        if (rec) {
-          item.recStatus = rec.status
-          if (rec.rating > 0) item.personalRating = rec.rating
-        }
-      }
-    } catch { /* silent */ }
-  }
-
-  // Short comments
-  const commentsSection = document.querySelector('#comments-section')
-  const shortComments: ShortComment[] = []
-  commentsSection?.querySelectorAll('.comment-item').forEach((item) => {
-    const info = item.querySelector('.comment-info')
-    const userEl = info?.querySelector('a') as HTMLAnchorElement | null
-    const ratingEl = info?.querySelector('[class*="allstar"]')
-    const cls = ratingEl?.className || ''
-    const ratingMatch = cls.match(/allstar(\d)0/)
-    const contentEl = item.querySelector('.short')
-    const timeEl = info?.querySelector('.comment-time')
-    const voteEl = item.querySelector('.votes')
-    const avatarEl = item.querySelector('.avator img') as HTMLImageElement | null
-    const rating = ratingMatch ? parseInt(ratingMatch[1], 10) : 0
-    if (!userEl || !contentEl) return
-    shortComments.push({
-      user: userEl.textContent?.trim() || '',
-      userLink: userEl.href || '',
-      avatar: avatarEl?.src || '',
-      rating,
-      content: contentEl.textContent?.trim() || '',
-      time: timeEl?.textContent?.trim() || '',
-      votes: parseInt(voteEl?.textContent?.trim() || '0', 10) || 0,
-    })
-  })
-
-  let authorBioHtml = ''
-  if (isBook) {
-    const h2s = document.querySelectorAll('h2')
-    for (const h2 of h2s) {
-      if (h2.textContent?.includes('作者简介')) {
-        const indent = h2.nextElementSibling as HTMLElement | null
-        const intro = indent?.querySelector('.intro')
-        if (intro) {
-          authorBioHtml = DOMPurify.sanitize(intro.innerHTML)
-        }
-        break
-      }
-    }
-  }
-
-  const tocItems: string[] = []
-  if (isBook) {
-    const dirEl = document.querySelector('[id^="dir_"]')
-    if (dirEl) {
-      const html = dirEl.innerHTML
-      const parts = html.split(/<br\s*\/?>/i)
-      for (const part of parts) {
-        const text = part.replace(/<[^>]+>/g, '').trim()
-        if (text) tocItems.push(text)
-      }
-    }
-  }
-
-  // Track list (music albums only)
-  const trackItems: string[] = []
-  document.querySelectorAll('.track-list .track-items li').forEach(li => {
-    const order = (li as HTMLElement).dataset.trackOrder || ''
-    const text = li.textContent?.trim() || ''
-    if (text) trackItems.push(order ? `${order} ${text}` : text)
-  })
-
-  // Blockquotes (books only — 原文摘录)
-  const blockquoteItems: BlockquoteItem[] = []
-  if (isBook) {
-    document.querySelectorAll('.blockquote-list li').forEach((li) => {
-      const figure = li.querySelector('figure')
-      if (!figure) return
-      const extra = figure.querySelector('.blockquote-extra')
-      let text = ''
-      if (extra) {
-        const clone = figure.cloneNode(true) as HTMLElement
-        clone.querySelector('.blockquote-extra')?.remove()
-        text = clone.textContent?.replace(/\s+/g, ' ').trim() || ''
-      } else {
-        text = figure.textContent?.replace(/\s+/g, ' ').trim() || ''
-      }
-      const meta = extra?.querySelector('.blockquote-meta')
-      const user = meta?.querySelector('.author-name')?.textContent?.trim() || ''
-      const votesText = meta?.textContent?.match(/(\d+)赞/)?.[1] || '0'
-      const figcaption = extra?.querySelector('figcaption')
-      const source = figcaption?.getAttribute('title') || ''
-      if (text) blockquoteItems.push({ text, user, source, votes: parseInt(votesText, 10) || 0 })
-    })
-  }
-
-  // Other editions (books only — 其他版本)
-  const editionItems: EditionItem[] = []
-  if (isBook) {
-    const h2s = document.querySelectorAll('h2')
-    for (const h2 of h2s) {
-      if (h2.textContent?.includes('其他版本')) {
-        const ul = h2.nextElementSibling as HTMLElement | null
-        if (ul && ul.tagName === 'UL') {
-          ul.querySelectorAll('li.mb8').forEach((li) => {
-            const link = li.querySelector('.meta a') as HTMLAnchorElement | null
-            const countEl = li.querySelector('.count')
-            const rating = countEl?.querySelector('span')?.textContent?.trim() || ''
-            const count = countEl?.textContent?.replace(rating, '').trim() || ''
-            if (link) editionItems.push({ title: link.textContent?.trim() || '', link: link.href, rating, count })
-          })
-        }
-        break
-      }
-    }
-  }
+  const { posterSrc, posterAlt, posterLink, ratingNum, ratingPeople, bigstarNum } = extractPosterRating()
+  const ratingBars = extractRatingBars(isBook)
+  const betterThan = extractBetterThan()
+  const metaRows = extractMetaRows()
+  const { synopsisHeading, synopsisHtml } = extractSynopsis(isMusic, isBook)
+  const { celebHeading, celebItems, celebCount } = extractCelebrities(isMusic, isBook)
+  const awardItems = extractAwards()
+  const { rankNo, rankText, rankHref } = extractRank()
+  const { photoItems, photoCount, trailerCount } = extractPhotos()
+  const recItems = await enrichRecItems(extractRecItemsDom())
+  const shortComments = extractShortComments()
+  const authorBioHtml = extractAuthorBio()
+  const tocItems = extractTOC()
+  const trackItems = extractTrackItems()
+  const blockquoteItems = extractBlockquotes()
+  const editionItems = extractEditions()
 
   return {
     identity,
@@ -541,15 +109,5 @@ export async function extractDetailData(): Promise<DetailData | null> {
     editionItems,
     record: null,
     trackItems,
-  }
-}
-
-export async function loadRecord(identity: UrlIdentity): Promise<StoreRecord | null> {
-  try {
-    const prefix = `${identity.type}::`
-    const key = `${prefix}${identity.providerId}`
-    return await Store.dbGet('douban_records', key)
-  } catch {
-    return null
   }
 }

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { UserReviewsData } from './types'
+import UmmUserBar from '@/content/douban/components/UmmUserBar.vue'
 
 defineProps<{
   data: UserReviewsData
@@ -36,20 +37,12 @@ function starHtml(rating: number): string {
 <template>
   <UmmPageLayout type="movie">
     <div class="umm-reviews-root">
-      <!-- User Bar -->
-      <div v-if="data.displayName" class="umm-reviews-userbar">
-        <div
-          v-if="data.avatarUrl"
-          class="umm-reviews-avatar"
-          :style="{ backgroundImage: `url(${data.avatarUrl})` }"
-        />
-        <div class="umm-reviews-userinfo">
-          <a :href="`/people/${data.userId}/`" class="umm-reviews-username" target="_blank">{{ data.displayName }}</a>
-          <div v-if="data.navLinks.length > 0" class="umm-reviews-nav">
-            <a v-for="link in data.navLinks" :key="link.url" :href="link.url" class="umm-reviews-navlink" target="_blank">{{ link.label }}</a>
-          </div>
-        </div>
-      </div>
+      <UmmUserBar
+        :avatar-url="data.avatarUrl"
+        :display-name="data.displayName"
+        :user-id="data.userId"
+        :nav-links="data.navLinks"
+      />
 
       <!-- Title -->
       <div class="umm-reviews-titlebar">

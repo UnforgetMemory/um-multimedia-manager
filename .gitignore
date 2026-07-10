@@ -16,9 +16,19 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.envrc
+.direnv/
+.flox/
 
 # WXT build artifacts
 .wxt/
+
+# Vite cache
+.vite/
 
 # Editor directories and files
 .vscode/*
@@ -38,6 +48,11 @@ Desktop.ini
 *.crswap.*
 *.tmp
 *.temp
+*.sublime-project
+*.sublime-workspace
+
+# ESLint cache
+.eslintcache
 
 # Build output
 build
@@ -87,14 +102,6 @@ data-imports/
 
 # Editor local history
 .history/
-
-# Environment variable variants (Vite/Node conventions)
-.env
-.env.*.local
-.env.development
-.env.production
-.env.staging
-.env.test
 
 # Package manager configs (may contain auth tokens)
 .npmrc

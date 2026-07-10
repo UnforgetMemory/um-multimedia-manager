@@ -7,7 +7,7 @@
 }
 :host(.umm-theme--dark) {
   --umm-umedia-accent: #818cf8;
-  --umm-umedia-accent-soft: #1e1b4b;
+  --umm-umedia-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
 }
 
 /* ===== Root ===== */

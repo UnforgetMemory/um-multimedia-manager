@@ -1,107 +1,34 @@
-/* ===== UMM Douban Shared Theme — Shadow DOM :host variables ===== */
+/* ===== UMM Douban Legacy Theme Aliases ===== */
+/* Maps legacy token names (--umm-bg, --umm-text-primary, etc.) to
+   design-tokens HSL values (--umm-color-surface, etc.).
+   design-tokens.css must be composed before this file. */
 /* Migrated to content/douban/styles/theme.css */
 
 :host {
-  /* ===== Legacy Shadow DOM tokens (deprecated — use --umm-color-* aliases) ===== */
-  --umm-bg: #ffffff;
-  --umm-bg-secondary: #f8f9fa;
-  --umm-text-primary: #1a1a1a;
-  --umm-text-secondary: #666666;
-  --umm-text-muted: #aaaaaa;
-  --umm-border: #e5e7eb;
-  --umm-link: #1757d6;
-  --umm-link-hover: #0d47b8;
+  /* ---- Legacy surface (→ design-tokens) ---- */
+  --umm-bg: var(--umm-color-surface);
+  --umm-bg-secondary: var(--umm-color-surface-secondary);
 
-  /* ===== Unified token aliases (aligned with @theme naming in style.css) ===== */
-  --umm-color-surface: var(--umm-bg);
-  --umm-color-surface-secondary: var(--umm-bg-secondary);
-  --umm-color-surface-elevated: var(--umm-bg);
-  --umm-color-text-primary: var(--umm-text-primary);
-  --umm-color-text-secondary: var(--umm-text-secondary);
-  --umm-color-text-muted: var(--umm-text-muted);
-  --umm-color-border: var(--umm-border);
-  --umm-color-link: var(--umm-link);
-  --umm-color-link-hover: var(--umm-link-hover);
-  --umm-color-status-done: #116f46;
-  --umm-color-status-watched: #116f46;
-  --umm-color-status-unknown: #6b7280;
-  --umm-color-status-unwatched: #6b7280;
-  --umm-color-error: #e74c3c;
+  /* ---- Legacy text (→ design-tokens) ---- */
+  --umm-text-primary: var(--umm-color-text-primary);
+  --umm-text-secondary: var(--umm-color-text-secondary);
+  --umm-text-muted: var(--umm-color-text-muted);
 
-  /* Dynamic Island variables */
-  --umm-island-bg: color-mix(in srgb, #ffffff 92%, transparent);
-  --umm-island-border: color-mix(in srgb, #e5e7eb 6%, transparent);
-  --umm-island-border-hover: color-mix(in srgb, #e5e7eb 10%, transparent);
-  --umm-island-border-focus: color-mix(in srgb, #1757d6 30%, transparent);
-  --umm-island-text-primary: #1a1a1a;
-  --umm-island-text-secondary: #666666;
-  --umm-island-text-muted: #aaaaaa;
-  --umm-island-hover-bg: rgba(0, 0, 0, 0.05);
-  --umm-island-active-bg: rgba(0, 0, 0, 0.06);
-  --umm-island-divider: color-mix(in srgb, #e5e7eb 8%, transparent);
-  /* Rating gold tiers — light theme */
-  --umm-rating-gold-low: #b8860b;
-  --umm-rating-gold-mid: #c9941a;
-  --umm-rating-gold-high: #d4a017;
-  /* ===== Aspect ratio tokens ===== */
-  --umm-aspect-poster: 2/3;
-  --umm-aspect-square: 1;
-  --umm-aspect-wide: 16/9;
+  /* ---- Legacy border (→ design-tokens) ---- */
+  --umm-border: var(--umm-color-border);
 
-  /* ===== Z-index scale ===== */
-  --umm-z-backdrop: 10;
-  --umm-z-sticky: 50;
-  --umm-z-floating: 100;
-  --umm-z-tooltip: 150;
-  --umm-z-overlay-host: 200;
-  --umm-z-overlay: 300;
-  --umm-z-dialog: 400;
-  --umm-z-toast: 500;
-
-  background: var(--umm-bg);
-  color: var(--umm-text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  /* ---- Legacy link (→ design-tokens) ---- */
+  --umm-link: var(--umm-color-link);
+  --umm-link-hover: var(--umm-color-link-hover);
 }
 
 :host(.umm-theme--dark) {
-  /* ===== Legacy tokens (deprecated) ===== */
-  --umm-bg: #1e1f24;
-  --umm-bg-secondary: #2a2b30;
-  --umm-text-primary: #e0e0e0;
-  --umm-text-secondary: #999999;
-  --umm-text-muted: #666666;
-  --umm-border: #3a3b40;
-  --umm-link: #60a5fa;
-  --umm-link-hover: #b8d4fe;
-
-  /* ===== Unified token aliases (dark) ===== */
-  --umm-color-surface: var(--umm-bg);
-  --umm-color-surface-secondary: var(--umm-bg-secondary);
-  --umm-color-surface-elevated: var(--umm-bg);
-  --umm-color-text-primary: var(--umm-text-primary);
-  --umm-color-text-secondary: var(--umm-text-secondary);
-  --umm-color-text-muted: var(--umm-text-muted);
-  --umm-color-border: var(--umm-border);
-  --umm-color-link: var(--umm-link);
-  --umm-color-link-hover: var(--umm-link-hover);
-  --umm-color-status-done: #2d8a4e;
-  --umm-color-status-watched: #2d8a4e;
-  --umm-color-status-unknown: #6b7280;
-  --umm-color-status-unwatched: #6b7280;
-  --umm-color-error: #f87171;
-  /* Dynamic Island variables (dark) */
-  --umm-island-bg: color-mix(in srgb, #1e1f24 92%, transparent);
-  --umm-island-border: color-mix(in srgb, #e0e0e0 8%, transparent);
-  --umm-island-border-hover: color-mix(in srgb, #e0e0e0 12%, transparent);
-  --umm-island-border-focus: color-mix(in srgb, #60a5fa 40%, transparent);
-  --umm-island-text-primary: #e0e0e0;
-  --umm-island-text-secondary: #aaaaaa;
-  --umm-island-text-muted: #666666;
-  --umm-island-hover-bg: color-mix(in srgb, #e0e0e0 6%, transparent);
-  --umm-island-active-bg: color-mix(in srgb, #e0e0e0 8%, transparent);
-  --umm-island-divider: color-mix(in srgb, #e0e0e0 10%, transparent);
-  /* Rating gold tiers — dark theme */
-  --umm-rating-gold-low: #d4a843;
-  --umm-rating-gold-mid: #e0b020;
-  --umm-rating-gold-high: #e8c030;
+  --umm-bg: var(--umm-color-surface);
+  --umm-bg-secondary: var(--umm-color-surface-secondary);
+  --umm-text-primary: var(--umm-color-text-primary);
+  --umm-text-secondary: var(--umm-color-text-secondary);
+  --umm-text-muted: var(--umm-color-text-muted);
+  --umm-border: var(--umm-color-border);
+  --umm-link: var(--umm-color-link);
+  --umm-link-hover: var(--umm-color-link-hover);
 }

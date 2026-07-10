@@ -19,6 +19,7 @@
   --umm-card-width: clamp(120px, 8rem + 4vw, 280px);
   --umm-card-height: clamp(168px, 11rem + 5.6vw, 392px);
   --umm-card-radius: clamp(4px, 0.3rem + 0.25vw, 12px);
+  --umm-grid-cols: 2;
 }
 
 /* Mobile S (320px) */
@@ -27,6 +28,7 @@
   --umm-font-md: 0.95rem; --umm-font-lg: 1.125rem; --umm-font-xl: 1.375rem; --umm-font-2xl: 1.75rem;
   --umm-space-xs: 4px; --umm-space-sm: 8px; --umm-space-md: 12px; --umm-space-lg: 16px; --umm-space-xl: 24px; --umm-space-2xl: 32px;
   --umm-card-width: 120px; --umm-card-height: 168px; --umm-card-radius: 4px;
+  --umm-grid-cols: 2;
 } }
 
 /* Mobile M (375px) */
@@ -35,6 +37,7 @@
   --umm-font-md: 0.98rem; --umm-font-lg: 1.17rem; --umm-font-xl: 1.44rem; --umm-font-2xl: 1.85rem;
   --umm-space-xs: 4px; --umm-space-sm: 8px; --umm-space-md: 12px; --umm-space-lg: 17px; --umm-space-xl: 25px; --umm-space-2xl: 33px;
   --umm-card-width: 124px; --umm-card-height: 174px; --umm-card-radius: 4px;
+  --umm-grid-cols: 2;
 } }
 
 /* Mobile L (480px) */
@@ -43,6 +46,7 @@
   --umm-font-md: 1.03rem; --umm-font-lg: 1.25rem; --umm-font-xl: 1.55rem; --umm-font-2xl: 2.04rem;
   --umm-space-xs: 5px; --umm-space-sm: 9px; --umm-space-md: 13px; --umm-space-lg: 18px; --umm-space-xl: 27px; --umm-space-2xl: 35px;
   --umm-card-width: 133px; --umm-card-height: 186px; --umm-card-radius: 5px;
+  --umm-grid-cols: 3;
 } }
 
 /* Tablet S (640px) */
@@ -51,6 +55,7 @@
   --umm-font-md: 1.10rem; --umm-font-lg: 1.38rem; --umm-font-xl: 1.73rem; --umm-font-2xl: 2.32rem;
   --umm-space-xs: 5px; --umm-space-sm: 10px; --umm-space-md: 15px; --umm-space-lg: 20px; --umm-space-xl: 29px; --umm-space-2xl: 39px;
   --umm-card-width: 146px; --umm-card-height: 204px; --umm-card-radius: 5px;
+  --umm-grid-cols: 3;
 } }
 
 /* Tablet L (768px) */
@@ -59,6 +64,7 @@
   --umm-font-md: 1.16rem; --umm-font-lg: 1.48rem; --umm-font-xl: 1.88rem; --umm-font-2xl: 2.55rem;
   --umm-space-xs: 6px; --umm-space-sm: 11px; --umm-space-md: 16px; --umm-space-lg: 22px; --umm-space-xl: 31px; --umm-space-2xl: 42px;
   --umm-card-width: 156px; --umm-card-height: 218px; --umm-card-radius: 6px;
+  --umm-grid-cols: 4;
 } }
 
 /* Laptop S (1024px) */
@@ -67,6 +73,7 @@
   --umm-font-md: 1.28rem; --umm-font-lg: 1.68rem; --umm-font-xl: 2.16rem; --umm-font-2xl: 3.01rem;
   --umm-space-xs: 7px; --umm-space-sm: 12px; --umm-space-md: 18px; --umm-space-lg: 25px; --umm-space-xl: 35px; --umm-space-2xl: 47px;
   --umm-card-width: 177px; --umm-card-height: 247px; --umm-card-radius: 7px;
+  --umm-grid-cols: 5;
 } }
 
 /* Laptop L (1280px) */
@@ -75,6 +82,7 @@
   --umm-font-md: 1.40rem; --umm-font-lg: 1.88rem; --umm-font-xl: 2.45rem; --umm-font-2xl: 3.46rem;
   --umm-space-xs: 8px; --umm-space-sm: 14px; --umm-space-md: 21px; --umm-space-lg: 28px; --umm-space-xl: 39px; --umm-space-2xl: 53px;
   --umm-card-width: 197px; --umm-card-height: 276px; --umm-card-radius: 8px;
+  --umm-grid-cols: 6;
 } }
 
 /* Desktop HD (1536px) */
@@ -83,6 +91,7 @@
   --umm-font-md: 1.52rem; --umm-font-lg: 2.08rem; --umm-font-xl: 2.73rem; --umm-font-2xl: 3.92rem;
   --umm-space-xs: 9px; --umm-space-sm: 16px; --umm-space-md: 23px; --umm-space-lg: 31px; --umm-space-xl: 44px; --umm-space-2xl: 58px;
   --umm-card-width: 218px; --umm-card-height: 305px; --umm-card-radius: 9px;
+  --umm-grid-cols: 7;
 } }
 
 /* Desktop Full HD (1920px) */
@@ -91,6 +100,7 @@
   --umm-font-md: 1.70rem; --umm-font-lg: 2.38rem; --umm-font-xl: 3.16rem; --umm-font-2xl: 4.61rem;
   --umm-space-xs: 11px; --umm-space-sm: 18px; --umm-space-md: 26px; --umm-space-lg: 36px; --umm-space-xl: 50px; --umm-space-2xl: 66px;
   --umm-card-width: 249px; --umm-card-height: 348px; --umm-card-radius: 11px;
+  --umm-grid-cols: 8;
 } }
 
 /* Desktop QHD (2560px) */
@@ -99,6 +109,7 @@
   --umm-font-md: 2rem; --umm-font-lg: 2.875rem; --umm-font-xl: 3.875rem; --umm-font-2xl: 5.75rem;
   --umm-space-xs: 14px; --umm-space-sm: 22px; --umm-space-md: 32px; --umm-space-lg: 44px; --umm-space-xl: 60px; --umm-space-2xl: 80px;
   --umm-card-width: 300px; --umm-card-height: 420px; --umm-card-radius: 14px;
+  --umm-grid-cols: 9;
 } }
 
 /* Desktop 3K (3200px) */
@@ -107,6 +118,7 @@
   --umm-font-md: 2.19rem; --umm-font-lg: 3.13rem; --umm-font-xl: 4.25rem; --umm-font-2xl: 6.25rem;
   --umm-space-xs: 16px; --umm-space-sm: 25px; --umm-space-md: 36px; --umm-space-lg: 50px; --umm-space-xl: 68px; --umm-space-2xl: 90px;
   --umm-card-width: 330px; --umm-card-height: 462px; --umm-card-radius: 15px;
+  --umm-grid-cols: 10;
 } }
 
 /* 4K screens (3840px+) */
@@ -115,6 +127,7 @@
   --umm-font-md: 2.375rem; --umm-font-lg: 3.375rem; --umm-font-xl: 4.625rem; --umm-font-2xl: 6.75rem;
   --umm-space-xs: 18px; --umm-space-sm: 28px; --umm-space-md: 40px; --umm-space-lg: 56px; --umm-space-xl: 76px; --umm-space-2xl: 100px;
   --umm-card-width: 360px; --umm-card-height: 504px; --umm-card-radius: 16px;
+  --umm-grid-cols: 12;
 } }
 
 /* 5K screens (5120px+) */
@@ -123,4 +136,5 @@
   --umm-font-md: 2.875rem; --umm-font-lg: 4rem; --umm-font-xl: 5.5rem; --umm-font-2xl: 8rem;
   --umm-space-xs: 22px; --umm-space-sm: 34px; --umm-space-md: 48px; --umm-space-lg: 68px; --umm-space-xl: 92px; --umm-space-2xl: 120px;
   --umm-card-width: 420px; --umm-card-height: 588px; --umm-card-radius: 20px;
+  --umm-grid-cols: 14;
 } }

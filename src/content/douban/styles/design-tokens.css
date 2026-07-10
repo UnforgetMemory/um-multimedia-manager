@@ -1,0 +1,154 @@
+/* ===== UMM Design Tokens — Shadow DOM :host ===== */
+/* HSL values shared with Tailwind @theme in src/shared/styles/style.css */
+/* NOTE: Keep HSL values in sync with style.css @theme definitions */
+/* WARNING: ?raw import — NO @import statements allowed inside this file */
+
+/* ---- Light theme ---- */
+:host {
+  /* === Surface colors === */
+  --umm-color-surface: hsl(0 0% 100%);
+  --umm-color-surface-secondary: hsl(210 17% 98%);
+  --umm-color-surface-elevated: hsl(0 0% 100%);
+  --umm-card-bg: hsl(0 0% 100%);
+  --umm-card-border: hsl(220 13% 91%);
+  --umm-content-gap: 16px;
+
+  /* === Text colors === */
+  --umm-color-text-primary: hsl(0 0% 10%);
+  --umm-color-text-secondary: hsl(0 0% 40%);
+  --umm-color-text-muted: hsl(0 0% 67%);
+
+  /* === Border colors === */
+  --umm-color-border: hsl(220 13% 91%);
+
+  /* === Link colors === */
+  --umm-color-link: hsl(220 80% 46%);
+  --umm-color-link-hover: hsl(220 87% 39%);
+
+  /* === Status colors === */
+  --umm-color-status-done: hsl(155 73% 25%);
+  --umm-color-status-watched: hsl(155 73% 25%);
+  --umm-color-status-unknown: hsl(220 9% 46%);
+  --umm-color-status-unwatched: hsl(220 9% 46%);
+  --umm-color-error: hsl(6 78% 57%);
+
+  /* === Dynamic Island (fluent top bar) === */
+  --umm-island-bg: hsl(0 0% 100% / 0.92);
+  --umm-island-border: hsl(220 13% 91% / 0.06);
+  --umm-island-border-hover: hsl(220 13% 91% / 0.10);
+  --umm-island-border-focus: hsl(220 80% 46% / 0.30);
+  --umm-island-text-primary: hsl(0 0% 10%);
+  --umm-island-text-secondary: hsl(0 0% 40%);
+  --umm-island-text-muted: hsl(0 0% 67%);
+  --umm-island-hover-bg: hsl(0 0% 0% / 0.05);
+  --umm-island-active-bg: hsl(0 0% 0% / 0.06);
+  --umm-island-divider: hsl(220 13% 91% / 0.08);
+
+  /* === Rating gold tiers === */
+  --umm-rating-gold-low: hsl(43 87% 38%);
+  --umm-rating-gold-mid: hsl(41 78% 45%);
+  --umm-rating-gold-high: hsl(41 81% 46%);
+
+  /* === Aspect ratio tokens === */
+  --umm-aspect-poster: 2/3;
+  --umm-aspect-square: 1;
+  --umm-aspect-wide: 16/9;
+
+  /* === Spacing scale (4px base) === */
+  --umm-space-0: 0;
+  --umm-space-0-5: 2px;
+  --umm-space-1: 4px;
+  --umm-space-1-5: 6px;
+  --umm-space-2: 8px;
+  --umm-space-2-5: 10px;
+  --umm-space-3: 12px;
+  --umm-space-4: 16px;
+  --umm-space-5: 20px;
+  --umm-space-6: 24px;
+  --umm-space-8: 32px;
+  --umm-space-10: 40px;
+  --umm-space-12: 48px;
+  --umm-space-16: 64px;
+  --umm-space-20: 80px;
+
+  /* === Radius tokens === */
+  --umm-radius-sm: 4px;
+  --umm-radius-md: 8px;
+  --umm-radius-lg: 12px;
+  --umm-radius-xl: 16px;
+  --umm-radius-full: 999px;
+
+  /* === Shadow tokens === */
+  --umm-shadow-sm: 0 1px 2px hsl(220 13% 0% / 0.05);
+  --umm-shadow-md: 0 4px 6px hsl(220 13% 0% / 0.07);
+  --umm-shadow-lg: 0 10px 15px hsl(220 13% 0% / 0.1);
+  --umm-shadow-xl: 0 20px 25px hsl(220 13% 0% / 0.1);
+
+  /* === Z-index scale === */
+  --umm-z-backdrop: 10;
+  --umm-z-sticky: 50;
+  --umm-z-floating: 100;
+  --umm-z-tooltip: 150;
+  --umm-z-overlay-host: 200;
+  --umm-z-overlay: 300;
+  --umm-z-dialog: 400;
+  --umm-z-toast: 500;
+
+  /* Host defaults */
+  background: var(--umm-color-surface);
+  color: var(--umm-color-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ---- Dark theme ---- */
+:host(.umm-theme--dark) {
+  /* Surface */
+  --umm-color-surface: hsl(230 10% 13%);
+  --umm-color-surface-secondary: hsl(230 7% 18%);
+  --umm-color-surface-elevated: hsl(230 10% 13%);
+  --umm-card-bg: hsl(230 7% 18%);
+  --umm-card-border: hsl(230 5% 24%);
+  --umm-content-gap: 16px;
+
+  /* Text */
+  --umm-color-text-primary: hsl(0 0% 88%);
+  --umm-color-text-secondary: hsl(0 0% 60%);
+  --umm-color-text-muted: hsl(0 0% 40%);
+
+  /* Border */
+  --umm-color-border: hsl(230 5% 24%);
+
+  /* Links */
+  --umm-color-link: hsl(214 94% 68%);
+  --umm-color-link-hover: hsl(214 97% 86%);
+
+  /* Status */
+  --umm-color-status-done: hsl(143 51% 36%);
+  --umm-color-status-watched: hsl(143 51% 36%);
+  --umm-color-status-unknown: hsl(220 9% 46%);
+  --umm-color-status-unwatched: hsl(220 9% 46%);
+  --umm-color-error: hsl(0 91% 71%);
+
+  /* Dynamic Island */
+  --umm-island-bg: hsl(230 10% 13% / 0.92);
+  --umm-island-border: hsl(0 0% 88% / 0.08);
+  --umm-island-border-hover: hsl(0 0% 88% / 0.12);
+  --umm-island-border-focus: hsl(214 94% 68% / 0.40);
+  --umm-island-text-primary: hsl(0 0% 88%);
+  --umm-island-text-secondary: hsl(0 0% 60%);
+  --umm-island-text-muted: hsl(0 0% 40%);
+  --umm-island-hover-bg: hsl(0 0% 88% / 0.06);
+  --umm-island-active-bg: hsl(0 0% 88% / 0.08);
+  --umm-island-divider: hsl(0 0% 88% / 0.10);
+
+  /* Rating gold */
+  --umm-rating-gold-low: hsl(41 63% 55%);
+  --umm-rating-gold-mid: hsl(44 76% 50%);
+  --umm-rating-gold-high: hsl(45 80% 55%);
+
+  /* Shadow (dark theme — lighter, more subtle) */
+  --umm-shadow-sm: 0 1px 2px hsl(0 0% 100% / 0.03);
+  --umm-shadow-md: 0 4px 6px hsl(0 0% 100% / 0.05);
+  --umm-shadow-lg: 0 10px 15px hsl(0 0% 100% / 0.08);
+  --umm-shadow-xl: 0 20px 25px hsl(0 0% 100% / 0.08);
+}

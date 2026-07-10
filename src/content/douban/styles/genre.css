@@ -6,6 +6,11 @@
   min-height: 100vh;
   user-select: none;
   -webkit-user-select: none;
+  --umm-accent: #6366f1;
+}
+
+:host(.umm-theme--dark) {
+  --umm-accent: #818cf8;
 }
 
 /* Root panel */
@@ -55,11 +60,11 @@
 
 .umm-genre-nav-link:hover {
   background: var(--umm-accent);
-  color: #fff;
+  color: var(--umm-color-surface);
 }
 
 .umm-genre-nav-current {
-  color: #fff;
+  color: var(--umm-color-surface);
   background: var(--umm-accent);
   font-weight: 600;
 }
@@ -147,7 +152,7 @@
 
 .umm-page-btn:hover {
   background: var(--umm-accent);
-  color: #fff;
+  color: var(--umm-color-surface);
 }
 
 .umm-page-btn:disabled {

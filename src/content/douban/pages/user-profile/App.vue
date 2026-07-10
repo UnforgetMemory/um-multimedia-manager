@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
+import UmmStatBar from '@/content/douban/components/UmmStatBar.vue'
 import type { UserProfileData } from './types'
 
 defineProps<{
@@ -28,88 +29,55 @@ defineProps<{
         </div>
       </div>
 
-      <!-- ===== Stat Bar ===== -->
-      <div class="umm-statbar">
-        <!-- Media (movie + TV) -->
-        <div v-if="data.movieStats.watching > 0 || data.movieStats.wish > 0 || data.movieStats.collect > 0 || data.movieStats.doulist > 0" class="umm-statbar-group">
-          <span class="umm-statbar-gtitle">🎬 影视</span>
-          <div class="umm-statbar-items">
-            <a v-if="data.movieStats.watching > 0" href="https://movie.douban.com/mine?status=do" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.movieStats.watching.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">在看</span>
-            </a>
-            <a v-if="data.movieStats.wish > 0" href="https://movie.douban.com/mine?status=wish" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.movieStats.wish.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">想看</span>
-            </a>
-            <a v-if="data.movieStats.collect > 0" href="https://movie.douban.com/mine?status=collect" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.movieStats.collect.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">看过</span>
-            </a>
-            <a v-if="data.movieStats.doulist > 0" :href="`https://www.douban.com/people/${data.userId}/subject_doulists/movie`" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.movieStats.doulist.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">片单</span>
-            </a>
-          </div>
-        </div>
-        <!-- Music -->
-        <div v-if="data.musicStats.collect > 0" class="umm-statbar-group">
-          <span class="umm-statbar-gtitle">🎵 音乐</span>
-          <div class="umm-statbar-items">
-            <a href="https://music.douban.com/mine?status=collect" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.musicStats.collect.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">听过</span>
-            </a>
-          </div>
-        </div>
-        <!-- Book -->
-        <div v-if="data.bookStats.wish > 0 || data.bookStats.collect > 0 || data.bookStats.doulist > 0" class="umm-statbar-group">
-          <span class="umm-statbar-gtitle">📚 读书</span>
-          <div class="umm-statbar-items">
-            <a v-if="data.bookStats.wish > 0" href="https://book.douban.com/mine?status=wish" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.bookStats.wish.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">想读</span>
-            </a>
-            <a v-if="data.bookStats.collect > 0" href="https://book.douban.com/mine?status=collect" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.bookStats.collect.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">读过</span>
-            </a>
-            <a v-if="data.bookStats.doulist > 0" :href="`https://www.douban.com/people/${data.userId}/subject_doulists/book`" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.bookStats.doulist.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">书单</span>
-            </a>
-          </div>
-        </div>
-        <!-- Game -->
-        <div v-if="data.gameStats.playing > 0 || data.gameStats.played > 0" class="umm-statbar-group">
-          <span class="umm-statbar-gtitle">🎮 游戏</span>
-          <div class="umm-statbar-items">
-            <a v-if="data.gameStats.playing > 0" href="https://www.douban.com/game/36188787/" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.gameStats.playing.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">在玩</span>
-            </a>
-            <a v-if="data.gameStats.played > 0" :href="`https://www.douban.com/people/${data.userId}/games?action=collect`" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.gameStats.played.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">玩过</span>
-            </a>
-          </div>
-        </div>
-        <!-- Reviews & Follow -->
-        <div v-if="data.reviewCount > 0 || data.followerCount > 0" class="umm-statbar-group">
-          <span class="umm-statbar-gtitle">📊 社交</span>
-          <div class="umm-statbar-items">
-            <a v-if="data.reviewCount > 0" :href="`https://www.douban.com/people/${data.userId}/reviews`" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.reviewCount.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">评论</span>
-            </a>
-            <a v-if="data.followerCount > 0" :href="`https://www.douban.com/people/${data.userId}/contacts`" class="umm-statbar-item" target="_blank">
-              <span class="umm-statbar-val">{{ data.followerCount.toLocaleString() }}</span>
-              <span class="umm-statbar-lbl">被关注</span>
-            </a>
-          </div>
-        </div>
-      </div>
+      <!-- ===== Stat Bars ===== -->
+      <div class="umm-statbars">
+      <UmmStatBar
+        v-if="data.movieStats.watching > 0 || data.movieStats.wish > 0 || data.movieStats.collect > 0 || data.movieStats.doulist > 0"
+        title="🎬 影视"
+        :items="[
+          ...(data.movieStats.watching > 0 ? [{ label: '在看', value: data.movieStats.watching, url: 'https://movie.douban.com/mine?status=do' }] : []),
+          ...(data.movieStats.wish > 0 ? [{ label: '想看', value: data.movieStats.wish, url: 'https://movie.douban.com/mine?status=wish' }] : []),
+          ...(data.movieStats.collect > 0 ? [{ label: '看过', value: data.movieStats.collect, url: 'https://movie.douban.com/mine?status=collect' }] : []),
+          ...(data.movieStats.doulist > 0 ? [{ label: '片单', value: data.movieStats.doulist, url: `https://www.douban.com/people/${data.userId}/subject_doulists/movie` }] : []),
+        ]"
+      />
 
+      <UmmStatBar
+        v-if="data.musicStats.collect > 0"
+        title="🎵 音乐"
+        :items="[{ label: '听过', value: data.musicStats.collect, url: 'https://music.douban.com/mine?status=collect' }]"
+      />
+
+      <UmmStatBar
+        v-if="data.bookStats.wish > 0 || data.bookStats.collect > 0 || data.bookStats.doulist > 0"
+        title="📚 读书"
+        :items="[
+          ...(data.bookStats.wish > 0 ? [{ label: '想读', value: data.bookStats.wish, url: 'https://book.douban.com/mine?status=wish' }] : []),
+          ...(data.bookStats.collect > 0 ? [{ label: '读过', value: data.bookStats.collect, url: 'https://book.douban.com/mine?status=collect' }] : []),
+          ...(data.bookStats.doulist > 0 ? [{ label: '书单', value: data.bookStats.doulist, url: `https://www.douban.com/people/${data.userId}/subject_doulists/book` }] : []),
+        ]"
+      />
+
+      <UmmStatBar
+        v-if="data.gameStats.playing > 0 || data.gameStats.played > 0"
+        title="🎮 游戏"
+        :items="[
+          ...(data.gameStats.playing > 0 ? [{ label: '在玩', value: data.gameStats.playing, url: 'https://www.douban.com/game/36188787/' }] : []),
+          ...(data.gameStats.played > 0 ? [{ label: '玩过', value: data.gameStats.played, url: `https://www.douban.com/people/${data.userId}/games?action=collect` }] : []),
+        ]"
+      />
+
+      <UmmStatBar
+        v-if="data.reviewCount > 0 || data.followerCount > 0"
+        title="📊 社交"
+        :items="[
+          ...(data.reviewCount > 0 ? [{ label: '评论', value: data.reviewCount, url: `https://www.douban.com/people/${data.userId}/reviews` }] : []),
+          ...(data.followerCount > 0 ? [{ label: '被关注', value: data.followerCount, url: `https://www.douban.com/people/${data.userId}/contacts` }] : []),
+        ]"
+        
+      />
+      </div>
+ 
       <!-- ===== Sections (dashboard-style) ===== -->
       <div v-for="section in data.sections" :key="section.id" class="umm-dash-section">
         <h2 class="umm-dash-head">{{ section.title }}</h2>

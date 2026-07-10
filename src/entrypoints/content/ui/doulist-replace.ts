@@ -37,6 +37,17 @@ const DOULIST_CAT_MAP: Record<string, string> = {
   book: '1001',
 }
 
+const DOULIST_LABEL_MAP: Record<string, string> = {
+  movie: '片单',
+  tv: '片单',
+  music: '歌单',
+  book: '书单',
+}
+
+function getDoulistLabel(identity: UrlIdentity): string {
+  return DOULIST_LABEL_MAP[identity.type] || '片单'
+}
+
 async function addToDoulist(doulistId: string, params: {
   sid: string; skind: string; comment: string; ck: string
 }): Promise<boolean> {
@@ -253,7 +264,8 @@ function createDialogTheme(dark: boolean): DialogTheme {
 }
 
 function buildThemedDialog(
-  data: { items: DoulistItem[]; subject: SubjectInfo; comment: string }
+  data: { items: DoulistItem[]; subject: SubjectInfo; comment: string },
+  identity: UrlIdentity,
 ): { overlay: HTMLElement; refresh: (newItems: DoulistItem[]) => void } {
   let items: DoulistItem[] = data.items
   let selectedId = ''
@@ -266,6 +278,9 @@ function buildThemedDialog(
   // ── Overlay (targeted resets instead of all:initial which destroys z-index/display) ──
   const overlay = document.createElement('div')
   overlay.id = DL_MODAL_ID
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-modal', 'true')
+  overlay.setAttribute('aria-labelledby', 'umm-dl-title')
   overlay.style.cssText = [
     'position:fixed;inset:0;z-index:300',
     `background:${theme.overlayBg}`,
@@ -327,9 +342,12 @@ function buildThemedDialog(
   // ── Header ──
   const header = document.createElement('div')
   header.style.cssText = ['display:flex;align-items:center;justify-content:space-between','padding:18px 28px',`border-bottom:1px solid ${theme.panelBorder}`,`background:${theme.headerBg}`].join(';')
-  const title = document.createElement('h3')
-  title.textContent = '添加到片单'
-  title.style.cssText = ['margin:0','font-size:17px','font-weight:600','letter-spacing:-0.01em',`color:${theme.titleColor}`].join(';')
+  const title = document.createElement('div')
+  title.id = 'umm-dl-title'
+  title.setAttribute('role', 'heading')
+  title.setAttribute('aria-level', '3')
+  title.textContent = `添加到${getDoulistLabel(identity)}`
+  title.style.cssText = ['margin:0','font-size:17px','font-weight:600','letter-spacing:-0.01em','line-height:1.4',`color:${theme.titleColor}`].join(';')
   const closeBtn = document.createElement('button')
   closeBtn.innerHTML = '\u2715'
   closeBtn.setAttribute('aria-label','关闭')
@@ -348,7 +366,7 @@ function buildThemedDialog(
   // Loading indicator shown during initial fetch
   const bodyLoading = document.createElement('div')
   bodyLoading.style.cssText = ['display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 0',`color:${theme.theadText}`,'font-size:13.5px'].join(';')
-  bodyLoading.innerHTML = '<span class="umm-dl-spinner" style="width:20px;height:20px;border-width:2.5px"></span><span>加载片单列表...</span>'
+  bodyLoading.innerHTML = `<span class="umm-dl-spinner" style="width:20px;height:20px;border-width:2.5px"></span><span>加载${getDoulistLabel(identity)}列表...</span>`
   body.appendChild(bodyLoading)
 
   // ── Confirm overlay ──
@@ -377,7 +395,7 @@ function buildThemedDialog(
   // ── Search bar ──
   const searchInput = document.createElement('input')
   searchInput.type = 'text'
-  searchInput.placeholder = '搜索片单...'
+  searchInput.placeholder = `搜索${getDoulistLabel(identity)}...`
   searchInput.style.cssText = ['width:100%;box-sizing:border-box;height:40px;padding:0 14px;margin-bottom:14px',`background:${theme.inputBg}`,`border:1px solid ${theme.borderDark}`,`color:${theme.textPrimary}`,'border-radius:10px;font-size:14px;outline:none','transition:border-color .15s,box-shadow .15s'].join(';')
   searchInput.onfocus = () => { searchInput.style.borderColor = theme.accent; searchInput.style.boxShadow = `0 0 0 3px ${theme.accentGlow}` }
   searchInput.onblur = () => { searchInput.style.borderColor = theme.borderInputBlur; searchInput.style.boxShadow = 'none' }
@@ -399,7 +417,7 @@ function buildThemedDialog(
   hRow.innerHTML = [
     '<th style="' + h('38px','center') + '">🔒</th>',
     '<th style="' + h('64px','center') + '">收藏</th>',
-    '<th style="' + h('auto','left') + '">片单名称</th>',
+    `<th style="${h('auto','left')}">${getDoulistLabel(identity)}名称</th>`,
     '<th style="' + h('76px','right') + '">统计</th>',
   ].join('')
   thead.appendChild(hRow)
@@ -463,9 +481,9 @@ function buildThemedDialog(
           }
         }
         if (cur) {
-          showConfirm(`确认从片单「${item.name}」中移除此条目？`,'确认移出','取消', doToggle)
+          showConfirm(`确认从${getDoulistLabel(identity)}「${item.name}」中移除此条目？`,'确认移出','取消', doToggle)
         } else {
-          showConfirm(`确认将本条目添加到片单「${item.name}」？`,'确认添加','取消', doToggle)
+          showConfirm(`确认将本条目添加到${getDoulistLabel(identity)}「${item.name}」？`,'确认添加','取消', doToggle)
         }
       })
 
@@ -487,7 +505,7 @@ function buildThemedDialog(
       // Column 4: Count
       const countCell = document.createElement('td')
       countCell.style.cssText = td('right') + ';font-size:12px;color:' + theme.theadText
-      const m = item.count.match(/(\\d+)/)
+      const m = item.count.match(/(\d+)/)
       countCell.textContent = m ? m[1] : item.count
 
       row.append(lockCell, toggleCell, nameCell, countCell)
@@ -499,7 +517,7 @@ function buildThemedDialog(
       const emptyCell = document.createElement('td')
       emptyCell.colSpan = 4
       emptyCell.style.cssText = ['padding:40px;text-align:center',`color:${theme.emptyText}`,'font-size:13.5px'].join(';')
-      emptyCell.textContent = q ? '未找到匹配的片单' : '暂无片单'
+        emptyCell.textContent = q ? `未找到匹配的${getDoulistLabel(identity)}` : `暂无${getDoulistLabel(identity)}`
       emptyRow.appendChild(emptyCell)
       tbody.appendChild(emptyRow)
     }
@@ -515,7 +533,7 @@ function buildThemedDialog(
 
   // Create doulist button (left side)
   const createBtn = document.createElement('button')
-  createBtn.textContent = '＋ 新建片单'
+    createBtn.textContent = `＋ 新建${getDoulistLabel(identity)}`
   createBtn.style.cssText = ['padding:7px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all .12s',`color:${theme.accent}`,`background:${theme.accentSubtle}`].join(';')
   createBtn.onmouseenter = () => { createBtn.style.background = theme.accentGlow }
   createBtn.onmouseleave = () => { createBtn.style.background = theme.accentSubtle }
@@ -527,7 +545,7 @@ function buildThemedDialog(
 
   const nameInput = document.createElement('input')
   nameInput.type = 'text'
-  nameInput.placeholder = '请输入片单名称'
+    nameInput.placeholder = `请输入${getDoulistLabel(identity)}名称`
   nameInput.style.cssText = ['width:100%;box-sizing:border-box;height:38px;padding:0 14px',`background:${theme.inputBg}`,`border:1px solid ${theme.borderDark}`,`color:${theme.textPrimary}`,'border-radius:10px;font-size:14px;outline:none'].join(';')
   nameInput.onfocus = () => { nameInput.style.borderColor = theme.accent; nameInput.style.boxShadow = `0 0 0 3px ${theme.accentGlow}` }
   nameInput.onblur = () => { nameInput.style.borderColor = theme.borderInputBlur; nameInput.style.boxShadow = 'none' }
@@ -536,7 +554,7 @@ function buildThemedDialog(
   privateRow.style.cssText = ['display:flex;align-items:center;gap:8px',`color:${theme.labelColor}`,'font-size:13px;cursor:pointer'].join(';')
   const privateCheck = document.createElement('input')
   privateCheck.type = 'checkbox'
-  privateRow.append(privateCheck, '私密片单')
+    privateRow.append(privateCheck, `私密${getDoulistLabel(identity)}`)
 
   const formActions = document.createElement('div')
   formActions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
@@ -637,7 +655,7 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
       // left with a dead button.
       if (trigger.matches('.umm-dl-trigger')) {
         console.warn('[UMM Doulist] Cannot open: missing ck token or providerId')
-        FloatingToast.error('UMM', '片单功能暂不可用（请确认已登录豆瓣）')
+        FloatingToast.error('UMM', `${getDoulistLabel(identity)}功能暂不可用（请确认已登录豆瓣）`)
       }
       return
     }
@@ -663,12 +681,12 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
     }
     fetchWithRetry(subject).then(items => {
       clearLoading()
-      const { overlay } = buildThemedDialog({ items, subject, comment: '' })
+      const { overlay } = buildThemedDialog({ items, subject, comment: '' }, identity)
       document.body.appendChild(overlay)
       document.body.style.overflow = 'hidden'
     }).catch(() => {
       clearLoading()
-      FloatingToast.error('UMM', '片单加载失败')
+      FloatingToast.error('UMM', `${getDoulistLabel(identity)}加载失败`)
     })
   }, { capture: true })
 

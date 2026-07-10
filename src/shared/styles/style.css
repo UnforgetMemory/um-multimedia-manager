@@ -1,5 +1,13 @@
 @import "tailwindcss" prefix(umm);
 
+/* ============================================
+   Design Token Reference
+   ============================================ */
+/* Shadow DOM design tokens live in src/content/douban/styles/design-tokens.css
+   (?raw imported — NOT processed by Tailwind). This file's @theme block uses
+   HSL values that SHOULD match design-tokens.css for shared --umm-color-* tokens.
+   Keep both files in sync when changing color values. */
+
 @theme {
   /* ============================================
      Existing Color System (shadcn/vue)
@@ -83,7 +91,7 @@
   --animate-out: umm-exit 150ms cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ============================================
-     UMM Design Tokens (from design-tokens.css)
+     UMM Design Tokens (aligned with design-tokens.css)
      ============================================ */
   
   /* Layer system */

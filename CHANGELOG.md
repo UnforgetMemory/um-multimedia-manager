@@ -7,12 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **领域模型层**: 新建 `src/domain/` 目录，10 个领域实体 (Identity, StoreRecord, Platform, MediaType, Status, Rating) + 仓储接口 + 领域服务
+- **CSS 设计 Token 系统**: 新建 `design-tokens.css`，统一 HSL 色彩体系，浅色/深色双主题覆盖
+- **PageMountFactory 模板化**: `definePageMount()` 工厂函数消除 19 个重复 mount 函数，`main.ts` 656→84 行
+- **页面配置化**: 20 个 `pages/*/config.ts`，页面挂载配置与实现分离
+- **Overlay 模块化**: `overlay.ts` 210 行拆分为 5 个聚焦模块 (create-overlay, mount-app, theme-sync, dismiss)
+- **共享组件库**: UmmPaginator (分页器), UmmUserBar (用户栏), UmmStatBar (统计栏) — 覆盖 12 个页面
+- **内容脚本句柄拆分**: `douban-sync.ts` 拆分为 3 模块 (sync-db, sync-neodb, sync-cross-platform)
+- **详情页数据拆分**: `detail-data.ts` 拆分为 5 模块 (types, extractor, extra-extractor, record-loader)
+- **CSS 响应式 Grid 变量**: `breakpoints.css` 13 级断点增加 `--umm-grid-cols` (2→14 列)
+
+### Changed
+- `.gitignore` 去重并补充 `.envrc`/`.direnv`/`.flox`/`.vite`/`.eslintcache` 等模式
+- 依赖更新: TypeScript 6.0.3, `@types/dompurify` 3.2.0
+
 ### Fixed
-- **豆瓣个人/电影主页 StatBar 布局修复**: Shadow DOM 内 scoped CSS 失效
-  - `.umm-statbar-grid`: 全局 CSS 中补充 `display: flex; flex-wrap: wrap; gap: 14px;`
-  - `.umm-statbar-item`: 补充 `flex: 0 0 auto;`，防止 item 撑满行宽
-  - 根因：Vue scoped CSS 无法穿透 Shadow DOM，布局回退为 `display: block`
-  - 影响页面：`user-profile` + `movie-profile` 上所有 UmmStatBar 实例
+- **豆瓣图书详情页 "添加到书单" 文本错误**: `doulist-replace.ts` 所有 12 处 "片单" 硬编码改为动态标签（片单/书单/歌单）
+- **Dialog 无障碍**: 添加 `role="dialog"` / `aria-modal` / `aria-labelledby`
+- **Dialog 标题样式**: `<h3>` 改为 `<div role="heading">` 防止豆瓣页面 h3 样式污染
+- **`genre.css` 深色模式缺失**: 补全 `:host(.umm-theme--dark)` 块
+- **11 个页面 CSS 自定义变量深色覆盖**: 补全 accent/card-bg/border 等暗色值
+- **z-index 硬编码 token 化**: 10 处 → `var(--umm-z-*)`
+- **`common.css`/`base.css` 去重**: 删除 `common.css` (375行)，消除每页冗余 CSS 注入
+- **`design-tokens.css` 深色 shadow 覆盖**: 增加 4 个 `--umm-shadow-*` 白色阴影值
+- **CSS 基础样式变量更新**: `base.css` 使用新 `--umm-color-*` 设计 Token
+- **挂载失败处理**: `mount-app.ts` 挂载失败时移除加载动画+显示错误提示
+- **主题监听器泄漏**: `startThemeSync` 返回清理函数，dismiss 时移除监听器
+- **`doulist-replace.ts` 正则 Bug**: `/(\\d+)/` 双转义修复
+- **`StoreRecord.ts` JSDoc**: 修正 `recordVersion` 描述（领域层不递增，仓库层递增）
+
+### Removed
+- `common.css` (被 `base.css` 取代)
+- `components.css` (合并至 `base.css`)
+- 19 个重复的 mount 函数 (被 `definePageMount` 取代)
+- `overlay.ts` 单体文件 (拆分为 `overlay/` 5 模块)
+- `douban-sync.ts` 单体 (拆分为 3 模块)
+- `detail-data.ts` 单体 (拆分为 5 模块)
+- `shared/theme-sync.ts` 独立文件 (合并入 `overlay/theme-sync.ts`)
 
 ### Chore
 - code-review 通过：3 文件 +17/-2 行，CSS-only 变更
