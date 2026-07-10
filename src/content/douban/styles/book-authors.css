@@ -1,0 +1,102 @@
+/* ===== UMM Douban Book Authors — Shadow DOM styles ===== */
+
+:host {
+  --umm-authors-accent: #4f6ef7;
+}
+:host(.umm-theme--dark) {
+  --umm-authors-accent: #6e8aff;
+}
+
+.umm-authors-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== Title ===== */
+.umm-authors-titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-lg, 24px);
+  padding-left: var(--umm-space-sm, 10px);
+  border-left: 3px solid var(--umm-authors-accent);
+}
+.umm-authors-title {
+  font-size: var(--umm-font-md, 1.125rem);
+  font-weight: 800;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+.umm-authors-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--umm-text-muted);
+}
+
+/* ===== Grid ===== */
+.umm-authors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--umm-space-md, 14px);
+}
+
+.umm-authors-card {
+  display: flex;
+  gap: var(--umm-space-sm, 12px);
+  padding: var(--umm-space-md, 14px);
+  border-radius: var(--umm-card-radius, 10px);
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.umm-authors-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+:host(.umm-theme--dark) .umm-authors-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.umm-authors-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg);
+  flex-shrink: 0;
+}
+
+.umm-authors-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.umm-authors-name {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+}
+.umm-authors-roles {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+}
+.umm-authors-works {
+  font-size: var(--umm-font-xs, 0.68rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.5;
+}
+
+/* ===== Empty ===== */
+.umm-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted);
+}

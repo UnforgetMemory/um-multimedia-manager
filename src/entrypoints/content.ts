@@ -118,6 +118,7 @@ export default defineContentScript({
     '*://javdb.com/*',
     '*://www.douban.com/doulist/*'
   ],
+  excludeMatches: ['*://*.douban.com/settings/*'],
   runAt: 'document_idle',
 
   async main() {

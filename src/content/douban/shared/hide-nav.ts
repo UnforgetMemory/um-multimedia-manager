@@ -78,7 +78,17 @@ export function hideNavForPage(pageType: PageType): void {
     case 'user-media':
       hideNativeNav({ globalNav: true, movieNav: true })
       break
+    case 'book-reviews':
+      hideNativeNav({ globalNav: true, bookNav: true })
+      break
+    case 'book-collect':
+      hideNativeNav({ globalNav: true, bookNav: true })
+      break
+    case 'book-authors':
+      hideNativeNav({ globalNav: true, bookNav: true })
+      break
     case 'book-profile':
+    case 'book-review-detail':
       hideNativeNav({ globalNav: true, bookNav: true })
       break
     case 'homepage':

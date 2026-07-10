@@ -8,7 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **豆瓣读书用户主页适配**: 新增 `book.douban.com/people/{uid}/` 页面类型 `book-profile`，覆盖 Hero 用户信息、子页面导航栏、读过/想读网格、收藏作者、最近阅读时间线、书评、图书豆列 8 个数据区域；复用 UmmPageLayout/UmmStatBar 组件
+- **豆瓣读书书评主页适配**: 新增 `book.douban.com/people/{uid}/reviews` 页面类型 `book-reviews`，覆盖用户书评列表的封面、标题、评分、内容预览、阅读统计、分页
+- **豆瓣读书书评详情页适配**: 新增 `book.douban.com/review/{id}/` 页面类型 `book-review-detail`，覆盖书评正文、作者栏、评分、侧边栏书籍信息(作者/出版/页数)、阅读统计
+- **豆瓣读书收藏页适配**: 新增 `book.douban.com/people/{uid}/{collect|wish|do}` 页面类型 `book-collect`，覆盖读过/想读/在读三种状态的书籍网格、排序、分页
+- **豆瓣读书收藏作者页适配**: 新增 `book.douban.com/people/{uid}/authors` 页面类型 `book-authors`，覆盖作者头像、身份、作品网格
+- `isBookUserReviewsPage()` / `isBookReviewDetailPage()` / `isBookCollectPage()` / `isBookAuthorsPage()` URL 检测 + PageType 联合类型
+- `pages/book-reviews/`, `pages/book-review-detail/`, `pages/book-collect/`, `pages/book-authors/` 四个模块
+- `styles/book-reviews.css`, `book-review-detail.css`, `book-collect.css`, `book-authors.css` Shadow DOM 样式
+- 共享 CSS 安全网: `userbar.css` (UmmUserBar 样式 Shadow DOM 副本), `paginator.css` (UmmPaginator 样式 Shadow DOM 副本)
+
+### Fixed
+- **Shadow DOM scoped CSS 失效**: Vue 3 scoped CSS 在 `cssInjectionMode:manual` 下不会被注入 Shadow DOM；创建共享 `userbar.css`/`paginator.css` ?raw 导入作为安全网，覆盖所有使用 UmmUserBar/UmmPaginator 的 7 个页面类型
+- **书评列表标题提取错误**: `querySelector('.nlst h3 a[href*="/review/"]')` 会匹配展开箭头链接，改为 `.nlst h3 > a` 直接子元素选择器
+- **设置页 body 样式被覆盖**: `overlay.css` 的 `html { background }` 通过模块级静态导入对所有 book.douban.com 页面生效；添加 `excludeMatches: ['*://*.douban.com/settings/*']` 从 manifest 级排除
+- **分页导航安全加固**: `book-collect`/`book-authors` 的 `onPageChange()` 增加 `isSafeDoubanUrl()` 域名校验，防止 open redirect
+
+### Chore
+- codereview 通过：无 Critical 问题，5 个 Warning 已记录
+- 安全审计通过：全部 textContent 提取，v-html 仅限星号转换，CSP 合规
+- .gitignore 复核通过：127 行覆盖完整，无遗漏
+- type-check + build 通过
+- 22 个新增文件添加简洁英文注释
 - `isBookUserProfile()` URL 检测 / `PageType` 联合类型 / `detectPageType()` 入口
 - `pages/book-profile/` 模块 (types/data/config/App.vue)
 - `styles/book-profile.css` Shadow DOM 样式 (StatBar override + Profile Nav + Author Grid + Timeline)

@@ -27,9 +27,13 @@ export type PageType =
   | { type: 'doulists' }
   | { type: 'doulist-detail' }
   | { type: 'user-media'; subType: 'collect' | 'wish' | 'doing' }
+  | { type: 'book-collect'; subType: 'collect' | 'wish' | 'doing' }
+  | { type: 'book-authors' }
   | { type: 'user-celebrities' }
   | { type: 'user-reviews' }
+  | { type: 'book-reviews' }
   | { type: 'review-detail' }
+  | { type: 'book-review-detail' }
   | { type: 'albums' }
   | { type: 'genre' }
   | { type: 'artists-overview' }
@@ -106,8 +110,16 @@ export function isUserReviewsPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/people\/[^/]+\/reviews/.test(url)
 }
 
+export function isBookUserReviewsPage(url: string): boolean {
+  return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/reviews/.test(url)
+}
+
 export function isReviewDetailPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/review\/\d+/.test(url)
+}
+
+export function isBookReviewDetailPage(url: string): boolean {
+  return /^https?:\/\/book\.douban\.com\/review\/\d+/.test(url)
 }
 
 export function isDoulistsPage(url: string): boolean {
@@ -120,6 +132,20 @@ export function isDoulistDetailPage(url: string): boolean {
 
 export function isUserMediaPage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/(people\/[^/]+\/(collect|wish|do)|mine)/.test(url)
+}
+
+export function isBookCollectPage(url: string): boolean {
+  return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/(collect|wish|do)/.test(url)
+}
+
+export function isBookAuthorsPage(url: string): boolean {
+  return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/authors/.test(url)
+}
+
+export function getBookCollectSubType(url: string): 'collect' | 'wish' | 'doing' {
+  if (url.includes('/wish') || url.includes('status=wish')) return 'wish'
+  if (url.includes('/do') || url.includes('status=do')) return 'doing'
+  return 'collect'
 }
 
 export function getUserMediaSubType(url: string): 'collect' | 'wish' | 'doing' {
@@ -152,15 +178,21 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isDoulistsPage(url))   return { type: 'doulists' }
   if (isUserCelebritiesPage(url)) return { type: 'user-celebrities' }
   if (isUserReviewsPage(url)) return { type: 'user-reviews' }
+  if (isBookUserReviewsPage(url)) return { type: 'book-reviews' }
+  if (isBookAuthorsPage(url)) return { type: 'book-authors' }
   if (isMovieProfilePage(url)) return { type: 'movie-profile' }
   if (isUserProfilePage(url)) return { type: 'user-profile' }
   if (isUserMediaPage(url)) {
     return { type: 'user-media', subType: getUserMediaSubType(url) }
   }
+  if (isBookCollectPage(url)) {
+    return { type: 'book-collect', subType: getBookCollectSubType(url) }
+  }
   if (isMusicHomepage(url))  return { type: 'music-homepage' }
   if (isGenrePage(url))      return { type: 'genre' }
   if (isArtistsOverview(url)) return { type: 'artists-overview' }
   if (isReviewDetailPage(url)) return { type: 'review-detail' }
+  if (isBookReviewDetailPage(url)) return { type: 'book-review-detail' }
   if (isHomepage(url))       return { type: 'homepage' }
   return null
 }

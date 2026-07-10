@@ -39,7 +39,10 @@ import { mountDoulistDetail } from './pages/doulist-detail/config'
 import { mountUserMedia } from './pages/user-media/config'
 import { mountUserCelebrities } from './pages/user-celebrities/config'
 import { mountUserReviews } from './pages/user-reviews/config'
+import { mountBookReviews } from './pages/book-reviews/config'
 import { mountReviewDetail } from './pages/review-detail/config'
+import { mountBookReviewDetail } from './pages/book-review-detail/config'
+import { mountBookCollect } from './pages/book-collect/config'
 
 const registry = new MountRegistry()
 
@@ -63,7 +66,12 @@ registry.register('doulist-detail', mountDoulistDetail)
 registry.register('user-media', mountUserMedia)
 registry.register('user-celebrities', mountUserCelebrities)
 registry.register('user-reviews', mountUserReviews)
+registry.register('book-reviews', mountBookReviews)
 registry.register('review-detail', mountReviewDetail)
+registry.register('book-review-detail', mountBookReviewDetail)
+registry.register('book-collect', mountBookCollect)
+import { mountBookAuthors } from './pages/book-authors/config'
+registry.register('book-authors', mountBookAuthors)
 
 // ---- Public API ----
 

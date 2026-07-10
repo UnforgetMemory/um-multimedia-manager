@@ -1,0 +1,62 @@
+/* ===== Shared UserBar — Shadow DOM safety copy of UmmUserBar.vue scoped CSS ===== */
+/* Vue 3 scoped CSS (data-v-e63ae0a4) is extracted into the content script CSS bundle
+   but cssInjectionMode:manual prevents automatic injection. The composed CSS from
+   composeStylesForPage (injected via mountUmmOverlay) only contains ?raw CSS imports,
+   not Vue component scoped CSS. This file provides the safety net in the shadow root. */
+
+/* Container */
+.umm-userbar {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-md, 16px);
+  padding-bottom: var(--umm-space-sm, 10px);
+  border-bottom: 1px solid var(--umm-border, #e5e7eb);
+}
+/* Avatar */
+.umm-userbar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary, #f3f4f6);
+  flex-shrink: 0;
+}
+/* User name + nav links */
+.umm-userbar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* Username text */
+.umm-userbar-name {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--umm-text-primary, #111827);
+  text-decoration: none;
+}
+.umm-userbar-name:hover {
+  color: var(--umm-link, #6366f1);
+}
+/* Navigation link list */
+.umm-userbar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+/* Individual nav link */
+.umm-userbar-navlink {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted, #9ca3af);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.umm-userbar-navlink:hover {
+  color: var(--umm-link, #6366f1);
+  background: var(--umm-bg-secondary, #f3f4f6);
+}

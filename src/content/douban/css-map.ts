@@ -31,7 +31,13 @@ import doulistDetailCss from './styles/doulist-detail.css?raw'
 import userMediaCss from './styles/user-media.css?raw'
 import userCelebritiesCss from './styles/user-celebrities.css?raw'
 import userReviewsCss from './styles/user-reviews.css?raw'
+import bookReviewsCss from './styles/book-reviews.css?raw'
 import reviewDetailCss from './styles/review-detail.css?raw'
+import bookReviewDetailCss from './styles/book-review-detail.css?raw'
+import bookCollectCss from './styles/book-collect.css?raw'
+import bookAuthorsCss from './styles/book-authors.css?raw'
+import userbarCss from './styles/userbar.css?raw'
+import paginatorCss from './styles/paginator.css?raw'
 import albumsCss from './styles/albums.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import interestCss from './styles/interest.css?raw'
@@ -60,7 +66,13 @@ export {
   userMediaCss,
   userCelebritiesCss,
   userReviewsCss,
+  bookReviewsCss,
   reviewDetailCss,
+  bookReviewDetailCss,
+  bookCollectCss,
+  paginatorCss,
+  bookAuthorsCss,
+  userbarCss,
   albumsCss,
   pageLayoutCss,
   interestCss,
@@ -95,7 +107,13 @@ export const cssMap: Record<string, string> = {
   'user-media': userMediaCss,
   'user-celebrities': userCelebritiesCss,
   'user-reviews': userReviewsCss,
+  'book-reviews': bookReviewsCss,
+  userbar: userbarCss,
   'review-detail': reviewDetailCss,
+  'book-review-detail': bookReviewDetailCss,
+  'book-collect': bookCollectCss,
+  paginator: paginatorCss,
+  'book-authors': bookAuthorsCss,
   albums: albumsCss,
   interest: interestCss,
 }

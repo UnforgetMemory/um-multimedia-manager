@@ -1,0 +1,155 @@
+/* ===== UMM Douban Book Collection (wish/collect/do) — Shadow DOM styles ===== */
+
+:host {
+  --umm-bc-accent: #4f6ef7;
+}
+:host(.umm-theme--dark) {
+  --umm-bc-accent: #6e8aff;
+}
+
+.umm-bc-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== Title Bar ===== */
+.umm-bc-titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-md, 16px);
+  padding-left: var(--umm-space-sm, 10px);
+  border-left: 3px solid var(--umm-bc-accent);
+}
+.umm-bc-titlebar-label {
+  font-size: var(--umm-font-md, 1.125rem);
+  font-weight: 800;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+.umm-bc-titlebar-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--umm-text-muted);
+}
+
+/* ===== Sort Bar ===== */
+.umm-bc-optbar {
+  margin-bottom: var(--umm-space-md, 16px);
+}
+.umm-bc-optgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--umm-font-xs, 0.7rem);
+}
+.umm-bc-opt {
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--umm-text-secondary);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.umm-bc-opt:hover {
+  background: var(--umm-bg);
+  color: var(--umm-text-primary);
+}
+.umm-bc-opt--active {
+  background: var(--umm-bc-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ===== List ===== */
+.umm-bc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-sm, 10px);
+}
+.umm-bc-card {
+  display: flex;
+  gap: var(--umm-space-md, 14px);
+  padding: var(--umm-space-md, 14px);
+  border-radius: var(--umm-card-radius, 10px);
+  background: var(--umm-bg-secondary);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.umm-bc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+:host(.umm-theme--dark) .umm-bc-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.umm-bc-cover-link {
+  flex-shrink: 0;
+  text-decoration: none;
+  width: 80px;
+}
+.umm-bc-cover {
+  width: 80px;
+  height: 112px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg);
+}
+
+.umm-bc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.umm-bc-title {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+}
+.umm-bc-title:hover {
+  color: var(--umm-link);
+}
+.umm-bc-pub {
+  font-size: var(--umm-font-xs, 0.68rem);
+  color: var(--umm-text-muted);
+}
+.umm-bc-date {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+}
+.umm-bc-comment {
+  font-size: var(--umm-font-xs, 0.68rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.5;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ===== Page Info ===== */
+.umm-bc-pageinfo {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-muted);
+  margin: var(--umm-space-md, 14px) 0 6px;
+  text-align: center;
+}
+
+/* ===== Empty ===== */
+.umm-bc-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
+}
+.umm-bc-empty-text {
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted);
+}

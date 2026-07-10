@@ -1,0 +1,59 @@
+/* ===== Shared Paginator — Shadow DOM safety copy of UmmPaginator.vue scoped CSS ===== */
+
+/* Container */
+.umm-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
+  flex-wrap: wrap;
+}
+/* Page button (default state) */
+.umm-paginator-btn {
+  font-family: inherit;
+  font-size: var(--umm-font-xs, 0.75rem);
+  line-height: 1;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.umm-paginator-btn:hover:not(:disabled) {
+  background: var(--umm-bg, #fff);
+  color: var(--umm-text-primary);
+}
+.umm-paginator-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+/* Active (current) page button */
+.umm-paginator-btn--active {
+  background: var(--umm-text-primary, #333);
+  color: var(--umm-bg, #fff);
+  font-weight: 700;
+}
+.umm-paginator-btn--active:hover {
+  background: var(--umm-text-primary, #333);
+  color: var(--umm-bg, #fff);
+}
+/* Ellipsis separator between page ranges */
+.umm-paginator-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  color: var(--umm-text-muted, #999);
+  font-size: var(--umm-font-xs, 0.75rem);
+}
