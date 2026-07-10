@@ -26,6 +26,7 @@ import { mountHomepage } from './pages/homepage/config'
 import { mountSearch } from './pages/search/config'
 import { mountAlbums } from './pages/albums/config'
 import { mountBookHomepage } from './pages/book-homepage/config'
+import { mountBookProfile } from './pages/book-profile/config'
 import { mountDetail } from './pages/detail/config'
 import { mountPhotos } from './pages/photos/config'
 import { mountTrailer } from './pages/trailer/config'
@@ -49,6 +50,7 @@ registry.register('homepage', mountHomepage)
 registry.register('search', mountSearch)
 registry.register('albums', mountAlbums)
 registry.register('book-homepage', mountBookHomepage)
+registry.register('book-profile', mountBookProfile)
 registry.register('detail', mountDetail)
 registry.register('photos', mountPhotos)
 registry.register('trailer', mountTrailer)

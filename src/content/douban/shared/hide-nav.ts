@@ -78,6 +78,9 @@ export function hideNavForPage(pageType: PageType): void {
     case 'user-media':
       hideNativeNav({ globalNav: true, movieNav: true })
       break
+    case 'book-profile':
+      hideNativeNav({ globalNav: true, bookNav: true })
+      break
     case 'homepage':
     case 'music-homepage':
     case 'book-homepage':

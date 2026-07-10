@@ -26,6 +26,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'homepage':         { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['homepage'] },
   'music-homepage':   { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['homepage', 'music-homepage'] },
   'book-homepage':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['homepage', 'book-homepage'] },
+  'book-profile':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['book-profile'] },
   'detail':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['detail', 'interest'] },
   'search':           { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['search'] },
   'photos':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['photos'] },

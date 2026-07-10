@@ -7,15 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **豆瓣读书用户主页适配**: 新增 `book.douban.com/people/{uid}/` 页面类型 `book-profile`，覆盖 Hero 用户信息、子页面导航栏、读过/想读网格、收藏作者、最近阅读时间线、书评、图书豆列 8 个数据区域；复用 UmmPageLayout/UmmStatBar 组件
+- `isBookUserProfile()` URL 检测 / `PageType` 联合类型 / `detectPageType()` 入口
+- `pages/book-profile/` 模块 (types/data/config/App.vue)
+- `styles/book-profile.css` Shadow DOM 样式 (StatBar override + Profile Nav + Author Grid + Timeline)
+
 ### Fixed
 - **豆瓣图书详情页目录提取不完整**: `extractTOC()` 增加 `_full` / `.all` 三层回退策略，优先读取隐藏的完整目录 DOM 而非截断版本；同时过滤 `(更多)`/`(收起)` 等截断标记文本
+- **Shadow DOM StatBar 样式缺失**: `book-profile.css` 补全 `umm-statbar-item`/`val`/`lbl`/`--clickable` 覆盖层
 
 ### Chore
-- 安全审计通过：仅 DOM 读取 + strip HTML tags，无 XSS/注入风险
+- codereview 通过：`rel="noopener noreferrer"` 补全、冗余 DOM 查询移除
+- 安全审计通过：纯 DOM 提取 + Vue 模板插值，无 XSS/注入风险
+- type-check + build 通过
 - 63 项单元测试全部通过
-- `.gitignore` 复核通过：`.localref/` 等 2 项已覆盖
+- `.gitignore` 复核通过
 
 ### Added
+- **领域模型层**: 新建 `src/domain/` 目录，10 个领域实体 (Identity, StoreRecord, Platform, MediaType, Status, Rating) + 仓储接口 + 领域服务
 - **领域模型层**: 新建 `src/domain/` 目录，10 个领域实体 (Identity, StoreRecord, Platform, MediaType, Status, Rating) + 仓储接口 + 领域服务
 - **CSS 设计 Token 系统**: 新建 `design-tokens.css`，统一 HSL 色彩体系，浅色/深色双主题覆盖
 - **PageMountFactory 模板化**: `definePageMount()` 工厂函数消除 19 个重复 mount 函数，`main.ts` 656→84 行

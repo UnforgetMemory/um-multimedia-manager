@@ -15,6 +15,7 @@ import breakpointsCss from './styles/breakpoints.css?raw'
 import homepageCss from './styles/homepage.css?raw'
 import musicHomepageCss from './styles/music-homepage.css?raw'
 import bookHomepageCss from './styles/book-homepage.css?raw'
+import bookProfileCss from './styles/book-profile.css?raw'
 import genreCss from './styles/genre.css?raw'
 import artistsOverviewCss from './styles/artists-overview.css?raw'
 import searchCss from './styles/search.css?raw'
@@ -43,6 +44,7 @@ export {
   homepageCss,
   musicHomepageCss,
   bookHomepageCss,
+  bookProfileCss,
   genreCss,
   artistsOverviewCss,
   searchCss,
@@ -77,6 +79,7 @@ export const cssMap: Record<string, string> = {
   homepage: homepageCss,
   'music-homepage': musicHomepageCss,
   'book-homepage': bookHomepageCss,
+  'book-profile': bookProfileCss,
   genre: genreCss,
   'artists-overview': artistsOverviewCss,
   search: searchCss,

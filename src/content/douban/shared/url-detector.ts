@@ -14,6 +14,7 @@ export type PageType =
   | { type: 'homepage' }
   | { type: 'music-homepage' }
   | { type: 'book-homepage' }
+  | { type: 'book-profile' }
   | { type: 'search'; mediaType: 'movie' | 'music' | 'book' }
   | { type: 'detail'; mediaType: 'movie' | 'music' | 'book' }
   | { type: 'photos' }
@@ -55,6 +56,10 @@ export function isArtistsOverview(url: string): boolean {
 
 export function isHomepage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/?(\?.*)?$/.test(url)
+}
+
+export function isBookUserProfile(url: string): boolean {
+  return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/?(\?.*)?$/.test(url)
 }
 
 export function isBookHomepage(url: string): boolean {
@@ -132,6 +137,7 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isVideoPage(url))      return { type: 'video' }
   if (isCelebritiesPage(url)) return { type: 'celebrities' }
   if (isAlbumsPage(url))     return { type: 'albums' }
+  if (isBookUserProfile(url)) return { type: 'book-profile' }
   if (isBookHomepage(url))   return { type: 'book-homepage' }
   if (isDetailPage(url)) {
     const mediaType = url.includes('music.douban.com') ? 'music' : url.includes('book.douban.com') ? 'book' : 'movie'
