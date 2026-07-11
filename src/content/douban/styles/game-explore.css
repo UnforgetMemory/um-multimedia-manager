@@ -1,0 +1,290 @@
+/* ===== UMM Douban Game Explore — Shadow DOM styles ===== */
+
+.umm-game-explore-page {
+  padding: 24px 24px 64px;
+  max-width: 900px;
+  margin: 0 auto;
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ---- Header ---- */
+.umm-game-explore-hd {
+  margin-bottom: 20px;
+}
+
+.umm-game-explore-title {
+  font-size: var(--umm-font-lg, 1.375rem);
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--umm-text-primary);
+}
+
+.umm-game-explore-meta {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+}
+
+/* ---- Filter bar ---- */
+.umm-game-filter-bar {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: var(--umm-bg-secondary);
+  border-radius: var(--umm-card-radius);
+  border: 1px solid var(--umm-border);
+}
+
+.umm-game-filter-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.umm-game-filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.umm-game-filter-label {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--umm-text-secondary);
+  line-height: 28px;
+  min-width: 64px;
+}
+
+.umm-game-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.umm-game-filter-chip {
+  padding: 3px 12px;
+  border: 1px solid var(--umm-border);
+  border-radius: 14px;
+  background: var(--umm-bg);
+  color: var(--umm-text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.umm-game-filter-chip:hover {
+  border-color: var(--umm-accent, #4f6ef7);
+  color: var(--umm-accent, #4f6ef7);
+}
+
+.umm-game-filter-chip--active {
+  border-color: var(--umm-accent, #4f6ef7);
+  background: var(--umm-accent, #4f6ef7);
+  color: #fff;
+}
+
+/* ---- Sort bar ---- */
+.umm-game-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 0 2px;
+}
+
+.umm-game-sort-label {
+  font-size: 0.8125rem;
+  color: var(--umm-text-muted);
+  flex-shrink: 0;
+}
+
+.umm-game-sort-btn {
+  padding: 4px 14px;
+  border: 1px solid var(--umm-border);
+  border-radius: 14px;
+  background: var(--umm-bg);
+  color: var(--umm-text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.umm-game-sort-btn:hover {
+  border-color: var(--umm-accent, #4f6ef7);
+  color: var(--umm-accent, #4f6ef7);
+}
+
+.umm-game-sort-btn--active {
+  border-color: var(--umm-accent, #4f6ef7);
+  background: var(--umm-accent, #4f6ef7);
+  color: #fff;
+}
+
+/* ---- Game list (single column) ---- */
+.umm-game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---- Game list item ---- */
+.umm-game-list-item {
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: var(--umm-card-radius);
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid var(--umm-border);
+}
+
+.umm-game-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Poster */
+.umm-game-item-poster {
+  flex-shrink: 0;
+  width: 64px;
+  border-radius: var(--umm-radius-sm);
+  overflow: hidden;
+}
+
+.umm-game-item-poster img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--umm-radius-sm);
+}
+
+/* Body */
+.umm-game-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+}
+
+/* Title row with inline badge */
+.umm-game-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.umm-game-item-title {
+  font-size: var(--umm-font-sm, 0.9375rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-game-item-title:hover {
+  color: var(--umm-link, #1757d6);
+}
+
+/* Status badge in title row — NOT overlaid on poster */
+.umm-game-item-title-row .umm-status {
+  flex-shrink: 0;
+}
+
+/* Meta chips */
+.umm-game-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.umm-game-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 0.6875rem;
+  color: var(--umm-text-muted);
+  background: var(--umm-bg-tertiary);
+  border-radius: 8px;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+/* Rating */
+.umm-game-item-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.umm-game-item-rating-num {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--umm-accent, #e09030);
+}
+
+.umm-game-item-rating-people {
+  font-size: 0.75rem;
+  color: var(--umm-text-muted);
+}
+
+/* Review */
+.umm-game-item-review {
+  font-size: 0.75rem;
+  color: var(--umm-text-tertiary);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-game-item-review-author {
+  color: var(--umm-text-muted);
+}
+
+/* ---- Empty state ---- */
+.umm-game-explore-empty {
+  padding: 48px;
+  text-align: center;
+  color: var(--umm-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* ---- Load more ---- */
+.umm-game-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.umm-game-load-btn {
+  padding: 10px 32px;
+  border: 1px solid var(--umm-border);
+  border-radius: 20px;
+  background: var(--umm-bg);
+  color: var(--umm-text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.umm-game-load-btn:hover {
+  border-color: var(--umm-accent, #4f6ef7);
+  color: var(--umm-accent, #4f6ef7);
+}
+
+.umm-game-load-btn--loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.umm-game-load-end {
+  font-size: 0.8125rem;
+  color: var(--umm-text-muted);
+}

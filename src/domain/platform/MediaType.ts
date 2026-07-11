@@ -14,6 +14,7 @@ export class MediaType {
   static readonly TV = new MediaType('tv');
   static readonly MUSIC = new MediaType('music');
   static readonly BOOK = new MediaType('book');
+  static readonly GAME = new MediaType('game');
 
   /** Ordered list of all known types. */
   static readonly KNOWN: readonly MediaType[] = [
@@ -21,6 +22,7 @@ export class MediaType {
     MediaType.TV,
     MediaType.MUSIC,
     MediaType.BOOK,
+    MediaType.GAME,
   ];
 
   /** String identifier — always lowercase. */

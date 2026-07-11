@@ -76,6 +76,7 @@ export default {
   'stats.tv': '劇集',
   'stats.book': '書籍',
   'stats.music': '音樂',
+  'stats.game': '遊戲',
   'stats.jav': '成人影片',
   'stats.total': '總記錄',
   'stats.weeklyTotal': '本週總計',

@@ -76,6 +76,7 @@ export default {
   'stats.tv': 'TV Series',
   'stats.book': 'Books',
   'stats.music': 'Music',
+  'stats.game': 'Games',
   'stats.jav': 'Adult Videos',
   'stats.total': 'Total Records',
   'stats.weeklyTotal': 'Weekly Total',

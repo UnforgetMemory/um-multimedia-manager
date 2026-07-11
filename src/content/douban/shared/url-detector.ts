@@ -39,6 +39,7 @@ export type PageType =
   | { type: 'artists-overview' }
   | { type: 'game-collect'; subType: 'collect' | 'wish' | 'do' }
   | { type: 'game-detail' }
+  | { type: 'game-explore' }
 
 export function isAlbumsPage(url: string): boolean {
   return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
@@ -97,7 +98,11 @@ export function isPersonagePage(url: string): boolean {
 }
 
 export function isGameDetailPage(url: string): boolean {
-  return /^https?:\/\/www\.douban\.com\/game\/\d+\/?$/.test(url)
+  return /^https?:\/\/www\.douban\.com\/game\/\d+\/?(\?.*)?$/.test(url)
+}
+
+export function isGameExplorePage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/game\/explore(\?.*)?$/.test(url)
 }
 
 export function isUserProfilePage(url: string): boolean {
@@ -211,6 +216,7 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isBookReviewDetailPage(url)) return { type: 'book-review-detail' }
   if (isHomepage(url))       return { type: 'homepage' }
   if (isGameDetailPage(url)) return { type: 'game-detail' }
+  if (isGameExplorePage(url)) return { type: 'game-explore' }
   if (isGameCollectPage(url)) {
     return { type: 'game-collect', subType: getGameCollectSubType(url) }
   }

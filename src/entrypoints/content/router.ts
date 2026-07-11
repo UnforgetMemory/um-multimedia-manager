@@ -52,7 +52,7 @@ const ROUTES: RouteRule[] = [
       url.includes('movie.douban.com/subject/') ||
       url.includes('music.douban.com/subject/') ||
       url.includes('book.douban.com/subject/') ||
-      (url.includes('www.douban.com') && /\/game\/\d+\/?$/.test(url)),
+      (url.includes('www.douban.com') && /\/game\/\d+\/?(\?.*)?$/.test(url)),
     handler: async (identity) => {
       if (identity) {
         await handleDoubanDetailPage(identity)

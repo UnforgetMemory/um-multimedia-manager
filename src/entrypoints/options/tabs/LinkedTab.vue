@@ -59,7 +59,7 @@ function parseLinkedInput() {
   }
 
   if (/^tt\d+$/i.test(input)) return { type: 'movie', provider: 'imdb' as Provider, providerId: input.toLowerCase(), url: `https://www.imdb.com/title/${input.toLowerCase()}/`, valid: true }
-  if (/^\d+$/.test(input)) { const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : linkedSelectedDomain.value === 'book' ? 'book' : 'movie'; return { type: linkedSelectedDomain.value, provider: 'douban' as Provider, providerId: input, url: `https://${subdomain}.douban.com/subject/${input}/`, valid: true } }
+  if (/^\d+$/.test(input)) { const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : linkedSelectedDomain.value === 'book' ? 'book' : linkedSelectedDomain.value === 'game' ? 'www' : 'movie'; const path = linkedSelectedDomain.value === 'game' ? `game` : 'subject'; return { type: linkedSelectedDomain.value, provider: 'douban' as Provider, providerId: input, url: `https://${subdomain}.douban.com/${path}/${input}/`, valid: true } }
   return { type, provider, providerId: input, url: '', valid: false, error: t('validation.cannotParse') }
 }
 

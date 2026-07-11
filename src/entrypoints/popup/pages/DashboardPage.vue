@@ -8,7 +8,7 @@ import StatCard from '@/shared/StatCard.vue'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Separator } from '@/shared/ui/separator'
-import { Settings, Film, Tv, Music, Book, ShieldAlert, ArrowUpRight } from 'lucide-vue-next'
+import { Settings, Film, Tv, Music, Book, Gamepad2, ShieldAlert, ArrowUpRight } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -40,6 +40,7 @@ onMounted(() => appStore.loadData())
         <StatCard :icon="Tv" :label="t('stats.tv')" :value="stats.tv" :loading="!dataReady" />
         <StatCard :icon="Music" :label="t('stats.music')" :value="stats.music" :loading="!dataReady" />
         <StatCard :icon="Book" :label="t('stats.book')" :value="stats.book" :loading="!dataReady" />
+        <StatCard :icon="Gamepad2" :label="t('stats.game')" :value="stats.game" :loading="!dataReady" />
         <StatCard :icon="ShieldAlert" :label="t('stats.jav')" :value="stats.jav" :loading="!dataReady" />
       </div>
 

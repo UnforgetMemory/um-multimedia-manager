@@ -131,6 +131,12 @@ export class Identity {
         return Identity.create('neodb', 'music', neodbAlbum[1]);
       }
 
+      // Douban game
+      const doubanGame = pathname.match(/^\/game\/(\d+)/i);
+      if (host === 'www.douban.com' && doubanGame) {
+        return Identity.create('douban', 'game', doubanGame[1]);
+      }
+
       // Douban personage
       const doubanPersonage = pathname.match(/^\/personage\/(\d+)\/$/i);
       if (host === 'www.douban.com' && doubanPersonage) {
@@ -197,6 +203,7 @@ export class Identity {
     if (p === 'douban' && t === 'movie') return `https://movie.douban.com/subject/${providerId}/`;
     if (p === 'douban' && t === 'book') return `https://book.douban.com/subject/${providerId}/`;
     if (p === 'douban' && t === 'music') return `https://music.douban.com/subject/${providerId}/`;
+    if (p === 'douban' && t === 'game') return `https://www.douban.com/game/${providerId}/`;
 
     // IMDb
     if (p === 'imdb' && t === 'movie') return `https://www.imdb.com/title/${providerId}/`;

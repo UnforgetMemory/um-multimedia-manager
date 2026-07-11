@@ -15,8 +15,10 @@ type SendResponse = (response?: any) => void
 function buildDoubanUrl(type: string, providerId: string): string {
   const domain = type === 'music' ? 'music.douban.com'
     : type === 'book' ? 'book.douban.com'
+    : type === 'game' ? 'www.douban.com'
     : 'movie.douban.com'
-  return `https://${domain}/subject/${providerId}/`
+  const path = type === 'game' ? `game` : 'subject'
+  return `https://${domain}/${path}/${providerId}/`
 }
 
 /** Map numeric status to NeoDB shelf type */

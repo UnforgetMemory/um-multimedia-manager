@@ -91,9 +91,9 @@ export function extractGameDetailData(): GameDetailData | null {
     const collectionComment = commentEl?.textContent?.trim() || ''
 
     let initialStatus = 0
-    if (collectionText.includes('玩过')) initialStatus = 2
-    else if (collectionText.includes('想玩')) initialStatus = 1
-    else if (collectionText.includes('在玩')) initialStatus = 3
+    if (collectionText.includes('我玩过')) initialStatus = 2
+    else if (collectionText.includes('我想玩')) initialStatus = 1
+    else if (collectionText.includes('我最近在玩')) initialStatus = 3
 
     const ratingBtn = document.querySelector<HTMLElement>('a.collect-btn[data-rating]')
     const initialRating = ratingBtn ? parseInt(ratingBtn.getAttribute('data-rating') || '0', 10) : 0

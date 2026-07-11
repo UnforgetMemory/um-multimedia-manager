@@ -124,7 +124,7 @@ function openLink(url: string): void {
               :myTags="interested.myTags.value"
               :savedTags="interested.savedTags.value"
               :comment="interested.currentComment.value"
-              :hasDo="interested.hasDo.value"
+              :hasDo="true"
               :loading="interested.loading.value"
               :error="interested.error.value"
               type="game"

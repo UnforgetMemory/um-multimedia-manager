@@ -13,7 +13,7 @@ import { Button } from '@/shared/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert'
 import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
 import StatsGrid from '@/shared/ui/stats-grid/StatsGrid.vue'
-import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, ShieldAlert } from 'lucide-vue-next'
+import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, Gamepad2, ShieldAlert } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -118,9 +118,9 @@ const weeklyStats = computed(() => {
   return { days, total: weekTotal, maxDaily, avgDaily, peakDay }
 })
 
-const statIcons = [Film, Tv, Music, Book, ShieldAlert]
-const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.jav')])
-const statKeys = ['movie', 'tv', 'music', 'book', 'jav'] as const
+const statIcons = [Film, Tv, Music, Book, Gamepad2, ShieldAlert]
+const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.game'), t('stats.jav')])
+const statKeys = ['movie', 'tv', 'music', 'book', 'game', 'jav'] as const
 
 const statsData = computed(() =>
   statKeys.map((key, i) => ({

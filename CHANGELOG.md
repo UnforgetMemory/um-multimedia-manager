@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.13.0] - 2026-07-10
+## [4.13.0] - 2026-07-11
+
+### Added
+- **豆瓣游戏探索页深度适配**: 新增 `www.douban.com/game/explore` 页面完整注入
+  - 页面类型 `game-explore` → `url-detector.ts` / `early.ts` / `main.ts` / `css-composer.ts` / `css-map.ts`
+  - 数据提取: `GlobalData` JS 对象解析（支持 key-by-key 赋值格式） + DOM 回退（items/filters/sorter）
+  - 筛选栏: 类型/平台两组 chip 按钮，选中态根据当前 URL 参数动态映射，点击 toggle 选中/取消
+  - 排序: 评分/按时间排序，`currentSort` 直接读 URL `?sort=` 参数
+  - 游戏卡片: 单列列表，封面+标题+内联状态徽章（玩过/想玩/在玩）+类型/platform chips+评分+短评
+  - 加载更多: `GET /j/ilmen/game/search?more=N` 游标分页，总结果数精确显示
+  - 灵动岛: 新增"游戏"导航入口，游戏搜索使用 `?q=` 参数同站导航（保留当前 filter/sort）
+- **豆瓣游戏详情页标记状态增强**: `scanDoubanPageStatus()` / `GameDetailData.ts` 使用精确匹配 `我玩过`/`我想玩`/`我最近在玩` 而非子串
+- **游戏页搜索框预填**: 从 URL `?q=` 直接读取初始搜索关键词
 
 ### Added
 - **豆瓣游戏详情页深度适配**: 新增 `www.douban.com/game/{id}` 页面完整注入，沿用电影详情页风格

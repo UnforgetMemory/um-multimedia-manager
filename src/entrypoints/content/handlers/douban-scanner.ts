@@ -31,9 +31,9 @@ export function scanDoubanPageStatus(identity: UrlIdentity): { status: string; r
 
     const finalRating = Utils.clampRating10(stars * 2)
 
-    if (text.includes('玩过')) return { status: 'done', rating: finalRating }
-    if (text.includes('想玩')) return { status: 'wish', rating: 0 }
-    if (text.includes('在玩')) return { status: 'doing', rating: 0 }
+    if (text.includes('我玩过')) return { status: 'done', rating: finalRating }
+    if (text.includes('我想玩')) return { status: 'wish', rating: 0 }
+    if (text.includes('我最近在玩')) return { status: 'doing', rating: 0 }
     return { status: 'none', rating: 0 }
   }
 

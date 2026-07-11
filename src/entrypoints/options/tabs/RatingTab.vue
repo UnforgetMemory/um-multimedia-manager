@@ -108,7 +108,7 @@ function parseRatingInput() {
 
   const nId = validation.normalizedId
   let url = ''
-  if (provider === 'douban') url = type === 'music' ? `https://music.douban.com/subject/${nId}/` : type === 'book' ? `https://book.douban.com/subject/${nId}/` : `https://movie.douban.com/subject/${nId}/`
+  if (provider === 'douban') url = type === 'music' ? `https://music.douban.com/subject/${nId}/` : type === 'book' ? `https://book.douban.com/subject/${nId}/` : type === 'game' ? `https://www.douban.com/game/${nId}/` : `https://movie.douban.com/subject/${nId}/`
   else if (provider === 'imdb') url = `https://www.imdb.com/title/${nId}/`
   else if (provider === 'neodb') { const p = type === 'tv' ? 'tv' : type === 'music' ? 'album' : 'movie'; url = `https://neodb.social/${p}/${nId}/` }
   else if (provider === 'tmdb') url = type === 'tv' ? `https://www.themoviedb.org/tv/${nId}/` : `https://www.themoviedb.org/movie/${nId}/`

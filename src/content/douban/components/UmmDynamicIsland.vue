@@ -55,15 +55,21 @@ function handleInput(): void {
 function doSearch(): void {
   if (isSearching.value) return
   const normalized = normalizeSearchQuery(searchQuery.value)
+
+  // Game search: always navigates, even with empty query (shows all games)
+  if (props.type === 'game') {
+    isSearching.value = true
+    const params = new URLSearchParams(location.search)
+    params.set('q', normalized)
+    location.href = `https://www.douban.com/game/explore?${params.toString()}`
+    searchTimeout = setTimeout(() => { isSearching.value = false }, 800)
+    return
+  }
+
   if (!normalized) return
   isSearching.value = true
   const cat = catMap[props.type]
-  let url: string
-  if (props.type === 'game') {
-    url = `https://search.douban.com/game/subject_search?search_text=${encodeURIComponent(normalized)}&cat=${cat}`
-  } else {
-    url = `https://search.douban.com/${props.type}/subject_search?search_text=${encodeURIComponent(normalized)}&cat=${cat}`
-  }
+  let url = `https://search.douban.com/${props.type}/subject_search?search_text=${encodeURIComponent(normalized)}&cat=${cat}`
   open(url)
   searchTimeout = setTimeout(() => { isSearching.value = false }, 800)
 }
@@ -118,6 +124,19 @@ onUnmounted(() => {
           <path d="M8 7h8M8 11h6"></path>
         </svg>
         <span class="umm-island-nav-label">图书</span>
+      </button>
+      <button
+        type="button"
+        class="umm-island-nav-link"
+        :class="{ 'umm-island-nav-link--active': type === 'game' }"
+        aria-label="游戏"
+        @click="open('https://www.douban.com/game/explore')"
+      >
+        <svg class="umm-island-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 12h4m-2-2v4m4-2a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path>
+          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+        </svg>
+        <span class="umm-island-nav-label">游戏</span>
       </button>
       <div class="umm-island-divider"></div>
       <button

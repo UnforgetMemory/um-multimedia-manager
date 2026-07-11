@@ -13,7 +13,7 @@ export function useStats(
   getAdultAvItems: () => AdultAvId[],
 ) {
   const stats = computed(() => {
-    let movie = 0, tv = 0, music = 0, book = 0
+    let movie = 0, tv = 0, music = 0, book = 0, game = 0
     const records = getRecords()
     const items = getAdultAvItems()
     for (const r of records) {
@@ -21,8 +21,9 @@ export function useStats(
       else if (r.type === 'tv') tv++
       else if (r.type === 'music') music++
       else if (r.type === 'book') book++
+      else if (r.type === 'game') game++
     }
-    return { total: records.length + items.length, movie, tv, music, book, jav: items.length }
+    return { total: records.length + items.length, movie, tv, music, book, game, jav: items.length }
   })
 
   return { stats }
