@@ -218,7 +218,14 @@ export async function syncToLocalStorage(
   }
 
   // Enhanced NeoDB trigger: first write, status change, OR when a "done"
-  // page has a missing or wrong-status local NeoDB record
+  // page has a missing or wrong-status local NeoDB record.
+  //
+  // 📌 Rating is deliberately NOT a trigger here — when a local NeoDB
+  // record already exists (linkedIds.neodb), the user may have manually
+  // set a different rating on NeoDB (it supports 0.5-increment precision).
+  // Pushing the Douban rating again would overwrite that manual choice.
+  // The runtime guard in syncNeoDBRecord() also skips the rating in the
+  // API payload when the local NeoDB record exists.
   let needsNeoDBSync = isNewRecord || isStatusChanged
   if (!needsNeoDBSync && numericStatus === STATUS_DONE) {
     const neodbLinkedKey = mergedLinkedIds.neodb

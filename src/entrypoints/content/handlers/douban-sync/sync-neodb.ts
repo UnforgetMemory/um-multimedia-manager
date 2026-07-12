@@ -63,6 +63,35 @@ export async function syncNeoDBRecord(
       return
     }
 
+    // ── Rating protection ─────────────────────────────────────────────
+    // When a local NeoDB record already exists AND its status matches the
+    // current page status, don't push the Douban rating to the API — the
+    // user may have manually chosen a different rating on NeoDB (which
+    // supports 0.5-increment precision).  Setting ratingToPush=0 tells
+    // markItem() to omit rating_grade from the payload, preserving the
+    // existing NeoDB rating.
+    //
+    // When status changed (DONE→WISH or WISH→DONE), the user actively
+    // changed their intent — push rating normally and sync everything.
+    let ratingToPush = pageRating
+    const neodbLinkedKey = mergedLinkedIds.neodb
+    if (neodbLinkedKey) {
+      const existingNeoDBRecord = await Store.dbGet('neodb_records', neodbLinkedKey)
+      if (existingNeoDBRecord && existingNeoDBRecord.status === numericStatus) {
+        console.log(
+          '[UMM Douban] NeoDB record exists with same status — ' +
+          'preserving its rating, skipping Douban rating push',
+        )
+        ratingToPush = 0
+      } else if (existingNeoDBRecord) {
+        console.log(
+          '[UMM Douban] NeoDB record exists but status changed ' +
+          `(${existingNeoDBRecord.status}→${numericStatus}) — ` +
+          'pushing full sync with Douban rating',
+        )
+      }
+    }
+
     console.log('[UMM Douban] Auto-syncing to NeoDB...')
     const syncResponse = await safeSendMessage(
       {
@@ -70,7 +99,7 @@ export async function syncNeoDBRecord(
         payload: {
           record: {
             providerId: identity.providerId,
-            rating: pageRating,
+            rating: ratingToPush,
             status: numericStatus,
             type: identity.type,
             provider: identity.provider,
@@ -84,17 +113,21 @@ export async function syncNeoDBRecord(
     if (syncResponse?.success && syncResponse.catalogUuid) {
       const neodbFullKey = `${identity.type}::${syncResponse.catalogUuid}`
 
-      // 1. Update douban record linkedIds.neodb
+      // 1. Update douban record linkedIds.neodb — only when different
       const existingAfterPush = await Store.dbGet(doubanStoreName, doubanKey)
       if (existingAfterPush) {
         existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
-        existingAfterPush.linkedIds.neodb = neodbFullKey
-        await Store.dbPut(doubanStoreName, doubanKey, existingAfterPush)
+        if (existingAfterPush.linkedIds.neodb !== neodbFullKey) {
+          existingAfterPush.linkedIds.neodb = neodbFullKey
+          await Store.dbPut(doubanStoreName, doubanKey, existingAfterPush)
+        }
       }
 
       // 2. Create/update NeoDB local record
       const neodbStoreName = 'neodb_records'
-      const neodbKey = neodbFullKey
+      // Prefer the existing linkedIds key to avoid creating duplicate records
+      // when the API returns a different catalogUuid than a previous sync.
+      const neodbKey = existingAfterPush?.linkedIds?.neodb || neodbFullKey
       const existingNeoDB = await Store.dbGet(neodbStoreName, neodbKey)
       const doubanFullKey = `${identity.type}::${identity.providerId}`
 
@@ -105,9 +138,16 @@ export async function syncNeoDBRecord(
       if (mergedLinkedIds.tmdb) neodbLinkedIds.tmdb = mergedLinkedIds.tmdb
 
       if (existingNeoDB) {
+        // Always sync linkedIds
         existingNeoDB.linkedIds = {
           ...(existingNeoDB.linkedIds || {}),
           ...neodbLinkedIds,
+        }
+        // Only update status/rating when status changed (user intent change)
+        if (existingNeoDB.status !== numericStatus) {
+          existingNeoDB.status = numericStatus
+          existingNeoDB.rating = pageRating
+          existingNeoDB.updatedAt = new Date().toISOString()
         }
         await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
       } else {

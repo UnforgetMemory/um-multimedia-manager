@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **游戏详情页子路径误匹配**: 视频/图片/评论等 `/game/{id}/XXXX` 子页面不再触发详情注入 — `isGameDetailPage()`/路由匹配/content.ts 全面加 `\/?$` 结尾约束
 - **NeoDB/cross-platform 异步链路**: `App.vue onMounted` 调用 `fetchInterest()` 后注入 NeoDB 按钮；`onCrossPlatformSave` 完整执行跨平台同步+NeoDB推送
+- **NeoDB 自动同步评分保护**: 已有本地 NeoDB 记录且 status 相同时，`syncNeoDBRecord()` 将 `pageRating` 设为 0 使 API 跳过评分更新（`markItem` 中 `rating_grade` 仅在 `rating > 0` 时发送），保护用户手动设置的精确评分（NeoDB 支持 0.5 分跨度）
+- **NeoDB 自动同步重复记录防护**: `syncNeoDBRecord()` 中 `linkedIds.neodb` 新增 guard（仅不同时写入），`neodbKey` 优先使用已有 `linkedIds.neodb` 防止 API 返回不同 UUID 时创建重复记录
+- **NeoDB 手动推送本地记录未同步**: `performNeoDBPush()` 更新已有 NeoDB 记录时补全 `status`/`rating`/`updatedAt` 同步（之前仅更新 `linkedIds`）
+- **NeoDB 自动同步本地记录未同步**: `syncNeoDBRecord()` 更新已有 NeoDB 记录时补全 status 变化时的 `status`/`rating`/`updatedAt` 同步（之前仅更新 `linkedIds`）
 
 ### Chore
 - codereview 通过：Shadow DOM 隔离、`credentials: include` API 调用、textContent/innerHTML 只读提取
@@ -38,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.gitignore` 补充 AI 辅助目录、MCP 配置等 11 条模式
 - 清理 `test-results/` 运行产物
 - type-check + build 通过
+- 63 项单元测试全部通过
+- 新增 `performNeoDBPush` 写入后立即读回验证日志
 
 ### Added
 - **豆瓣读书书评主页适配**: 新增 `book.douban.com/people/{uid}/reviews` 页面类型 `book-reviews`，覆盖用户书评列表的封面、标题、评分、内容预览、阅读统计、分页
