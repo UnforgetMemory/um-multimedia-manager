@@ -337,15 +337,14 @@ async function performNeoDBPush(
       const storeName = `${identity.provider}_records`
       const now = new Date().toISOString()
 
-      // 1. 更新豆瓣记录的 linkedIds.neodb
+      // 1. 更新豆瓣记录 — 始终刷新 updatedAt 并同步 linkedIds
       const existingDouban = await Store.dbGet(storeName, doubanFullKey)
       if (existingDouban) {
         existingDouban.linkedIds = existingDouban.linkedIds || {}
-        if (existingDouban.linkedIds.neodb !== neodbFullKey) {
-          existingDouban.linkedIds.neodb = neodbFullKey
-          await Store.dbPut(storeName, doubanFullKey, existingDouban)
-          infoLog('[Douban] ✅ Updated Douban linkedIds.neodb via push:', neodbFullKey)
-        }
+        existingDouban.linkedIds.neodb = neodbFullKey
+        existingDouban.updatedAt = now
+        await Store.dbPut(storeName, doubanFullKey, existingDouban)
+        infoLog('[Douban] ✅ Saved Douban record after NeoDB push:', neodbFullKey)
       }
 
       // 2. 从页面提取跨平台关联（IMDB/TMDB）

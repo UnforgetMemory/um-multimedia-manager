@@ -113,14 +113,13 @@ export async function syncNeoDBRecord(
     if (syncResponse?.success && syncResponse.catalogUuid) {
       const neodbFullKey = `${identity.type}::${syncResponse.catalogUuid}`
 
-      // 1. Update douban record linkedIds.neodb — only when different
+      // 1. Update douban record linkedIds.neodb — always refresh record after sync
       const existingAfterPush = await Store.dbGet(doubanStoreName, doubanKey)
       if (existingAfterPush) {
         existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
-        if (existingAfterPush.linkedIds.neodb !== neodbFullKey) {
-          existingAfterPush.linkedIds.neodb = neodbFullKey
-          await Store.dbPut(doubanStoreName, doubanKey, existingAfterPush)
-        }
+        existingAfterPush.linkedIds.neodb = neodbFullKey
+        existingAfterPush.updatedAt = new Date().toISOString()
+        await Store.dbPut(doubanStoreName, doubanKey, existingAfterPush)
       }
 
       // 2. Create/update NeoDB local record
@@ -143,11 +142,12 @@ export async function syncNeoDBRecord(
           ...(existingNeoDB.linkedIds || {}),
           ...neodbLinkedIds,
         }
-        // Only update status/rating when status changed (user intent change)
+        // Always refresh updatedAt after a sync; only update status/rating
+        // when the source intent changed (status differed).
+        existingNeoDB.updatedAt = new Date().toISOString()
         if (existingNeoDB.status !== numericStatus) {
           existingNeoDB.status = numericStatus
           existingNeoDB.rating = pageRating
-          existingNeoDB.updatedAt = new Date().toISOString()
         }
         await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
       } else {

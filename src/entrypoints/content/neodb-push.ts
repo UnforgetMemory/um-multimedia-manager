@@ -267,6 +267,7 @@ async function pushToNeoDB(
         if (existing) {
           existing.linkedIds = existing.linkedIds || {}
           existing.linkedIds.neodb = neodbFullKey
+          existing.updatedAt = new Date().toISOString()
           await Store.dbPut(storeName, key, existing)
           currentRecord = existing
           infoLog('Updated record with NeoDB linked ID:', neodbFullKey)
@@ -275,12 +276,15 @@ async function pushToNeoDB(
         const neodbStoreName = 'neodb_records'
         const existingNeoDB = await Store.dbGet(neodbStoreName, neodbFullKey)
         if (existingNeoDB) {
-          if (!existingNeoDB.linkedIds?.douban) {
-            existingNeoDB.linkedIds = existingNeoDB.linkedIds || {}
-            existingNeoDB.linkedIds.douban = doubanFullKey
-            await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
-            infoLog('Updated existing NeoDB record linkedIds:', neodbFullKey)
+          existingNeoDB.status = 2
+          existingNeoDB.rating = adjustedRating
+          existingNeoDB.updatedAt = new Date().toISOString()
+          existingNeoDB.linkedIds = {
+            ...(existingNeoDB.linkedIds || {}),
+            douban: doubanFullKey,
           }
+          await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
+          infoLog('Updated existing NeoDB record:', neodbFullKey)
         } else {
           const neodbRecord: StoreRecord = {
             url: Identity.buildNeoDBUrl(currentIdentity.type, response.catalogUuid),

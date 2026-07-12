@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.1] - 2026-07-12
+
+### Fixed
+
+- **NeoDB 同步后本地记录未保存**: 手动/自动 NeoDB 推送成功后，当 `linkedIds.neodb` 未变化或 status 与已有记录一致时，douban record 的 `Store.dbPut` 被条件跳过，导致 `updatedAt` 从不刷新、记录状态停滞
+  - `sync-neodb.ts`: 推送后无条件保存 douban record + 刷新 `updatedAt`；neodb record 的 `updatedAt` 始终刷新
+  - `douban-neodb.ts`: 移除 `linkedIds.neodb` 变化判断，推送后始终保存 douban record
+  - `neodb-push.ts`: 推送后刷新 douban record 的 `updatedAt` 和 neodb record 的 status/rating/updatedAt
+  - `useCrossPlatformSync.ts`: 推送后刷新 douban record 的 `updatedAt`
+
 ## [4.13.0] - 2026-07-11
 
 ### Added

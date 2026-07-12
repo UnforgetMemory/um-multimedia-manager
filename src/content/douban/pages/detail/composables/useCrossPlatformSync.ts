@@ -104,6 +104,7 @@ export async function onCrossPlatformSave(options: SaveOptions): Promise<StoreRe
             if (existingAfterPush) {
               existingAfterPush.linkedIds = existingAfterPush.linkedIds || {}
               existingAfterPush.linkedIds.neodb = neodbFullKey
+              existingAfterPush.updatedAt = new Date().toISOString()
               await Store.dbPut('douban_records', key, existingAfterPush)
             }
             const neodbStoreName = 'neodb_records'
