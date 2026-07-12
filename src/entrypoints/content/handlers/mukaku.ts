@@ -144,14 +144,19 @@ async function expMapHas(mapKey: string, id: string): Promise<boolean> {
   return expiry !== undefined && Date.now() < expiry
 }
 
-/** Get IDs with status ≥ 1 for a given type + provider. Replaces old Store.getIdSet. */
+/**
+ * Get watched IDs (status >= 2) for a given type + provider.
+ * Only status=2 (done) and status=3 (doing) qualify as "watched";
+ * status=1 (wishlist) is explicitly excluded to avoid false positives.
+ * Replaces old Store.getIdSet.
+ */
 async function getIdSet(type: string, provider: string): Promise<Set<string>> {
   const storeName = `${provider}_records`
   const entries = await Store.dbGetAll(storeName)
   const ids = new Set<string>()
   const prefix = `${type}::`
   for (const { key, record } of entries) {
-    if (key.startsWith(prefix) && record.status >= 1) {
+    if (key.startsWith(prefix) && record.status >= 2) {
       ids.add(key.slice(prefix.length))
     }
   }

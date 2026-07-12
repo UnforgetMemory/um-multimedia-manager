@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.2] - 2026-07-12
+
+### Fixed
+
+- **Mukaku 已看判断误将"想看"(status=1)视为"已看"**: `getIdSet()` 使用 `record.status >= 1` 筛选，将 wishlist 记录错误归入已看集合，导致非已看视频在 Mukaku 页面被标记为已看并置灰
+  - `mukaku.ts`: `getIdSet()` 过滤条件 `>= 1` → `>= 2`，对齐 DB 层 `getWatchedIds()` 定义
+
+### Chores
+
+- Version bump 4.13.1 → 4.13.2
+- 清理迁移残留的空目录 (`entrypoints/`)
+- `.gitignore` 补充遗漏的临时目录模式
+
 ## [4.13.1] - 2026-07-12
 
 ### Fixed

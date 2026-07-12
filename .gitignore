@@ -136,3 +136,7 @@ pnpm-workspace.yaml
 # Misplaced node_modules
 .localref/
 localref/
+
+# Stale empty directories from refactors (ghost directories)
+**/__pycache__/
+*.egg-info/
