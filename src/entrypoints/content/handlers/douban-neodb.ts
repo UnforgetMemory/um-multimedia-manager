@@ -358,12 +358,18 @@ async function performNeoDBPush(
       const neodbStoreName = 'neodb_records'
       const existingNeoDB = await Store.dbGet(neodbStoreName, neodbFullKey)
       if (existingNeoDB) {
+        existingNeoDB.status = record?.status ?? 0
+        existingNeoDB.rating = adjustedRating
+        existingNeoDB.updatedAt = now
         existingNeoDB.linkedIds = {
           ...(existingNeoDB.linkedIds || {}),
           ...neodbLinkedIds,
         }
         await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
-        infoLog('[Douban] ✅ Updated existing NeoDB record via push:', neodbFullKey, 'linkedIds:', existingNeoDB.linkedIds)
+        infoLog('[Douban] ✅ Updated existing NeoDB record via push:', neodbFullKey, 'status:', existingNeoDB.status, 'rating:', existingNeoDB.rating, 'linkedIds:', existingNeoDB.linkedIds)
+        // Verify write: read back immediately
+        const verifyRecord = await Store.dbGet(neodbStoreName, neodbFullKey)
+        infoLog('[Douban] 🔍 Verify after write — neodb record rating:', verifyRecord?.rating, 'status:', verifyRecord?.status)
       } else {
         const neodbRecord: StoreRecord = {
           url: Identity.buildNeoDBUrl(identity.type, catalogUuid),
