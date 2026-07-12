@@ -5,7 +5,7 @@
 
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { Store } from '@/features/database'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import { Utils } from '@/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'

@@ -221,7 +221,7 @@ export class Identity {
     return '';
   }
 
-  private static buildNeoDBUrl(type: string, catalogUuid: string): string {
+  static buildNeoDBUrl(type: string, catalogUuid: string): string {
     if (catalogUuid.startsWith('show:')) return `https://neodb.social/tv/${catalogUuid.slice(5)}/`;
     if (catalogUuid.startsWith('season:')) return `https://neodb.social/tv/season/${catalogUuid.slice(7)}/`;
     if (catalogUuid.startsWith('episode:')) return `https://neodb.social/tv/episode/${catalogUuid.slice(8)}/`;

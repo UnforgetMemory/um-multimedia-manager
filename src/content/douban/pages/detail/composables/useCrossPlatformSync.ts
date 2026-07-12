@@ -1,5 +1,5 @@
 import { Store } from '@/features/database'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import { safeSendMessage } from '@/utils/context'
 import { extractCrossPlatformLinks } from '@/entrypoints/content/handlers/douban-scanner'
 import { injectNeoDBPushButtons } from '@/entrypoints/content/neodb-push'

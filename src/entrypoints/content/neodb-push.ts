@@ -9,7 +9,7 @@
 import type { StoreRecord } from '@/types'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import { safeSendMessage } from '@/utils/context'
 import { FloatingToast } from './utils/toast'
 import { t } from './i18n'

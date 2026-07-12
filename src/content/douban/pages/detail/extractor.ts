@@ -5,7 +5,7 @@
  * All HTML is DOMPurify-sanitised before returning.
  */
 import DOMPurify from 'dompurify'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
 import type { RatingBar, MetaRow, AwardItem } from './types'
 

@@ -5,9 +5,15 @@
  * - Identity extraction (fromUrl / buildUrl / canonicalizeUrl)
  * - Route pattern constants used by content script router and matches
  *
- * Previously split across src/features/identity/models.ts and inline in router.ts.
+ * URL parsing logic delegates to the domain Identity class
+ * (src/domain/identity/Identity.ts) to eliminate duplication.
+ * This file provides the UrlIdentity DTO adapter + PT site helpers
+ * for backward compatibility with content script consumers.
  */
 
+import { Identity as DomainIdentity } from '@/domain/identity/Identity';
+import { Platform } from '@/domain/platform/Platform';
+import { MediaType } from '@/domain/platform/MediaType';
 import type { Provider } from '@/config';
 import type { UrlIdentity } from '@/types';
 
@@ -59,7 +65,7 @@ export function isPTListPage(url: string): boolean {
   return PT_HOSTS.some(h => url.includes(`/${h}/torrents.php`) || url.includes(`/${h}/videos.php`));
 }
 
-// ==================== Identity Object ====================
+// ==================== Identity Object (UrlIdentity DTO adapter) ====================
 
 export const Identity = {
   /**
@@ -83,300 +89,54 @@ export const Identity = {
 
   /**
    * URL 标准化处理
-   * - 移除 hash 和 search 参数
-   * - 规范化路径(去除多余斜杠)
-   * - 确保以 / 结尾
+   * Delegates to the domain Identity class for canonicalization.
    */
   canonicalizeUrl(rawUrl: string): string {
-    if (!rawUrl) {
-      return '';
-    }
-    try {
-      const url = new URL(String(rawUrl));
-      url.hash = '';
-      url.search = '';
-      url.pathname = url.pathname.replace(/\/{2,}/g, '/');
-      if (!url.pathname.endsWith('/')) {
-        url.pathname += '/';
-      }
-      return url.toString();
-    } catch (_error) {
-      // 如果 URL 解析失败,尝试简单规范化
-      return this.normalizeUrlFallback(rawUrl);
-    }
-  },
-
-  /**
-   * URL 解析失败的降级处理
-   */
-  normalizeUrlFallback(rawUrl: string): string {
-    let url = String(rawUrl).trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `https://${url}`;
-    }
-    return url;
-  },
-
-  /**
-   * 根据 type/provider/providerId 构建标准 URL
-   */
-  buildUrl(type: string, provider: Provider, providerId: string): string {
-    if (!providerId) {
-      return '';
-    }
-
-    // 豆瓣电影
-    if (provider === 'douban' && type === 'movie') {
-      return `https://movie.douban.com/subject/${providerId}/`;
-    }
-
-    // 豆瓣图书
-    if (provider === 'douban' && type === 'book') {
-      return `https://book.douban.com/subject/${providerId}/`;
-    }
-
-    // 豆瓣音乐
-    if (provider === 'douban' && type === 'music') {
-      return `https://music.douban.com/subject/${providerId}/`;
-    }
-
-    // 豆瓣游戏
-    if (provider === 'douban' && type === 'game') {
-      return `https://www.douban.com/game/${providerId}/`;
-    }
-
-    // IMDB
-    if (provider === 'imdb' && type === 'movie') {
-      return `https://www.imdb.com/title/${providerId}/`;
-    }
-
-    // NeoDB 电影
-    if (provider === 'neodb' && type === 'movie') {
-      return `https://neodb.social/movie/${providerId}/`;
-    }
-
-    // NeoDB 剧集
-    if (provider === 'neodb' && type === 'tv') {
-      if (providerId.startsWith('show:')) {
-        return `https://neodb.social/tv/${providerId.slice(5)}/`;
-      }
-      if (providerId.startsWith('season:')) {
-        return `https://neodb.social/tv/season/${providerId.slice(7)}/`;
-      }
-      if (providerId.startsWith('episode:')) {
-        return `https://neodb.social/tv/episode/${providerId.slice(8)}/`;
-      }
-      if (providerId.startsWith('path:')) {
-        return `https://neodb.social/tv/${providerId.slice(5)}/`;
-      }
-      return `https://neodb.social/tv/${providerId}/`;
-    }
-
-    // NeoDB 音乐
-    if (provider === 'neodb' && type === 'music') {
-      return `https://neodb.social/album/${providerId}/`;
-    }
-
-    // TMDB 电影
-    if (provider === 'tmdb' && type === 'movie') {
-      return `https://www.themoviedb.org/movie/${providerId}/`;
-    }
-
-    // TMDB 剧集
-    if (provider === 'tmdb' && type === 'tv') {
-      if (providerId.startsWith('show:')) {
-        return `https://www.themoviedb.org/tv/${providerId.slice(5)}/`;
-      }
-      if (providerId.startsWith('season:')) {
-        const [, showId, seasonNo] = providerId.split(':');
-        return showId && seasonNo
-          ? `https://www.themoviedb.org/tv/${showId}/season/${seasonNo}/`
-          : '';
-      }
-      if (providerId.startsWith('episode:')) {
-        const [, showId, seasonNo, episodeNo] = providerId.split(':');
-        return showId && seasonNo && episodeNo
-          ? `https://www.themoviedb.org/tv/${showId}/season/${seasonNo}/episode/${episodeNo}/`
-          : '';
-      }
-      return `https://www.themoviedb.org/tv/${providerId}/`;
-    }
-
-    return '';
+    return DomainIdentity.canonicalizeUrl(rawUrl);
   },
 
   /**
    * Build a NeoDB URL from a type and catalog UUID, handling prefixed UUIDs.
    * NeoDB TV catalog UUIDs use prefixes: show:, season:, episode:
    * These must be converted to path segments: /tv/{id}/, /tv/season/{id}/
+   * Delegates to the domain Identity.buildNeoDBUrl().
    */
   buildNeoDBUrl(type: string, catalogUuid: string): string {
-    if (catalogUuid.startsWith('show:')) return `https://neodb.social/tv/${catalogUuid.slice(5)}/`
-    if (catalogUuid.startsWith('season:')) return `https://neodb.social/tv/season/${catalogUuid.slice(7)}/`
-    if (catalogUuid.startsWith('episode:')) return `https://neodb.social/tv/episode/${catalogUuid.slice(8)}/`
-    const base = type === 'music' ? 'album' : type
-    return `https://neodb.social/${base}/${catalogUuid}/`
+    return DomainIdentity.buildNeoDBUrl(type, catalogUuid);
   },
 
   /**
-   * 解析 NeoDB TV 路径
+   * 根据 type/provider/providerId 构建标准 URL
+   * Delegates to the domain Identity.buildCanonicalUrl().
    */
-  parseNeoDbTvPath(pathname: string): { providerId?: string; invalid?: string } | null {
-    const parts = pathname.split('/').filter(Boolean);
-    if (parts[0] !== 'tv') {
-      return null;
+  buildUrl(type: string, provider: Provider, providerId: string): string {
+    if (!providerId) {
+      return '';
     }
 
-    const relative = parts.slice(1);
-    if (!relative.length) {
-      return { invalid: 'empty-tv-path' };
+    const platform = Platform.fromString(provider);
+    const mediaType = MediaType.fromString(type);
+    if (!platform || !mediaType) {
+      return '';
     }
 
-    if (relative[0] === 'season') {
-      if (!relative[1]) {
-        return { invalid: 'broken-neodb-season-path' };
-      }
-      return { providerId: `season:${relative[1]}` };
-    }
-
-    if (relative[0] === 'episode') {
-      if (!relative[1]) {
-        return { invalid: 'broken-neodb-episode-path' };
-      }
-      return { providerId: `episode:${relative[1]}` };
-    }
-
-    if (relative.length === 1) {
-      return { providerId: `show:${relative[0]}` };
-    }
-
-    return { providerId: `path:${relative.join('/')}` };
-  },
-
-  /**
-   * 解析 TMDB TV 路径
-   */
-  parseTmdbTvPath(pathname: string): { providerId?: string; invalid?: string } | null {
-    const parts = pathname.split('/').filter(Boolean);
-    if (parts[0] !== 'tv') {
-      return null;
-    }
-
-    const [, showId, ...rest] = parts;
-    if (!showId || !/^\d+$/.test(showId)) {
-      return { invalid: 'broken-tmdb-tv-path' };
-    }
-
-    if (!rest.length) {
-      return { providerId: `show:${showId}` };
-    }
-
-    if (rest.length === 2 && rest[0] === 'season' && /^\d+$/.test(rest[1])) {
-      return { providerId: `season:${showId}:${rest[1]}` };
-    }
-
-    if (
-      rest.length === 4
-      && rest[0] === 'season'
-      && /^\d+$/.test(rest[1])
-      && rest[2] === 'episode'
-      && /^\d+$/.test(rest[3])
-    ) {
-      return { providerId: `episode:${showId}:${rest[1]}:${rest[3]}` };
-    }
-
-    return { invalid: 'unsupported-tmdb-tv-path' };
+    return DomainIdentity.buildCanonicalUrl(platform, mediaType, providerId);
   },
 
   /**
    * 从 URL 解析身份信息
+   * Delegates to the domain Identity.fromUrl(), then converts to UrlIdentity DTO.
    */
   fromUrl(url: string): UrlIdentity | null {
-    const normalized = this.canonicalizeUrl(url);
-    if (!normalized) {
+    const identity = DomainIdentity.fromUrl(url);
+    if (!identity) {
       return null;
     }
-
-    try {
-      const parsed = new URL(normalized);
-      const host = parsed.hostname.toLowerCase();
-      const pathname = parsed.pathname;
-
-      // 豆瓣电影 — also matches sub-paths like /subject/{id}/celebrities, /subject/{id}/photos
-      const doubanMovie = pathname.match(/^\/subject\/(\d+)/i);
-      if (host === 'movie.douban.com' && doubanMovie) {
-        return this.make('movie', 'douban', doubanMovie[1], normalized);
-      }
-
-      // 豆瓣音乐
-      const doubanMusic = pathname.match(/^\/subject\/(\d+)/i);
-      if (host === 'music.douban.com' && doubanMusic) {
-        return this.make('music', 'douban', doubanMusic[1], normalized);
-      }
-
-      // 豆瓣图书
-      const doubanBook = pathname.match(/^\/subject\/(\d+)/i);
-      if (host === 'book.douban.com' && doubanBook) {
-        return this.make('book', 'douban', doubanBook[1], normalized);
-      }
-
-      // 豆瓣游戏
-      const doubanGame = pathname.match(/^\/game\/(\d+)/i);
-      if (host === 'www.douban.com' && doubanGame) {
-        return this.make('game', 'douban', doubanGame[1], normalized);
-      }
-
-      // IMDB
-      const imdb = pathname.match(/^\/title\/(tt\d+)\/$/i);
-      if (host.endsWith('imdb.com') && imdb) {
-        return this.make('movie', 'imdb', imdb[1].toLowerCase(), normalized);
-      }
-
-      // NeoDB 电影
-      const neodbMovie = pathname.match(/^\/movie\/([a-zA-Z0-9_-]+)\/$/i);
-      if (host === 'neodb.social' && neodbMovie) {
-        return this.make('movie', 'neodb', neodbMovie[1], normalized);
-      }
-
-      // NeoDB 剧集
-      if (host === 'neodb.social' && pathname.startsWith('/tv/')) {
-        const parsedTv = this.parseNeoDbTvPath(pathname);
-        if (!parsedTv?.providerId) {
-          return null;
-        }
-        return this.make('tv', 'neodb', parsedTv.providerId, normalized);
-      }
-
-      // NeoDB 音乐专辑
-      const neodbAlbum = pathname.match(/^\/album\/([a-zA-Z0-9_-]+)\/$/i);
-      if (host === 'neodb.social' && neodbAlbum) {
-        return this.make('music', 'neodb', neodbAlbum[1], normalized);
-      }
-
-      // 豆瓣影人 (personage)
-      const doubanPersonage = pathname.match(/^\/personage\/(\d+)\/$/i);
-      if (host === 'www.douban.com' && doubanPersonage) {
-        return this.make('movie', 'douban', doubanPersonage[1], normalized);
-      }
-
-      // TMDB 电影
-      const tmdbMovie = pathname.match(/^\/movie\/(\d+)\/$/i);
-      if (host.endsWith('themoviedb.org') && tmdbMovie) {
-        return this.make('movie', 'tmdb', tmdbMovie[1], normalized);
-      }
-
-      // TMDB 剧集
-      if (host.endsWith('themoviedb.org') && pathname.startsWith('/tv/')) {
-        const parsedTv = this.parseTmdbTvPath(pathname);
-        if (!parsedTv?.providerId) {
-          return null;
-        }
-        return this.make('tv', 'tmdb', parsedTv.providerId, normalized);
-      }
-    } catch (_error) {
-      return null;
-    }
-
-    return null;
+    return {
+      type: identity.type.id,
+      provider: identity.platform.id,
+      providerId: identity.providerId,
+      url: identity.url,
+    };
   },
 };

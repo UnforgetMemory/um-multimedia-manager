@@ -8,7 +8,7 @@
 
 import { Store } from '@/features/database'
 import type { UrlIdentity, StoreRecord } from '@/types'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import { showNotification } from '../douban-toast'
 import { t } from '../../i18n'
 

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.3] - 2026-07-12
+
+### Architecture
+
+- **Identity 系统合并**: `shared/identity.ts` 消除 URL 解析重复逻辑，委托给 `domain/identity/Identity.ts`，代码缩减 71%（-272 行）
+- **CSS token 对齐**: `design-tokens.css` 颜色值与 `style.css` 同步（light/dark 双模式），间距从 px 统一为 rem
+- **死代码清理**: 删除 `enhancers/douban-search-bar.ts`（无引用）
+- **导入路径规范化**: 8 个文件从 `@/features/identity` 迁移至 `@/shared/identity`
+- **脚本修复**: `add-umm-prefix.js` 硬编码绝对路径改为动态路径
+
+### Documentation
+
+- **README.md 重写**: 更新至 4.13.2 架构，Mermaid 架构图，完整项目结构
+- **README.en.md 重写**: 英文版同步更新
+- **AGENTS.md 重写**: 全面架构文档，包含所有入口点、域层、CSS 三系统、消息类型等
+
+### Chores
+
+- Version bump 4.13.2 → 4.13.3
+- 架构审计报告 6 份写入 `docs/audit/`
+
 ## [4.13.2] - 2026-07-12
 
 ### Fixed

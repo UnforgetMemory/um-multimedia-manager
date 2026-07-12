@@ -10,7 +10,11 @@
  */
 
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
-import { join, extname } from 'path'
+import { join, extname, dirname } from 'path'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const projectRoot = dirname(__dirname)
 
 // Tailwind utility class patterns (not custom classes like font-display)
 const TAILWIND_PATTERNS = [
@@ -280,10 +284,10 @@ function walkDir(dir, callback) {
 }
 
 // Main
-const uiDir = '/home/um/sourcecode/my/um-multimedia-manager/src/shared/ui'
-const optionsDir = '/home/um/sourcecode/my/um-multimedia-manager/src/entrypoints/options'
-const popupDir = '/home/um/sourcecode/my/um-multimedia-manager/src/entrypoints/popup'
-const customDir = '/home/um/sourcecode/my/um-multimedia-manager/src/shared'
+const uiDir = join(projectRoot, 'src/shared/ui')
+const optionsDir = join(projectRoot, 'src/entrypoints/options')
+const popupDir = join(projectRoot, 'src/entrypoints/popup')
+const customDir = join(projectRoot, 'src/shared')
 let updatedCount = 0
 
 console.log('Adding umm- prefix to Tailwind classes in shadcn components...\n')

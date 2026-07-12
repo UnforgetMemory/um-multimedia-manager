@@ -5,7 +5,7 @@
 
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import { safeSendMessage } from '@/utils/context'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { FloatingToast } from '../utils/toast'

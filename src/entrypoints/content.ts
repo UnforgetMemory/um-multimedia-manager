@@ -11,7 +11,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Identity } from '@/features/identity'
+import { Identity } from '@/shared/identity'
 import { Store } from '@/features/database'
 import { initRouter, hasMatchingRoute } from './content/router'
 import { initI18n, startLocaleSync } from './content/i18n'
