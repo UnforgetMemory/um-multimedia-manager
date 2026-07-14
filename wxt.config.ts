@@ -51,6 +51,8 @@ export default defineConfig({
       '*://pt.soulvoice.club/*',
       '*://hdtime.org/*',
       '*://piggo.me/*',
+      '*://www.bilibili.com/*',
+      '*://search.bilibili.com/*',
       // WebDAV sync - common providers (background fetch requires explicit host_permissions)
       'https://dav.jianguoyun.com/*',
       'https://webdav.jianguoyun.com/*',

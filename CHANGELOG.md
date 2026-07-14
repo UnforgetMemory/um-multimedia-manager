@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Features
+
+- **Bilibili 首页瀑布流注入**: 新增 `bilibili-homepage.content` 入口点，在首页和搜索结果页视频卡片上注入 UMM 状态标签
+  - 状态显示：所有卡片默认显示"未看"，根据 DB 记录自动更新为 想看/已看/在看
+  - 已看淡化：已标记视频卡片自动降低透明度 + 灰度，hover 恢复
+  - 评分展示：status=2 时 badge 显示"已看 N"评分
+  - 搜索页适配：`search.bilibili.com` 搜索结果页同样支持
+  - 动态加载：MutationObserver 监听无限滚动加载的新卡片
+
+### Fixes
+
+- **Bilibili 详情页保存**: 增加 `saveRecord` 回调检查，确保保存操作可追踪错误
+
+### Changed
+
+- **wxt.config.ts**: 添加 `*://www.bilibili.com/*` 和 `*://search.bilibili.com/*` 到 `host_permissions`
+
 ## [5.0.0] - 2026-07-14
 
 ### Features

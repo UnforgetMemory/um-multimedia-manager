@@ -189,16 +189,27 @@ export default defineContentScript({
     }
 
     function saveRecord(st: number, ra: number) {
-      chrome.runtime.sendMessage({
-        type: 'DB_PUT',
-        payload: {
-          storeName: STORE, key: KEY,
-          record: {
-            url: location.href, status: st, rating: ra,
-            comment: '', updatedAt: new Date().toISOString(), linkedIds: {},
+      chrome.runtime.sendMessage(
+        {
+          type: 'DB_PUT',
+          payload: {
+            storeName: STORE, key: KEY,
+            record: {
+              url: location.href, status: st, rating: ra,
+              comment: '', updatedAt: new Date().toISOString(), linkedIds: {},
+            },
           },
         },
-      })
+        (resp) => {
+          if (chrome.runtime.lastError) {
+            console.warn('[UMM Bili] DB_PUT lastError:', chrome.runtime.lastError)
+            return
+          }
+          if (!resp?.success) {
+            console.warn('[UMM Bili] DB_PUT failed:', resp?.error || 'no response')
+          }
+        },
+      )
     }
 
     // ── Theme Observer ─────────────────────────────────────
