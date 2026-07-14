@@ -26,13 +26,14 @@ import type { PageQueryOptions, PageResult } from './query-utils'
 import type { WriteResult } from '@/features/optimistic-lock/types'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 9
+export const DB_VERSION = 10
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
   IMDB: 'imdb_records',
   NEODB: 'neodb_records',
   TMDB: 'tmdb_records',
+  BILIBILI: 'bilibili_records',
   TTL_CACHE: 'ttl_cache',
   SYNC_LOGS: 'sync_logs',
   PT_ID_CACHE: 'pt_id_cache',
@@ -45,6 +46,7 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.IMDB,
   STORE_NAMES.NEODB,
   STORE_NAMES.TMDB,
+  STORE_NAMES.BILIBILI,
 ]
 
 /** Helper: get the store name for a platform */
@@ -120,6 +122,16 @@ class MediaDatabase {
             const avStore = db.createObjectStore(STORE_NAMES.JAV_IDS)
             avStore.createIndex('updatedAt', 'updatedAt', { unique: false })
             console.log('[DB] Created jav_ids store')
+          }
+        }
+
+        // v9→v10: add bilibili_records store
+        if (oldVersion < 10) {
+          if (!db.objectStoreNames.contains(STORE_NAMES.BILIBILI)) {
+            const biliStore = db.createObjectStore(STORE_NAMES.BILIBILI)
+            biliStore.createIndex('status', 'status', { unique: false })
+            biliStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+            console.log('[DB] Added bilibili_records store')
           }
         }
 

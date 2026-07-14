@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-07-14
+
+### Features
+
+- **Bilibili 集成**: 全新 WXT 内容脚本入口点 (`bilibili.content`)，在 Bilibili 视频详情页注入悬浮按钮 + 评分弹窗
+  - 状态跟踪：未看 / 想看 / 在看 / 已看 循环切换
+  - 评分输入：0-10 分，仅"已看"状态可评
+  - 深浅主题适配：MutationObserver 监听 `html[data-theme]` + `prefers-color-scheme`
+  - SPA 导航适应：pushState/replaceState 拦截 + 3s 轮询兜底，自动跟随视频切换
+  - 风格统一：`data-umm-bili-*` 属性前缀，hover/active 动效，状态色光阴影
+- **Bilibili 平台支持**: 全线管理页面集成 B站
+  - Options 评分管理：URL 自动识别 + BV 号验证（`BV[a-zA-Z0-9]+`）
+  - Options 关联管理：URL/BV ID 自动检测 + 跨平台关联
+  - Popup 统计看板：B站 计数卡片
+  - 后台统计聚合：GET_STATISTICS / GET_ALL_RECORDS 含 bilibili 数据
+- **新增 Domain 类型**: `video`（视频），用于 Bilibili 等纯视频平台
+- **自动检测平台切换**: 输入 bilibili URL 或 BV 号自动切换到 B站 平台
+
+### Architecture
+
+- **Bilibili 链路重构**: 死代码清理 + WXT 规范化
+  - 删除 `icons/bilibili-float.js`（旧版 raw JS，放在 icons/ 目录）
+  - 删除 `src/entrypoints/content/handlers/bilibili.ts`（无引用的死代码）
+  - 移除 wxt.config.ts 手动 content_scripts，WXT 自动发现 entrypoint
+  - 数据 KEY 格式统一：`video::BVID` 替代裸 `BVID`
+- **样式模板化**: 提取 `s*()` 函数模板（sBtnFloat, sBadge, sCard 等 10+ 模板）
+- **主题观察器**: `startThemeWatch()` + `applyModalTheme()` 实时响应主题变化
+
+### i18n
+
+- 新增 `platform.bilibili` 键（zh-CN/zh-TW: B站, en: Bilibili）
+- 新增 `stats.bilibili` 键（Bilibili 统计标签）
+- 新增 `stats.video` 键（视频类型标签）
+- 总 keys: 180 (3 locales, 100% 覆盖)
+
+### Chores
+
+- Version bump 4.13.3 → 5.0.0
+- npm audit 审计：9 项漏洞（全部在构建工具链，非运行时依赖）
+- Gitignore 审计：已全覆盖
+- 测试目录审计：tests/ 7 个单元测试文件，无过期产物
+
 ## [4.13.3] - 2026-07-12
 
 ### Architecture

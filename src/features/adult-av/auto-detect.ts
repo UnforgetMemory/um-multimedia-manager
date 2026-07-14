@@ -41,6 +41,11 @@ export function autoDetectPlatform(
     callbacks.setDomain?.(input.includes('/tv/') ? 'tv' : 'movie')
     return true
   }
+  if (input.includes('bilibili.com/video/') || /^BV[a-zA-Z0-9]+$/.test(input)) {
+    callbacks.setPlatform('bilibili')
+    callbacks.setDomain?.('video')
+    return true
+  }
   
   // jav_id format detection — only if current platform is already jav_ids
   if (currentPlatform === 'jav_ids' && JAV_ID_REGEX.test(input)) {

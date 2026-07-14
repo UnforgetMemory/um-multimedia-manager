@@ -255,4 +255,5 @@ export interface Statistics {
   imdb: number
   neodb: number
   tmdb: number
+  bilibili: number
 }
