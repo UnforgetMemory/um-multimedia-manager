@@ -13,7 +13,7 @@ import { Button } from '@/shared/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert'
 import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
 import StatsGrid from '@/shared/ui/stats-grid/StatsGrid.vue'
-import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, Gamepad2, ShieldAlert } from 'lucide-vue-next'
+import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, Gamepad2, ShieldAlert, Play } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -120,9 +120,14 @@ const weeklyStats = computed(() => {
   return { days, total: weekTotal, maxDaily, avgDaily, peakDay }
 })
 
-const statIcons = [Film, Tv, Music, Book, Gamepad2, ShieldAlert]
-const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.game'), t('stats.jav')])
-const statKeys = ['movie', 'tv', 'music', 'book', 'game', 'jav'] as const
+/**
+ * Stat type card definitions for the stats grid.
+ * statIcons, statLabels, and statKeys must stay parallel — each index maps to one stat card.
+ * Add a new stat type by appending to all three arrays at the same position.
+ */
+const statIcons = [Film, Tv, Music, Book, Gamepad2, ShieldAlert, Play]
+const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.game'), t('stats.jav'), t('stats.bilibili')])
+const statKeys = ['movie', 'tv', 'music', 'book', 'game', 'jav', 'bilibili'] as const
 
 const statsData = computed(() =>
   statKeys.map((key, i) => ({

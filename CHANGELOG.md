@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixes
 
 - **Bilibili 详情页保存**: 增加 `saveRecord` 回调检查，确保保存操作可追踪错误
+- **Options 总览缺 B站统计**: OverviewTab StatsGrid 中 `statKeys`/`statIcons`/`statLabels` 三数组同步追加 `bilibili` 条目，使 Options 总览正确显示 B站视频统计卡片（与 Popup DashboardPage 一致）
 
 ### Changed
 
