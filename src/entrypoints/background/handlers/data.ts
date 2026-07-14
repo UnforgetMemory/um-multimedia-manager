@@ -183,9 +183,12 @@ export async function handleGetAllRecords(sendResponse: SendResponse) {
     for (const entry of entries) {
       const [type, ...idParts] = entry.key.split('::')
       const providerId = idParts.join('::')
+      // Normalize Bilibili record types: all Bilibili records are videos,
+      // regardless of actual key prefix (legacy records may have bvid/movie prefixes)
+      const normalizedType = storeName === STORE_NAMES.BILIBILI ? 'video' : type
       allRecords.push({
         ...entry.record,
-        type,
+        type: normalizedType,
         provider: storePlatformMap[storeName] || 'unknown',
         providerId,
       })

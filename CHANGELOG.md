@@ -24,6 +24,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **wxt.config.ts**: 添加 `*://www.bilibili.com/*` 和 `*://search.bilibili.com/*` 到 `host_permissions`
 
+### Performance
+
+- **Mukaku 链路优化**: 手术级性能与内存优化
+  - 添加 handler 级 `watchedIdCache`（30s TTL），消除重复 `dbGetAll` 调用（减少 ~90%）
+  - `probeCache` 添加 LRU 上限（500 条），消除内存泄漏
+  - 批量读取 watched/unwatched 集合，替代逐卡片 2N 次 IndexedDB roundtrip
+  - IntersectionObserver 替代全 document MutationObserver，降低 CPU 占用
+  - Toast 更新改用 `requestAnimationFrame`，简化节流机制
+  - `ensureQueue` totalCount 每批次准确重置
+
+### Fixes
+
+- **Bilibili 平台分布**: 修复 Options 平台分布中 Bilibili 记录类型异常
+  - `handleGetAllRecords` 统一 Bilibili 记录 type 为 `video`（兼容遗留 bvid/movie 前缀）
+  - `OverviewTab` 添加视图层 Bilibili type 安全网归一化
+- **热力图色阶**: 修复活动度热力图颜色计算
+  - 改用 `log2` 对数压缩替代 `sqrt` 平方根，避免大 maxDaily 时低值全部坍缩到 level 1
+
 ## [5.0.0] - 2026-07-14
 
 ### Features

@@ -43,7 +43,9 @@ const platformStats = computed<PlatformStat[]>(() => {
     const provider: string = r.provider || r.storeName?.replace('_records', '') || 'unknown'
     if (!map[provider]) map[provider] = { provider, count: 0, types: [] }
     map[provider].count++
-    const type: string = r.type || (r.url?.includes('music') ? 'music' : r.url?.includes('book') ? 'book' : 'movie')
+    // Normalize Bilibili types: all Bilibili records are videos regardless of key prefix
+    const rawType = r.type || (r.url?.includes('music') ? 'music' : r.url?.includes('book') ? 'book' : 'movie')
+    const type = provider === 'bilibili' ? 'video' : rawType
     const existing = map[provider].types.find(t => t.label === type)
     if (existing) existing.count++
     else map[provider].types.push({ label: type, count: 1 })

@@ -140,3 +140,14 @@ localref/
 # Stale empty directories from refactors (ghost directories)
 **/__pycache__/
 *.egg-info/
+
+# Secret and certificate files (defense-in-depth)
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Generic cache directory (defense-in-depth)
+.cache/
