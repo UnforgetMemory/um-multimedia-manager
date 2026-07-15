@@ -21,6 +21,9 @@ export default defineContentScript({
     let KEY: string | null = null
     const STORE = 'bilibili_records'
 
+    /** BVID guard for tracker timeupdate closure */
+    let currentBVID: string | null = null
+
     const COLORS = ['#9ca3af', '#f97316', '#22c55e', '#3b82f6'] as const
     const LABELS = ['未看', '想看', '已看', '在看'] as const
     const DISPLAY = [0, 1, 3, 2] as const
@@ -31,14 +34,180 @@ export default defineContentScript({
     let loaded = false
     let isDark = false
 
+    let progressTracker: VideoProgressTracker | null = null
+
+    // ── Progress Tracker ─────────────────────────────────
+    interface ProgressTrackerConfig {
+      onThresholdReached: () => void
+    }
+
+    function calcThreshold(duration: number): number {
+      // shorter videos need higher completion % to avoid false-positive
+      if (duration <= 0) return 55
+      if (duration < 300) return 55    // < 5min
+      if (duration < 900) return 60    // 5-15min
+      if (duration < 2700) return 65   // 15-45min
+      if (duration < 3600) return 70   // 45-60min
+      return 70                         // > 60min
+    }
+
+    class VideoProgressTracker {
+      readonly bvid: string
+      private config: ProgressTrackerConfig
+      private video: HTMLVideoElement | null = null
+      private observer: MutationObserver | null = null
+      private pollTimer: ReturnType<typeof setInterval> | null = null
+      private fallbackTimer: ReturnType<typeof setInterval> | null = null
+      private thresholdPassed = false
+      private _active = false
+      private _attachedEvents = false
+      private _handleTimeupdate: (() => void) | null = null
+      private _handleEnded: (() => void) | null = null
+
+      constructor(bvid: string, config: ProgressTrackerConfig) {
+        this.bvid = bvid
+        this.config = config
+      }
+
+      get active(): boolean { return this._active }
+
+      activate(): void {
+        if (this._active) return
+        this._active = true
+        this.thresholdPassed = false
+        this.startScanning()
+      }
+
+      deactivate(): void {
+        if (!this._active) return
+        this._active = false
+        this.detachVideoEvents()
+        this.clearTimers()
+      }
+
+      destroy(): void {
+        this.deactivate()
+        this.video = null
+      }
+
+      private clearPolling(): void {
+        if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null }
+        if (this.fallbackTimer) { clearInterval(this.fallbackTimer); this.fallbackTimer = null }
+      }
+
+      private clearTimers(): void {
+        this.clearPolling()
+        if (this.observer) { this.observer.disconnect(); this.observer = null }
+      }
+
+      private detachVideoEvents(): void {
+        if (this.video && this._attachedEvents) {
+          if (this._handleTimeupdate) this.video.removeEventListener('timeupdate', this._handleTimeupdate)
+          if (this._handleEnded) this.video.removeEventListener('ended', this._handleEnded)
+          this._attachedEvents = false
+        }
+      }
+
+      private reattachIfNew(video: HTMLVideoElement): void {
+        if (video === this.video) return
+        this.attachEvents(video)
+      }
+
+      private ensureObserver(): void {
+        if (this.observer) return
+        const target = document.querySelector('#bilibili-player, #playerWrap')
+        if (!target) return
+        this.observer = new MutationObserver((mutations) => {
+          for (const m of mutations) {
+            if (m.type === 'childList') {
+              for (const node of m.addedNodes) {
+                if (node instanceof HTMLVideoElement) {
+                  if (!node.closest('.v-recommend-inline-player')) this.reattachIfNew(node)
+                  return
+                }
+                if (node instanceof Element) {
+                  const v = node.querySelector<HTMLVideoElement>('video')
+                  if (v && !v.closest('.v-recommend-inline-player')) { this.reattachIfNew(v); return }
+                }
+              }
+            }
+          }
+        })
+        this.observer.observe(target, { childList: true, subtree: true })
+      }
+
+      private startScanning(): void {
+        if (this.video) { this.attachEvents(this.video); return }
+
+        const existing = document.querySelector<HTMLVideoElement>('#bilibili-player video')
+        if (existing) { this.attachEvents(existing); return }
+
+        const target = document.querySelector('#bilibili-player, #playerWrap')
+        if (!target) {
+          this.pollTimer = setInterval(() => {
+            if (document.querySelector('#bilibili-player, #playerWrap')) {
+              if (this.pollTimer) clearInterval(this.pollTimer)
+              this.startScanning()
+            }
+          }, 2000)
+          return
+        }
+
+        this.ensureObserver()
+
+        let count = 0
+        this.fallbackTimer = setInterval(() => {
+          count++
+          const v = document.querySelector<HTMLVideoElement>('#bilibili-player video')
+          if (v) {
+            if (this.fallbackTimer) clearInterval(this.fallbackTimer)
+            this.attachEvents(v)
+          } else if (count > 30) {
+            if (this.fallbackTimer) clearInterval(this.fallbackTimer)
+          }
+        }, 1000)
+      }
+
+      private attachEvents(video: HTMLVideoElement): void {
+        if (this.video === video && this._attachedEvents) return
+        if (video.closest('.v-recommend-inline-player, .bpx-docker-minor, .bpx-player-auxiliary')) { return }
+        this.detachVideoEvents()
+        this.video = video
+        this.clearPolling()
+        this.ensureObserver()
+
+        this._handleTimeupdate = () => {
+          if (!this._active || !this.video || !this.video.duration || this.video.duration === Infinity) return
+          if (this.bvid !== currentBVID) return
+          const pct = (this.video.currentTime / this.video.duration) * 100
+          const threshold = calcThreshold(this.video.duration)
+          if (!this.thresholdPassed && pct >= threshold) {
+            this.thresholdPassed = true
+            this.config.onThresholdReached()
+          }
+        }
+
+        this._handleEnded = () => {
+          if (!this._active || !this.video) return
+          if (this.bvid !== currentBVID) return
+          if (!this.thresholdPassed) {
+            this.thresholdPassed = true
+            this.config.onThresholdReached()
+          }
+        }
+
+        video.addEventListener('timeupdate', this._handleTimeupdate)
+        video.addEventListener('ended', this._handleEnded)
+        this._attachedEvents = true
+      }
+    }
+
     // ── Theme ──────────────────────────────────────────────
-    /** Detect current dark/light theme from Bilibili's data-theme attr or system preference. */
     function detectDark(): boolean {
       return document.documentElement.getAttribute('data-theme') === 'dark'
         || window.matchMedia('(prefers-color-scheme: dark)').matches
     }
 
-    /** Theme-dependent color values for card, overlay, borders, and muted elements. */
     interface ThemeVars {
       card: string; fg: string; border: string; overlay: string
       bbg: string; muted: string; mutedFg: string
@@ -50,14 +219,11 @@ export default defineContentScript({
         : { card: '#fff', fg: '#1a1a1a', border: '#e5e7eb', overlay: 'rgba(0,0,0,0.45)', bbg: '#fff', muted: '#f3f4f6', mutedFg: '#666' }
     }
 
-    /** Shorthand for themeVars with current isDark state. */
     function tv(): ThemeVars { return themeVars(isDark) }
 
     // ── Style Templates ────────────────────────────────────
-    /** Join CSS property array into a semicolon-delimited inline style string. */
     function css(parts: string[]): string { return parts.join(';') + ';' }
 
-    /** FAB button: fixed-position floating circle with status color and glow. */
     function sBtnFloat(_t: ThemeVars, s: number): string {
       return css([
         'position:fixed', 'left:16px', 'top:50%', 'transform:translateY(-50%)',
@@ -72,7 +238,6 @@ export default defineContentScript({
       ])
     }
 
-    /** Rating badge: absolute-positioned corner badge on FAB showing score when DONE. */
     function sBadge(t: ThemeVars, s: number): string {
       return css([
         'position:absolute', 'top:-7px', 'right:-7px',
@@ -161,6 +326,15 @@ export default defineContentScript({
       return 'display:' + (show ? 'block' : 'none') + ';margin-bottom:16px;'
     }
 
+    function syncTrackerStatus() {
+      if (!progressTracker) return
+      if (status === 2) {
+        progressTracker.deactivate()
+      } else {
+        progressTracker.activate()
+      }
+    }
+
     // ── Data ───────────────────────────────────────────────
     function getBvid(): string | null {
       const m = location.pathname.match(/^\/video\/(BV[a-zA-Z0-9]+)\/?$/i)
@@ -172,6 +346,7 @@ export default defineContentScript({
     }
 
     function loadRecord(cb?: () => void) {
+      let cbCalled = false
       chrome.runtime.sendMessage(
         { type: 'DB_GET', payload: { storeName: STORE, key: KEY } },
         (resp: any) => {
@@ -180,11 +355,11 @@ export default defineContentScript({
             rating = resp.record.rating || 0
           }
           loaded = true
-          cb?.()
+          if (!cbCalled) { cbCalled = true; cb?.() }
         },
       )
       setTimeout(() => {
-        if (!loaded) { loaded = true; cb?.() }
+        if (!loaded) { loaded = true; if (!cbCalled) { cbCalled = true; cb?.() } }
       }, 2000)
     }
 
@@ -213,7 +388,6 @@ export default defineContentScript({
     }
 
     // ── Theme Observer ─────────────────────────────────────
-    /** Watch Bilibili's theme changes via html[data-theme] attr + system prefers-color-scheme. */
     function startThemeWatch() {
       isDark = detectDark()
 
@@ -285,15 +459,12 @@ export default defineContentScript({
       card.style.background = t.card
       card.style.color = t.fg
 
-      // Update cancel button
       const cancel = card.querySelector('[data-umm-bili-cancel]') as HTMLButtonElement | null
       if (cancel) cancel.style.cssText = sCancelBtn(t)
 
-      // Update rating label
       const rl = card.querySelector('[data-umm-bili-rl]') as HTMLDivElement | null
       if (rl) rl.style.cssText = sRatingLabel(t)
 
-      // Update rating grid buttons
       const ratingBtns = card.querySelectorAll('[data-umm-bili-rb]') as NodeListOf<HTMLButtonElement>
       ratingBtns.forEach((rb) => {
         const v = parseInt(rb.textContent!, 10)
@@ -311,14 +482,12 @@ export default defineContentScript({
       const card = document.createElement('div')
       card.style.cssText = sCard(t)
 
-      // Title
       const title = document.createElement('div')
       title.setAttribute('data-umm-bili-title', '')
       title.textContent = '\u6807\u8bb0\u72b6\u6001'
       title.style.cssText = sTitle()
       card.appendChild(title)
 
-      // updateUI helper
       let sbtns: HTMLButtonElement[] = []
       let sv: HTMLButtonElement | null = null
       let rr: HTMLDivElement | null = null
@@ -333,7 +502,6 @@ export default defineContentScript({
         rr.style.cssText = sRatingSection(status === 2)
       }
 
-      // Status buttons
       const sr = document.createElement('div')
       sr.setAttribute('data-umm-bili-sr', '')
       sr.style.cssText = sSectionRow()
@@ -351,7 +519,6 @@ export default defineContentScript({
       })
       card.appendChild(sr)
 
-      // Rating (only for DONE)
       rr = document.createElement('div')
       rr.setAttribute('data-umm-bili-rr', '')
       rr.style.cssText = sRatingSection(status === 2)
@@ -384,7 +551,6 @@ export default defineContentScript({
       rr.appendChild(rGrid)
       card.appendChild(rr)
 
-      // Action buttons
       const ar = document.createElement('div')
       ar.setAttribute('data-umm-bili-ar', '')
       ar.style.cssText = sActionRow()
@@ -404,7 +570,7 @@ export default defineContentScript({
       sv.style.cssText = sSaveBtn(status)
       sv.addEventListener('mouseenter', () => { sv.style.opacity = '0.85' })
       sv.addEventListener('mouseleave', () => { sv.style.opacity = '1' })
-      sv.onclick = () => { closeModal(); applyBtnStyle(); saveRecord(status, status === 2 ? rating : 0) }
+      sv.onclick = () => { closeModal(); applyBtnStyle(); saveRecord(status, status === 2 ? rating : 0); syncTrackerStatus() }
       ar.appendChild(sv)
 
       card.appendChild(ar)
@@ -412,8 +578,93 @@ export default defineContentScript({
       document.body.appendChild(modal)
     }
 
+    // ── Coin Check Auto-Mark ─────────────────────────────
+    function checkCoinForAutoMark() {
+      if (status === 2 || !BVID || !KEY) return
+      const coinBtn = document.querySelector<HTMLElement>(
+        '#arc_toolbar_report > div.video-toolbar-left > div > div:nth-child(2) > div'
+      )
+      if (!coinBtn?.title) return
+      if (coinBtn.title.includes('已用完')) {
+        status = 2
+        rating = 7
+        applyBtnStyle()
+        saveRecord(2, 7)
+        progressTracker?.deactivate()
+      }
+    }
+
+    // ── Recommendation Badge Injection ────────────────────
+    const RECOMMEND_SEL = '.recommend-list-v1 .video-page-card-small'
+    let recObserver: MutationObserver | null = null
+
+    /** 延迟执行，避免干扰 Bilibili Vue 渲染 */
+    function later(fn: () => void, ms: number): void {
+      setTimeout(fn, ms)
+    }
+
+    function decorateRecommendations(recordMap: Map<string, number>) {
+      const items = document.querySelectorAll<HTMLElement>(RECOMMEND_SEL)
+      for (const item of items) {
+        const link = item.querySelector<HTMLAnchorElement>('a[href*="/video/BV"]')
+        if (!link) continue
+        const m = link.pathname.match(/\/video\/(BV[a-zA-Z0-9]+)/i)
+        if (!m) continue
+        const bvid = m[1]
+        const st = recordMap.get(storeKey(bvid)) ?? 0
+
+        if (st === 2) {
+          item.style.opacity = '0.4'
+          item.style.pointerEvents = 'none'
+        }
+        const existing = item.querySelector('[data-umm-rec-badge]')
+        if (existing) continue
+        const badge = document.createElement('div')
+        badge.setAttribute('data-umm-rec-badge', '')
+        badge.textContent = LABELS[st].slice(0, 2)
+        badge.style.cssText = 'position:absolute;top:4px;left:4px;z-index:10;font-size:10px;font-weight:700;' +
+          'background:' + COLORS[st] + ';color:#fff;padding:1px 5px;border-radius:6px;' +
+          'font-family:"Microsoft YaHei","PingFang SC",-apple-system,sans-serif;line-height:1.6'
+        const picBox = item.querySelector<HTMLElement>('.pic-box')
+        if (picBox) {
+          picBox.style.position = 'relative'
+          picBox.appendChild(badge)
+        }
+      }
+    }
+
+    function loadAndDecorateRecommendations() {
+      if (!BVID) return
+      chrome.runtime.sendMessage(
+        { type: 'DB_GET_ALL', payload: { storeName: STORE } },
+        (resp: any) => {
+          if (!resp?.success || !Array.isArray(resp.entries)) return
+          const recordMap = new Map<string, number>()
+          for (const entry of resp.entries) {
+            if (entry?.key && typeof entry.record?.status === 'number') {
+              recordMap.set(entry.key, entry.record.status)
+            }
+          }
+          later(() => decorateRecommendations(recordMap), 500)
+        },
+      )
+    }
+
+    function watchRecommendations() {
+      const target = document.querySelector('.recommend-list-v1')
+      if (!target) return
+      if (recObserver) recObserver.disconnect()
+      recObserver = new MutationObserver(() => {
+        later(() => loadAndDecorateRecommendations(), 300)
+      })
+      recObserver.observe(target, { childList: true, subtree: true })
+    }
+
     // ── SPA Navigation ─────────────────────────────────────
     function cleanup() {
+      progressTracker?.destroy()
+      progressTracker = null
+      if (recObserver) { recObserver.disconnect(); recObserver = null }
       if (modal) { modal.remove(); modal = null }
       if (btn) { btn.remove(); btn = null }
       status = 0; rating = 0; loaded = false
@@ -423,13 +674,34 @@ export default defineContentScript({
       const nb = getBvid()
       if (nb === BVID) return
       cleanup()
-      if (!nb) { BVID = null; KEY = null; return }
+      if (!nb) {
+        BVID = null; KEY = null; currentBVID = null
+        return
+      }
       BVID = nb; KEY = storeKey(BVID)
+      currentBVID = BVID
       createButton()
-      loadRecord(() => applyBtnStyle())
+      progressTracker = new VideoProgressTracker(BVID, {
+        onThresholdReached: () => {
+          if (status === 2) return
+          status = 2
+          rating = 4
+          applyBtnStyle()
+          saveRecord(2, 4)
+          progressTracker?.deactivate()
+        },
+      })
+      loadRecord(() => {
+        applyBtnStyle()
+        syncTrackerStatus()
+        checkCoinForAutoMark()
+        later(() => {
+          loadAndDecorateRecommendations()
+          watchRecommendations()
+        }, 3000)
+      })
     }
 
-    /** SPA navigation guard: popstate + pushState/replaceState interception + 3s fallback poll. */
     function watchUrl() {
       window.addEventListener('popstate', onBvidChange)
       const origPush = history.pushState
@@ -442,7 +714,14 @@ export default defineContentScript({
         origReplace.apply(this, args)
         onBvidChange()
       }
-      setInterval(onBvidChange, 3000)
+      setInterval(() => {
+        onBvidChange()
+        if (BVID && btn && !document.body.contains(btn)) {
+          btn.remove()
+          btn = null
+          createButton()
+        }
+      }, 3000)
     }
 
     // ── Init ───────────────────────────────────────────────
@@ -451,7 +730,30 @@ export default defineContentScript({
     function init() {
       watchUrl()
       createButton()
-      loadRecord(() => applyBtnStyle())
+      if (BVID) {
+        currentBVID = BVID
+        progressTracker = new VideoProgressTracker(BVID, {
+          onThresholdReached: () => {
+            if (status === 2) return
+            status = 2
+            rating = 4
+            applyBtnStyle()
+            saveRecord(2, 4)
+            progressTracker?.deactivate()
+          },
+        })
+        loadRecord(() => {
+          applyBtnStyle()
+          syncTrackerStatus()
+          checkCoinForAutoMark()
+          later(() => {
+            loadAndDecorateRecommendations()
+            watchRecommendations()
+          }, 3000)
+        })
+      } else {
+        loadRecord(() => applyBtnStyle())
+      }
     }
 
     const initialBvid = getBvid()

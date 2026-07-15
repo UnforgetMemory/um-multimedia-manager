@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 评分展示：status=2 时 badge 显示"已看 N"评分
   - 搜索页适配：`search.bilibili.com` 搜索结果页同样支持
   - 动态加载：MutationObserver 监听无限滚动加载的新卡片
+- **Bilibili 视频进度自动标记**: VideoProgressTracker 根据视频时长动态计算阈值（55%-70%），播放到达阈值后自动标记为"已看"
+- **Bilibili 投币检测自动标记**: 检测到投币按钮显示"已用完"时自动标记为"已看"(rating=7)
+- **Bilibili 推荐列表状态注入**: 在详情页 right-container 的推荐视频卡片上注入 `data-umm-rec-badge` 状态标签，延迟3秒避免干扰 Vue 渲染
+- **Bilibili SPA 导航增强**: FAB DOM 校验防止 body 替换丢失，onBvidChange 清理非视频页面 FAB，currentBVID guard 防止过期闭包
+- **豆瓣登录过期检测**: useInterest 新增 `isDoubanLoggedIn()` 检测 DedeUserID cookie，fetch/submit 遇到 403 时弹出 FloatingToast 提示重新登录
 
 ### Fixes
 

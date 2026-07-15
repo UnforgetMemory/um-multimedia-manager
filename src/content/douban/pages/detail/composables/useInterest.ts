@@ -9,6 +9,7 @@
  */
 
 import { ref, type Ref, type MaybeRefOrGetter, toValue } from 'vue'
+import { FloatingToast } from '@/entrypoints/content/utils/toast'
 
 /**
  * Interest status returned by Douban's API.
@@ -39,6 +40,14 @@ export interface UseInterest {
   fetchInterest: () => Promise<void>
   /** Submit interest status (and optional rating, tags, comment) to Douban */
   submitInterest: (interest: 'wish' | 'do' | 'collect', rating?: number, tags?: string, comment?: string) => Promise<boolean>
+}
+
+/**
+ * 检查豆瓣登录 cookie DedeUserID 是否存在。
+ * 缺失 = 确定未登录。
+ */
+function isDoubanLoggedIn(): boolean {
+  return /(?:^|;\s*)DedeUserID=/.test(document.cookie)
 }
 
 /**
@@ -152,6 +161,14 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
         myTags.value = []
         savedTags.value = []
         currentComment.value = ''
+        error.value = '请求失败，请确认登录状态'
+        // 403 时 DedeUserID 存在但过期也弹 toast
+        if (resp.status === 403) {
+          const msg = isDoubanLoggedIn()
+            ? '豆瓣登录可能已过期，请刷新页面重新登录'
+            : '豆瓣登录已过期，请刷新页面重新登录'
+          FloatingToast.error('UMM', msg)
+        }
         return
       }
 
@@ -219,6 +236,11 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
     const ck = getCk()
     if (!ck) {
       error.value = '未登录豆瓣'
+      if (!isDoubanLoggedIn()) {
+        FloatingToast.error('UMM', '未登录豆瓣，请刷新页面重新登录')
+      } else {
+        FloatingToast.error('UMM', 'CSRF token 缺失，请刷新页面')
+      }
       return false
     }
 
@@ -262,6 +284,12 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
       error.value = parsed?.message
         ? String(parsed.message)
         : `Request failed (${resp.status})`
+      if (resp.status === 403) {
+        const msg = isDoubanLoggedIn()
+          ? '豆瓣登录可能已过期，请刷新页面重新登录'
+          : '豆瓣登录已过期，请刷新页面重新登录'
+        FloatingToast.error('UMM', msg)
+      }
       return false
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Network error'
