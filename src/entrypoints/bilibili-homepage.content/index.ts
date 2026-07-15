@@ -12,7 +12,7 @@ import { defineContentScript } from 'wxt/utils/define-content-script'
 
 export default defineContentScript({
   matches: ['*://www.bilibili.com/*', '*://search.bilibili.com/*'],
-  excludeMatches: ['*://www.bilibili.com/video/*'],
+  excludeMatches: ['*://www.bilibili.com/video/*', '*://www.bilibili.com/list/*'],
   runAt: 'document_idle',
 
   main() {

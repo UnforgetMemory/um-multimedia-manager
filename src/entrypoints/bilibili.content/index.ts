@@ -12,7 +12,7 @@
 import { defineContentScript } from 'wxt/utils/define-content-script'
 
 export default defineContentScript({
-  matches: ['*://www.bilibili.com/video/*'],
+  matches: ['*://www.bilibili.com/video/*', '*://www.bilibili.com/list/*'],
   runAt: 'document_idle',
 
   main() {
@@ -337,8 +337,21 @@ export default defineContentScript({
 
     // ── Data ───────────────────────────────────────────────
     function getBvid(): string | null {
-      const m = location.pathname.match(/^\/video\/(BV[a-zA-Z0-9]+)\/?$/i)
-      return m ? m[1] : null
+      // Standard video detail page: /video/BVxxx
+      const pathMatch = location.pathname.match(/^\/video\/(BV[a-zA-Z0-9]+)\/?$/i)
+      if (pathMatch) return pathMatch[1]
+
+      // Series/collection list page: /list/{seriesId}?bvid=BVxxx
+      if (isListPage()) {
+        const bvidParam = new URLSearchParams(location.search).get('bvid')
+        if (bvidParam && /^BV[a-zA-Z0-9]+$/.test(bvidParam)) return bvidParam
+      }
+
+      return null
+    }
+
+    function isListPage(): boolean {
+      return /^\/list\//.test(location.pathname)
     }
 
     function storeKey(bvid: string): string {
@@ -595,7 +608,7 @@ export default defineContentScript({
     }
 
     // ── Recommendation Badge Injection ────────────────────
-    const RECOMMEND_SEL = '.recommend-list-v1 .video-page-card-small'
+    const RECOMMEND_SEL = '.recommend-list-v1 .video-page-card-small, .recommend-list-container .recommend-video-card.video-card'
     let recObserver: MutationObserver | null = null
 
     /** 延迟执行，避免干扰 Bilibili Vue 渲染 */
@@ -651,7 +664,7 @@ export default defineContentScript({
     }
 
     function watchRecommendations() {
-      const target = document.querySelector('.recommend-list-v1')
+      const target = document.querySelector('.recommend-list-v1') || document.querySelector('.recommend-list-container')
       if (!target) return
       if (recObserver) recObserver.disconnect()
       recObserver = new MutationObserver(() => {

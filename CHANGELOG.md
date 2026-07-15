@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bilibili 投币检测自动标记**: 检测到投币按钮显示"已用完"时自动标记为"已看"(rating=7)
 - **Bilibili 推荐列表状态注入**: 在详情页 right-container 的推荐视频卡片上注入 `data-umm-rec-badge` 状态标签，延迟3秒避免干扰 Vue 渲染
 - **Bilibili SPA 导航增强**: FAB DOM 校验防止 body 替换丢失，onBvidChange 清理非视频页面 FAB，currentBVID guard 防止过期闭包
+- **Bilibili 合集列表页适配**: 支持 `/list/{seriesId}?bvid=BVxxx` 格式的合集/系列页面
+  - 新增 `*://www.bilibili.com/list/*` 匹配模式，`bilibili.content` 脚本注入
+  - BVID 从 URL query params 提取（`bvid` 参数），兼容 SPA 切换
+  - 推荐视频卡片状态标签适配列表页 DOM 结构（`.recommend-list-container .recommend-video-card`）
+  - 进度追踪器恢复，查找页面内的 `bpx-docker` video player
 - **豆瓣登录过期检测**: useInterest 新增 `isDoubanLoggedIn()` 检测 DedeUserID cookie，fetch/submit 遇到 403 时弹出 FloatingToast 提示重新登录
 
 ### Fixes
