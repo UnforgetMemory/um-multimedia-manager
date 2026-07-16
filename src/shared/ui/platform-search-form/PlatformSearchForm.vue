@@ -63,6 +63,7 @@ const { t } = useI18n()
         <SelectContent>
           <SelectItem value="movie">{{ t('stats.movie') }}</SelectItem>
           <SelectItem value="tv">{{ t('stats.tv') }}</SelectItem>
+          <SelectItem value="video">{{ t('stats.video') }}</SelectItem>
           <SelectItem value="music">{{ t('stats.music') }}</SelectItem>
           <SelectItem value="book">{{ t('stats.book') }}</SelectItem>
           <SelectItem value="game">{{ t('stats.game') }}</SelectItem>

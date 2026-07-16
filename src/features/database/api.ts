@@ -162,7 +162,7 @@ export async function getStatistics(): Promise<Statistics> {
   const res = await send<{ stats?: Statistics }>({ type: 'GET_STATISTICS' })
   return res?.stats || {
     total: 0, movie: 0, tv: 0, music: 0, book: 0,
-    douban: 0, imdb: 0, neodb: 0, tmdb: 0,
+    douban: 0, imdb: 0, neodb: 0, tmdb: 0, bilibili: 0, youtube: 0,
   }
 }
 

@@ -492,6 +492,68 @@ export default defineBackground({
             await handleSehuatangGetAll(message.payload, sendResponse)
             break
 
+          // ==================== Bilibili Inject ====================
+          case 'BILIBILI_INJECT': {
+            const { tabId } = message.payload ?? {}
+            if (!tabId) {
+              sendResponse({ success: false, error: 'Missing tabId' })
+              return
+            }
+            chrome.scripting.executeScript({
+              target: { tabId },
+              func: () => {
+                const d = document.createElement('div')
+                d.setAttribute('data-umm-bili-float', '')
+                d.textContent = 'UMM'
+                Object.assign(d.style, {
+                  position: 'fixed', left: '20px', top: '20px',
+                  zIndex: '2147483647',
+                  width: '50px', height: '50px', borderRadius: '50%',
+                  background: '#22c55e', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: '14px', fontWeight: '700',
+                  fontFamily: 'Arial,sans-serif',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                  userSelect: 'none',
+                })
+                document.body.appendChild(d)
+              },
+            }).then(() => {
+              sendResponse({ success: true })
+            }).catch((err: any) => {
+              sendResponse({ success: false, error: err?.message || String(err) })
+            })
+            return // keep channel open
+          }
+
+          // ==================== Bilibili Save ====================
+          case 'BILIBILI_SAVE': {
+            const { bvid, status, rating } = message.payload ?? {}
+            if (!bvid) {
+              sendResponse({ success: false, error: 'Missing bvid' })
+              return
+            }
+            try {
+              const record = {
+                url: `https://www.bilibili.com/video/${bvid}/`,
+                status,
+                rating: Math.min(10, Math.max(0, rating ?? 0)),
+                comment: '',
+                updatedAt: new Date().toISOString(),
+                linkedIds: {},
+              }
+              await dataScheduler.schedule(
+                () => mediaDB.put(STORE_NAMES.BILIBILI, bvid, record),
+                { priority: 'HIGH', storeName: STORE_NAMES.BILIBILI, cacheKey: `put:${STORE_NAMES.BILIBILI}:${bvid}`, invalidateCache: true },
+              )
+              dataScheduler.cacheManager?.invalidate('scheduler', `get:${STORE_NAMES.BILIBILI}:${bvid}`)
+              sendResponse({ success: true })
+            } catch (err: any) {
+              sendResponse({ success: false, error: err?.message || String(err) })
+            }
+            return
+          }
+
           // ==================== File Download (MAIN world) ====================
           case 'DOWNLOAD_FILE': {
             const { url, filename } = message.payload ?? {}

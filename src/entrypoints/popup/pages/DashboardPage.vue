@@ -8,7 +8,7 @@ import StatCard from '@/shared/StatCard.vue'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Separator } from '@/shared/ui/separator'
-import { Settings, Film, Tv, Music, Book, Gamepad2, ShieldAlert, ArrowUpRight } from 'lucide-vue-next'
+import { Settings, Film, Tv, Music, Book, Gamepad2, ShieldAlert, ArrowUpRight, Play } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -22,7 +22,11 @@ function openOptionsPage() {
   window.open(chrome.runtime.getURL('options.html'), '_blank')
 }
 
-onMounted(() => appStore.loadData())
+onMounted(async () => {
+  appStore.loadData()
+
+  // Bilibili injection now handled by standalone content script in bilibili-test.js
+})
 </script>
 
 <template>
@@ -42,6 +46,8 @@ onMounted(() => appStore.loadData())
         <StatCard :icon="Book" :label="t('stats.book')" :value="stats.book" :loading="!dataReady" />
         <StatCard :icon="Gamepad2" :label="t('stats.game')" :value="stats.game" :loading="!dataReady" />
         <StatCard :icon="ShieldAlert" :label="t('stats.jav')" :value="stats.jav" :loading="!dataReady" />
+        <StatCard :icon="Play" :label="t('stats.bilibili')" :value="stats.bilibili" :loading="!dataReady" />
+        <StatCard :icon="Play" :label="t('stats.youtube')" :value="stats.youtube" :loading="!dataReady" />
       </div>
 
       <Card class="umm:mb-4 umm:overflow-hidden">

@@ -54,7 +54,7 @@ const calendarData = computed(() => {
     const d = new Date(startDate.getTime() + i * dayMs)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const count = map[key] || 0
-    const level = count === 0 ? 0 : Math.min(8, Math.ceil(Math.sqrt(count / maxDaily) * 8))
+    const level = count === 0 ? 0 : Math.min(8, Math.ceil(8 * Math.log2(1 + count) / Math.log2(1 + maxDaily)))
     currentWeek.push({ date: d, count, level })
     if (currentWeek.length === 7) { weeks.push(currentWeek); currentWeek = [] }
   }

@@ -64,6 +64,14 @@ function validateAndNormalizeProviderId(provider: Provider, _type: Domain, rawId
     if (JAV_ID_REGEX.test(trimmed)) return { valid: true, normalizedId: normalizeAvId(trimmed) }
     return { valid: false, normalizedId: '', error: t('validation.javFormat') }
   }
+  if (provider === 'bilibili') {
+    if (/^BV[a-zA-Z0-9]+$/.test(trimmed)) return { valid: true, normalizedId: trimmed }
+    return { valid: false, normalizedId: '', error: t('validation.imdbFormat') }
+  }
+  if (provider === 'youtube') {
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return { valid: true, normalizedId: trimmed }
+    return { valid: false, normalizedId: '', error: t('validation.imdbFormat') }
+  }
   return { valid: false, normalizedId: '', error: t('validation.unknownPlatform') }
 }
 
@@ -88,6 +96,10 @@ function parseRatingInput() {
   if (tmdbMovieMatch) { const id = tmdbMovieMatch[1]; return { type: 'movie', provider: 'tmdb' as Provider, providerId: id, url: `https://www.themoviedb.org/movie/${id}/`, valid: true } }
   const tmdbTvMatch = input.match(/themoviedb\.org\/tv\/(\d+)/)
   if (tmdbTvMatch) { const id = tmdbTvMatch[1]; return { type: 'tv', provider: 'tmdb' as Provider, providerId: id, url: `https://www.themoviedb.org/tv/${id}/`, valid: true } }
+  const bilibiliMatch = input.match(/bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/i)
+  if (bilibiliMatch) { const id = bilibiliMatch[1]; return { type: 'video', provider: 'bilibili' as Provider, providerId: id, url: `https://www.bilibili.com/video/${id}/`, valid: true } }
+  const youtubeMatch = input.match(/(?:youtube\.com|youtu\.be)\/watch\?v=([a-zA-Z0-9_-]{11})/i)
+  if (youtubeMatch) { const id = youtubeMatch[1]; return { type: 'video', provider: 'youtube' as Provider, providerId: id, url: `https://www.youtube.com/watch?v=${id}/`, valid: true } }
 
   // Auto-detect jav_id format — only if platform is jav_ids
   if (provider === 'jav_ids' && JAV_ID_REGEX.test(input)) {
@@ -112,6 +124,8 @@ function parseRatingInput() {
   else if (provider === 'imdb') url = `https://www.imdb.com/title/${nId}/`
   else if (provider === 'neodb') { const p = type === 'tv' ? 'tv' : type === 'music' ? 'album' : 'movie'; url = `https://neodb.social/${p}/${nId}/` }
   else if (provider === 'tmdb') url = type === 'tv' ? `https://www.themoviedb.org/tv/${nId}/` : `https://www.themoviedb.org/movie/${nId}/`
+  else if (provider === 'bilibili') url = `https://www.bilibili.com/video/${nId}/`
+  else if (provider === 'youtube') url = `https://www.youtube.com/watch?v=${nId}/`
   return { type, provider, providerId: nId, url, valid: true }
 }
 

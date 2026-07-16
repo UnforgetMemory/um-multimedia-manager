@@ -13,7 +13,7 @@ import { Button } from '@/shared/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert'
 import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
 import StatsGrid from '@/shared/ui/stats-grid/StatsGrid.vue'
-import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, Gamepad2, ShieldAlert } from 'lucide-vue-next'
+import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, Gamepad2, ShieldAlert, Play } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -43,7 +43,9 @@ const platformStats = computed<PlatformStat[]>(() => {
     const provider: string = r.provider || r.storeName?.replace('_records', '') || 'unknown'
     if (!map[provider]) map[provider] = { provider, count: 0, types: [] }
     map[provider].count++
-    const type: string = r.type || (r.url?.includes('music') ? 'music' : r.url?.includes('book') ? 'book' : 'movie')
+    // Normalize Bilibili types: all Bilibili records are videos regardless of key prefix
+    const rawType = r.type || (r.url?.includes('music') ? 'music' : r.url?.includes('book') ? 'book' : 'movie')
+    const type = provider === 'bilibili' ? 'video' : provider === 'youtube' ? 'video' : rawType
     const existing = map[provider].types.find(t => t.label === type)
     if (existing) existing.count++
     else map[provider].types.push({ label: type, count: 1 })
@@ -118,9 +120,14 @@ const weeklyStats = computed(() => {
   return { days, total: weekTotal, maxDaily, avgDaily, peakDay }
 })
 
-const statIcons = [Film, Tv, Music, Book, Gamepad2, ShieldAlert]
-const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.game'), t('stats.jav')])
-const statKeys = ['movie', 'tv', 'music', 'book', 'game', 'jav'] as const
+/**
+ * Stat type card definitions for the stats grid.
+ * statIcons, statLabels, and statKeys must stay parallel — each index maps to one stat card.
+ * Add a new stat type by appending to all three arrays at the same position.
+ */
+const statIcons = [Film, Tv, Music, Book, Gamepad2, ShieldAlert, Play, Play]
+const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.game'), t('stats.jav'), t('stats.bilibili'), t('stats.youtube')])
+const statKeys = ['movie', 'tv', 'music', 'book', 'game', 'jav', 'bilibili', 'youtube'] as const
 
 const statsData = computed(() =>
   statKeys.map((key, i) => ({

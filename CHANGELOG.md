@@ -5,6 +5,121 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Features
+
+- **Bilibili 首页瀑布流注入**: 新增 `bilibili-homepage.content` 入口点，在首页和搜索结果页视频卡片上注入 UMM 状态标签
+  - 状态显示：所有卡片默认显示"未看"，根据 DB 记录自动更新为 想看/已看/在看
+  - 已看淡化：已标记视频卡片自动降低透明度 + 灰度，hover 恢复
+  - 评分展示：status=2 时 badge 显示"已看 N"评分
+  - 搜索页适配：`search.bilibili.com` 搜索结果页同样支持
+  - 动态加载：MutationObserver 监听无限滚动加载的新卡片
+- **Bilibili 视频进度自动标记**: VideoProgressTracker 根据视频时长动态计算阈值（55%-70%），播放到达阈值后自动标记为"已看"
+- **Bilibili 投币检测自动标记**: 检测到投币按钮显示"已用完"时自动标记为"已看"(rating=7)
+- **Bilibili 推荐列表状态注入**: 在详情页 right-container 的推荐视频卡片上注入 `data-umm-rec-badge` 状态标签，延迟3秒避免干扰 Vue 渲染
+- **Bilibili SPA 导航增强**: FAB DOM 校验防止 body 替换丢失，onBvidChange 清理非视频页面 FAB，currentBVID guard 防止过期闭包
+- **Bilibili 合集列表页适配**: 支持 `/list/{seriesId}?bvid=BVxxx` 格式的合集/系列页面
+  - 新增 `*://www.bilibili.com/list/*` 匹配模式，`bilibili.content` 脚本注入
+  - BVID 从 URL query params 提取（`bvid` 参数），兼容 SPA 切换
+  - 推荐视频卡片状态标签适配列表页 DOM 结构（`.recommend-list-container .recommend-video-card`）
+  - 进度追踪器恢复，查找页面内的 `bpx-docker` video player
+- **豆瓣登录过期检测**: useInterest 新增 `isDoubanLoggedIn()` 检测 DedeUserID cookie，fetch/submit 遇到 403 时弹出 FloatingToast 提示重新登录
+- **YouTube 全链路集成**: 新增 YouTube 平台支持，全线管理页面集成
+  - 详情页 WXT 内容脚本 (`youtube-homepage.content`)，浮动按钮 + 状态弹窗 + 播放进度自动标记
+  - 深浅主题适配：MutationObserver 监听 `html[dark]` + `prefers-color-scheme`
+  - SPA 导航适应：popstate/pushState/replaceState 拦截 + 3s 轮询兜底，自动跟随视频切换
+  - 首页/搜索/频道列表页视频卡片注入 UMM 状态徽章 + 暗淡效果
+  - 详情页推荐列表/UMM 状态徽章注入（覆盖新格式 `yt-lockup-view-model`）
+  - 播放列表面板适配 (`ytd-playlist-panel-video-renderer`)
+  - URL 自动识别：`youtube.com/watch?v=` 和短链接 `youtu.be/`
+- **Options/Popup YouTube 适配**: 全线管理页面集成
+  - Popup Dashboard 新增 YouTube 统计卡片
+  - Options OverviewTab StatsGrid + PlatformDistribution 含 YouTube 计数
+  - Options RatingTab/LinkedTab：YouTube URL 自动识别 + ID 验证 + 平台/类型自动切换
+  - `autoDetectPlatform` 新增 YouTube 检测
+- **Database YouTube 存储**: 新增 `youtube_records` store（DB_VERSION=10→11），`handleGetAllRecords` 类型标准化为 `video`
+- **Identity YouTube 识别**: `Identity.fromUrl()` 支持 `/watch?v=VIDEO_ID` 解析
+
+### Fixes
+
+- **Bilibili 详情页保存**: 增加 `saveRecord` 回调检查，确保保存操作可追踪错误
+- **Options 总览缺 B站统计**: OverviewTab StatsGrid 中 `statKeys`/`statIcons`/`statLabels` 三数组同步追加 `bilibili` 条目，使 Options 总览正确显示 B站视频统计卡片（与 Popup DashboardPage 一致）
+- **YouTube/Bilibili 暗淡卡片悬停恢复**: 移除 `pointer-events: none`，改用 CSS `:hover` 规则，整张卡片悬停恢复原始视觉效果
+
+### Changed
+
+- **wxt.config.ts**: 添加 `*://www.bilibili.com/*` 和 `*://search.bilibili.com/*` 到 `host_permissions`
+
+### Performance
+
+- **Mukaku 链路优化**: 手术级性能与内存优化
+  - 添加 handler 级 `watchedIdCache`（30s TTL），消除重复 `dbGetAll` 调用（减少 ~90%）
+  - `probeCache` 添加 LRU 上限（500 条），消除内存泄漏
+  - 批量读取 watched/unwatched 集合，替代逐卡片 2N 次 IndexedDB roundtrip
+  - IntersectionObserver 替代全 document MutationObserver，降低 CPU 占用
+  - Toast 更新改用 `requestAnimationFrame`，简化节流机制
+  - `ensureQueue` totalCount 每批次准确重置
+
+### Fixes
+
+- **Bilibili 平台分布**: 修复 Options 平台分布中 Bilibili 记录类型异常
+  - `handleGetAllRecords` 统一 Bilibili 记录 type 为 `video`（兼容遗留 bvid/movie 前缀）
+  - `OverviewTab` 添加视图层 Bilibili type 安全网归一化
+- **热力图色阶**: 修复活动度热力图颜色计算
+  - 改用 `log2` 对数压缩替代 `sqrt` 平方根，避免大 maxDaily 时低值全部坍缩到 level 1
+
+### Chores
+
+- Code review 通过：YouTube/Bilibili 内容脚本，安全审计通过
+- 安全审计：无 innerHTML/document.write/eval，无 as any/@ts-ignore，无硬编码密钥
+- `.gitignore` 复核通过：目录级模式全覆盖
+- 测试产物清洁：无过期测试产物或残留进程
+- type-check + build 通过
+- 添加简洁英文注释
+
+## [5.0.0] - 2026-07-14
+
+### Features
+
+- **Bilibili 集成**: 全新 WXT 内容脚本入口点 (`bilibili.content`)，在 Bilibili 视频详情页注入悬浮按钮 + 评分弹窗
+  - 状态跟踪：未看 / 想看 / 在看 / 已看 循环切换
+  - 评分输入：0-10 分，仅"已看"状态可评
+  - 深浅主题适配：MutationObserver 监听 `html[data-theme]` + `prefers-color-scheme`
+  - SPA 导航适应：pushState/replaceState 拦截 + 3s 轮询兜底，自动跟随视频切换
+  - 风格统一：`data-umm-bili-*` 属性前缀，hover/active 动效，状态色光阴影
+- **Bilibili 平台支持**: 全线管理页面集成 B站
+  - Options 评分管理：URL 自动识别 + BV 号验证（`BV[a-zA-Z0-9]+`）
+  - Options 关联管理：URL/BV ID 自动检测 + 跨平台关联
+  - Popup 统计看板：B站 计数卡片
+  - 后台统计聚合：GET_STATISTICS / GET_ALL_RECORDS 含 bilibili 数据
+- **新增 Domain 类型**: `video`（视频），用于 Bilibili 等纯视频平台
+- **自动检测平台切换**: 输入 bilibili URL 或 BV 号自动切换到 B站 平台
+
+### Architecture
+
+- **Bilibili 链路重构**: 死代码清理 + WXT 规范化
+  - 删除 `icons/bilibili-float.js`（旧版 raw JS，放在 icons/ 目录）
+  - 删除 `src/entrypoints/content/handlers/bilibili.ts`（无引用的死代码）
+  - 移除 wxt.config.ts 手动 content_scripts，WXT 自动发现 entrypoint
+  - 数据 KEY 格式统一：`video::BVID` 替代裸 `BVID`
+- **样式模板化**: 提取 `s*()` 函数模板（sBtnFloat, sBadge, sCard 等 10+ 模板）
+- **主题观察器**: `startThemeWatch()` + `applyModalTheme()` 实时响应主题变化
+
+### i18n
+
+- 新增 `platform.bilibili` 键（zh-CN/zh-TW: B站, en: Bilibili）
+- 新增 `stats.bilibili` 键（Bilibili 统计标签）
+- 新增 `stats.video` 键（视频类型标签）
+- 总 keys: 180 (3 locales, 100% 覆盖)
+
+### Chores
+
+- Version bump 4.13.3 → 5.0.0
+- npm audit 审计：9 项漏洞（全部在构建工具链，非运行时依赖）
+- Gitignore 审计：已全覆盖
+- 测试目录审计：tests/ 7 个单元测试文件，无过期产物
+
 ## [4.13.3] - 2026-07-12
 
 ### Architecture

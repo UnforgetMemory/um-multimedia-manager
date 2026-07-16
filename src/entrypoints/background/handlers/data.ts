@@ -136,6 +136,8 @@ export async function handleGetStatistics(sendResponse: SendResponse) {
   const stats: Statistics = {
     total: 0, movie: 0, tv: 0, music: 0, book: 0,
     douban: 0, imdb: 0, neodb: 0, tmdb: 0,
+    bilibili: 0,
+    youtube: 0,
   }
 
   const storePlatformMap: Record<string, string> = {
@@ -143,6 +145,8 @@ export async function handleGetStatistics(sendResponse: SendResponse) {
     [STORE_NAMES.IMDB]: 'imdb',
     [STORE_NAMES.NEODB]: 'neodb',
     [STORE_NAMES.TMDB]: 'tmdb',
+    [STORE_NAMES.BILIBILI]: 'bilibili',
+    [STORE_NAMES.YOUTUBE]: 'youtube',
   }
 
   for (const storeName of RECORD_STORES) {
@@ -173,6 +177,8 @@ export async function handleGetAllRecords(sendResponse: SendResponse) {
     [STORE_NAMES.IMDB]: 'imdb',
     [STORE_NAMES.NEODB]: 'neodb',
     [STORE_NAMES.TMDB]: 'tmdb',
+    [STORE_NAMES.BILIBILI]: 'bilibili',
+    [STORE_NAMES.YOUTUBE]: 'youtube',
   }
 
   for (const storeName of RECORD_STORES) {
@@ -180,9 +186,12 @@ export async function handleGetAllRecords(sendResponse: SendResponse) {
     for (const entry of entries) {
       const [type, ...idParts] = entry.key.split('::')
       const providerId = idParts.join('::')
+      // Normalize Bilibili/YouTube record types: all are videos,
+      // regardless of actual key prefix (legacy records may have bvid/movie prefixes)
+      const normalizedType = storeName === STORE_NAMES.BILIBILI || storeName === STORE_NAMES.YOUTUBE ? 'video' : type
       allRecords.push({
         ...entry.record,
-        type,
+        type: normalizedType,
         provider: storePlatformMap[storeName] || 'unknown',
         providerId,
       })

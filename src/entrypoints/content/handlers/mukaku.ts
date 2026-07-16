@@ -146,11 +146,18 @@ async function expMapHas(mapKey: string, id: string): Promise<boolean> {
 
 /**
  * Get watched IDs (status >= 2) for a given type + provider.
- * Only status=2 (done) and status=3 (doing) qualify as "watched";
- * status=1 (wishlist) is explicitly excluded to avoid false positives.
- * Replaces old Store.getIdSet.
+ * Uses handler-level cache with 30s TTL to avoid repeated dbGetAll calls.
  */
-async function getIdSet(type: string, provider: string): Promise<Set<string>> {
+async function getIdSet(type: string, provider: string, cache?: { movieDoubanIds: Set<string>; imdbIds: Set<string>; ts: number } | null): Promise<Set<string>> {
+  // Use handler-level cache if available and fresh
+  if (cache) {
+    const now = Date.now()
+    if (now - cache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL) {
+      if (provider === 'douban') return cache.movieDoubanIds
+      if (provider === 'imdb') return cache.imdbIds
+    }
+  }
+
   const storeName = `${provider}_records`
   const entries = await Store.dbGetAll(storeName)
   const ids = new Set<string>()
@@ -195,6 +202,9 @@ const MUKAKU_CONFIG = {
   UNWATCHED_TTL_MS: 60 * 60 * 1000, // 1小时
   PROBE_CACHE_KEY: 'umm:cache:mukaku:probe',
   PROBE_CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7天
+  // 内存缓存限制
+  WATCHED_ID_CACHE_TTL: 30_000,        // watchedIdCache 30s TTL
+  PROBE_CACHE_MAX: 500,                // probeCache 最大条目
 }
 
 const NETWORK_CONFIG = {
@@ -208,34 +218,34 @@ const NETWORK_CONFIG = {
 
 class MukakuHandler {
   private queue: RequestQueue | null = null
+  /** In-memory probe cache: mvId → linked IDs. LRU-limited via MUKAKU_CONFIG.PROBE_CACHE_MAX. */
   private probeCache = new Map<string, { doubanId: string | null; imdbId: string | null }>()
+  /** Handler-level watched ID cache: provider → { movieDoubanIds, imdbIds, ts }. 30s TTL reduces dbGetAll calls. */
+  private watchedIdCache: { movieDoubanIds: Set<string>; imdbIds: Set<string>; ts: number } | null = null
+  /** Batch-read watched set data, populated at start of processVisibleCards. */
+  private batchWatchedSet: string[] | null = null
+  /** Batch-read unwatched map data, populated at start of processVisibleCards. */
+  private batchUnwatchedMap: Record<string, number> | null = null
   private listObserver: MutationObserver | null = null
-  private lastToastUpdate = 0
-  private toastUpdateTimer: ReturnType<typeof setTimeout> | null = null
-  private isProcessing = false  // 是否正在处理卡片批次
+  /** IntersectionObserver for lazy-loaded cards after initial batch. */
+  private listIntersectionObserver: IntersectionObserver | null = null
+  private toastScheduled = false
+  private isProcessing = false
   private processDebounceTimer: ReturnType<typeof setTimeout> | null = null
-  private latestToastState: { message: string; progress: number } | null = null
 
   /**
    * 确保请求队列存在（始终复用同一个队列实例）
    */
   private ensureQueue(): RequestQueue {
-    // 已有队列则直接复用
     if (this.queue) {
-      // 仅在非处理期间且队列空闲时重置 totalCount
-      if (!this.isProcessing && this.queue.isIdle()) {
-        this.queue.resetTotal()
-      }
       return this.queue
     }
 
-    // 首次创建队列
     this.queue = new RequestQueue({
       maxConcurrent: NETWORK_CONFIG.MAX_CONCURRENT,
       minDelayMs: NETWORK_CONFIG.MIN_DELAY_MS,
       maxDelayMs: NETWORK_CONFIG.MAX_DELAY_MS,
       onStateChange: ({ queued, active, currentKey, total }) => {
-        // 队列空闲时关闭 toast
         if (!queued && !active) {
           if (MukakuToastController.hasActive()) {
             MukakuToastController.success(t('mukaku.queue_done', { total }))
@@ -243,48 +253,20 @@ class MukakuHandler {
           return
         }
 
-        // 计算进度（已完成 = total - queued - active）
         const completed = total - queued - active
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0
 
-        // 构建消息
         const parts: string[] = []
         parts.push(t('mukaku.progress', { completed, total }))
-        if (active > 0) {
-          parts.push(`并发 ${active}`)
-        }
-        if (currentKey) {
-          parts.push(`当前 ${currentKey}`)
-        }
+        if (active > 0) parts.push(`并发 ${active}`)
+        if (currentKey) parts.push(`当前 ${currentKey}`)
 
-        // 存储最新状态到类属性（供节流定时器使用）
-        this.latestToastState = { message: parts.join(' · '), progress }
-
-        const now = Date.now()
-        const updateFn = () => {
-          // 使用全局单例控制器更新 toast
-          if (this.latestToastState) {
-            MukakuToastController.update(
-              this.latestToastState.message,
-              this.latestToastState.progress
-            )
-          }
-          this.lastToastUpdate = Date.now()
-        }
-
-        // 节流：至少间隔 800ms 更新一次 DOM
-        if (now - this.lastToastUpdate >= 800) {
-          if (this.toastUpdateTimer) {
-            clearTimeout(this.toastUpdateTimer)
-            this.toastUpdateTimer = null
-          }
-          updateFn()
-        } else if (!this.toastUpdateTimer) {
-          this.toastUpdateTimer = setTimeout(() => {
-            this.toastUpdateTimer = null
-            // 使用最新的状态（this.latestToastState 已被更新）
-            updateFn()
-          }, 800 - (now - this.lastToastUpdate))
+        if (!this.toastScheduled) {
+          this.toastScheduled = true
+          requestAnimationFrame(() => {
+            this.toastScheduled = false
+            MukakuToastController.update(parts.join(' · '), progress)
+          })
         }
       },
     })
@@ -387,6 +369,12 @@ class MukakuHandler {
       const result = { doubanId: cached.doubanId, imdbId: cached.imdbId }
       this.probeCache.set(mvId, result)
       return result
+    }
+
+    // 写入前检查 probeCache 大小，超出上限则淘汰最早条目
+    if (this.probeCache.size >= MUKAKU_CONFIG.PROBE_CACHE_MAX) {
+      const oldestKey = this.probeCache.keys().next().value
+      if (oldestKey !== undefined) this.probeCache.delete(oldestKey)
     }
 
     // 3. 通过队列执行请求
@@ -538,8 +526,8 @@ class MukakuHandler {
 
     // 根据关联 ID 匹配本地记录
     if (linkedIds.doubanId || linkedIds.imdbId) {
-      const movieDoubanIds = await getIdSet('movie', 'douban')
-      const imdbIds = await getIdSet('movie', 'imdb')
+      const movieDoubanIds = await getIdSet('movie', 'douban', this.watchedIdCache)
+      const imdbIds = await getIdSet('movie', 'imdb', this.watchedIdCache)
 
       const matched =
         (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
@@ -564,17 +552,40 @@ class MukakuHandler {
     }
   }
 
-  /**
-   * 处理列表页
-   */
   public async handleListPage(): Promise<void> {
-    // 监听新卡片出现（防抖处理，等待 DOM 稳定后再处理）
+    await this.processVisibleCards()
+    this.setupLazyLoadObserver()
+  }
+
+  private setupLazyLoadObserver(): void {
+    if (this.listIntersectionObserver) {
+      this.listIntersectionObserver.disconnect()
+    }
+
+    this.listIntersectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            if (this.processDebounceTimer) {
+              clearTimeout(this.processDebounceTimer)
+            }
+            this.processDebounceTimer = setTimeout(() => {
+              this.processDebounceTimer = null
+              this.processVisibleCards()
+            }, 150)
+          }
+        }
+      },
+      {
+        rootMargin: '500px 0px',
+        threshold: 0.1,
+      },
+    )
+
     this.listObserver = new MutationObserver(() => {
-      // 清除之前的防抖定时器
       if (this.processDebounceTimer) {
         clearTimeout(this.processDebounceTimer)
       }
-      // 设置新的防抖定时器（300ms 后执行）
       this.processDebounceTimer = setTimeout(() => {
         this.processDebounceTimer = null
         this.processVisibleCards()
@@ -585,23 +596,21 @@ class MukakuHandler {
       childList: true,
       subtree: true,
     })
-
-    // 立即处理一次
-    await this.processVisibleCards()
   }
 
   /**
    * 处理可见的视频卡片
    */
   private async processVisibleCards(): Promise<void> {
-    // 如果正在处理中，跳过本次调用（防抖会确保后续调用）
     if (this.isProcessing) {
       console.log('[Mukaku] Already processing, skipping...')
       return
     }
 
+    if (this.queue) this.queue.resetTotal()
+
     const cards = document.querySelectorAll('.video-card')
-    
+
     // 收集未处理的卡片
     const unprocessed: Array<{ cardEl: HTMLElement; mvId: string }> = []
     for (const card of Array.from(cards)) {
@@ -615,87 +624,114 @@ class MukakuHandler {
 
     if (unprocessed.length === 0) return
 
-    // 标记开始处理批次（防止队列重置和并发执行）
     this.isProcessing = true
 
     try {
-      // 获取本地记录（只需获取一次）
-      const movieDoubanIds = await getIdSet('movie', 'douban')
-      const imdbIds = await getIdSet('movie', 'imdb')
+      const watchedRaw: any = await Store.dbGet('ttl_cache', MUKAKU_CONFIG.WATCHED_SET_KEY)
+      this.batchWatchedSet = Array.isArray(watchedRaw) ? watchedRaw : []
+      const unwatchedRaw: any = await Store.dbGet('ttl_cache', MUKAKU_CONFIG.UNWATCHED_TTL_KEY)
+      this.batchUnwatchedMap = (unwatchedRaw && typeof unwatchedRaw === 'object' && !Array.isArray(unwatchedRaw))
+        ? (unwatchedRaw as Record<string, number>)
+        : {}
 
-      // 并行检查所有卡片的缓存状态
-      const cacheResults = await Promise.all(
-        unprocessed.map(async ({ cardEl, mvId }) => {
-          // 检查已看/未看缓存
-          const [isWatched, isUnwatched] = await Promise.all([
-            this.isCachedWatched(mvId),
-            this.isCachedUnwatched(mvId)
-          ])
+      const now = Date.now()
+      if (!this.watchedIdCache || now - this.watchedIdCache.ts >= MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL) {
+        const movieDoubanIds = await getIdSet('movie', 'douban', null)
+        const imdbIds = await getIdSet('movie', 'imdb', null)
+        this.watchedIdCache = { movieDoubanIds, imdbIds, ts: now }
+      }
+      const { movieDoubanIds, imdbIds } = this.watchedIdCache
 
-          if (isWatched) {
+      for (const { cardEl, mvId } of unprocessed) {
+        const isWatched = this.batchWatchedSet.includes(mvId)
+        if (isWatched) {
+          cardEl.classList.add('umm-dimmed')
+          continue
+        }
+        const expiry = this.batchUnwatchedMap[mvId]
+        if (expiry !== undefined && Date.now() < expiry) {
+          continue
+        }
+
+        if (this.probeCache.has(mvId)) {
+          const result = this.probeCache.get(mvId)!
+          const matched =
+            (result.doubanId && movieDoubanIds.has(result.doubanId)) ||
+            (result.imdbId && imdbIds.has(result.imdbId))
+          if (matched) {
+            this.addToBatchWatched(mvId)
             cardEl.classList.add('umm-dimmed')
-            return { cardEl, mvId, status: 'watched' as const }
+          } else {
+            this.addToBatchUnwatched(mvId)
           }
-          if (isUnwatched) {
-            return { cardEl, mvId, status: 'unwatched' as const }
+          continue
+        }
+
+        const cached = await probeCacheGet(mvId)
+        if (cached) {
+          const result = { doubanId: cached.doubanId, imdbId: cached.imdbId }
+          this.probeCache.set(mvId, result)
+          const matched =
+            (result.doubanId && movieDoubanIds.has(result.doubanId)) ||
+            (result.imdbId && imdbIds.has(result.imdbId))
+          if (matched) {
+            this.addToBatchWatched(mvId)
+            cardEl.classList.add('umm-dimmed')
+          } else {
+            this.addToBatchUnwatched(mvId)
           }
+          continue
+        }
 
-          // 检查 IndexedDB 持久化缓存
-          const cached = await probeCacheGet(mvId)
-          if (cached) {
-            const result = { doubanId: cached.doubanId, imdbId: cached.imdbId }
-            this.probeCache.set(mvId, result)
-            const matched =
-              (result.doubanId && movieDoubanIds.has(result.doubanId)) ||
-              (result.imdbId && imdbIds.has(result.imdbId))
-            if (matched) {
-              await this.markWatched(mvId)
-              cardEl.classList.add('umm-dimmed')
-            } else {
-              await this.markUnwatched(mvId)
-            }
-            return { cardEl, mvId, status: 'cached' as const }
-          }
-
-          return { cardEl, mvId, status: 'need-probe' as const }
-        })
-      )
-
-      // 筛选需要 API 探测的卡片
-      const needProbe = cacheResults.filter(r => r.status === 'need-probe')
-
-      // 并行探测所有未命中缓存的卡片（队列会控制并发数）
-      if (needProbe.length > 0) {
-        await Promise.all(
-          needProbe.map(async ({ cardEl, mvId }) => {
-            try {
-              const linkedIds = await this.probeLinkedIds(mvId)
-
-              if (linkedIds.doubanId || linkedIds.imdbId) {
-                const matched =
-                  (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
-                  (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
-
-                if (matched) {
-                  await this.markWatched(mvId)
-                  cardEl.classList.add('umm-dimmed')
-                } else {
-                  await this.markUnwatched(mvId)
-                }
-              } else {
-                await this.markUnwatched(mvId)
-              }
-            } catch (error) {
-              console.error('[Mukaku] Card processing failed:', error)
-              // 单个卡片失败不影响其他卡片
-            }
-          })
-        )
+        await this.probeAndProcessCard(cardEl, mvId, movieDoubanIds, imdbIds)
       }
     } finally {
-      // 标记批次处理完成
       this.isProcessing = false
     }
+  }
+
+  private async probeAndProcessCard(
+    cardEl: HTMLElement,
+    mvId: string,
+    movieDoubanIds: Set<string>,
+    imdbIds: Set<string>,
+  ): Promise<void> {
+    try {
+      const linkedIds = await this.probeLinkedIds(mvId)
+
+      if (linkedIds.doubanId || linkedIds.imdbId) {
+        const matched =
+          (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
+          (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
+
+        if (matched) {
+          this.addToBatchWatched(mvId)
+          cardEl.classList.add('umm-dimmed')
+        } else {
+          this.addToBatchUnwatched(mvId)
+        }
+      } else {
+        this.addToBatchUnwatched(mvId)
+      }
+    } catch (error) {
+      console.error('[Mukaku] Card processing failed:', error)
+    }
+  }
+
+  private addToBatchWatched(mvId: string): void {
+    if (this.batchWatchedSet && !this.batchWatchedSet.includes(mvId)) {
+      this.batchWatchedSet.push(mvId)
+    }
+    setAddItem(MUKAKU_CONFIG.WATCHED_SET_KEY, mvId)
+    setDeleteItem(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId)
+    this.watchedIdCache = null
+  }
+
+  private addToBatchUnwatched(mvId: string): void {
+    if (this.batchUnwatchedMap && !(mvId in this.batchUnwatchedMap)) {
+      this.batchUnwatchedMap[mvId] = Date.now() + MUKAKU_CONFIG.UNWATCHED_TTL_MS
+    }
+    expMapAdd(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId, MUKAKU_CONFIG.UNWATCHED_TTL_MS)
   }
 
   /**
@@ -706,18 +742,20 @@ class MukakuHandler {
       this.listObserver.disconnect()
       this.listObserver = null
     }
+    if (this.listIntersectionObserver) {
+      this.listIntersectionObserver.disconnect()
+      this.listIntersectionObserver = null
+    }
     if (this.processDebounceTimer) {
       clearTimeout(this.processDebounceTimer)
       this.processDebounceTimer = null
     }
-    if (this.toastUpdateTimer) {
-      clearTimeout(this.toastUpdateTimer)
-      this.toastUpdateTimer = null
-    }
     this.queue = null
     MukakuToastController.close()
-    this.latestToastState = null
     this.probeCache.clear()
+    this.watchedIdCache = null
+    this.batchWatchedSet = null
+    this.batchUnwatchedMap = null
   }
 }
 
