@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "types": ["chrome"],
+    "paths": {
+      "@": ["./src"],
+      "@/*": ["./src/*"]
+    },
+    "noUncheckedSideEffectImports": false,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "references": [
+    { "path": "./tsconfig.node.json" }
+  ]
+}

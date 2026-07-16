@@ -9,7 +9,7 @@
 <h1 align="center">UMM — 多媒体管理器</h1>
 
 <p align="center">
-  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/版本-4.13.2-blue?logo=git" alt="Version"></a>
+  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/版本-5.0.0-blue?logo=git" alt="Version"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen?logo=googlechrome" alt="Chrome"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest-V3-orange?logo=googlechrome" alt="Manifest V3"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node-%3E%3D%2022-339933?logo=nodedotjs" alt="Node"></a>

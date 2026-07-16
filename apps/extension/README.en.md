@@ -9,7 +9,7 @@
 <h1 align="center">UMM — UM Multimedia Manager</h1>
 
 <p align="center">
-  <a href="https://github.com/"><img src="https://img.shields.io/badge/version-4.13.2-blue.svg" alt="Version"></a>
+  <a href="https://github.com/"><img src="https://img.shields.io/badge/version-5.0.0-blue.svg" alt="Version"></a>
   <a href="https://chrome.google.com/webstore"><img src="https://img.shields.io/badge/chrome-extension-brightgreen.svg" alt="Chrome Extension"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/manifest-v3-orange.svg" alt="Manifest V3"></a>
   <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/vue-3.5-4FC08D.svg" alt="Vue 3"></a>
