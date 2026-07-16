@@ -9,6 +9,7 @@ export const PLATFORM_OPTIONS = [
   { value: 'neodb', labelKey: 'platform.neodb' as const },
   { value: 'tmdb', labelKey: 'platform.tmdb' as const },
   { value: 'bilibili', labelKey: 'platform.bilibili' as const },
+  { value: 'youtube', labelKey: 'platform.youtube' as const },
   { value: 'jav_ids', labelKey: 'platform.jav' as const },
 ] as const
 

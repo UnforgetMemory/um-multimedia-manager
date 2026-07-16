@@ -48,6 +48,8 @@ function parseLinkedInput() {
   if (tmdbTvMatch) { const id = tmdbTvMatch[1]; return { type: 'tv', provider: 'tmdb' as Provider, providerId: id, url: `https://www.themoviedb.org/tv/${id}/`, valid: true } }
   const bilibiliMatch = input.match(/bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/i)
   if (bilibiliMatch) { const id = bilibiliMatch[1]; return { type: 'video', provider: 'bilibili' as Provider, providerId: id, url: `https://www.bilibili.com/video/${id}/`, valid: true } }
+  const youtubeMatch = input.match(/(?:youtube\.com|youtu\.be)\/watch\?v=([a-zA-Z0-9_-]{11})/i)
+  if (youtubeMatch) { const id = youtubeMatch[1]; return { type: 'video', provider: 'youtube' as Provider, providerId: id, url: `https://www.youtube.com/watch?v=${id}/`, valid: true } }
 
   // Auto-detect jav_id format — only if platform is jav_ids
   if (provider === 'jav_ids' && /^[A-Za-z0-9]+-[\w-]+(-[UCuc]{1,2})?$/i.test(input)) {
@@ -62,6 +64,7 @@ function parseLinkedInput() {
 
   if (/^tt\d+$/i.test(input)) return { type: 'movie', provider: 'imdb' as Provider, providerId: input.toLowerCase(), url: `https://www.imdb.com/title/${input.toLowerCase()}/`, valid: true }
   if (/^BV[a-zA-Z0-9]+$/.test(input)) return { type: 'video', provider: 'bilibili' as Provider, providerId: input, url: `https://www.bilibili.com/video/${input}/`, valid: true }
+  if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return { type: 'video', provider: 'youtube' as Provider, providerId: input, url: `https://www.youtube.com/watch?v=${input}/`, valid: true }
   if (/^\d+$/.test(input)) { const subdomain = linkedSelectedDomain.value === 'music' ? 'music' : linkedSelectedDomain.value === 'book' ? 'book' : linkedSelectedDomain.value === 'game' ? 'www' : 'movie'; const path = linkedSelectedDomain.value === 'game' ? `game` : 'subject'; return { type: linkedSelectedDomain.value, provider: 'douban' as Provider, providerId: input, url: `https://${subdomain}.douban.com/${path}/${input}/`, valid: true } }
   return { type, provider, providerId: input, url: '', valid: false, error: t('validation.cannotParse') }
 }
@@ -125,7 +128,7 @@ watch(linkedSelectedPlatform, () => { if (linkedInput.value.trim() && !isLinkedQ
 function getPlatformLabel(p: string): string {
   const labels: Record<string, string> = {
     douban: t('platform.douban'), imdb: t('platform.imdb'), neodb: t('platform.neodb'),
-    tmdb: t('platform.tmdb'), bilibili: t('platform.bilibili'),
+    tmdb: t('platform.tmdb'), bilibili: t('platform.bilibili'), youtube: t('platform.youtube'),
     local: t('platform.local'), jav_ids: t('platform.jav'),
   }
   return labels[p] || p

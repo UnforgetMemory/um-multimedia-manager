@@ -2,12 +2,14 @@ export const PLATFORM_LABELS: Record<string, string> = {
   douban: '豆瓣', imdb: 'IMDb', neodb: 'NeoDB', tmdb: 'TMDB',
   javdb: 'JavDB', sehuatang: '色花堂', local: '本地',
   bilibili: 'B站',
+  youtube: 'YouTube',
 }
 
 export const PLATFORM_HUES: Record<string, number> = {
   douban: 142, imdb: 45, neodb: 217, tmdb: 271,
   javdb: 0, sehuatang: 25, local: 200,
   bilibili: 340,
+  youtube: 10,
 }
 
 export function usePlatformColor(hue: number) {

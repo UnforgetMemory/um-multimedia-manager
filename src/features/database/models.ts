@@ -26,7 +26,7 @@ import type { PageQueryOptions, PageResult } from './query-utils'
 import type { WriteResult } from '@/features/optimistic-lock/types'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 10
+export const DB_VERSION = 11
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
@@ -34,6 +34,7 @@ export const STORE_NAMES = {
   NEODB: 'neodb_records',
   TMDB: 'tmdb_records',
   BILIBILI: 'bilibili_records',
+  YOUTUBE: 'youtube_records',
   TTL_CACHE: 'ttl_cache',
   SYNC_LOGS: 'sync_logs',
   PT_ID_CACHE: 'pt_id_cache',
@@ -47,6 +48,7 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.NEODB,
   STORE_NAMES.TMDB,
   STORE_NAMES.BILIBILI,
+  STORE_NAMES.YOUTUBE,
 ]
 
 /** Helper: get the store name for a platform */
@@ -132,6 +134,16 @@ class MediaDatabase {
             biliStore.createIndex('status', 'status', { unique: false })
             biliStore.createIndex('updatedAt', 'updatedAt', { unique: false })
             console.log('[DB] Added bilibili_records store')
+          }
+        }
+
+        // v10→v11: add youtube_records store
+        if (oldVersion < 11) {
+          if (!db.objectStoreNames.contains(STORE_NAMES.YOUTUBE)) {
+            const ytStore = db.createObjectStore(STORE_NAMES.YOUTUBE)
+            ytStore.createIndex('status', 'status', { unique: false })
+            ytStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+            console.log('[DB] Added youtube_records store')
           }
         }
 

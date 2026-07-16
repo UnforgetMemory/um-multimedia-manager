@@ -149,6 +149,14 @@ export class Identity {
         return Identity.create('bilibili', 'movie', bilibili[1]);
       }
 
+      // YouTube video
+      if (host === 'www.youtube.com' || host === 'youtube.com' || host === 'm.youtube.com') {
+        const videoId = parsed.searchParams.get('v')
+        if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+          return Identity.create('youtube', 'movie', videoId);
+        }
+      }
+
       // TMDB movie
       const tmdbMovie = pathname.match(/^\/movie\/(\d+)\/$/i);
       if (host.endsWith('themoviedb.org') && tmdbMovie) {
@@ -221,6 +229,9 @@ export class Identity {
 
     // Bilibili
     if (p === 'bilibili' && t === 'movie') return `https://www.bilibili.com/video/${providerId}/`;
+
+    // YouTube
+    if (p === 'youtube' && t === 'movie') return `https://www.youtube.com/watch?v=${providerId}/`;
 
     // TMDB
     if (p === 'tmdb') {

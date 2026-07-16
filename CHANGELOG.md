@@ -25,11 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 推荐视频卡片状态标签适配列表页 DOM 结构（`.recommend-list-container .recommend-video-card`）
   - 进度追踪器恢复，查找页面内的 `bpx-docker` video player
 - **豆瓣登录过期检测**: useInterest 新增 `isDoubanLoggedIn()` 检测 DedeUserID cookie，fetch/submit 遇到 403 时弹出 FloatingToast 提示重新登录
+- **YouTube 全链路集成**: 新增 YouTube 平台支持，全线管理页面集成
+  - 详情页 WXT 内容脚本 (`youtube-homepage.content`)，浮动按钮 + 状态弹窗 + 播放进度自动标记
+  - 深浅主题适配：MutationObserver 监听 `html[dark]` + `prefers-color-scheme`
+  - SPA 导航适应：popstate/pushState/replaceState 拦截 + 3s 轮询兜底，自动跟随视频切换
+  - 首页/搜索/频道列表页视频卡片注入 UMM 状态徽章 + 暗淡效果
+  - 详情页推荐列表/UMM 状态徽章注入（覆盖新格式 `yt-lockup-view-model`）
+  - 播放列表面板适配 (`ytd-playlist-panel-video-renderer`)
+  - URL 自动识别：`youtube.com/watch?v=` 和短链接 `youtu.be/`
+- **Options/Popup YouTube 适配**: 全线管理页面集成
+  - Popup Dashboard 新增 YouTube 统计卡片
+  - Options OverviewTab StatsGrid + PlatformDistribution 含 YouTube 计数
+  - Options RatingTab/LinkedTab：YouTube URL 自动识别 + ID 验证 + 平台/类型自动切换
+  - `autoDetectPlatform` 新增 YouTube 检测
+- **Database YouTube 存储**: 新增 `youtube_records` store（DB_VERSION=10→11），`handleGetAllRecords` 类型标准化为 `video`
+- **Identity YouTube 识别**: `Identity.fromUrl()` 支持 `/watch?v=VIDEO_ID` 解析
 
 ### Fixes
 
 - **Bilibili 详情页保存**: 增加 `saveRecord` 回调检查，确保保存操作可追踪错误
 - **Options 总览缺 B站统计**: OverviewTab StatsGrid 中 `statKeys`/`statIcons`/`statLabels` 三数组同步追加 `bilibili` 条目，使 Options 总览正确显示 B站视频统计卡片（与 Popup DashboardPage 一致）
+- **YouTube/Bilibili 暗淡卡片悬停恢复**: 移除 `pointer-events: none`，改用 CSS `:hover` 规则，整张卡片悬停恢复原始视觉效果
 
 ### Changed
 
@@ -52,6 +68,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `OverviewTab` 添加视图层 Bilibili type 安全网归一化
 - **热力图色阶**: 修复活动度热力图颜色计算
   - 改用 `log2` 对数压缩替代 `sqrt` 平方根，避免大 maxDaily 时低值全部坍缩到 level 1
+
+### Chores
+
+- Code review 通过：YouTube/Bilibili 内容脚本，安全审计通过
+- 安全审计：无 innerHTML/document.write/eval，无 as any/@ts-ignore，无硬编码密钥
+- `.gitignore` 复核通过：目录级模式全覆盖
+- 测试产物清洁：无过期测试产物或残留进程
+- type-check + build 通过
+- 添加简洁英文注释
 
 ## [5.0.0] - 2026-07-14
 

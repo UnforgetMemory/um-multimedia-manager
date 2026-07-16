@@ -16,7 +16,13 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   main() {
-    // ── State ──────────────────────────────────────────────
+    // Inject dimmer CSS for recommendation items
+    if (!document.getElementById('umm-bili-dimmer-styles')) {
+      const s = document.createElement('style')
+      s.id = 'umm-bili-dimmer-styles'
+      s.textContent = `[data-umm-bili-dimmed]{opacity:0.35!important;filter:grayscale(80%)!important;transition:opacity .3s,filter .3s}[data-umm-bili-dimmed]:hover{opacity:1!important;filter:grayscale(0%)!important}`
+      document.head.appendChild(s)
+    }    // ── State ──────────────────────────────────────────────
     let BVID: string | null = null
     let KEY: string | null = null
     const STORE = 'bilibili_records'
@@ -35,6 +41,13 @@ export default defineContentScript({
     let isDark = false
 
     let progressTracker: VideoProgressTracker | null = null
+
+    /** BVID at the time coin check was scheduled — guard against SPA race */
+    let coinCheckBVID: string | null = null
+    /** MutationObserver watching for coin button DOM to appear after SPA nav */
+    let coinObserver: MutationObserver | null = null
+    /** Safety timeout that stops coinObserver after max wait */
+    let coinSafetyTimer: ReturnType<typeof setTimeout> | null = null
 
     // ── Progress Tracker ─────────────────────────────────
     interface ProgressTrackerConfig {
@@ -592,19 +605,48 @@ export default defineContentScript({
     }
 
     // ── Coin Check Auto-Mark ─────────────────────────────
+    function stopCoinObserver() {
+      if (coinObserver) { coinObserver.disconnect(); coinObserver = null }
+      if (coinSafetyTimer) { clearTimeout(coinSafetyTimer); coinSafetyTimer = null }
+    }
+
+    function startCoinObserver() {
+      if (coinObserver) return
+      const target = document.querySelector('#arc_toolbar_report')
+      if (!target) return
+      coinObserver = new MutationObserver(() => {
+        if (BVID !== coinCheckBVID) { stopCoinObserver(); return }
+        const coinBtn = document.querySelector<HTMLElement>(
+          '#arc_toolbar_report > div.video-toolbar-left > div > div:nth-child(2) > div'
+        )
+        if (coinBtn?.title && coinBtn.title.includes('已用完')) {
+          stopCoinObserver()
+          if (status === 2 || !BVID || !KEY) return
+          status = 2
+          rating = 7
+          applyBtnStyle()
+          saveRecord(2, 7)
+          progressTracker?.deactivate()
+        }
+      })
+      coinObserver.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['title'] })
+      coinSafetyTimer = setTimeout(() => stopCoinObserver(), 5000)
+    }
+
     function checkCoinForAutoMark() {
       if (status === 2 || !BVID || !KEY) return
       const coinBtn = document.querySelector<HTMLElement>(
         '#arc_toolbar_report > div.video-toolbar-left > div > div:nth-child(2) > div'
       )
-      if (!coinBtn?.title) return
-      if (coinBtn.title.includes('已用完')) {
+      if (coinBtn?.title && coinBtn.title.includes('已用完')) {
         status = 2
         rating = 7
         applyBtnStyle()
         saveRecord(2, 7)
         progressTracker?.deactivate()
+        return
       }
+      startCoinObserver()
     }
 
     // ── Recommendation Badge Injection ────────────────────
@@ -616,7 +658,7 @@ export default defineContentScript({
       setTimeout(fn, ms)
     }
 
-    function decorateRecommendations(recordMap: Map<string, number>) {
+    function decorateRecommendations(recordMap: Map<string, { status: number; rating: number }>) {
       const items = document.querySelectorAll<HTMLElement>(RECOMMEND_SEL)
       for (const item of items) {
         const link = item.querySelector<HTMLAnchorElement>('a[href*="/video/BV"]')
@@ -624,20 +666,23 @@ export default defineContentScript({
         const m = link.pathname.match(/\/video\/(BV[a-zA-Z0-9]+)/i)
         if (!m) continue
         const bvid = m[1]
-        const st = recordMap.get(storeKey(bvid)) ?? 0
+        const rec = recordMap.get(storeKey(bvid))
+        const st = rec?.status ?? 0
+        const ra = rec?.rating ?? 0
 
         if (st === 2) {
-          item.style.opacity = '0.4'
-          item.style.pointerEvents = 'none'
+          item.dataset.ummBiliDimmed = 'true'
         }
         const existing = item.querySelector('[data-umm-rec-badge]')
         if (existing) continue
         const badge = document.createElement('div')
         badge.setAttribute('data-umm-rec-badge', '')
-        badge.textContent = LABELS[st].slice(0, 2)
+        let badgeText = LABELS[st].slice(0, 2)
+        if (st === 2 && ra > 0) badgeText += ' ' + ra
+        badge.textContent = badgeText
         badge.style.cssText = 'position:absolute;top:4px;left:4px;z-index:10;font-size:10px;font-weight:700;' +
           'background:' + COLORS[st] + ';color:#fff;padding:1px 5px;border-radius:6px;' +
-          'font-family:"Microsoft YaHei","PingFang SC",-apple-system,sans-serif;line-height:1.6'
+          'font-family:"Microsoft YaHei","PingFang SC",-apple-system,sans-serif;line-height:1.6;cursor:default'
         const picBox = item.querySelector<HTMLElement>('.pic-box')
         if (picBox) {
           picBox.style.position = 'relative'
@@ -652,10 +697,10 @@ export default defineContentScript({
         { type: 'DB_GET_ALL', payload: { storeName: STORE } },
         (resp: any) => {
           if (!resp?.success || !Array.isArray(resp.entries)) return
-          const recordMap = new Map<string, number>()
+          const recordMap = new Map<string, { status: number; rating: number }>()
           for (const entry of resp.entries) {
             if (entry?.key && typeof entry.record?.status === 'number') {
-              recordMap.set(entry.key, entry.record.status)
+              recordMap.set(entry.key, { status: entry.record.status, rating: entry.record.rating || 0 })
             }
           }
           later(() => decorateRecommendations(recordMap), 500)
@@ -680,6 +725,7 @@ export default defineContentScript({
       if (recObserver) { recObserver.disconnect(); recObserver = null }
       if (modal) { modal.remove(); modal = null }
       if (btn) { btn.remove(); btn = null }
+      stopCoinObserver()
       status = 0; rating = 0; loaded = false
     }
 
@@ -707,7 +753,10 @@ export default defineContentScript({
       loadRecord(() => {
         applyBtnStyle()
         syncTrackerStatus()
-        checkCoinForAutoMark()
+        coinCheckBVID = BVID
+        later(() => {
+          if (BVID === coinCheckBVID) checkCoinForAutoMark()
+        }, 1500)
         later(() => {
           loadAndDecorateRecommendations()
           watchRecommendations()
@@ -758,7 +807,10 @@ export default defineContentScript({
         loadRecord(() => {
           applyBtnStyle()
           syncTrackerStatus()
-          checkCoinForAutoMark()
+          coinCheckBVID = BVID
+          later(() => {
+            if (BVID === coinCheckBVID) checkCoinForAutoMark()
+          }, 1500)
           later(() => {
             loadAndDecorateRecommendations()
             watchRecommendations()

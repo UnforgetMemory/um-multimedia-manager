@@ -53,6 +53,8 @@ export default defineConfig({
       '*://piggo.me/*',
       '*://www.bilibili.com/*',
       '*://search.bilibili.com/*',
+      '*://www.youtube.com/*',
+      '*://m.youtube.com/*',
       // WebDAV sync - common providers (background fetch requires explicit host_permissions)
       'https://dav.jianguoyun.com/*',
       'https://webdav.jianguoyun.com/*',

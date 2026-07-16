@@ -30,7 +30,7 @@ export function makeRecordKey(type: string, providerId: string): string {
 }
 
 /** Valid record store names */
-export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'jav_ids'
+export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'bilibili_records' | 'youtube_records' | 'jav_ids'
 
 // ==================== URL Identity ====================
 
@@ -256,4 +256,5 @@ export interface Statistics {
   neodb: number
   tmdb: number
   bilibili: number
+  youtube: number
 }

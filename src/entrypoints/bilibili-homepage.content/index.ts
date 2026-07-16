@@ -62,9 +62,9 @@ export default defineContentScript({
           font-family: "Microsoft YaHei","PingFang SC",-apple-system,sans-serif !important;
           color: #fff !important;
           line-height: 1.5 !important;
-          pointer-events: none !important;
           user-select: none !important;
           box-shadow: 0 2px 6px rgba(0,0,0,0.25) !important;
+          cursor: default !important;
         }
       `
       document.head.appendChild(style)
@@ -112,6 +112,18 @@ export default defineContentScript({
       }
       badge.textContent = label
       badge.style.background = STATUS_COLORS[status]
+
+      // Hover over badge -> restore card from dimmer
+      if (card.classList.contains('umm-viewed')) {
+        badge.addEventListener('mouseenter', () => {
+          card.style.opacity = '1'
+          card.style.filter = 'none'
+        })
+        badge.addEventListener('mouseleave', () => {
+          card.style.removeProperty('opacity')
+          card.style.removeProperty('filter')
+        })
+      }
     }
 
     // ── Card Scanning ──────────────────────────────────────

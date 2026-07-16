@@ -47,6 +47,7 @@ onMounted(async () => {
         <StatCard :icon="Gamepad2" :label="t('stats.game')" :value="stats.game" :loading="!dataReady" />
         <StatCard :icon="ShieldAlert" :label="t('stats.jav')" :value="stats.jav" :loading="!dataReady" />
         <StatCard :icon="Play" :label="t('stats.bilibili')" :value="stats.bilibili" :loading="!dataReady" />
+        <StatCard :icon="Play" :label="t('stats.youtube')" :value="stats.youtube" :loading="!dataReady" />
       </div>
 
       <Card class="umm:mb-4 umm:overflow-hidden">

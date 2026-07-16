@@ -46,6 +46,11 @@ export function autoDetectPlatform(
     callbacks.setDomain?.('video')
     return true
   }
+  if (input.includes('youtube.com/watch?v=') || input.includes('youtu.be/') || /^[a-zA-Z0-9_-]{11}$/.test(input)) {
+    callbacks.setPlatform('youtube')
+    callbacks.setDomain?.('video')
+    return true
+  }
   
   // jav_id format detection — only if current platform is already jav_ids
   if (currentPlatform === 'jav_ids' && JAV_ID_REGEX.test(input)) {
