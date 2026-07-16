@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - SHA-256 哈希存储，raw token 仅创建时返回一次
 - **@umm/sdk 包**: 新增 `packages/sdk/`，提供类型安全的 `UmmApiClient`（sync/getMarks/updateMark/searchItems/createToken/listTokens/revokeToken）
 - **Extension 同步集成**: `background.ts` 添加 `SyncManager`，预留 IndexedDB 变更收集接口，`STORAGE_KEYS` 扩展 `SYNC_SERVER_URL`/`SYNC_TOKEN`
+- **Nuxt 4 Web 应用**: 新增 `apps/web/`，基于 Nuxt 4 + Nitro 的 Cloudflare Pages SSR 应用，包含用户 Dashboard 和管理后台
+  - Auth.js 认证（Drizzle D1 Adapter），登录页面 + 鉴权中间件
+  - Dashboard：概览、条目浏览搜索分页、标记列表、PAT 管理设置页
+  - 管理后台：系统概览、用户管理、同步日志
+  - 完整 Nitro Server Routes（items/marks/tokens/admin API）
+  - Tailwind CSS v4 样式，亮色/暗色主题支持
 
 ### Fixed
 

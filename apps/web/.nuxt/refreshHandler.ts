@@ -1,0 +1,2 @@
+import { DefaultRefreshHandler } from '/home/um/sourcecode/my/um-multimedia-manager/node_modules/@sidebase/nuxt-auth/dist/runtime/utils/refreshHandler'
+export const _refreshHandler = new DefaultRefreshHandler({"enablePeriodically":false,"enableOnWindowFocus":true})

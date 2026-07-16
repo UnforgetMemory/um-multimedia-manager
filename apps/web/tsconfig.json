@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "types": ["@cloudflare/workers-types", "node"],
+    "moduleResolution": "bundler",
+    "paths": {
+      "~/*": ["./app/*"],
+      "#auth": ["./node_modules/@sidebase/nuxt-auth/dist/index.d.ts"]
+    },
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["app/**/*.ts", "app/**/*.vue", "nuxt.config.ts"],
+  "references": [
+    { "path": "../../packages/database" },
+    { "path": "../../packages/shared" }
+  ]
+}
