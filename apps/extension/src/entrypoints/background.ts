@@ -18,6 +18,7 @@ import { broadcast } from '@/utils/event-bus'
 import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
 import { CacheManager } from '@/features/cache'
 import { infoLog as schedulerLog } from '@/utils/logger'
+import { UmmApiClient } from '@umm/sdk'
 
 // Handler imports
 import { handleWebDAVTest, handleWebDAVUpload, handleWebDAVDownload, handleWebDAVSync } from './background/handlers/webdav'
@@ -38,6 +39,51 @@ const ALLOWED_DB_STORES = new Set<string>([
 
 function isAllowedStore(storeName: string): boolean {
   return ALLOWED_DB_STORES.has(storeName)
+}
+
+// ── Sync Manager ──────────────────────────────────────
+
+class SyncManager {
+  private client: UmmApiClient | null = null
+  private lastSyncAt: string = ''
+  private syncInProgress = false
+
+  async init() {
+    const settings = await chrome.storage.sync.get([
+      STORAGE_KEYS.SYNC_SERVER_URL,
+      STORAGE_KEYS.SYNC_TOKEN,
+    ])
+    if (!settings[STORAGE_KEYS.SYNC_SERVER_URL] || !settings[STORAGE_KEYS.SYNC_TOKEN]) {
+      debugLog('[Sync] Not configured — skipping')
+      return
+    }
+
+    this.client = new UmmApiClient(
+      String(settings[STORAGE_KEYS.SYNC_SERVER_URL]),
+      String(settings[STORAGE_KEYS.SYNC_TOKEN]),
+    )
+    const stored = await chrome.storage.local.get('lastSyncAt')
+    this.lastSyncAt = (stored.lastSyncAt as string) || ''
+    debugLog('[Sync] Manager initialized')
+  }
+
+  async trigger() {
+    if (this.syncInProgress || !this.client) return
+    this.syncInProgress = true
+
+    try {
+      debugLog(`[Sync] Starting incremental sync from ${this.lastSyncAt || 'beginning'}...`)
+      // TODO: collect actual changes from IndexedDB and call:
+      // const result = await this.client.sync({...})
+      // this.lastSyncAt = result.syncedAt
+      // await chrome.storage.local.set({ lastSyncAt: this.lastSyncAt })
+      debugLog('[Sync] Completed')
+    } catch (err) {
+      errorLog('[Sync] Failed:', err)
+    } finally {
+      this.syncInProgress = false
+    }
+  }
 }
 
 export default defineBackground({
@@ -120,6 +166,10 @@ export default defineBackground({
 
       await settingsCache.init()
       settingsCache.startListening()
+
+      // Initialize SyncManager
+      const syncManager = new SyncManager()
+      syncManager.init().catch(err => errorLog('[Sync] Init failed:', err))
 
       // API availability check
       const requiredAPIs = ['storage', 'runtime', 'notifications', 'alarms']

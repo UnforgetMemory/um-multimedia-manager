@@ -21,6 +21,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **@umm/shared 包**: 新增 `packages/shared/`，提供 DTO 类型（Platform, MediaType, StatusCode, Rating, MediaItemDTO, UserMarkDTO）和 Zod schemas（MediaItemSchema, UserMarkSchema, SyncPayloadSchema），区分输入 schema 与 `StoredMediaItemSchema`/`StoredUserMarkSchema` 存储变体
 - **@umm/database 包**: 新增 `packages/database/`，基于 Drizzle ORM 定义 D1 完整 schema（media_items, user_marks, users, api_tokens, sync_logs, accounts, sessions, verification_tokens 共 8 表），含唯一索引和 Auth.js 标准会话表
 - **infra/drizzle**: Drizzle Kit 迁移工具配置，已验证 SQL 生成
+- **Worker API**: 新增 `services/worker/`，基于 Hono 框架的 Cloudflare Worker API，含 PAT 鉴权、增量同步、标记查询、条目搜索、Token 管理共 6 个端点
+  - `POST /api/sync` — 增量同步（UPSERT media_items + user_marks，安全删除）
+  - `GET /api/marks` / `PUT /api/marks` — 用户标记查询与更新
+  - `GET /api/items` — 搜索合并用户标记（JOIN + 分页）
+  - `POST /api/tokens` / `GET /api/tokens` / `DELETE /api/tokens/:id` — PAT 生命周期管理
+  - KV 缓存 PAT 查询（5 分钟 TTL），D1 持久化回退
+  - SHA-256 哈希存储，raw token 仅创建时返回一次
+- **@umm/sdk 包**: 新增 `packages/sdk/`，提供类型安全的 `UmmApiClient`（sync/getMarks/updateMark/searchItems/createToken/listTokens/revokeToken）
+- **Extension 同步集成**: `background.ts` 添加 `SyncManager`，预留 IndexedDB 变更收集接口，`STORAGE_KEYS` 扩展 `SYNC_SERVER_URL`/`SYNC_TOKEN`
+
+### Fixed
+
+- `packages/database/schema`: `verification_tokens` 表添加复合主键 `(identifier, token)`（Drizzle SQLite 适配器必需，防止 Auth.js 集成 `useVerificationToken` 操作出现重复插入）
+- `packages/shared/schemas`: 添加 `StoredMediaItemSchema`/`StoredUserMarkSchema`，明确区分 input 创建 schema 与完整存储记录 schema
+
+### Features
+
+- **@umm/shared 包**: 新增 `packages/shared/`，提供 DTO 类型（Platform, MediaType, StatusCode, Rating, MediaItemDTO, UserMarkDTO）和 Zod schemas（MediaItemSchema, UserMarkSchema, SyncPayloadSchema），区分输入 schema 与 `StoredMediaItemSchema`/`StoredUserMarkSchema` 存储变体
+- **@umm/database 包**: 新增 `packages/database/`，基于 Drizzle ORM 定义 D1 完整 schema（media_items, user_marks, users, api_tokens, sync_logs, accounts, sessions, verification_tokens 共 8 表），含唯一索引和 Auth.js 标准会话表
+- **infra/drizzle**: Drizzle Kit 迁移工具配置，已验证 SQL 生成
 
 ### Fixed
 

@@ -28,6 +28,8 @@ export const STORAGE_KEYS = {
   GRAY_COLOR: 'grayColor',
   DEBUG_ENABLED: 'debugEnabled',
   LOG_LEVEL: 'logLevel',
+  SYNC_SERVER_URL: 'syncServerUrl',     // Cloudflare Worker API URL
+  SYNC_TOKEN: 'syncToken',               // PAT for Worker auth
 } as const;
 
 /** 聚合统计存储键 */

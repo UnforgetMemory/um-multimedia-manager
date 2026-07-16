@@ -4,14 +4,15 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "infra/*"
+    "infra/*",
+    "services/*"
   ],
   "scripts": {
     "dev:extension": "npm run dev -w apps/extension",
     "dev:web": "npm run dev -w apps/web",
     "build:extension": "npm run build -w apps/extension",
     "build:web": "npm run build -w apps/web",
-    "type-check": "npm run type-check -w apps/extension && npm run type-check -w apps/web",
+    "type-check": "npm run type-check -w apps/extension && npm run type-check -w apps/web && npm run type-check -w services/worker",
     "deploy:web": "npm run deploy -w apps/web",
     "db:generate": "npm run generate -w infra/drizzle",
     "db:migrate": "npm run migrate -w infra/drizzle",
