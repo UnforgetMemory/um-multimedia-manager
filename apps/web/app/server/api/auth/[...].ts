@@ -4,7 +4,7 @@ import { useDb } from '~/server/utils/db'
 import * as schema from '@umm/database/schema'
 
 export default NuxtAuthHandler({
-  secret: process.env.AUTH_SECRET || 'dev-secret-change-in-production',
+  secret: process.env.AUTH_SECRET || process.env.NUXT_AUTH_SECRET || 'dev-secret-change-in-production',
   adapter: DrizzleAdapter(useDb(), {
     usersTable: schema.users,
     accountsTable: schema.accounts,

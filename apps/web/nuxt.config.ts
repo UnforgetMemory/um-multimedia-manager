@@ -11,8 +11,15 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    authOrigin: process.env.CF_PAGES_URL || process.env.AUTH_ORIGIN || '',
-    public: {},
+    public: {
+      auth: {
+        baseURL: process.env.CF_PAGES_URL
+          ? `${process.env.CF_PAGES_URL}/api/auth`
+          : '/api/auth',
+        disableInternalRouting: false,
+        originEnvKey: 'AUTH_ORIGIN',
+      },
+    },
   },
   css: ['~/assets/css/main.css'],
   compatibilityDate: '2026-07-01',
