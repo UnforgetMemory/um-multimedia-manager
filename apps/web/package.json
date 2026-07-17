@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
+    "build": "node -e \"const u=process.env.CF_PAGES_URL;if(u)process.env.NUXT_PUBLIC_AUTH_BASE_URL=u+'/api/auth'\" && nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "deploy": "nuxt build && wrangler pages deploy .output/public",
