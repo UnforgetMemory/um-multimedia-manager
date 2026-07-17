@@ -4,14 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "node -e \"const u=process.env.CF_PAGES_URL;if(u)process.env.NUXT_PUBLIC_AUTH_BASE_URL=u+'/api/auth'\" && nuxt build",
+    "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "deploy": "nuxt build && wrangler pages deploy .output/public",
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@sidebase/nuxt-auth": "^1.3.1",
     "@umm/database": "*",
     "@umm/shared": "*",
     "nuxt": "^4.4.8",

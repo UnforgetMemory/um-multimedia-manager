@@ -151,3 +151,10 @@ localref/
 
 # Generic cache directory (defense-in-depth)
 .cache/
+
+# Nuxt build artifacts
+.nuxt/
+.wrangler/
+
+# Skills lock file
+skills-lock.json
