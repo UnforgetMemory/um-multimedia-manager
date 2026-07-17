@@ -2,6 +2,9 @@
   <a href="README.md"><img src="https://img.shields.io/badge/lang-中文-red.svg" alt="中文"></a>
 </p>
 
+> 🏗️ This project is part of the **UM Multimedia Manager Monorepo**.  
+> Browser extension module. See [root README](../../README.md) for full project documentation.
+
 <p align="center">
   <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
 </p>

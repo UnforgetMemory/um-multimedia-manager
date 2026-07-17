@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Extension 代码迁移至 `apps/extension/`，保留完整 git 历史（git mv）
   - 根 `package.json` 只做 workspace 编排，删除所有构建依赖
   - 根 `tsconfig.base.json` 作为共享 TS 配置，各 workspace extends 继承
+- **新增 packages**:
+  - `@umm/shared` — DTO 类型定义 + Zod 校验 schema（MediaItemDTO、UserMarkDTO、SyncPayload）
+  - `@umm/database` — Drizzle ORM D1 schema（8 表：media_items、user_marks、users、api_tokens、sync_logs、accounts、sessions、verification_tokens）
+  - `@umm/sdk` — Worker API 客户端（UmmApiClient，支持 sync/search/marks CRUD）
+- **新增 services/worker**: Cloudflare Worker API，Hono 框架实现，含 PAT 鉴权、增量同步端点（POST /api/sync）、条目/标记查询
+- **新增 apps/web**: Nuxt 4 管理面板，含 Dashboard + Admin 路由分离、Auth.js 登录/注册、13 页面 + 9 API 路由
+- **Extension 同步集成**: SyncManager 实现真实 collectChanges，从 6 个 RECORD_STORES 增量读取变更，通过 itemRef 复合键引用同步到 Worker API
+- **文档**: 根 README.md（monorepo 概览）、Cloudflare 部署指南、Extension README 更新 monorepo 跳转
   - Extension tsconfig 添加 `declaration: false` 覆盖 base（app 无需 emit）
   - 共享 TypeScript 配置添加 `forceConsistentCasingInFileNames`
 

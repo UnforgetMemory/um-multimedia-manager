@@ -2,6 +2,9 @@
   <a href="README.en.md"><img src="https://img.shields.io/badge/lang-English-blue.svg" alt="English"></a>
 </p>
 
+> 🏗️ 本项目为 **UM Multimedia Manager Monorepo** 的一部分。  
+> 浏览扩展。完整项目文档请查看 [根 README](../../README.md)。
+
 <p align="center">
   <img src="assets/logo.png" alt="UMM Logo" width="128" height="128">
 </p>
