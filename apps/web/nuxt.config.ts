@@ -13,9 +13,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       auth: {
-        baseURL: process.env.CF_PAGES_URL
-          ? `${process.env.CF_PAGES_URL}/api/auth`
-          : '/api/auth',
+        baseURL: process.env.NUXT_PUBLIC_AUTH_BASE_URL
+          || process.env.AUTH_ORIGIN
+          || process.env.CF_PAGES_URL
+          || 'https://localhost/api/auth',
         disableInternalRouting: false,
         originEnvKey: 'AUTH_ORIGIN',
       },
