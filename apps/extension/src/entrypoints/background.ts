@@ -73,11 +73,71 @@ class SyncManager {
 
     try {
       debugLog(`[Sync] Starting incremental sync from ${this.lastSyncAt || 'beginning'}...`)
-      // TODO: collect actual changes from IndexedDB and call:
-      // const result = await this.client.sync({...})
-      // this.lastSyncAt = result.syncedAt
-      // await chrome.storage.local.set({ lastSyncAt: this.lastSyncAt })
-      debugLog('[Sync] Completed')
+
+      if (!mediaDB) {
+        warnLog('[Sync] mediaDB not available')
+        return
+      }
+
+      const items: Array<{
+        platform: string; mediaType: string; providerSelfId: string;
+        title: string; updatedAt: string;
+      }> = []
+      const marks: Array<{
+        itemRef: { platform: string; mediaType: string; providerSelfId: string };
+        status: number; rating?: number; comment?: string; updatedAt: string;
+      }> = []
+
+      for (const storeName of RECORD_STORES) {
+        const platform = storeName.replace('_records', '')
+        const entries = await mediaDB.getAll(storeName)
+
+        for (const { key, record } of entries) {
+          // Key format: "type::providerId" (e.g. "movie::37332784")
+          const parts = key.split('::')
+          if (parts.length < 2) continue
+          const mediaType = parts[0]
+          const providerSelfId = parts.slice(1).join('::')
+
+          // Only sync records updated since last sync
+          if (this.lastSyncAt && record.updatedAt <= this.lastSyncAt) continue
+
+          // Only sync records with active status (not NONE/0)
+          if (!record.status || record.status === 0) continue
+
+          items.push({
+            platform,
+            mediaType,
+            providerSelfId,
+            title: '',
+            updatedAt: record.updatedAt,
+          })
+
+          marks.push({
+            itemRef: { platform, mediaType, providerSelfId },
+            status: record.status,
+            rating: record.rating > 0 ? record.rating : undefined,
+            comment: record.comment || undefined,
+            updatedAt: record.updatedAt,
+          })
+        }
+      }
+
+      if (items.length === 0 && marks.length === 0) {
+        debugLog('[Sync] No new changes to sync')
+        return
+      }
+
+      const result = await this.client.sync({
+        lastSyncAt: this.lastSyncAt || new Date(0).toISOString(),
+        items,
+        marks,
+        deletedMarkIds: [],
+      })
+
+      this.lastSyncAt = result.syncedAt
+      await chrome.storage.local.set({ lastSyncAt: this.lastSyncAt })
+      infoLog(`[Sync] Completed: ${result.upserted.items} items, ${result.upserted.marks} marks`)
     } catch (err) {
       errorLog('[Sync] Failed:', err)
     } finally {

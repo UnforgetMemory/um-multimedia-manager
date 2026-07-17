@@ -13,7 +13,8 @@ export interface SyncPayload {
     updatedAt: string;
   }>;
   marks: Array<{
-    mediaItemId: string;
+    mediaItemId?: string;
+    itemRef?: { platform: string; mediaType: string; providerSelfId: string };
     status: number;
     rating?: number;
     comment?: string;

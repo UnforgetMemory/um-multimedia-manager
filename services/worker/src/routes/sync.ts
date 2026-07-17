@@ -68,13 +68,48 @@ sync.post('/', async (c) => {
   }
 
   // UPSERT user marks
-  for (const mark of marks) {
+  for (const markRaw of marks) {
+    const mark = markRaw as { mediaItemId?: string; itemRef?: { platform: string; mediaType: string; providerSelfId: string }; status: number; rating?: number; comment?: string; updatedAt: string };
+    // Resolve mediaItemId: either direct UUID or via itemRef lookup
+    let targetMediaItemId = mark.mediaItemId;
+    if (!targetMediaItemId && mark.itemRef) {
+      const ref = mark.itemRef;
+      // Look up existing media_item by composite key
+      const found = await db.select({ id: mediaItems.id })
+        .from(mediaItems)
+        .where(
+          and(
+            eq(mediaItems.platform, ref.platform),
+            eq(mediaItems.mediaType, ref.mediaType),
+            eq(mediaItems.providerSelfId, ref.providerSelfId)
+          )
+        )
+        .get();
+      if (found) {
+        targetMediaItemId = found.id;
+      } else {
+        // Create media_item on the fly
+        targetMediaItemId = crypto.randomUUID();
+        await db.insert(mediaItems).values({
+          id: targetMediaItemId,
+          platform: ref.platform,
+          mediaType: ref.mediaType,
+          providerSelfId: ref.providerSelfId,
+          title: '',
+          createdAt: mark.updatedAt,
+          updatedAt: mark.updatedAt,
+        });
+        upsertedItems++;
+      }
+    }
+    if (!targetMediaItemId) continue;
+
     const existing = await db.select({ id: userMarks.id })
       .from(userMarks)
       .where(
         and(
           eq(userMarks.userId, userId),
-          eq(userMarks.mediaItemId, mark.mediaItemId)
+          eq(userMarks.mediaItemId, targetMediaItemId)
         )
       )
       .get();
@@ -92,7 +127,7 @@ sync.post('/', async (c) => {
       await db.insert(userMarks).values({
         id: crypto.randomUUID(),
         userId,
-        mediaItemId: mark.mediaItemId,
+        mediaItemId: targetMediaItemId,
         status: mark.status,
         rating: mark.rating ?? null,
         comment: mark.comment ?? null,

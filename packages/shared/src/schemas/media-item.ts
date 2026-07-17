@@ -10,7 +10,7 @@ export const MediaItemSchema = z.object({
   platform: z.enum(PLATFORMS),
   mediaType: z.enum(MEDIA_TYPES),
   providerSelfId: z.string().min(1),
-  title: z.string().min(1),
+  title: z.string(),
   originalTitle: z.string().optional(),
   coverUrl: z.string().url().optional(),
   description: z.string().optional(),
