@@ -205,7 +205,7 @@ npx wrangler pages deploy .output/public --project-name umm-web
 3. 配置构建设置：
    - **生产分支**: `dev-2026-07-16`（或后续主分支）
    - **构建命令**: `cd apps/web && npm run build`
-   - **构建输出目录**: `apps/web/.output/public`
+   - **构建输出目录**: `apps/web/dist`（Nitro cloudflare-pages preset 输出）
    - **根目录**: 留空（monorepo 根目录）
 4. 在环境变量中设置 `AUTH_SECRET`
 
