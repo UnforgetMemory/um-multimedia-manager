@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
           .select({ count: sql<number>`count(*)` })
           .from(users)
         status.hasUsers = (rows[0]?.count ?? 0) > 0
-        status.initialized = true
+        status.initialized = status.hasUsers
         status.userCount = rows[0]?.count ?? 0
       } catch {
         status.hasUsers = false
