@@ -1,4 +1,5 @@
 import { loginUser } from '../../../utils/auth'
+import { badRequest, unauthorized } from '../../../utils/api'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
@@ -9,13 +10,13 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   if (!body.username || !body.password) {
-    throw createError({ statusCode: 400, statusMessage: '用户名和密码为必填项' })
+    badRequest('用户名和密码为必填项')
   }
 
   const result = await loginUser(event, body.username, body.password)
 
   if (!result.success) {
-    throw createError({ statusCode: 401, statusMessage: result.error })
+    unauthorized(result.error)
   }
 
   if (body.redirect !== false) {

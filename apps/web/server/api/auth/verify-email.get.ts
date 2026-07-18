@@ -1,12 +1,13 @@
 import { users, accounts, sessions } from '@umm/database/schema'
 import { eq, and } from 'drizzle-orm'
+import { badRequest, notFound } from '../../../utils/api'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const token = query.token as string | undefined
 
   if (!token) {
-    throw createError({ statusCode: 400, statusMessage: '缺少验证令牌' })
+    badRequest('缺少验证令牌')
   }
 
   const db = useDb(event)
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
     .then(rows => rows[0])
 
   if (!credential) {
-    throw createError({ statusCode: 404, statusMessage: '验证令牌无效或已过期' })
+    notFound('验证令牌无效或已过期')
   }
 
   const now = new Date().toISOString()

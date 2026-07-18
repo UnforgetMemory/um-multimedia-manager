@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { hashPassword, generateSessionToken, setSessionCookie } from '../../utils/auth'
 import { runMigration } from '../../utils/migrate'
 import { usernameSchema, passwordSchema } from '../../utils/validation'
+import { badRequest, serverError } from '../../utils/api'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
@@ -12,17 +13,17 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   if (!body.username || !body.password) {
-    throw createError({ statusCode: 400, statusMessage: '用户名和密码为必填项' })
+    badRequest('用户名和密码为必填项')
   }
 
   const usernameResult = usernameSchema.safeParse(body.username)
   if (!usernameResult.success) {
-    throw createError({ statusCode: 400, statusMessage: '用户名格式无效: ' + (usernameResult.error!.issues[0]?.message ?? '格式错误') })
+    badRequest('用户名格式无效: ' + (usernameResult.error!.issues[0]?.message ?? '格式错误'))
   }
 
   const passwordResult = passwordSchema.safeParse(body.password)
   if (!passwordResult.success) {
-    throw createError({ statusCode: 400, statusMessage: '密码格式无效: ' + (passwordResult.error!.issues[0]?.message ?? '格式错误') })
+    badRequest('密码格式无效: ' + (passwordResult.error!.issues[0]?.message ?? '格式错误'))
   }
 
   const db = useDb(event)
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   // Ensure tables exist before creating admin
   const migrateResult = await runMigration(event)
   if (!migrateResult.success) {
-    throw createError({ statusCode: 500, statusMessage: `数据库初始化失败: ${migrateResult.error}` })
+    serverError(`数据库初始化失败: ${migrateResult.error}`)
   }
 
   // Check if system already has users
