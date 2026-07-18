@@ -151,3 +151,13 @@ localref/
 
 # Generic cache directory (defense-in-depth)
 .cache/
+
+# Extension unpack output (from npm run unpack / npm run clean)
+extracted/
+
+# Wrangler/Cloudflare state
+.wrangler/
+
+# Scratch/temp test directories
+scratch/
+tmp/

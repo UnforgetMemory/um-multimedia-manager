@@ -6,6 +6,7 @@
 import { Identity, PT_HOSTS } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
 import { handleIMDbDetailPage } from './handlers/imdb'
+import { handleTMDBHomepage, handleTMDBDetailPage } from './handlers/tmdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
 import { handleDoubanDetailPage } from './handlers/douban'
 import { startSearchEnhancer } from './enhancers/douban-search'
@@ -122,6 +123,30 @@ const ROUTES: RouteRule[] = [
       if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer()
       ptdimmerInstance.cleanup()
       await ptdimmerInstance.runFor(location.href)
+    },
+  },
+
+  // TMDB 首页 — 卡片徽章扫描
+  {
+    match: (url) => {
+      try {
+        const u = new URL(url)
+        return u.hostname.endsWith('themoviedb.org') && (u.pathname === '/' || u.pathname === '')
+      } catch { return false }
+    },
+    handler: async () => {
+      await handleTMDBHomepage()
+    },
+  },
+
+  // TMDB 详情页（电影/剧集）
+  {
+    match: (url) =>
+      url.includes('themoviedb.org/movie/') || url.includes('themoviedb.org/tv/'),
+    handler: async (identity) => {
+      if (identity) {
+        await handleTMDBDetailPage(identity)
+      }
     },
   },
 

@@ -157,13 +157,13 @@ export class Identity {
         }
       }
 
-      // TMDB movie
-      const tmdbMovie = pathname.match(/^\/movie\/(\d+)\/$/i);
+      // TMDB movie — handles both /movie/550/ and /movie/550-fight-club/
+      const tmdbMovie = pathname.match(/^\/movie\/(\d+)/i);
       if (host.endsWith('themoviedb.org') && tmdbMovie) {
         return Identity.create('tmdb', 'movie', tmdbMovie[1]);
       }
 
-      // TMDB TV
+      // TMDB TV — handles both /tv/1399/ and /tv/1399-game-of-thrones/
       if (host.endsWith('themoviedb.org') && pathname.startsWith('/tv/')) {
         const tvId = Identity.parseTmdbTvPath(pathname);
         if (tvId) return Identity.create('tmdb', 'tv', tvId);
@@ -300,25 +300,31 @@ export class Identity {
     return `path:${relative.join('/')}`;
   }
 
-  /**
-   * Parse a TMDB TV path into a provider ID with prefix.
-   * e.g. "/tv/123/" → "show:123"
-   *      "/tv/123/season/1/" → "season:123:1"
-   */
+/**
+    * Parse a TMDB TV path into a provider ID with prefix.
+    * Supports both slug (/tv/1399-game-of-thrones/) and plain (/tv/1399/) URLs.
+    * e.g. "/tv/123/" → "show:123"
+    *      "/tv/123-game-of-thrones/" → "show:123"
+    *      "/tv/123/season/1/" → "season:123:1"
+    *      "/tv/123-game-of-thrones/season/1/" → "season:123:1"
+    */
   private static parseTmdbTvPath(pathname: string): string | null {
     const parts = pathname.split('/').filter(Boolean);
     if (parts[0] !== 'tv') return null;
 
     const [, showId, ...rest] = parts;
-    if (!showId || !/^\d+$/.test(showId)) return null;
+    // Extract leading numeric ID from slug (e.g. "1399-game-of-thrones" → "1399")
+    const numericMatch = showId?.match(/^(\d+)/);
+    if (!numericMatch) return null;
+    const numericId = numericMatch[1];
 
-    if (!rest.length) return `show:${showId}`;
+    if (!rest.length) return `show:${numericId}`;
     if (rest.length === 2 && rest[0] === 'season' && /^\d+$/.test(rest[1])) {
-      return `season:${showId}:${rest[1]}`;
+      return `season:${numericId}:${rest[1]}`;
     }
     if (rest.length === 4 && rest[0] === 'season' && /^\d+$/.test(rest[1])
         && rest[2] === 'episode' && /^\d+$/.test(rest[3])) {
-      return `episode:${showId}:${rest[1]}:${rest[3]}`;
+      return `episode:${numericId}:${rest[1]}:${rest[3]}`;
     }
 
     return null;
