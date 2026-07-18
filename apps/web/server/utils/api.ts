@@ -1,5 +1,5 @@
 import type { H3Event, H3Error } from 'h3'
-import { createError } from 'h3'
+import { createError, getQuery, getRouterParam } from 'h3'
 
 // ── Typed API Response ──────────────────────────────────────────
 
@@ -105,8 +105,10 @@ export function requireQueryParam(event: H3Event, name: string): string {
 
 export function parsePagination(event: H3Event) {
   const query = getQuery(event)
-  const page = Math.max(1, Number(query.page) || 1)
-  const limit = Math.min(Math.max(1, Number(query.limit) || 20), 100)
+  const rawPage = Number(query.page)
+  const rawLimit = Number(query.limit)
+  const page = Math.max(1, Number.isNaN(rawPage) ? 1 : rawPage)
+  const limit = Math.min(Math.max(1, Number.isNaN(rawLimit) ? 20 : rawLimit), 100)
   const offset = (page - 1) * limit
   return { page, limit, offset }
 }
