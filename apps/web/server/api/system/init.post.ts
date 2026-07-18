@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
     name: body.name || body.email?.split('@')[0] || 'Admin',
     email: body.email,
     role: 'admin',
+    emailVerified: now, // first admin auto-verified
     createdAt: now,
   })
 

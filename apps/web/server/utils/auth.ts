@@ -118,6 +118,11 @@ export async function loginUser(
     return { success: false, error: '邮箱或密码错误' }
   }
 
+  // Check email verification
+  if (!user.emailVerified) {
+    return { success: false, error: '邮箱未验证，请先验证邮箱地址' }
+  }
+
   // Find password in accounts table
   const credential = await db
     .select()
