@@ -86,6 +86,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'common.rating_unknown': 'N/A',
     // IMDb
     'imdb.saved': '✅ IMDb watch status saved',
+    // TMDB
+    'tmdb.saved': '✅ TMDB watch status saved',
     // NeoDB toasts
     'neodb.saved_state': '✅ NeoDB watch status saved',
     'neodb.updated_link': '✅ NeoDB data link updated',
@@ -193,6 +195,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'common.rating_unknown': '暂无评分',
     // IMDb
     'imdb.saved': '✅ 已保存 IMDb 观看状态',
+    // TMDB
+    'tmdb.saved': '✅ 已保存 TMDB 观看状态',
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 观看状态',
     'neodb.updated_link': '✅ 已更新 NeoDB 数据关联',
@@ -306,6 +310,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'common.rating_unknown': '暫無評分',
     // IMDb
     'imdb.saved': '✅ 已保存 IMDb 觀看狀態',
+    // TMDB
+    'tmdb.saved': '✅ 已保存 TMDB 觀看狀態',
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 觀看狀態',
     'neodb.updated_link': '✅ 已更新 NeoDB 數據關聯',
@@ -419,6 +425,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'common.rating_unknown': '暫無評分',
     // IMDb
     'imdb.saved': '✅ 已保存 IMDb 觀看狀態',
+    // TMDB
+    'tmdb.saved': '✅ 已保存 TMDB 觀看狀態',
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 觀看狀態',
     'neodb.updated_link': '✅ 已更新 NeoDB 數據關聯',

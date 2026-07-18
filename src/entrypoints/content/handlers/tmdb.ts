@@ -9,6 +9,7 @@ import type { UrlIdentity, StoreRecord } from '@/types'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
 import { createStatusChip, waitForElement } from '../utils/dom'
+import { FloatingToast } from '../utils/toast'
 import { t } from '../i18n'
 
 // ---- Constants ----
@@ -161,34 +162,58 @@ export function getTMDBTitle(): string {
   return anchor?.textContent?.trim() || ''
 }
 
-/** Render or replace the status chip below the title. */
+/** Render or replace the status chip above the title. */
 export async function renderTMDBStatusChip(
   identity: UrlIdentity,
   status: number,
   rating: number,
   note: string = ''
 ): Promise<void> {
-  const anchor = getTMDBAnchorElement()
-  if (!anchor) return
+  const headerSection = document.querySelector('.header_poster_wrapper section.header.poster')
+  if (!headerSection) return
 
-  const existingChip =
-    anchor.parentElement?.parentElement?.querySelector(
-      '.umm-status-chip[data-umm-owner]'
-    )
+  const existingChip = headerSection.querySelector('.umm-status-chip[data-umm-owner]')
 
   const chip = createStatusChip(identity.type, status, rating, note)
   chip.dataset.ummOwner = `tmdb-${identity.type}`
+  // Neutralise TMDB flex layout: keep inline-flex, no forced width
+  chip.style.marginBottom = '12px'
 
   if (existingChip) {
     existingChip.replaceWith(chip)
   } else {
-    const titleDiv = anchor.closest('.title')
-    if (titleDiv) {
-      titleDiv.insertAdjacentElement('afterend', chip)
+    const titleEl = headerSection.querySelector('.title')
+    if (titleEl) {
+      headerSection.insertBefore(chip, titleEl)
     } else {
-      anchor.insertAdjacentElement('afterend', chip)
+      headerSection.insertAdjacentElement('afterbegin', chip)
     }
   }
+}
+
+/**
+ * Read TMDB Vibes rating (#user_rating data-rating 0-100), convert to 0-10 scale.
+ * data-rating > 0 → user has rated (watched). e.g. 65% → 7/10.
+ */
+function scanTMDBVibesStatus(): { status: string; rating: number } {
+  const userRatingEl = document.getElementById('user_rating')
+  if (!userRatingEl) {
+    return { status: 'none', rating: 0 }
+  }
+
+  const ratingAttr = userRatingEl.getAttribute('data-rating')
+  if (!ratingAttr) {
+    return { status: 'none', rating: 0 }
+  }
+
+  const vibesRating = parseInt(ratingAttr, 10)
+  if (isNaN(vibesRating) || vibesRating <= 0) {
+    return { status: 'none', rating: 0 }
+  }
+
+  // Convert 0–100 scale to 0–10 scale
+  const rating = Math.round(vibesRating / 10)
+  return { status: 'done', rating }
 }
 
 /** Entry point: detail page status chip injection. */
@@ -203,17 +228,46 @@ export async function handleTMDBDetailPage(
     return
   }
 
+  // Read TMDB Vibes rating
+  const pageState = scanTMDBVibesStatus()
+
+  // Fetch local record and merge: page state > local DB
   const storeName = `${identity.provider}_records`
   const key = `${identity.type}::${identity.providerId}`
   const localRecord = await Store.dbGet(storeName, key)
 
+  const isPageDone = pageState.status === 'done'
   const isLocalDone = localRecord?.status === 2
   const isLocalWish = localRecord?.status === 1
   const isLocalDoing = localRecord?.status === 3
 
-  const finalStatus = isLocalDone ? 2 : isLocalDoing ? 3 : isLocalWish ? 1 : 0
-  const finalRating = Utils.clampRating10(localRecord?.rating || 0)
-  const note = isLocalDone && !localRecord?.rating ? t('common.cache_hint') : ''
+  const finalStatus = isPageDone ? 2 : isLocalDone ? 2 : isLocalDoing ? 3 : isLocalWish ? 1 : 0
+  const finalRating = Utils.clampRating10(
+    isPageDone ? pageState.rating : localRecord?.rating || 0
+  )
+  const note = isLocalDone && !isPageDone ? t('common.cache_hint') : ''
 
   await renderTMDBStatusChip(identity, finalStatus, finalRating, note)
+
+  // Save to DB if TMDB shows user rated
+  if (isPageDone) {
+    const statusChanged = localRecord?.status !== 2
+    const ratingChanged = localRecord?.rating !== pageState.rating
+
+    if (statusChanged || ratingChanged || !localRecord) {
+      await Store.dbPut(storeName, key, {
+        url: identity.url,
+        status: 2,
+        rating: pageState.rating,
+        comment: localRecord?.comment ?? '',
+        updatedAt: new Date().toISOString(),
+        linkedIds: localRecord?.linkedIds ?? {},
+      })
+
+      FloatingToast.success('UMM', t('tmdb.saved'))
+      console.log('[UMM] Updated TMDB local record from page Vibes rating')
+    } else {
+      console.log('[UMM] ⏭️ TMDB record unchanged, skipping save')
+    }
+  }
 }
