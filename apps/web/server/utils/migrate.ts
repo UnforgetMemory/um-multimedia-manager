@@ -11,8 +11,8 @@ const MIGRATION_SQL: string[] = [
   'CREATE TABLE IF NOT EXISTS `user_marks` (`id` text PRIMARY KEY NOT NULL,`user_id` text NOT NULL,`media_item_id` text NOT NULL,`status` integer DEFAULT 0 NOT NULL,`rating` real,`comment` text,`created_at` text NOT NULL,`updated_at` text NOT NULL)',
   'CREATE UNIQUE INDEX IF NOT EXISTS `idx_user_mark_unique` ON `user_marks` (`user_id`,`media_item_id`)',
   'CREATE INDEX IF NOT EXISTS `idx_user_marks_user` ON `user_marks` (`user_id`)',
-  'CREATE TABLE IF NOT EXISTS `users` (`id` text PRIMARY KEY NOT NULL,`name` text,`email` text,`email_verified` text,`image` text,`role` text DEFAULT \'user\' NOT NULL,`created_at` text NOT NULL)',
-  'CREATE UNIQUE INDEX IF NOT EXISTS `users_email_unique` ON `users` (`email`)',
+  'CREATE TABLE IF NOT EXISTS `users` (`id` text PRIMARY KEY NOT NULL,`name` text,`username` text,`email` text,`email_verified` text,`image` text,`role` text DEFAULT \'user\' NOT NULL,`created_at` text NOT NULL)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS `users_username_unique` ON `users` (`username`)',
   'CREATE TABLE IF NOT EXISTS `verification_tokens` (`identifier` text NOT NULL,`token` text NOT NULL,`expires_at` text NOT NULL,PRIMARY KEY(`identifier`, `token`))',
   'CREATE TABLE IF NOT EXISTS `invite_codes` (`code` text PRIMARY KEY NOT NULL,`created_by` text NOT NULL,`expires_at` text NOT NULL,`used_at` text,`used_by` text)',
 ]
