@@ -1,6 +1,6 @@
 import { users, accounts, sessions } from '@umm/database/schema'
 import { eq, and } from 'drizzle-orm'
-import { badRequest, notFound } from '../../../utils/api'
+import { badRequest, notFound } from '../../utils/api'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
