@@ -7,7 +7,7 @@ describe('applyStatements', () => {
     const result = await applyStatements(run)
     expect(result.success).toBe(true)
     expect(result.error).toBeUndefined()
-    expect(run).toHaveBeenCalledTimes(13) // 13 DDL statements
+    expect(run).toHaveBeenCalledTimes(14) // 14 DDL statements (incl. invite_codes)
   })
 
   it('returns error when a statement fails', async () => {

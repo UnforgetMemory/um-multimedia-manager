@@ -1,22 +1,54 @@
 <template>
-  <div class="max-w-md mx-auto mt-20">
-    <h1 class="text-2xl font-bold mb-6">登录</h1>
-    <form @submit.prevent="handleLogin" class="space-y-4">
-      <input v-model="email" type="email" placeholder="邮箱" class="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
-      <input v-model="password" type="password" placeholder="密码" class="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
-      <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50" :disabled="loading">
-        {{ loading ? '登录中...' : '登录' }}
-      </button>
-      <p v-if="error" class="text-red-600 text-sm">{{ error }}</p>
-    </form>
-    <p class="mt-4 text-center text-sm text-gray-500">
-      还没有账号？<NuxtLink to="/auth/register" class="text-blue-600">注册</NuxtLink>
-    </p>
+  <div class="min-h-screen flex items-center justify-center bg-umm-bg">
+    <div class="w-full max-w-md px-4">
+      <UCard>
+        <div class="p-2">
+          <h1 class="text-2xl font-bold text-umm-text-primary mb-6">登录</h1>
+
+          <form @submit.prevent="handleLogin" class="space-y-4">
+            <UInput
+              v-model="username"
+              placeholder="用户名"
+              icon="i-lucide-at-sign"
+              size="lg"
+              autocomplete="username"
+            />
+
+            <UInput
+              v-model="password"
+              type="password"
+              placeholder="密码"
+              icon="i-lucide-lock"
+              size="lg"
+            />
+
+            <UButton
+              type="submit"
+              label="登录"
+              :loading="loading"
+              block
+              size="lg"
+            />
+
+            <p v-if="error" class="rounded-lg bg-error/10 px-4 py-3 text-sm text-error">
+              {{ error }}
+            </p>
+          </form>
+
+          <p class="mt-6 text-center text-sm text-umm-text-muted">
+            还没有账号？
+            <NuxtLink to="/auth/register" class="text-primary hover:text-primary/80 transition-colors">
+              注册
+            </NuxtLink>
+          </p>
+        </div>
+      </UCard>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -27,7 +59,7 @@ async function handleLogin() {
   error.value = ''
   try {
     await signIn('credentials', {
-      email: email.value,
+      username: username.value,
       password: password.value,
       redirect: true,
       callbackUrl: '/dashboard',

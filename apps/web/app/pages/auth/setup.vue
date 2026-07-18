@@ -92,71 +92,39 @@
 
       <!-- Step 2: Create Admin -->
       <UCard v-if="currentStep === 1">
-        <form @submit.prevent="submitSetup">
-          <div class="space-y-4">
-            <UFormField label="姓名" help="可选，用于显示名称">
-              <UInput
-                v-model="form.name"
-                placeholder="管理员"
-                icon="i-lucide-user"
-              />
-            </UFormField>
-
-            <UFormField label="邮箱" required :error="errors.email">
-              <UInput
-                v-model="form.email"
-                type="email"
-                placeholder="admin@example.com"
-                icon="i-lucide-mail"
-                autocomplete="email"
-              />
-            </UFormField>
-
-            <UFormField label="密码" required :error="errors.password">
-              <UInput
-                v-model="form.password"
-                type="password"
-                placeholder="至少 8 位字符"
-                icon="i-lucide-lock"
-                autocomplete="new-password"
-              />
-            </UFormField>
-
-            <UFormField label="确认密码" required :error="errors.confirm">
-              <UInput
-                v-model="form.confirm"
-                type="password"
-                placeholder="再次输入密码"
-                icon="i-lucide-lock"
-                autocomplete="new-password"
-              />
-            </UFormField>
+        <form @submit.prevent="submitSetup" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-umm-text-primary mb-1.5">姓名</label>
+            <UInput v-model="form.name" placeholder="管理员" icon="i-lucide-user" />
+            <p class="mt-1 text-xs text-umm-text-muted">可选，用于显示名称</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-umm-text-primary mb-1.5">用户名</label>
+            <UInput v-model="form.username" placeholder="6-16 位字母或数字" icon="i-lucide-at-sign" autocomplete="username" />
+            <p class="mt-1 text-xs text-umm-text-muted">6-16 位字母、数字或下划线</p>
+            <p v-if="errors.username" class="mt-1 text-xs text-error">{{ errors.username }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-umm-text-primary mb-1.5">密码</label>
+            <UInput v-model="form.password" type="password" placeholder="至少 8 位字符" icon="i-lucide-lock" autocomplete="new-password" />
+            <p v-if="errors.password" class="mt-1 text-xs text-error">{{ errors.password }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-umm-text-primary mb-1.5">确认密码</label>
+            <UInput v-model="form.confirm" type="password" placeholder="再次输入密码" icon="i-lucide-lock" autocomplete="new-password" />
+            <p v-if="errors.confirm" class="mt-1 text-xs text-error">{{ errors.confirm }}</p>
           </div>
 
-          <UAlert
-            v-if="submitError"
-            color="error"
-            variant="subtle"
-            :title="submitError"
-            class="mt-4"
-          />
+          <UAlert v-if="submitError" color="error" variant="subtle" :title="submitError" />
 
-          <template #footer>
-            <div class="flex items-center justify-between pt-4 border-t border-umm-border">
-              <UButton color="neutral" variant="ghost" @click="currentStep = 0">
-                <UIcon name="i-lucide-arrow-left" class="w-4 h-4" />
-                返回
-              </UButton>
-              <UButton
-                type="submit"
-                color="primary"
-                :loading="submitting"
-                :disabled="submitting"
-              >
-                {{ submitting ? '创建中...' : '创建管理员并登录' }}
-              </UButton>
-            </div>
-          </template>
+          <div class="flex items-center justify-between pt-2">
+            <UButton color="neutral" variant="ghost" @click="currentStep = 0">
+              <UIcon name="i-lucide-arrow-left" class="w-4 h-4" />返回
+            </UButton>
+            <UButton type="submit" color="primary" :loading="submitting" :disabled="submitting">
+              {{ submitting ? '创建中...' : '创建管理员并登录' }}
+            </UButton>
+          </div>
         </form>
       </UCard>
     </div>
@@ -195,17 +163,17 @@ async function checkDb() {
 checkDb()
 
 // Step 2: Create admin
-const form = ref({ name: '', email: '', password: '', confirm: '' })
-const errors = ref({ email: '', password: '', confirm: '' })
+const form = ref({ name: '', username: '', password: '', confirm: '' })
+const errors = ref({ username: '', password: '', confirm: '' })
 const submitting = ref(false)
 const submitError = ref('')
 
 function validate(): boolean {
-  errors.value = { email: '', password: '', confirm: '' }
+  errors.value = { username: '', password: '', confirm: '' }
   let valid = true
 
-  if (!form.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    errors.value.email = '请输入有效的邮箱地址'
+  if (!form.value.username || !/^[a-zA-Z0-9_]{6,16}$/.test(form.value.username)) {
+    errors.value.username = '用户名需要 6-16 位字母、数字或下划线'
     valid = false
   }
   if (!form.value.password || form.value.password.length < 8) {
@@ -229,7 +197,7 @@ async function submitSetup() {
       method: 'POST',
       body: {
         name: form.value.name || undefined,
-        email: form.value.email,
+        username: form.value.username,
         password: form.value.password,
       },
     })

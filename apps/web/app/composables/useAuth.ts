@@ -29,7 +29,7 @@ export function useAuth() {
   async function signIn(
     provider: string,
     options: {
-      email: string
+      username: string
       password: string
       redirect?: boolean
       callbackUrl?: string
@@ -45,7 +45,7 @@ export function useAuth() {
         {
           method: 'POST',
           body: {
-            email: options.email,
+            username: options.username,
             password: options.password,
             redirect: false,
           },

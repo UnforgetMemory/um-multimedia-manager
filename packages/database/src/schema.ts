@@ -57,6 +57,7 @@ export const userMarks = sqliteTable(
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   name: text('name'),
+  username: text('username').unique(),
   email: text('email').unique(),
   emailVerified: text('email_verified'),
   image: text('image'),
@@ -115,3 +116,12 @@ export const verificationTokens = sqliteTable('verification_tokens', {
 }, (vt) => ({
   pk: primaryKey({ columns: [vt.identifier, vt.token] }),
 }));
+
+// ── Invite codes ──
+export const inviteCodes = sqliteTable('invite_codes', {
+  code: text('code').primaryKey(),
+  createdBy: text('created_by').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt: text('used_at'),
+  usedBy: text('used_by'),
+});

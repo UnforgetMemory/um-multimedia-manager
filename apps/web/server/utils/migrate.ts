@@ -14,6 +14,7 @@ const MIGRATION_SQL: string[] = [
   'CREATE TABLE IF NOT EXISTS `users` (`id` text PRIMARY KEY NOT NULL,`name` text,`email` text,`email_verified` text,`image` text,`role` text DEFAULT \'user\' NOT NULL,`created_at` text NOT NULL)',
   'CREATE UNIQUE INDEX IF NOT EXISTS `users_email_unique` ON `users` (`email`)',
   'CREATE TABLE IF NOT EXISTS `verification_tokens` (`identifier` text NOT NULL,`token` text NOT NULL,`expires_at` text NOT NULL,PRIMARY KEY(`identifier`, `token`))',
+  'CREATE TABLE IF NOT EXISTS `invite_codes` (`code` text PRIMARY KEY NOT NULL,`created_by` text NOT NULL,`expires_at` text NOT NULL,`used_at` text,`used_by` text)',
 ]
 
 /** Run the list of DDL statements against a db handle. Testable because db handle is passed in. */

@@ -2,22 +2,27 @@ import { users, accounts, sessions } from '@umm/database/schema'
 import { sql } from 'drizzle-orm'
 import { hashPassword, generateSessionToken, setSessionCookie } from '../../utils/auth'
 import { runMigration } from '../../utils/migrate'
+import { usernameSchema, passwordSchema } from '../../utils/validation'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
     name?: string
-    email?: string
+    username?: string
     password?: string
   }>(event)
 
-  if (!body.email || !body.password) {
-    throw createError({ statusCode: 400, statusMessage: '邮箱和密码为必填项' })
+  if (!body.username || !body.password) {
+    throw createError({ statusCode: 400, statusMessage: '用户名和密码为必填项' })
   }
-  if (body.password.length < 8) {
-    throw createError({ statusCode: 400, statusMessage: '密码至少需要 8 位字符' })
+
+  const usernameResult = usernameSchema.safeParse(body.username)
+  if (!usernameResult.success) {
+    throw createError({ statusCode: 400, statusMessage: '用户名格式无效: ' + (usernameResult.error!.issues[0]?.message ?? '格式错误') })
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-    throw createError({ statusCode: 400, statusMessage: '邮箱格式不正确' })
+
+  const passwordResult = passwordSchema.safeParse(body.password)
+  if (!passwordResult.success) {
+    throw createError({ statusCode: 400, statusMessage: '密码格式无效: ' + (passwordResult.error!.issues[0]?.message ?? '格式错误') })
   }
 
   const db = useDb(event)
@@ -45,8 +50,8 @@ export default defineEventHandler(async (event) => {
 
   await db.insert(users).values({
     id: userId,
-    name: body.name || body.email?.split('@')[0] || 'Admin',
-    email: body.email,
+    name: body.name || body.username || 'Admin',
+    username: body.username,
     role: 'admin',
     emailVerified: now, // first admin auto-verified
     createdAt: now,
@@ -79,8 +84,8 @@ export default defineEventHandler(async (event) => {
     success: true,
     user: {
       id: userId,
-      name: body.name || body.email?.split('@')[0] || 'Admin',
-      email: body.email,
+      name: body.name || body.username || 'Admin',
+      username: body.username,
       role: 'admin',
     },
   }

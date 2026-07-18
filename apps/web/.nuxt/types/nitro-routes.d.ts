@@ -3,8 +3,40 @@ import type { Serialize, Simplify } from "nitropack/types";
 declare module "nitropack/types" {
   type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T
   interface InternalApi {
+    '/api/admin/invites': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/invites.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/invites.post').default>>>>
+    }
+    '/api/admin/invites/:code': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/invites/[code].delete').default>>>>
+    }
+    '/api/auth/callback/credentials': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/callback/credentials.post').default>>>>
+    }
+    '/api/auth/logout': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/logout.post').default>>>>
+    }
+    '/api/auth/register': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/register.post').default>>>>
+    }
+    '/api/auth/session': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/session.get').default>>>>
+    }
+    '/api/auth/verify-email': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/verify-email.get').default>>>>
+    }
+    '/api/health': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/health.get').default>>>>
+    }
+    '/api/system/init': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/system/init.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/system/init.post').default>>>>
+    }
     '/__nuxt_error': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../../../node_modules/@nuxt/nitro-server/dist/runtime/handlers/renderer').default>>>>
+    }
+    '/api/_nuxt_icon/:collection': {
+      'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../../../node_modules/@nuxt/icon/dist/runtime/server/api').default>>>>
     }
     '/__nuxt_island/**': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/#internal/nuxt/island-renderer').default>>>>

@@ -13,45 +13,13 @@ import { RuntimeConfig as UserRuntimeConfig, PublicRuntimeConfig as UserPublicRu
    nitro: {
       envPrefix: string,
    },
+
+   icon: {
+      serverKnownCssClasses: Array<any>,
+   },
   }
   interface SharedPublicRuntimeConfig {
-   auth: {
-      isEnabled: boolean,
 
-      baseURL: string,
-
-      disableInternalRouting: boolean,
-
-      disableServerSideAuth: boolean,
-
-      originEnvKey: string,
-
-      sessionRefresh: {
-         enablePeriodically: boolean,
-
-         enableOnWindowFocus: boolean,
-
-         handler: any,
-      },
-
-      globalAppMiddleware: {
-         isEnabled: boolean,
-
-         allow404WithoutAuth: boolean,
-
-         addDefaultCallbackUrl: boolean,
-      },
-
-      provider: {
-         type: string,
-
-         trustHost: boolean,
-
-         defaultProvider: string,
-
-         addDefaultCallbackUrl: boolean,
-      },
-   },
   }
 declare module '@nuxt/schema' {
   interface RuntimeConfig extends UserRuntimeConfig {}

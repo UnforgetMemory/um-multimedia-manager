@@ -19,6 +19,15 @@
       "@nuxt/schema": [
         "../../../node_modules/@nuxt/schema"
       ],
+      "@nuxt/icon": [
+        "../../../node_modules/@nuxt/icon"
+      ],
+      "@nuxt/fonts": [
+        "../../../node_modules/@nuxt/fonts"
+      ],
+      "@nuxtjs/color-mode": [
+        "../../../node_modules/@nuxtjs/color-mode"
+      ],
       "defu": [
         "../../../node_modules/defu"
       ],
@@ -80,9 +89,12 @@
     "../node_modules",
     "../../../node_modules",
     "../../../node_modules/nuxt/node_modules",
-    "../../../node_modules/@sidebase/nuxt-auth/node_modules",
+    "../../../node_modules/@nuxt/ui/node_modules",
     "../../../node_modules/nuxt/node_modules/@nuxt/devtools/node_modules",
     "../../../node_modules/@nuxt/telemetry/node_modules",
+    "../../../node_modules/@nuxt/icon/node_modules",
+    "../../../node_modules/@nuxt/fonts/node_modules",
+    "../../../node_modules/@nuxtjs/color-mode/node_modules",
     "../dist",
     "../.data",
     "../app/**/*",

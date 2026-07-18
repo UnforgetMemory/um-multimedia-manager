@@ -1,6 +1,6 @@
 export default defineNuxtPlugin(async () => {
   const authState = useState<{
-    user: { id: string; name: string | null; email: string | null; role: string; image: string | null } | null
+    user: { id: string; name: string | null; username: string | null; role: string; image: string | null } | null
     loading: boolean
     lastRefreshedAt: number | null
   }>('auth')

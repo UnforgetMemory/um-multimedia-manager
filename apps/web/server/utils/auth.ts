@@ -3,6 +3,7 @@ import { users, sessions, accounts } from '@umm/database/schema'
 import { useDb } from './db'
 import type { H3Event } from 'h3'
 import { getCookie, setCookie, deleteCookie } from 'h3'
+import { usernameSchema, passwordSchema } from './validation'
 
 // ── Session token management ──
 
@@ -34,7 +35,7 @@ export function clearSessionCookie(event: H3Event) {
 export interface AuthUser {
   id: string
   name: string | null
-  email: string | null
+  username: string | null
   role: string
   image: string | null
 }
@@ -76,7 +77,7 @@ export async function getSessionUser(event: H3Event): Promise<AuthUser | null> {
     return {
       id: user.id,
       name: user.name,
-      email: user.email,
+      username: user.username,
       role: user.role,
       image: user.image,
     }
@@ -101,26 +102,32 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function loginUser(
   event: H3Event,
-  email: string,
+  username: string,
   password: string,
 ): Promise<{ success: true; user: AuthUser } | { success: false; error: string }> {
+  // Validate input
+  const usernameResult = usernameSchema.safeParse(username)
+  if (!usernameResult.success) {
+    return { success: false, error: usernameResult.error!.issues[0]?.message ?? '用户名格式无效' }
+  }
+
+  const passwordResult = passwordSchema.safeParse(password)
+  if (!passwordResult.success) {
+    return { success: false, error: passwordResult.error!.issues[0]?.message ?? '密码格式无效' }
+  }
+
   const db = useDb(event)
 
-  // Find user by email
+  // Find user by username
   const user = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.username, username))
     .limit(1)
     .then(rows => rows[0])
 
   if (!user) {
-    return { success: false, error: '邮箱或密码错误' }
-  }
-
-  // Check email verification
-  if (!user.emailVerified) {
-    return { success: false, error: '邮箱未验证，请先验证邮箱地址' }
+    return { success: false, error: '用户名或密码错误' }
   }
 
   // Find password in accounts table
@@ -140,7 +147,7 @@ export async function loginUser(
   if (credential?.accessToken) {
     const passwordHash = await hashPassword(password)
     if (credential.accessToken !== passwordHash) {
-      return { success: false, error: '邮箱或密码错误' }
+      return { success: false, error: '用户名或密码错误' }
     }
   } else {
     // No password set yet — allow registration via this login
@@ -174,7 +181,7 @@ export async function loginUser(
     user: {
       id: user.id,
       name: user.name,
-      email: user.email,
+      username: user.username,
       role: user.role,
       image: user.image,
     },

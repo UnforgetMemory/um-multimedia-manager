@@ -1,1 +1,119 @@
 @import "tailwindcss";
+@import "@nuxt/ui";
+
+/* ── UMM Design System ────────────────────────────────────────── */
+/* 黑白灰阶配色 · 深浅双主题 · 简约现代 SaaS 风格                  */
+
+/* ── Light Theme (default) ────────────────────────────────────── */
+:root {
+  --umm-bg: #fafafa;
+  --umm-surface: #ffffff;
+  --umm-surface-hover: #f5f5f5;
+  --umm-surface-elevated: #ffffff;
+  --umm-border: #e5e5e5;
+  --umm-border-strong: #d4d4d4;
+  --umm-text-primary: #171717;
+  --umm-text-secondary: #525252;
+  --umm-text-muted: #a3a3a3;
+  --umm-text-inverse: #fafafa;
+  --umm-accent: #171717;
+  --umm-accent-hover: #404040;
+  --umm-sidebar-bg: #111111;
+  --umm-sidebar-hover: #1f1f1f;
+  --umm-sidebar-active: #2a2a2a;
+  --umm-sidebar-text: #a3a3a3;
+  --umm-sidebar-text-active: #fafafa;
+  --umm-success: #16a34a;
+  --umm-success-bg: #f0fdf4;
+  --umm-warning: #d97706;
+  --umm-warning-bg: #fffbeb;
+  --umm-error: #dc2626;
+  --umm-error-bg: #fef2f2;
+  --umm-info: #2563eb;
+  --umm-info-bg: #eff6ff;
+}
+
+/* ── Dark Theme ────────────────────────────────────────────────── */
+.dark {
+  --umm-bg: #0a0a0a;
+  --umm-surface: #111111;
+  --umm-surface-hover: #1a1a1a;
+  --umm-surface-elevated: #1a1a1a;
+  --umm-border: #1f1f1f;
+  --umm-border-strong: #2a2a2a;
+  --umm-text-primary: #fafafa;
+  --umm-text-secondary: #a3a3a3;
+  --umm-text-muted: #525252;
+  --umm-text-inverse: #0a0a0a;
+  --umm-accent: #fafafa;
+  --umm-accent-hover: #d4d4d4;
+  --umm-sidebar-bg: #080808;
+  --umm-sidebar-hover: #141414;
+  --umm-sidebar-active: #1f1f1f;
+  --umm-sidebar-text: #525252;
+  --umm-sidebar-text-active: #e5e5e5;
+  --umm-success: #22c55e;
+  --umm-success-bg: #052e16;
+  --umm-warning: #f59e0b;
+  --umm-warning-bg: #451a03;
+  --umm-error: #ef4444;
+  --umm-error-bg: #450a0a;
+  --umm-info: #3b82f6;
+  --umm-info-bg: #172554;
+}
+
+/* ── Base Styles ───────────────────────────────────────────────── */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--umm-bg);
+  color: var(--umm-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--umm-border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--umm-text-muted); }
+
+/* ── Selection ─────────────────────────────────────────────────── */
+::selection { background-color: var(--umm-accent); color: var(--umm-text-inverse); }
+
+/* ── Transition Helpers ────────────────────────────────────────── */
+.theme-transition {
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Page Transitions ────────────────────────────────────────── */
+.page-enter-active,
+.page-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.page-enter-from { opacity: 0; transform: translateY(8px); }
+.page-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ── Fade Transition ─────────────────────────────────────────── */
+.fade-enter-active,
+.fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from,
+.fade-leave-to { opacity: 0; }
+
+/* ── Slide Left Transition ───────────────────────────────────── */
+.slide-left-enter-active,
+.slide-left-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.slide-left-enter-from { opacity: 0; transform: translateX(20px); }
+.slide-left-leave-to { opacity: 0; transform: translateX(-20px); }
+
+/* ── Nuxt UI Overrides ───────────────────────────────────────── */
+/* Map UMM design tokens to Nuxt UI color system */
+:root {
+  --ui-bg: var(--umm-bg);
+  --ui-border: var(--umm-border);
+  --ui-text: var(--umm-text-primary);
+  --ui-text-dimmed: var(--umm-text-secondary);
+  --ui-text-muted: var(--umm-text-muted);
+}

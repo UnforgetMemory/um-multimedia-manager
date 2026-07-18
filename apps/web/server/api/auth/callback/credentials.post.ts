@@ -2,17 +2,17 @@ import { loginUser } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
-    email?: string
+    username?: string
     password?: string
     redirect?: boolean
     callbackUrl?: string
   }>(event)
 
-  if (!body.email || !body.password) {
-    throw createError({ statusCode: 400, statusMessage: 'Email and password required' })
+  if (!body.username || !body.password) {
+    throw createError({ statusCode: 400, statusMessage: '用户名和密码为必填项' })
   }
 
-  const result = await loginUser(event, body.email, body.password)
+  const result = await loginUser(event, body.username, body.password)
 
   if (!result.success) {
     throw createError({ statusCode: 401, statusMessage: result.error })

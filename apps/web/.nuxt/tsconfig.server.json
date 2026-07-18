@@ -47,6 +47,15 @@
       "@nuxt/schema": [
         "../../../node_modules/@nuxt/schema"
       ],
+      "@nuxt/icon": [
+        "../../../node_modules/@nuxt/icon"
+      ],
+      "@nuxt/fonts": [
+        "../../../node_modules/@nuxt/fonts"
+      ],
+      "@nuxtjs/color-mode": [
+        "../../../node_modules/@nuxtjs/color-mode"
+      ],
       "defu": [
         "../../../node_modules/defu"
       ],
@@ -92,14 +101,17 @@
       "#internal/nuxt/paths": [
         "../../../node_modules/@nuxt/nitro-server/dist/runtime/utils/paths"
       ],
+      "#ui": [
+        "../../../node_modules/@nuxt/ui/dist/runtime"
+      ],
+      "#ui/*": [
+        "../../../node_modules/@nuxt/ui/dist/runtime/*"
+      ],
       "#unhead/composables": [
         "../../../node_modules/nuxt/dist/head/runtime/composables"
       ],
-      "#auth": [
-        "../../../node_modules/@sidebase/nuxt-auth/dist/runtime/server/services"
-      ],
-      "#auth/*": [
-        "../../../node_modules/@sidebase/nuxt-auth/dist/runtime/server/services/*"
+      "#nuxt-icon-server-bundle": [
+        "./nuxt-icon-server-bundle"
       ]
     },
     "lib": [
@@ -124,9 +136,12 @@
     "../node_modules",
     "../../../node_modules",
     "../../../node_modules/nuxt/node_modules",
-    "../../../node_modules/@sidebase/nuxt-auth/node_modules",
+    "../../../node_modules/@nuxt/ui/node_modules",
     "../../../node_modules/nuxt/node_modules/@nuxt/devtools/node_modules",
     "../../../node_modules/@nuxt/telemetry/node_modules",
+    "../../../node_modules/@nuxt/icon/node_modules",
+    "../../../node_modules/@nuxt/fonts/node_modules",
+    "../../../node_modules/@nuxtjs/color-mode/node_modules",
     "../dist"
   ]
 }
