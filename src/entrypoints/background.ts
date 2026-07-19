@@ -27,6 +27,9 @@ import { handleShowToast } from './background/handlers/toast'
 import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll, handleSehuatangCheckViewed, handleSehuatangAdd, handleSehuatangBatchAdd, handleSehuatangGetAll } from './background/handlers/adult-av'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
+import { RecordRepositoryAdapter } from '@/features/database/record-repository-adapter'
+import { RecordService } from '@/domain/record/RecordService'
+import { StoreRecord } from '@/domain/record/StoreRecord'
 
 /** Allowed store names for generic DB message handlers */
 const ALLOWED_DB_STORES = new Set<string>([
@@ -47,6 +50,9 @@ export default defineBackground({
     const startTime = Date.now()
     let dbReady = false
     let dbInitFailed = false
+
+    // Domain layer — wired after mediaDB.init()
+    let recordService: RecordService | null = null
 
     // CacheManager — L1 in-memory LRU (shared across DataScheduler + MediaDatabase)
     const cacheManager = new CacheManager({ maxSize: 500, defaultTtlMs: 30_000 })
@@ -139,6 +145,11 @@ export default defineBackground({
         clearTimeout(dbTimeout)
         debugLog('✅ Database initialized')
         dbReady = true
+
+        // Wire domain layer
+        const recordRepo = new RecordRepositoryAdapter(mediaDB as any)
+        recordService = new RecordService(recordRepo)
+
         flushPendingMessages()
       } catch (err) {
         clearTimeout(dbTimeout)
@@ -397,8 +408,20 @@ export default defineBackground({
             }
             const syncStoreName = `${syncPlatform}_records`
             const syncKey = message.payload.key
+            if (!recordService) { sendResponse({ success: false, error: 'Service not ready' }); break }
+            const rs = recordService
+            const domainRecord = StoreRecord.fromSnapshot(message.payload.record)
             const syncResult = await dataScheduler.schedule(
-              () => mediaDB.syncPageRecord(syncPlatform, syncKey, message.payload.record, linked),
+              () => rs.syncRecord(
+                syncPlatform,
+                syncKey,
+                domainRecord,
+                linked?.map((l: { platform: string; key: string; url: string }) => ({
+                  platform: l.platform,
+                  key: l.key,
+                  url: l.url,
+                })),
+              ),
               { priority: 'HIGH', storeName: syncStoreName, cacheKey: `sync:${syncPlatform}:${syncKey}`, invalidateCache: true },
             )
             // Invalidate GET cache for the synced record
@@ -418,20 +441,20 @@ export default defineBackground({
 
           // ==================== Export / Import ====================
           case 'EXPORT_DATA':
-            await handleExportData(sendResponse)
+            await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM', cacheKey: 'export' })
             break
           case 'IMPORT_DATA':
-            await handleImportData(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', cacheKey: 'import' })
             break
 
           // ==================== Statistics ====================
           case 'GET_STATISTICS':
-            await handleGetStatistics(sendResponse)
+            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM', cacheKey: 'statistics' })
             break
 
           // ==================== Popup Data ====================
           case 'GET_ALL_RECORDS':
-            await handleGetAllRecords(sendResponse)
+            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM', cacheKey: 'all-records' })
             break
 
           // ==================== Utility ====================
@@ -444,16 +467,16 @@ export default defineBackground({
 
           // ==================== WebDAV Sync ====================
           case 'WEBDAV_TEST':
-            await handleWebDAVTest(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleWebDAVTest(message.payload, sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-test' })
             break
           case 'WEBDAV_UPLOAD':
-            await handleWebDAVUpload(sendResponse)
+            await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-upload' })
             break
           case 'WEBDAV_DOWNLOAD':
-            await handleWebDAVDownload(sendResponse)
+            await dataScheduler.schedule(() => handleWebDAVDownload(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-download' })
             break
           case 'WEBDAV_SYNC':
-            await handleWebDAVSync(sendResponse)
+            await dataScheduler.schedule(() => handleWebDAVSync(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-sync' })
             break
 
           // ==================== NeoDB Push ====================
@@ -463,33 +486,33 @@ export default defineBackground({
 
           // ==================== Adult AV ID Operations ====================
           case 'ADULT_AV_CHECK':
-            await handleAdultAvCheck(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleAdultAvCheck(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-check' })
             break
           case 'ADULT_AV_CHECK_BATCH':
-            await handleAdultAvCheckBatch(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleAdultAvCheckBatch(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-check-batch' })
             break
           case 'ADULT_AV_ADD':
-            await handleAdultAvAdd(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleAdultAvAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-add' })
             break
           case 'ADULT_AV_BATCH_ADD':
-            await handleAdultAvBatchAdd(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleAdultAvBatchAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-batch-add' })
             break
           case 'ADULT_AV_GET_ALL':
-            await handleAdultAvGetAll(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleAdultAvGetAll(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-get-all' })
             break
 
           // Legacy handlers (backward compat)
           case 'SEHUATANG_CHECK_VIEWED':
-            await handleSehuatangCheckViewed(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleSehuatangCheckViewed(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-check-viewed' })
             break
           case 'SEHUATANG_ADD':
             await handleSehuatangAdd(message.payload, sendResponse)
             break
           case 'SEHUATANG_BATCH_ADD':
-            await handleSehuatangBatchAdd(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleSehuatangBatchAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-batch-add' })
             break
           case 'SEHUATANG_GET_ALL':
-            await handleSehuatangGetAll(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleSehuatangGetAll(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-get-all' })
             break
 
           // ==================== Bilibili Inject ====================

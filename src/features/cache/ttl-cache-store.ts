@@ -16,6 +16,7 @@ export interface DbAdapter {
   get<T>(key: string): Promise<T | null>
   put(key: string, value: unknown): Promise<void>
   delete(key: string): Promise<void>
+  clear(): Promise<void>
 }
 
 export class TtlCacheStore {
@@ -43,9 +44,6 @@ export class TtlCacheStore {
   }
 
   async clear(): Promise<void> {
-    // Iterate and delete all — the caller can also clear the object store.
-    // For a real IndexedDB store, this would use store.clear().
-    // The DbAdapter doesn't expose that, so we rely on the caller
-    // having a direct path to the store.
+    await this.db.clear()
   }
 }

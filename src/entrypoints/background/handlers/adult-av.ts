@@ -9,7 +9,7 @@
 import type { AdultAvId } from '@/types'
 import { mediaDB } from '@/features/database/models'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
-// Logger available if needed for future additions
+import { broadcast } from '@/utils/event-bus'
 
 type SendResponse = (response?: any) => void
 
@@ -111,6 +111,7 @@ export async function handleAdultAvAdd(
     updatedAt: new Date().toISOString(),
     linkedIds: {},
   })
+  broadcast('record:updated', { storeName: JAV_IDS_STORE_NAME, key })
   sendResponse({ success: true })
 }
 
@@ -138,6 +139,7 @@ export async function handleAdultAvBatchAdd(
     })
     addedCount++
   }
+  broadcast('sync:completed', { addedCount, source })
   sendResponse({ success: true, addedCount })
 }
 

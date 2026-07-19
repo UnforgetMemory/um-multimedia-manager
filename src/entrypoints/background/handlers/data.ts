@@ -11,6 +11,7 @@ import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
 import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
 import { settingsCache } from '@/features/settings/cache'
 import { infoLog, warnLog } from '@/utils/logger'
+import { broadcast } from '@/utils/event-bus'
 import { STORAGE_KEYS } from '@/config'
 
 /** Settings fields to include in export (all AppSettings keys except sensitive credentials) */
@@ -128,6 +129,7 @@ export async function handleImportData(
   }
 
   infoLog(`📥 Imported ${totalImported} records across ${Object.keys(payload.stores).length} stores`)
+  broadcast('sync:completed', { storeCount: Object.keys(payload.stores).length, totalImported })
   sendResponse({ success: true })
 }
 

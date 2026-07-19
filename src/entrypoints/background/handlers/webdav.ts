@@ -11,6 +11,7 @@ import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 import { calculateStoreHash } from '@/utils/hash-utils'
 import { errorLog } from '@/utils/logger'
+import { broadcast } from '@/utils/event-bus'
 import { STORAGE_KEYS } from '@/config'
 
 type SendResponse = (response?: any) => void
@@ -180,6 +181,7 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
       }
     }
 
+    broadcast('sync:completed', { direction: 'download', totalDownloaded })
     sendResponse({
       success: true,
       totalDownloaded,
@@ -307,6 +309,7 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
     if (skipped > 0) parts.push(`${skipped} 个数据集无变化`)
     const msg = parts.length > 0 ? parts.join('，') : '所有数据集均无变化'
 
+    broadcast('sync:completed', { direction: 'merge', uploaded, downloaded, skipped })
     sendResponse({
       success: true,
       direction: 'merge',

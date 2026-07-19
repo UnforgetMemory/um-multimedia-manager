@@ -96,19 +96,6 @@ export interface IRecordRepository {
    */
   batchGet(storeName: string, keys: string[]): Promise<Map<string, StoreRecord>>;
 
-  /**
-   * Cross-platform sync: write a primary record and propagate status
-   * (but NOT rating) to linked platform records.
-   *
-   * @returns Descriptor of what changed and which platforms were synced.
-   */
-  syncRecord(
-    platform: string,
-    key: string,
-    record: StoreRecord,
-    linked?: Array<{ platform: string; key: string; url: string }>,
-  ): Promise<{ changed: boolean; syncedPlatforms: string[] }>;
-
   /** Remove all records from all stores. */
   clearAll(): Promise<void>;
 }

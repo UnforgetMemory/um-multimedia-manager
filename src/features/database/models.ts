@@ -253,12 +253,32 @@ class MediaDatabase {
   /** Put (insert or update) a record. Stamps schema + record version. */
   async put(storeName: string, key: string, record: StoreRecord): Promise<void> {
     record.updatedAt = record.updatedAt || new Date().toISOString()
-    // Read current record to compute next recordVersion
-    const current = await this.get(storeName, key)
-    const nextVersion = (current?.recordVersion ?? 0) + 1
-    record.recordVersion = nextVersion
-    const stamped = stampRecordVersion(record)
-    await this.storeOp(storeName, 'readwrite', store => store.put(stamped, key))
+
+    // Read version and write in a single transaction to prevent race condition
+    // where two concurrent calls both read version 0 and both write version 1.
+    const db = await this.ensureDB()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite')
+      const store = tx.objectStore(storeName)
+
+      const getReq = store.get(key)
+      getReq.onsuccess = () => {
+        const current = (getReq.result as StoreRecord | null) ?? null
+        const nextVersion = (current?.recordVersion ?? 0) + 1
+        record.recordVersion = nextVersion
+        store.put(stampRecordVersion(record), key)
+      }
+      getReq.onerror = () => {
+        // Fallback: write without version check
+        record.recordVersion = 1
+        store.put(stampRecordVersion(record), key)
+      }
+
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+
     this.invalidateStoreCache(storeName)
   }
 
@@ -551,7 +571,7 @@ class MediaDatabase {
     let changed = false
 
     // 1. Primary platform
-    const existingPrimary = await this.get(primaryStore, key)
+      const existingPrimary = await this.get(primaryStore, key)
 
     if (!existingPrimary) {
       // No existing data → write
@@ -579,46 +599,34 @@ class MediaDatabase {
       }
     }
 
-    // 2. Linked platforms — single transaction for all reads + writes
+    // 2. Linked platforms — read all with separate transactions first,
+    //    then write in a single readwrite transaction (avoids the IndexedDB
+    //    anti-pattern of awaiting inside a transaction loop).
     if (linked && linked.length > 0) {
       const db = await this.ensureDB()
+      const now = new Date().toISOString()
+
+      // Phase 1: read all linked records using separate read-only transactions (safe)
+      const linkedResults: Array<{
+        link: { platform: string; key: string; url: string }
+        existing: StoreRecord | null
+      }> = []
+      for (const link of linked) {
+        const linkedStoreName = storeNameForPlatform(link.platform)
+        const existing = await this.get(linkedStoreName, link.key)
+        linkedResults.push({ link, existing })
+      }
+
+      // Phase 2: write all updates in a single readwrite transaction
       const allStoreNames = [...RECORD_STORES]
       const tx = db.transaction(allStoreNames, 'readwrite')
 
-      const results: Array<{
-        link: { platform: string; key: string; url: string };
-        existing: StoreRecord | null;
-      }> = []
-
-      // Batch all reads
-      for (const link of linked) {
+      for (const { link, existing } of linkedResults) {
         const linkedStoreName = storeNameForPlatform(link.platform)
         const linkedStore = tx.objectStore(linkedStoreName)
-        const getReq = linkedStore.get(link.key)
-
-        await new Promise<void>((resolve) => {
-          getReq.onsuccess = () => {
-            results.push({ link, existing: getReq.result || null })
-            resolve()
-          }
-          getReq.onerror = () => {
-            results.push({ link, existing: null })
-            resolve()
-          }
-        })
-      }
-
-      // Process and write in same transaction
-      const now = new Date().toISOString()
-      for (const { link, existing } of results) {
-        const linkedStoreName = storeNameForPlatform(link.platform)
-        const linkedStore = tx.objectStore(linkedStoreName)
-
-        // Build backward-linkedIds
         const backwardLinkedIds: Record<string, string> = { [platform]: key }
 
         if (!existing) {
-          // No existing → write with linkedIds pointing back to primary
           linkedStore.put({
             url: link.url,
             status: record.status,
@@ -630,22 +638,19 @@ class MediaDatabase {
           changed = true
           syncedPlatforms.push(link.platform)
         } else if (existing.status !== 2) {
-          // Has data but status != 2 (not watched) → sync status only
           linkedStore.put({
             ...existing,
-            status: record.status,           // Sync status from primary
+            status: record.status,
             rating: existing.rating,          // NEVER overwrite linked rating
-            comment: record.comment ?? existing.comment,  // Sync comment if provided
+            comment: record.comment ?? existing.comment,
             updatedAt: now,
             linkedIds: { ...existing.linkedIds, ...backwardLinkedIds },
           }, link.key)
           changed = true
           syncedPlatforms.push(link.platform)
         }
-        // If status == 2 → skip (user watched on this platform, don't overwrite)
       }
 
-      // Wait for transaction to complete
       await new Promise<void>((resolve, reject) => {
         tx.oncomplete = () => resolve()
         tx.onerror = () => reject(tx.error)
