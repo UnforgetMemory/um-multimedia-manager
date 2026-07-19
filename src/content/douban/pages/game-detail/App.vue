@@ -6,9 +6,9 @@ import { UmmInterestBar } from '@/content/douban/components/UmmInterestBar'
 import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
 import { ASPECT_RATIO } from '@/content/douban/shared/constants'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
-import { onCrossPlatformSave } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
+import { onCrossPlatformSave, syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
 import { Store } from '@/features/database'
-import type { GameDetailData } from './GameDetailData'
+import type { GameDetailData } from './game-detail-data'
 
 const props = defineProps<{ data: GameDetailData }>()
 const d = props.data
@@ -52,6 +52,11 @@ onMounted(() => {
         })
       })
     }
+    // Companion NeoDB sync check for existing watched records
+    const identity = { provider: 'douban' as const, type: 'game', providerId: d.identity.providerId, url: window.location.href }
+    syncNeoDBOnLoad(identity, record.value).catch(e =>
+      console.warn('[UMM] NeoDB on-load check failed:', e)
+    )
   })
 })
 

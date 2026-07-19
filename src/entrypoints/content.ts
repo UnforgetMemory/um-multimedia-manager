@@ -44,6 +44,7 @@ export default defineContentScript({
     '*://neodb.social/movie/*',
     '*://neodb.social/tv/*',
     '*://neodb.social/album/*',
+    '*://neodb.social/book/*',
     '*://audiences.me/torrents.php*',
     '*://*.audiences.me/torrents.php*',
     '*://kp.m-team.cc/*',
@@ -122,7 +123,18 @@ export default defineContentScript({
     '*://www.douban.com/doulist/*',
     '*://www.douban.com/game/*',
   ],
-  excludeMatches: ['*://*.douban.com/settings/*'],
+  excludeMatches: [
+    '*://*.douban.com/settings/*',
+    // Douban pages are fully covered by douban-early.content + douban-main.content
+    '*://movie.douban.com/*',
+    '*://music.douban.com/*',
+    '*://book.douban.com/*',
+    '*://search.douban.com/*',
+    '*://www.douban.com/doulist/*',
+    '*://www.douban.com/game/*',
+    '*://www.douban.com/personage/*',
+    '*://www.douban.com/people/*',
+  ],
   runAt: 'document_idle',
 
   async main() {

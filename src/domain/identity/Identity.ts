@@ -131,6 +131,12 @@ export class Identity {
         return Identity.create('neodb', 'music', neodbAlbum[1]);
       }
 
+      // NeoDB book
+      const neodbBook = pathname.match(/^\/book\/([a-zA-Z0-9_-]+)\/$/i);
+      if (host === 'neodb.social' && neodbBook) {
+        return Identity.create('neodb', 'book', neodbBook[1]);
+      }
+
       // Douban game
       const doubanGame = pathname.match(/^\/game\/(\d+)/i);
       if (host === 'www.douban.com' && doubanGame) {

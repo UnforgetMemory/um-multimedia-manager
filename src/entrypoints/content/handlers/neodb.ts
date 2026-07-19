@@ -1,6 +1,6 @@
 /**
- * NeoDB 页面处理器
- * 功能：检测 NeoDB 页面的标记状态和评分，注入状态标签和同步按钮
+ * NeoDB page handler.
+ * Scans page status/rating and injects status chips and sync buttons.
  */
 
 import type { UrlIdentity, StoreRecord } from '@/types'
@@ -20,7 +20,7 @@ export async function scanNeoDBPageStatus(type: string): Promise<{ status: strin
   const strong = action?.querySelector('strong')?.textContent?.trim() || ''
   
   // 根据类型确定"已看/已听"的文本
-  const doneWord = type === 'music' ? t('neodb.listened_text') : t('neodb.watched_text')
+  const doneWord = type === 'music' ? t('neodb.listened_text') : type === 'book' ? t('neodb.read_text') : t('neodb.watched_text')
   const done =
     strong === doneWord ||
     text.startsWith(doneWord) ||

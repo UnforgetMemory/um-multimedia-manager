@@ -31,7 +31,7 @@ interface RouteRule {
  * 路由表配置
  */
 const ROUTES: RouteRule[] = [
-  // Mukaku 视频平台（优先匹配）
+  // Mukaku video platform (match first)
   {
     match: (url) => url.includes('web5.mukaku.com'),
     handler: async () => {
@@ -61,7 +61,7 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // IMDb 详情页
+  // IMDb detail page
   {
     match: (url) => url.includes('www.imdb.com/title/tt'),
     handler: async (identity) => {
@@ -71,12 +71,13 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // NeoDB 详情页（电影/剧集/专辑）
+  // NeoDB detail page (movie/tv/album)
   {
     match: (url) =>
       url.includes('neodb.social/movie/') ||
       url.includes('neodb.social/tv/') ||
-      url.includes('neodb.social/album/'),
+      url.includes('neodb.social/album/') ||
+    url.includes('neodb.social/book/'),
     handler: async (identity) => {
       if (identity) {
         await handleNeoDBDetailPage(identity)
@@ -102,7 +103,7 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // PT 站点详情页（提取并缓存平台 ID）
+  // PT site detail page (extract and cache platform ID)
   {
     match: (url) =>
       (url.includes('m-team.cc/detail') && !url.includes('/browse')) ||
@@ -112,7 +113,7 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // PT 站点 Dimmer
+  // PT site dimmer
   {
     match: (url) =>
       (url.includes('m-team.cc') &&
@@ -126,7 +127,7 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // TMDB 首页 — 卡片徽章扫描
+  // TMDB homepage — card badge scan
   {
     match: (url) => {
       try {
@@ -139,7 +140,7 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // TMDB 详情页（电影/剧集）
+  // TMDB detail page (movie/tv)
   {
     match: (url) =>
       url.includes('themoviedb.org/movie/') || url.includes('themoviedb.org/tv/'),
@@ -150,7 +151,7 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // JavDB 已阅淡化
+  // JavDB watched dimming
   {
     match: (url) => url.includes('javdb.com'),
     handler: async () => {

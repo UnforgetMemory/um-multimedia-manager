@@ -32,8 +32,14 @@ const locales: Record<Locale, Record<string, string>> = {
     'status.done_local_music': '📦 Listened (local)',
     'status.none': '⏳ Unwatched',
     'status.none_music': '⏳ Unlistened',
+    'status.wish': '⭐ Wishlist',
+    'status.wish_music': '⭐ Want to listen',
+    'status.doing': '▶️ Watching',
+    'status.doing_music': '▶️ Listening',
     // Search badge ARIA
     'search.aria_done': 'Marked as watched',
+    'search.aria_wish': 'Marked as wishlist',
+    'search.aria_doing': 'Marked as watching',
     'search.aria_none': 'Not marked',
     // Toast ARIA
     'toast.aria_region': 'Notification area',
@@ -141,8 +147,14 @@ const locales: Record<Locale, Record<string, string>> = {
     'status.done_local_music': '📦 已听(本地)',
     'status.none': '⏳ 未看',
     'status.none_music': '⏳ 未听',
+    'status.wish': '⭐ 想看',
+    'status.wish_music': '⭐ 想听',
+    'status.doing': '▶️ 在看',
+    'status.doing_music': '▶️ 在听',
     // Search badge ARIA
     'search.aria_done': '已标记为已看',
+    'search.aria_wish': '已标记为想看',
+    'search.aria_doing': '已标记为在看',
     'search.aria_none': '未标记',
     // Toast ARIA
     'toast.aria_region': '通知区域',
@@ -289,6 +301,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.unknown_error': '未知錯誤',
     'neodb.watched_text': '看過',
     'neodb.listened_text': '聽過',
+    'neodb.read_text': '讀過',
     // Douban sync notifications
     'sync.douban_auto': '✅ 已自動同步看過狀態',
     'sync.douban_auto_music': '✅ 已自動同步聽過狀態',
@@ -404,6 +417,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.unknown_error': '未知錯誤',
     'neodb.watched_text': '看過',
     'neodb.listened_text': '聽過',
+    'neodb.read_text': '讀過',
     // Douban sync notifications
     'sync.douban_auto': '✅ 已自動同步看過狀態',
     'sync.douban_auto_music': '✅ 已自動同步聽過狀態',
