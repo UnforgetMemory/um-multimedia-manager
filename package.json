@@ -1,7 +1,7 @@
 {
   "name": "um-multimedia-manager",
   "private": true,
-  "version": "5.2.0",
+  "version": "5.2.1",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
     "resize-icons": "tsx scripts/resize-icons.ts",
     "test": "playwright test",
     "test:unit": "playwright test tests/unit",
-    "test:integration": "playwright test tests/integration",
+    
     "test:ui": "playwright test --ui",
     "package": "node scripts/package.js",
     "package:patch": "node scripts/package.js patch",
