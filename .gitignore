@@ -59,7 +59,7 @@ build
 extension
 releases/
 
-.agents
+.agents/
 
 # AI Assistant directories
 .claude/
@@ -101,6 +101,12 @@ coverage/
 
 # Temporary review files
 review_diff*.txt
+
+# Generated plan documents
+docs/plans/
+
+# Generated specs
+docs/superpowers/specs/
 
 # AI-generated documentation
 docs/_generated/

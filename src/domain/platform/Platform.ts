@@ -11,7 +11,7 @@
  */
 export class Platform {
   /** Known platform identifiers */
-  static readonly KNOWN = ['douban', 'imdb', 'neodb', 'tmdb'] as const;
+  static readonly KNOWN = ['douban', 'imdb', 'neodb', 'tmdb', 'bilibili', 'youtube', 'javdb', 'mukaku', 'sehuatang'] as const;
 
   /** Platform identifier — always lowercase */
   readonly id: string;
@@ -26,6 +26,8 @@ export class Platform {
   static readonly IMDB = new Platform('imdb');
   static readonly NEODB = new Platform('neodb');
   static readonly TMDB = new Platform('tmdb');
+  static readonly BILIBILI = new Platform('bilibili');
+  static readonly YOUTUBE = new Platform('youtube');
 
   // ---- Factory ----
 
@@ -38,6 +40,9 @@ export class Platform {
   static fromString(id: string): Platform | null {
     const normalized = id.toLowerCase().trim();
     if (!normalized) return null;
+    // Accept any non-empty string — the isKnown getter distinguishes
+    // known vs unknown platforms. This allows graceful handling of
+    // future platforms without changing the domain model.
     return new Platform(normalized);
   }
 
@@ -57,9 +62,16 @@ export class Platform {
 
   // ---- Queries ----
 
-  /** Human-readable display name (capitalised). */
+  /** Human-readable display name. */
   get displayName(): string {
-    return this.id.charAt(0).toUpperCase() + this.id.slice(1);
+    const SPECIAL: Record<string, string> = {
+      imdb: 'IMDb',
+      tmdb: 'TMDB',
+      neodb: 'NeoDB',
+      javdb: 'JavDB',
+      bilibili: 'Bilibili',
+    };
+    return SPECIAL[this.id] ?? this.id.charAt(0).toUpperCase() + this.id.slice(1);
   }
 
   /** IndexedDB store name for this platform's records. */

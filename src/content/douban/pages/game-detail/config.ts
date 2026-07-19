@@ -8,8 +8,8 @@ export const mountGameDetail = definePageMount({
   overlayId: 'umm-douban-overlay',
   importApp: () => import('./App.vue'),
   async beforeMount() {
-    const { extractGameDetailData, enrichGameRecItems } = await import('./GameDetailData')
-    let data: import('./GameDetailData').GameDetailData | null = null
+const { extractGameDetailData, enrichGameRecItems } = await import('./game-detail-data')
+let data: import('./game-detail-data').GameDetailData | null = null
     for (let i = 0; i < 8; i++) {
       data = extractGameDetailData()
       if (data?.title) break

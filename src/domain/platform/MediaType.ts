@@ -55,7 +55,7 @@ export class MediaType {
   static require(id: string): MediaType {
     const type = MediaType.fromString(id);
     if (!type) {
-      throw new RangeError(`Unknown media type: "${id}". Expected one of: movie, tv, music, book`);
+      throw new RangeError(`Unknown media type: "${id}". Expected one of: movie, tv, music, book, game`);
     }
     return type;
   }

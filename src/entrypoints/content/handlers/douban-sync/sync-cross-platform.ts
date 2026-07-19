@@ -86,13 +86,8 @@ export async function syncCrossPlatformRecords(
       continue
     }
 
-    const baseUrl =
-      entry.provider === 'imdb'
-        ? 'https://www.imdb.com/title/'
-        : 'https://www.themoviedb.org/movie/'
-
     const targetRecord: StoreRecord = {
-      url: `${baseUrl}${entry.providerId}/`,
+      url: Identity.buildUrl(entry.type, entry.provider, entry.providerId),
       status: numericStatus,
       rating: pageRating,
       comment: pageComment,
@@ -151,12 +146,11 @@ export async function checkCrossPlatformRecords(
 
     // Build target URL
     let targetUrl: string
-    if (platform === 'imdb') targetUrl = `https://www.imdb.com/title/${pid}/`
-    else if (platform === 'tmdb')
-      targetUrl = `https://www.themoviedb.org/movie/${pid}/`
-    else if (platform === 'neodb')
+    if (platform === 'neodb')
       targetUrl = Identity.buildNeoDBUrl(identity.type, pid)
-    else continue
+    else
+      targetUrl = Identity.buildUrl(identity.type, platform, pid)
+    if (!targetUrl) continue
 
     if (!existingTarget) {
       // Missing record — create with source status

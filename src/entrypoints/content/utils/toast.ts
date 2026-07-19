@@ -9,7 +9,7 @@
 
 import { escapeHtml } from './dom'
 import { t } from '../i18n'
-import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/shared/types/toast'
+import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/shared/toast'
 import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
 
 
@@ -107,14 +107,14 @@ function computeHash(title: string, message?: string): string {
 function tryDedup(title: string, message: string | undefined, hash: string): HTMLElement | null {
   const now = Date.now()
 
-  // 1. 相同 hash + 500ms 内 → 复用
+  // 1. Same hash within 500ms → reuse
   if (lastQuickToast && lastQuickToast.hash === hash && now - lastQuickToast.timestamp < TOAST_DEDUP_HASH_MS) {
     updateQuickToastContent(lastQuickToast.element, title, message)
     lastQuickToast.timestamp = now
     return lastQuickToast.element
   }
 
-  // 2. 相同 title + 2s 内 → 替换内容
+  // 2. Same title within 2s → replace content
   if (lastQuickToast && lastQuickToast.title === title && now - lastQuickToast.timestamp < TOAST_DEDUP_TITLE_MS) {
     updateQuickToastContent(lastQuickToast.element, title, message)
     lastQuickToast.hash = hash
@@ -447,18 +447,18 @@ export class FloatingToast {
 // ─── 快速 toast 内部实现 ─────────────────────────────────
 
 function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string): void {
-  // 1. 防御性检查
+  // 1. Defensive checks
   if (!document.body) {
     console.warn('[FloatingToast] document.body not ready, retrying...')
     setTimeout(() => showQuick(type, title, message), 100)
     return
   }
 
-  // 2. 注入样式
+  // 2. Inject styles
   injectStyles()
   attachUnloadListener()
 
-  // 3. 去重
+  // 3. Deduplicate
   const hash = computeHash(title, message)
   const existing = tryDedup(title, message, hash)
   if (existing) {
@@ -468,10 +468,10 @@ function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string
     return
   }
 
-  // 4. 超出上限时移除最旧的
+  // 4. Remove oldest when over limit
   trimQuickToasts()
 
-  // 5. 创建新 toast
+  // 5. Create new toast
   const ctr = ensureContainer()
   if (!ctr.isConnected) {
     document.body.appendChild(ctr)
@@ -480,7 +480,7 @@ function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string
   const toast = createToastElement(type, title, message)
   ctr.appendChild(toast)
 
-  // 6. 记录
+  // 6. Track
   const record: QuickToastRecord = {
     element: toast,
     hash,
@@ -491,12 +491,12 @@ function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string
   quickToasts.push(record)
   lastQuickToast = { hash, title, timestamp: record.timestamp, element: toast }
 
-  // 7. 动画入场
+  // 7. Animate in
   requestAnimationFrame(() => {
     toast.classList.add('show')
   })
 
-  // 8. 自动隐藏（2.8s）
+  // 8. Auto-dismiss (2.8s)
   record.removeTimer = setTimeout(() => {
     toast.classList.remove('show')
     setTimeout(() => {
@@ -506,6 +506,6 @@ function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string
     }, 350)
   }, 2800)
 
-  // 9. 重置容器清理
+  // 9. Reset container cleanup
   scheduleContainerCleanup()
 }

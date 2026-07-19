@@ -12,7 +12,12 @@ import type { Provider } from '@/config'
 // ==================== Store Record ====================
 
 /** Per-platform store record (one entry per object store) */
-export interface StoreRecord {
+/**
+ * Serialized form of a StoreRecord for IndexedDB storage and message passing.
+ * The domain class (src/domain/record/StoreRecord.ts) is the canonical type;
+ * this interface represents its snapshot for serialization.
+ */
+export interface StoreRecordSnapshot {
   url: string
   status: number
   rating: number
@@ -24,10 +29,8 @@ export interface StoreRecord {
   recordVersion?: number
 }
 
-/** Build a composite store key from type and provider ID */
-export function makeRecordKey(type: string, providerId: string): string {
-  return `${type}::${providerId}`
-}
+/** @deprecated Use StoreRecordSnapshot — kept for backward compatibility. */
+export type StoreRecord = StoreRecordSnapshot
 
 /** Valid record store names */
 export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'bilibili_records' | 'youtube_records' | 'jav_ids'
