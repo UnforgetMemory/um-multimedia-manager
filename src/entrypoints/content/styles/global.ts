@@ -163,6 +163,8 @@ const STATUS_CHIP_STYLES = `
  * This is the global-injection equivalent for host-page NeoDB push buttons.
  * Values must match interest.css for visual consistency.
  */
+// CANONICAL SOURCE: src/content/douban/styles/design-tokens.css (--umm-neodb-* vars)
+// Values here must match the Shadow DOM variables. Update both when changing colors.
 const NEODB_BUTTON_STYLES = `
 .umm-neodb-btn {
   display: inline-flex;

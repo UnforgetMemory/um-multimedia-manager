@@ -441,8 +441,8 @@
   padding: 14px 16px;
   margin: 4px 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(15,122,67,0.08), rgba(23,87,214,0.08));
-  border: 1px solid var(--umm-card-border, #e5e7eb);
+  background: var(--umm-neodb-push-bg);
+  border: 1px solid var(--umm-neodb-push-border);
 }
 
 .umm-neodb-btn {
@@ -474,18 +474,18 @@
 }
 
 .umm-neodb-btn--minus {
-  background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-  box-shadow: 0 2px 4px rgba(180,83,9,0.3);
+  background: var(--umm-neodb-minus-bg);
+  box-shadow: var(--umm-neodb-minus-shadow);
 }
 
 .umm-neodb-btn--plus {
-  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
-  box-shadow: 0 2px 4px rgba(21,128,61,0.3);
+  background: var(--umm-neodb-plus-bg);
+  box-shadow: var(--umm-neodb-plus-shadow);
 }
 
 .umm-neodb-btn--original {
-  background: linear-gradient(180deg, var(--umm-accent, #6366f1) 0%, #4f46e5 100%);
-  box-shadow: 0 2px 4px rgba(79,70,229,0.3);
+  background: var(--umm-neodb-original-bg);
+  box-shadow: var(--umm-neodb-original-shadow);
 }
 
 .umm-neodb-btn:disabled {
@@ -495,8 +495,8 @@
 }
 
 .umm-neodb-btn--open {
-  background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
-  box-shadow: 0 2px 4px rgba(109,40,217,0.3);
+  background: var(--umm-neodb-open-bg);
+  box-shadow: var(--umm-neodb-open-shadow);
   color: #fff;
   text-decoration: none;
 }

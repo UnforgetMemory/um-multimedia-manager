@@ -15,25 +15,7 @@
 }
 
 /* ===== Title ===== */
-.umm-reviews-titlebar {
-  display: flex;
-  align-items: baseline;
-  gap: var(--umm-space-sm, 12px);
-  margin-bottom: var(--umm-space-lg, 24px);
-  padding-left: var(--umm-space-sm, 10px);
-  border-left: 3px solid var(--umm-rev-accent);
-}
-.umm-reviews-title {
-  font-size: var(--umm-font-md, 1.125rem);
-  font-weight: 800;
-  color: var(--umm-text-primary);
-  margin: 0;
-}
-.umm-reviews-count {
-  font-size: var(--umm-font-xs, 0.75rem);
-  font-weight: 600;
-  color: var(--umm-text-muted);
-}
+
 
 /* ===== Review List ===== */
 .umm-reviews-list {
@@ -193,11 +175,4 @@
 }
 
 /* ===== Empty ===== */
-.umm-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
-  font-size: var(--umm-font-base, 0.875rem);
-  color: var(--umm-text-muted);
-}
+

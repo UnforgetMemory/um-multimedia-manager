@@ -1,0 +1,33 @@
+/* ===== Shared Empty State ===== */
+.umm-empty,
+.umm-umedia-empty,
+.umm-dlist-empty,
+.umm-doulists-empty,
+.umm-bc-empty,
+.umm-gc-empty,
+.umm-photo-empty,
+.umm-personage-empty,
+.umm-celebrity-empty,
+.umm-search-empty,
+.umm-game-explore-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--umm-space-2xl, 48px) var(--umm-space-xl, 24px);
+  font-size: var(--umm-font-base, 0.85rem);
+  color: var(--umm-text-muted, #9ca3af);
+  text-align: center;
+}
+.umm-umedia-empty-icon,
+.umm-bc-empty-icon,
+.umm-gc-empty-icon {
+  display: block;
+  margin: 0 auto var(--umm-space-sm, 8px);
+  font-size: var(--umm-font-xl, 1.375rem);
+}
+.umm-umedia-empty-text,
+.umm-bc-empty-text,
+.umm-gc-empty-text {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted, #9ca3af);
+}

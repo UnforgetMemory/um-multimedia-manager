@@ -1,0 +1,24 @@
+/* ===== Media Format Chips — shared across search and albums pages ===== */
+.umm-chip-cd       { background: #546e7a; color: #fff; border-color: transparent; }
+.umm-chip-dvd      { background: #7b1fa2; color: #fff; border-color: transparent; }
+.umm-chip-cd-dvd   { background: #4527a0; color: #fff; border-color: transparent; }
+.umm-chip-cassette { background: #5d4037; color: #fff; border-color: transparent; }
+.umm-chip-digital  { background: #00695c; color: #fff; border-color: transparent; }
+.umm-chip-vinyl    { background: #37474f; color: #fff; border-color: transparent; }
+.umm-chip-lp       { background: #4a148c; color: #fff; border-color: transparent; }
+.umm-chip-sacd     { background: #4e342e; color: #fff; border-color: transparent; }
+.umm-chip-bluray   { background: #0d47a1; color: #fff; border-color: transparent; }
+.umm-chip-vcd      { background: #455a64; color: #fff; border-color: transparent; }
+.umm-chip-streaming{ background: #1b5e20; color: #fff; border-color: transparent; }
+
+:host(.umm-theme--dark) .umm-chip-cd       { background: #607d8b; }
+:host(.umm-theme--dark) .umm-chip-dvd      { background: #8e24aa; }
+:host(.umm-theme--dark) .umm-chip-cd-dvd   { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-cassette { background: #6d4c41; }
+:host(.umm-theme--dark) .umm-chip-digital  { background: #00897b; }
+:host(.umm-theme--dark) .umm-chip-vinyl    { background: #455a64; }
+:host(.umm-theme--dark) .umm-chip-lp       { background: #5e35b1; }
+:host(.umm-theme--dark) .umm-chip-sacd     { background: #5d4037; }
+:host(.umm-theme--dark) .umm-chip-bluray   { background: #1565c0; }
+:host(.umm-theme--dark) .umm-chip-vcd      { background: #546e7a; }
+:host(.umm-theme--dark) .umm-chip-streaming{ background: #2e7d32; }

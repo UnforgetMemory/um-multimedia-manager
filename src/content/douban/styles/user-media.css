@@ -76,27 +76,7 @@
   background: var(--umm-umedia-accent-soft);
 }
 
-/* ===== Title Bar ===== */
-.umm-umedia-titlebar {
-  display: flex;
-  align-items: baseline;
-  gap: var(--umm-space-sm, 12px);
-  margin-bottom: var(--umm-space-sm, 10px);
-  padding-left: var(--umm-space-sm, 10px);
-  border-left: 3px solid var(--umm-umedia-accent);
-}
-.umm-umedia-titlebar-label {
-  font-size: var(--umm-font-md, 1.125rem);
-  font-weight: 800;
-  color: var(--umm-text-primary);
-  margin: 0;
-  line-height: 1.3;
-}
-.umm-umedia-titlebar-count {
-  font-size: var(--umm-font-xs, 0.75rem);
-  font-weight: 600;
-  color: var(--umm-text-muted);
-}
+
 
 /* ===== Opt Bar ===== */
 .umm-umedia-optbar {

@@ -212,18 +212,4 @@
   display: none !important;
 }
 
-/* ---- Scrollbar ---- */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--umm-bg-secondary, #f8f9fa);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--umm-border, #e5e7eb);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--umm-text-muted, #9ca3af);
-}
+

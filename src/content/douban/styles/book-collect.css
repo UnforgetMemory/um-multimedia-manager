@@ -15,25 +15,7 @@
 }
 
 /* ===== Title Bar ===== */
-.umm-bc-titlebar {
-  display: flex;
-  align-items: baseline;
-  gap: var(--umm-space-sm, 12px);
-  margin-bottom: var(--umm-space-md, 16px);
-  padding-left: var(--umm-space-sm, 10px);
-  border-left: 3px solid var(--umm-bc-accent);
-}
-.umm-bc-titlebar-label {
-  font-size: var(--umm-font-md, 1.125rem);
-  font-weight: 800;
-  color: var(--umm-text-primary);
-  margin: 0;
-}
-.umm-bc-titlebar-count {
-  font-size: var(--umm-font-xs, 0.75rem);
-  font-weight: 600;
-  color: var(--umm-text-muted);
-}
+
 
 /* ===== Sort Bar ===== */
 .umm-bc-optbar {

@@ -51,6 +51,18 @@
   --umm-rating-gold-mid: hsl(41 78% 45%);
   --umm-rating-gold-high: hsl(41 81% 46%);
 
+  /* === NeoDB button colors === */
+  --umm-neodb-push-bg: linear-gradient(135deg, rgba(15,122,67,0.08), rgba(23,87,214,0.08));
+  --umm-neodb-push-border: var(--umm-card-border, #e5e7eb);
+  --umm-neodb-minus-bg: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+  --umm-neodb-minus-shadow: 0 2px 4px rgba(180,83,9,0.3);
+  --umm-neodb-plus-bg: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  --umm-neodb-plus-shadow: 0 2px 4px rgba(21,128,61,0.3);
+  --umm-neodb-original-bg: linear-gradient(180deg, var(--umm-accent, #6366f1) 0%, #4f46e5 100%);
+  --umm-neodb-original-shadow: 0 2px 4px rgba(79,70,229,0.3);
+  --umm-neodb-open-bg: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+  --umm-neodb-open-shadow: 0 2px 4px rgba(109,40,217,0.3);
+
   /* === Aspect ratio tokens === */
   --umm-aspect-poster: 2/3;
   --umm-aspect-square: 1;
@@ -106,21 +118,21 @@
 :host(.umm-theme--dark) {
   /* Surface */
   --umm-color-surface: hsl(240 5% 15%);
-  --umm-color-surface-secondary: hsl(230 7% 18%);
-  --umm-color-surface-elevated: hsl(230 10% 13%);
-  --umm-card-bg: hsl(230 7% 18%);
-  --umm-card-border: hsl(230 5% 24%);
+  --umm-color-surface-secondary: hsl(240 4% 20%);
+  --umm-color-surface-elevated: hsl(240 5% 18%);
+  --umm-card-bg: hsl(240 4% 20%);
+  --umm-card-border: hsl(240 4% 25%);
   --umm-content-gap: 16px;
 
   /* Text */
   --umm-color-text-primary: hsl(0 0% 98%);
-  --umm-color-text-secondary: hsl(0 0% 60%);
+  --umm-color-text-secondary: hsl(240 5% 60%);
   --umm-color-text-tertiary: hsl(240 5% 60% / 0.6);
   --umm-color-text-disabled: hsl(240 5% 60% / 0.38);
-  --umm-color-text-muted: hsl(0 0% 40%);
+  --umm-color-text-muted: hsl(240 5% 40%);
 
   /* Border */
-  --umm-color-border: hsl(230 5% 24%);
+  --umm-color-border: hsl(240 4% 25%);
 
   /* Links */
   --umm-color-link: hsl(214 94% 68%);

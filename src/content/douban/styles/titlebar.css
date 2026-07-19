@@ -1,0 +1,41 @@
+/* ===== Shared Title Bar (left stripe) ===== */
+/* Page-specific accent color is set via --umm-*-accent vars. */
+.umm-umedia-titlebar,
+.umm-reviews-titlebar,
+.umm-celebrities-titlebar,
+.umm-bc-titlebar,
+.umm-authors-titlebar,
+.umm-gc-titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-sm, 10px);
+  padding-left: var(--umm-space-sm, 10px);
+  border-left: 3px solid var(--umm-titlebar-accent, var(--umm-accent, #6366f1));
+}
+.umm-umedia-titlebar-label,
+.umm-reviews-titlebar-label,
+.umm-reviews-title,
+.umm-celebrities-title,
+.umm-bc-titlebar-label,
+.umm-authors-titlebar-label,
+.umm-authors-title,
+.umm-gc-titlebar-label {
+  font-size: var(--umm-font-lg, 1.125rem);
+  font-weight: 800;
+  color: var(--umm-text-primary, #1a1a1a);
+  line-height: 1.3;
+  margin: 0;
+}
+.umm-umedia-titlebar-count,
+.umm-reviews-titlebar-count,
+.umm-reviews-count,
+.umm-celebrities-count,
+.umm-bc-titlebar-count,
+.umm-authors-titlebar-count,
+.umm-authors-count,
+.umm-gc-titlebar-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted, #9ca3af);
+  font-weight: 600;
+}
