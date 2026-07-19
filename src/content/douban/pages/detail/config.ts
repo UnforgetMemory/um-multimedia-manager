@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
 
 export const mountDetail = definePageMount({
   cssPreset: 'detail',
@@ -21,6 +22,11 @@ export const mountDetail = definePageMount({
   },
   createApp: (RootCmp, data) => createApp(RootCmp, { detailData: data }),
   async afterMount(_shadow, app, _container, data) {
+    // Initialize doulist modal click handler ("添加到片单" / "+ 添加到书单")
+    if (data.identity) {
+      initDoulistReplacement(data.identity)
+    }
+
     // Re-import loadRecord for the polling loop (bundler cache ensures no overhead)
     const { loadRecord } = await import('./detail-data')
     const recordPoller = setInterval(async () => {

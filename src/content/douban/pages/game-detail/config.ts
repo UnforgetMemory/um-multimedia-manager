@@ -2,6 +2,7 @@ import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { Store } from '@/features/database'
+import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
 
 export const mountGameDetail = definePageMount({
   cssPreset: 'game-detail',
@@ -32,6 +33,11 @@ let data: import('./game-detail-data').GameDetailData | null = null
   },
   createApp: (RootCmp, data) => createApp(RootCmp, { data }),
   async afterMount(_shadow, app, _container, data) {
+    // Initialize doulist modal click handler ("+ 添加到豆列")
+    if (data.identity) {
+      initDoulistReplacement(data.identity)
+    }
+
     if (!data.identity) return
     const recordPoller = setInterval(async () => {
       if (!data.identity) return
