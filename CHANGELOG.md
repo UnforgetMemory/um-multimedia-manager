@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.1] - 2026-07-19
+
+### Fixes
+
+- **Douban detail pages**: Restored doulist dialog functionality — the "添加到片单" button now opens the dialog correctly on overlay-based detail pages
+- **Theme consistency**: Fixed doulist dialog panel theme mismatch — the dialog now correctly follows the extension's dark/light theme setting
+
+### Chores
+
+- Version bump 5.2.0 → 5.2.1
+- Code review: passed — minimal changes, no regression
+- Security audit: passed — no I/O touch, no data exposure, no execution risks
+- `.gitignore` audit: comprehensive coverage confirmed
+- Removed stale `test:integration` script (target directory does not exist)
+- Cleaned up stale test artifacts
+
 ## [5.2.0] - 2026-07-19
 
 ### Architecture

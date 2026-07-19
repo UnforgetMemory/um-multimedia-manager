@@ -52,6 +52,10 @@ export function applyOverlayTheme(host: HTMLElement): void {
     host.setAttribute('data-theme', theme)
     host.classList.remove('umm-theme--light', 'umm-theme--dark')
     host.classList.add(`umm-theme--${theme}`)
+    // Sync to html element so light-DOM components (doulist dialog, search
+    // badges, NeoDB buttons, etc.) can detect the current theme via the
+    // data-umm-theme attribute or [data-umm-theme="dark"] CSS selectors.
+    document.documentElement.setAttribute('data-umm-theme', theme)
     const bgColor = theme === 'dark' ? 'hsl(240 6% 10%)' : 'hsl(0 0% 100%)'
     let styleEl = document.getElementById('umm-html-theme') as HTMLStyleElement | null
     if (!styleEl) {
