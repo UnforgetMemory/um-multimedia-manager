@@ -6,8 +6,8 @@
  */
 
 import { ref } from 'vue'
-import type { ToastType } from '@/shared/types/toast'
-import { TOAST_AUTO_DISMISS_MS } from '@/shared/types/toast'
+import type { ToastType } from '@/shared/toast'
+import { TOAST_AUTO_DISMISS_MS } from '@/shared/toast'
 
 interface Toast {
   id: number

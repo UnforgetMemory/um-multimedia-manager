@@ -18,6 +18,9 @@
 
 import { MountRegistry } from './page-registry'
 import { detectPageType } from './shared/url-detector'
+import { injectGlobalStyles } from '@/entrypoints/content/styles/global'
+import { initEventBus } from '@/utils/event-bus'
+import { FloatingToast } from '@/entrypoints/content/utils/toast'
 
 import { mountMusicHomepage } from './pages/music-homepage/config'
 import { mountGenre } from './pages/genre/config'
@@ -87,6 +90,22 @@ registry.register('book-authors', mountBookAuthors)
  */
 export async function mountDoubanMain(): Promise<void> {
   try {
+    // Global infrastructure (was previously in content.ts)
+    injectGlobalStyles()
+    initEventBus()
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (sender.id !== chrome.runtime.id) return false
+      if (message.type === 'SHOW_TOAST') {
+        const { type, title, message: msg } = message.payload
+        if (type === 'success') FloatingToast.success(title, msg)
+        else if (type === 'error') FloatingToast.error(title, msg)
+        else if (type === 'loading') FloatingToast.loading(title, msg)
+        else FloatingToast.info(title, msg)
+        sendResponse({ success: true })
+        return true
+      }
+    })
+
     const pageType = detectPageType()
     if (!pageType) throw new Error('Unknown Douban page type')
 

@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2026-07-19
+
+### Architecture
+
+- **Domain layer wiring**: Created `RecordRepositoryAdapter` implementing `IRecordRepository`, wired `RecordService` into background handler chain — domain DDD layer is now connected to runtime for the first time
+- **DataScheduler routing**: All 14 handler paths (export/import, statistics, WebDAV, adult-av, Sehuatang) now route through `DataScheduler` for rate limiting, retry, and monitoring
+- **IndexedDB transaction fixes**: `put()` atomicity — read version and write in single transaction; `syncPageRecord()` two-phase read (separate transactions) → write (single `readwrite` transaction) — eliminates race condition
+- **Event broadcasting**: Added `broadcast()` calls to data, WebDAV, and adult-av handlers — content scripts now receive `record:updated` and `sync:completed` events from all data paths
+- **Cache fixes**: `TtlCacheStore.clear()` implemented, `DbAdapter` interface extended with `clear()` method
+- **RecordService fixes**: `deduplicate()` now properly groups records by shared `linkedIds` instead of being a no-op stub
+
+### NeoDB
+
+- **Book detail page support**: Added `neodb.social/book/` URL parsing, content script matches, router dispatch, and i18n `read_text` keys — NeoDB books now have status chips and cross-platform sync
+- **Auto-sync restoration**: Refactored `onCrossPlatformSave()` into 3 explicit cases (no link, link + status changed, link + status unchanged) with rating protection. Added `syncNeoDBOnLoad()` companion check — when auto-sync is enabled, existing watched records on Douban pages are automatically verified and linked on page load
+- **NeoDB push button refresh**: `syncNeoDBOnLoad()` now calls `injectNeoDBPushButtons()` after creating a new NeoDB link — the "Open in NeoDB" button appears immediately
+
+### CSS Consolidation
+
+- **7 shared CSS patterns**: Extracted scrollbar (`base.css`), media format chips (`media-chips.css`), title bar left stripe (`titlebar.css`), empty state (`empty-state.css`), NeoDB button colors (`design-tokens.css` variables), paginator (`paginator.css`), user bar (`userbar.css`) — eliminating ~600 lines of duplication across 35 files
+- **Dark theme token alignment**: Fixed `--umm-color-surface-secondary`, `--umm-color-text-secondary`, `--umm-color-border` values in `design-tokens.css` to match `style.css` (hue 230→240)
+
+### Code Quality
+
+- **Mukaku refactor**: Decomposed 776-line `mukaku.ts` into 7 focused modules (`config.ts`, `toast.ts`, `dom.ts`, `cache.ts`, `api.ts`, `handler.ts`, `index.ts`) — `(Store as any)` casts consolidated from 4 call sites to 2 typed wrappers in `cache.ts`
+- **Barrel cleanup**: Removed 4 re-export indirection layers from `src/shared/`; deleted dead `src/features/identity/` module; moved `src/shared/types/toast.ts` → `src/shared/toast.ts`
+- **Naming fixes**: `GameDetailData.ts` → `game-detail-data.ts`; `StoreRecord` interface renamed to `StoreRecordSnapshot` (with backward-compatible type alias)
+- **Dead code removal**: Deleted `makeRecordKey()` (unused), `IRecordRepository.syncRecord()` (unimplemented), `features/identity/` (empty shim), `enhancers/douban-search-bar.ts` (confirmed dead)
+- **Platform expansion**: `Platform.KNOWN` extended from 4 to 9 platforms (added bilibili, youtube, javdb, mukaku, sehuatang); `displayName` fixed for special cases (IMDb, TMDB, NeoDB, JavDB, Bilibili)
+
+### Injection Architecture
+
+- **Eliminated 3x Douban injection**: Migrated `injectGlobalStyles()` and `SHOW_TOAST` handler into `mountDoubanMain()`; added `excludeMatches` to `content.ts` for 9 Douban URL patterns — legacy `content.ts` now only runs on non-Douban sites (IMDb, NeoDB, PT, TMDB, etc.)
+- **Legacy bridge**: Created `src/content/douban/shared/legacy-bridge.ts` — stable import target for 5 dependencies from the legacy system, enabling the new Douban overlay to function without the legacy `content.ts`
+
+### MCP / Tooling
+
+- **Updated `MediaType.require()` error message**: Added `game` to the list of valid types
+- **Updated `.gitignore`**: Added `docs/plans/`, `docs/superpowers/specs/`; fixed `.agents/` directory slash
+
+### Testing
+
+- **58 unit tests**: Added Playwright-based tests for all domain value objects — `Status` (14), `Rating` (12), `Platform` (10), `StoreRecord` (12), `MediaType` (10)
+
+### Security
+
+- `npm audit` reviewed: 11 vulnerabilities (1 low, 2 moderate, 5 high, 3 critical) — all transitive from `wxt` → `web-ext-run` (Firefox extension tooling), none exploitable in production
+- No secrets in codebase
+- All external data flows through `safeSendMessage` with typed message passing
+
 ## [5.1.0] - 2026-07-18
 
 ### Features
