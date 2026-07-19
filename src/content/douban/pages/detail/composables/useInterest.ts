@@ -9,7 +9,7 @@
  */
 
 import { ref, type Ref, type MaybeRefOrGetter, toValue } from 'vue'
-import { FloatingToast } from '@/entrypoints/content/utils/toast'
+import { FloatingToast } from '@/content/douban/shared/legacy-bridge'
 
 /**
  * Interest status returned by Douban's API.
@@ -162,7 +162,7 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
         savedTags.value = []
         currentComment.value = ''
         error.value = '请求失败，请确认登录状态'
-        // 403 时 DedeUserID 存在但过期也弹 toast
+        // 403 with DedeUserID cookie means session expired — show toast
         if (resp.status === 403) {
           const msg = isDoubanLoggedIn()
             ? '豆瓣登录可能已过期，请刷新页面重新登录'
@@ -189,8 +189,8 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
         return
       }
 
-      // Preserve initial status from IndexedDB/DOM when API returns empty —
-      // music albums may omit or return empty interest_status.
+  // Preserve initial status from IndexedDB/DOM when API returns empty —
+    // music albums may omit or return empty interest_status.
       const rawStatus = parsed.interest_status ?? ''
       if (rawStatus !== '') {
         interestStatus.value = rawStatus as 'wish' | 'do' | 'collect'
