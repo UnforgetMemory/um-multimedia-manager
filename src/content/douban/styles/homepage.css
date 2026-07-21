@@ -6,8 +6,7 @@
   display: block;
   width: 100%;
   min-height: 100vh;
-  user-select: none;
-  -webkit-user-select: none;
+  /* user-select is not set at :host level — specific interactive elements opt-in */
   --umm-border-light: var(--umm-border, #f0f0f0);
   --umm-card-bg: transparent;
   --umm-mask-from: var(--umm-color-surface, #ffffff);

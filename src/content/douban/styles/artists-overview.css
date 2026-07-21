@@ -4,8 +4,7 @@
   display: block;
   width: 100%;
   min-height: 100vh;
-  user-select: none;
-  -webkit-user-select: none;
+  /* user-select is not set at :host level — specific interactive elements opt-in */
 }
 
 .umm-artists-root {

@@ -89,8 +89,7 @@ releases/
 .opencode/
 .codegraph
 
-# Test artifacts
-tests/
+# Test artifacts (source files under tests/ ARE tracked)
 playwright-report/
 test-results/
 coverage/

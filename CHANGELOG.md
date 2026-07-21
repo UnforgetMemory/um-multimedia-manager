@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.2] - 2026-07-21
+
+### Fixes
+
+- **Douban detail page text selection**: Removed `:host { user-select: none }` from shared page-layout and 5 per-page CSS files — the overlay's title, aka/alias meta chips, music track list, synopsis, comments, and all other text content are now selectable. Interactive UI elements (status badges, interest bar, search chips, gallery overlay) keep their own `user-select: none` rules and remain non-selectable
+
+### Chores
+
+- Version bump 5.2.1 → 5.2.2
+- `.gitignore` fix: removed `tests/` directory-level ignore — the 5 test source files are tracked by git (test artifacts continue to be ignored via `test-results/` and `playwright-report/`)
+- Build verification: `npm run build` + `npm run type-check` passed
+- Security audit: 11 vulnerabilities reviewed — all transitive from `wxt` → `web-ext-run` (dev toolchain only, none exploitable in production)
+- Code review: passed — CSS-only changes, zero I/O or data exposure risk
+- Test verification: 58 unit tests all pass
+- Cleared stale `test-results/` artifacts
+
 ## [5.2.1] - 2026-07-19
 
 ### Fixes
