@@ -295,9 +295,7 @@ console.log('Adding umm- prefix to Tailwind classes in shadcn components...\n')
 walkDir(uiDir, (file) => {
   const ext = extname(file)
   let updated = false
-  if (ext === '.vue') {
-    updated = processVueFile(file)
-  } else if (ext === '.ts') {
+  if (ext === '.tsx' || ext === '.ts') {
     updated = processTsFile(file)
   }
   if (updated) {
@@ -310,9 +308,7 @@ console.log('\nProcessing options page components...\n')
 walkDir(optionsDir, (file) => {
   const ext = extname(file)
   let updated = false
-  if (ext === '.vue') {
-    updated = processVueFile(file)
-  } else if (ext === '.ts') {
+  if (ext === '.tsx' || ext === '.ts') {
     updated = processTsFile(file)
   }
   if (updated) {
@@ -325,9 +321,7 @@ console.log('\nProcessing popup components...\n')
 walkDir(popupDir, (file) => {
   const ext = extname(file)
   let updated = false
-  if (ext === '.vue') {
-    updated = processVueFile(file)
-  } else if (ext === '.ts') {
+  if (ext === '.tsx' || ext === '.ts') {
     updated = processTsFile(file)
   }
   if (updated) {
@@ -340,9 +334,7 @@ console.log('\nProcessing custom components...\n')
 walkDir(customDir, (file) => {
   const ext = extname(file)
   let updated = false
-  if (ext === '.vue') {
-    updated = processVueFile(file)
-  } else if (ext === '.ts') {
+  if (ext === '.tsx' || ext === '.ts') {
     updated = processTsFile(file)
   }
   if (updated) {

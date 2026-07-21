@@ -9,7 +9,7 @@ interface PageProps {
 
 export default function App({ data }: PageProps) {
   return (
-    <UmmPageLayout type="movie">
+    <UmmPageLayout type="music">
       <div className="umm-page-root">
         <h2 className="umm-section-title">{data.genreName}</h2>
         {data.navLinks.length > 0 && (

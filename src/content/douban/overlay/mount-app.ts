@@ -1,8 +1,8 @@
 /**
- * Vue app mounting inside an existing shadow DOM overlay.
+ * React app mounting inside an existing shadow DOM overlay.
  *
  * Injects page CSS, syncs the theme class, removes the loading spinner,
- * creates the Vue app via a factory, mounts it, and runs an optional
+ * creates the React app via a factory, mounts it, and runs an optional
  * afterMount hook.
  */
 
@@ -40,7 +40,7 @@ export function mountUmmOverlay(options: MountOptions): void {
   host.classList.add(`umm-theme--${theme}`)
 
   const finalize = async () => {
-    // Sync host theme to page localStorage before Vue mounts —
+    // Sync host theme to page localStorage before React mounts —
     // the theme store (inside Shadow DOM) reads from localStorage on
     // the page origin via useStorage, NOT from chrome.storage.local.
     // Without this sync it always defaults to 'auto'.

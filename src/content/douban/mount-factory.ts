@@ -63,7 +63,7 @@ export interface PageMountConfig<T = undefined> {
 
   /**
    * Optional async setup that runs inside the overlay's Shadow DOM before
-   * the Vue app mounts.
+   * the React app mounts.
    *
    * Use this to:
    * - Extract page data from the DOM
@@ -97,7 +97,7 @@ export interface PageMountConfig<T = undefined> {
  *
  * The returned async function handles the full bootstrap sequence:
  * 1. Compose CSS chunks into a single injectable string
- * 2. Dynamic-import the page's root Vue component
+ * 2. Dynamic-import the page's root React component
  * 3. Delegate to `mountUmmOverlay` with the configured callbacks
  *
  * @param config - Page mount configuration.

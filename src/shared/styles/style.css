@@ -10,7 +10,7 @@
 
 @theme {
   /* ============================================
-     Existing Color System (shadcn/vue)
+     Existing Color System (shadcn/react)
      ============================================ */
   /* 颜色系统 */
   --color-background: hsl(var(--background));
@@ -64,11 +64,11 @@
   
   @keyframes accordion-down {
     from { height: 0; }
-    to { height: var(--reka-accordion-content-height); }
+    to { height: var(--radix-accordion-content-height); }
   }
   
   @keyframes accordion-up {
-    from { height: var(--reka-accordion-content-height); }
+    from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
   }
   
@@ -502,10 +502,10 @@
   /* Exclude Select/Dropdown triggers from theme transition to prevent label flicker.
      The .theme-ready * selector applies transition to all elements; trigger elements
      need transition:none to avoid visible text flash during theme color changes. */
-  [data-reka-select-trigger],
+  [data-radix-select-trigger],
   [role="combobox"],
-  [data-reka-dropdown-menu-trigger],
-  [data-reka-menubar-trigger] {
+  [data-radix-dropdown-menu-trigger],
+  [data-radix-menubar-trigger] {
     transition: none !important;
   }
 

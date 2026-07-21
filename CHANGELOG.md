@@ -32,6 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Props structure**: Fixed data-prop mismatches across 28 page configs — unified `React.createElement` pattern with correct `{ data }` wrapping or direct spread
 - **Type safety**: Fixed 40+ type errors across migrated pages — added explicit type annotations, fixed unused imports, corrected module import paths
 - **Build stability**: All 304 TS/TSX files compile with zero errors, build output 2.5 MB
+- **useInterest.ts**: Fixed 5 runtime bugs — hardcoded movie.douban.com URL changed to relative `/j/subject` path, corrected API field name from `interest` to `interest_status`, added `X-Requested-With` header for Douban API compatibility, added 403 login-expired detection with toast notification, added `apiPathPrefix` parameter for music/book subdomain support
+- **Detail page stars sync**: Fixed `stars: 0` hardcoded in `onCrossPlatformSave` calls — now passes actual `selectedRating` value so cross-platform sync records correct ratings
+- **NeoDB on-load sync**: Restored `syncNeoDBOnLoad()` call after `fetchInterest()` — companion NeoDB link check for existing watched records now runs on page load
+- **NeoDB push injection**: Restored dynamic import of `neodb-push` module — injects NeoDB buttons when status is `collect`
+- **Genre page type**: Fixed incorrect `type="movie"` to `type="music"` in genre page layout
+- **Homepage overlay**: Complete rewrite from static placeholder to full interactive overlay — restored 4 section components (UmmMediaRow, UmmBillboardCard, UmmScrollRow, UmmReviewsSection), 3 React hooks (useRecordCache, useDoubanSection, useHomepageObserver), DOM extractors for screening/billboard/hot sections, staggered re-parses for lazy-loaded content
+- **Search page components**: Restored UmmSearchCard and UmmSearchFilter components with TV/Movie filter toggle, full pagination (first/prev/window/next/last + jump-to-page input), TV detection via "剧集" label
+- **Detail page UI sections**: Restored 12 missing UI modules — rating card with bigstar CSS and percentage bars, rich HTML meta chips with links, synopsis HTML rendering, celebrities grid, photos gallery, short comments, music track list, book sections (author bio/TOC/blockquotes/editions), award badges with color highlighting, rank card, doulist button, my-comment display, NeoDB actions slot, unlimited recommendations
+- **Options OverviewTab**: Restored full feature set — 3 sub-tabs (overview/weekly/platform), 8-card stats grid, weekly detail with daily bar chart and source breakdown, platform distribution with type chips, loading skeleton, error state with retry
+- **Media-type labels**: Interest buttons now use context-aware labels — 想看/在看/看过 (movie), 想听/在听/已听 (music), 想读/在读/已读 (book)
 
 ### Chores
 
@@ -41,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security audit: reviewed all 256 changed files — no secrets, no hardcoded credentials, no new dependencies with known vulnerabilities (all 7 radix-ui packages are transitive-safe)
 - Build verification: `npm run build` + `npm run type-check` passed
 - Code review: PAUSED — pending user review before merge
+- Cleaned stale Vue references in comments (mount-factory.ts, main.ts, mount-app.ts)
+- Removed `src/**/*.vue` from tsconfig.json include array
+- Updated reka-ui CSS variables to radix-ui equivalents in style.css
+- Cleaned processVueFile dead code from scripts/add-umm-prefix.js
+- Updated CSS header comments referencing .vue files
 
 ## [5.2.2] - 2026-07-21
 

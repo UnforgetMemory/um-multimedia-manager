@@ -73,6 +73,7 @@ export function useInterest(
   subjectId: string | (() => string),
   initialStatus: InterestStatus = null,
   initialRating: number = 0,
+  apiPathPrefix?: string,
 ): UseInterest {
   const [interestStatus, setInterestStatus] = useState<InterestStatus>(initialStatus)
   const [currentRating, setCurrentRating] = useState(initialRating)
@@ -82,6 +83,8 @@ export function useInterest(
   const [hasDo, setHasDo] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const apiPath = apiPathPrefix || '/j/subject'
 
   const getId = useCallback(() => {
     return typeof subjectId === 'function' ? subjectId() : subjectId
@@ -94,29 +97,68 @@ export function useInterest(
     setError('')
     try {
       if (!isDoubanLoggedIn()) { setInterestStatus(null); return }
-      const res = await fetch('https://movie.douban.com/j/subject/' + id + '/interest', { credentials: 'include' })
-      if (res.status === 302 || res.status === 301) { setInterestStatus(null); return }
+      const res = await fetch(`${apiPath}/${encodeURIComponent(id)}/interest`, {
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      if (res.status === 403 || res.status === 302 || res.status === 301) {
+        setInterestStatus(null)
+        setCurrentRating(0)
+        setMyTags([])
+        setSavedTags([])
+        setCurrentComment('')
+        if (res.status === 403) {
+          const msg = isDoubanLoggedIn()
+            ? '豆瓣登录可能已过期，请刷新页面重新登录'
+            : '豆瓣登录已过期，请刷新页面重新登录'
+          FloatingToast.error('UMM', msg)
+        }
+        return
+      }
       if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        if (text.includes('登录') || text.includes('login')) { setInterestStatus(null); return }
         throw new Error('HTTP ' + res.status)
       }
-      const data = await res.json()
-      if (data.interest) setInterestStatus(data.interest)
-      if (data.html) {
-        const rating = extractRatingFromHtml(data.html)
-        if (rating > 0) setCurrentRating(rating)
-        const comment = extractCommentFromHtml(data.html)
+      const text = await res.text()
+      let parsed: any
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        if (interestStatus === null) {
+          setInterestStatus(null)
+          setCurrentRating(0)
+        }
+        return
+      }
+      // Use interest_status field (correct Douban API field name)
+      const rawStatus = parsed.interest_status ?? ''
+      if (rawStatus !== '') {
+        setInterestStatus(rawStatus as 'wish' | 'do' | 'collect')
+      }
+      const apiRating = typeof parsed.rating === 'number' ? parsed.rating : (parsed.html ? extractRatingFromHtml(parsed.html) : 0)
+      if (apiRating > 0) setCurrentRating(apiRating)
+      if (parsed.html) {
+        const comment = extractCommentFromHtml(parsed.html)
         if (comment) setCurrentComment(comment)
-        const tags = extractTagsFromHtml(data.html)
+        const tags = extractTagsFromHtml(parsed.html)
         setMyTags(tags.myTags)
         setSavedTags(tags.savedTags)
-        setHasDo(extractHasDoFromHtml(data.html))
+        setHasDo(extractHasDoFromHtml(parsed.html))
+      } else {
+        setMyTags(Array.isArray(parsed.my_tags) ? parsed.my_tags.filter((t: any): t is string => typeof t === 'string') : [])
+        setSavedTags(Array.isArray(parsed.tags) ? parsed.tags.filter((t: any): t is string => typeof t === 'string') : [])
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to fetch interest')
+      if (interestStatus === null) {
+        setInterestStatus(null)
+        setCurrentRating(0)
+      }
+      setMyTags([])
+      setSavedTags([])
+      setCurrentComment('')
+      setHasDo(false)
     } finally { setLoading(false) }
-  }, [getId])
+  }, [getId, apiPath])
 
   const submitInterest = useCallback(async (
     interest: 'wish' | 'do' | 'collect',
@@ -124,33 +166,58 @@ export function useInterest(
   ): Promise<boolean> => {
     const id = getId()
     if (!id) return false
+    const ck = getCk()
+    if (!ck) {
+      setError('未登录豆瓣')
+      if (!isDoubanLoggedIn()) {
+        FloatingToast.error('UMM', '未登录豆瓣，请刷新页面重新登录')
+      } else {
+        FloatingToast.error('UMM', 'CSRF token 缺失，请刷新页面')
+      }
+      return false
+    }
     setLoading(true)
     setError('')
     try {
-      if (!isDoubanLoggedIn()) { FloatingToast.error('请先登录豆瓣'); return false }
-      const ck = getCk()
-      const body = new URLSearchParams({ interest, ck })
-      if (rating !== undefined && rating > 0) body.set('rating', String(rating))
-      if (tags) body.set('tags', tags)
-      if (comment !== undefined) body.set('comment', comment)
-      const res = await fetch('https://movie.douban.com/j/subject/' + id + '/interest', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
+      const body = new URLSearchParams({
+        interest,
+        rating: rating != null ? String(rating) : '',
+        tags: tags ?? '',
+        comment: comment ?? '',
+        foldcollect: 'None',
+        ck,
       })
-      if (res.status === 302) {
+      const res = await fetch(`${apiPath}/${encodeURIComponent(id)}/interest`, {
+        method: 'POST', credentials: 'include',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: body.toString(),
+      })
+      const success = res.ok || res.status === 302 || res.status === 301
+      if (success) {
         setInterestStatus(interest)
         if (rating !== undefined) setCurrentRating(rating)
         if (comment !== undefined) setCurrentComment(comment)
         return true
       }
       const text = await res.text().catch(() => '')
-      throw new Error(text || 'HTTP ' + res.status)
+      let parsed: any = null
+      try { parsed = JSON.parse(text) } catch { parsed = null }
+      setError(parsed?.message ? String(parsed.message) : `Request failed (${res.status})`)
+      if (res.status === 403) {
+        const msg = isDoubanLoggedIn()
+          ? '豆瓣登录可能已过期，请刷新页面重新登录'
+          : '豆瓣登录已过期，请刷新页面重新登录'
+        FloatingToast.error('UMM', msg)
+      }
+      return false
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Submit failed')
       return false
     } finally { setLoading(false) }
-  }, [getId])
+  }, [getId, apiPath])
 
   return {
     interestStatus, currentRating, myTags, savedTags,

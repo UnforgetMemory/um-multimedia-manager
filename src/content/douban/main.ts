@@ -8,7 +8,7 @@
  * Page mount functions are created by `definePageMount()`, which
  * encapsulates the common bootstrap pattern:
  *   1. Compose page-specific CSS from presets
- *   2. Dynamic-import the root Vue component
+ *   2. Dynamic-import the root React component
  *   3. Call `mountUmmOverlay` with lifecycle hooks
  *
  * Usage:
