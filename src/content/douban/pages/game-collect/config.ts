@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 export const mountGameCollect = definePageMount({
   cssPreset: 'game-collect',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractGameCollectData } = await import('./game-collect-data')
     let data: import('./types').GameCollectData | null = null
@@ -29,5 +30,5 @@ export const mountGameCollect = definePageMount({
     hideNavForPage({ type: 'game-collect', subType: data.subType })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

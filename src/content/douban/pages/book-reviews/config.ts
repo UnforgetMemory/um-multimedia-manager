@@ -1,12 +1,13 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 /** Mount config for the Douban user book reviews page overlay */
 export const mountBookReviews = definePageMount({
   cssPreset: 'book-reviews',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractBookReviewsData } = await import('./book-reviews-data')
 
@@ -21,5 +22,5 @@ export const mountBookReviews = definePageMount({
     hideNavForPage({ type: 'book-reviews' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

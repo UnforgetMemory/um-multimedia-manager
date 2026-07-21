@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 export const mountMovieProfile = definePageMount({
   cssPreset: 'movie-profile',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractMovieProfileData } = await import('./movie-profile-data')
 
@@ -19,5 +20,5 @@ export const mountMovieProfile = definePageMount({
     hideNavForPage({ type: 'movie-profile' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

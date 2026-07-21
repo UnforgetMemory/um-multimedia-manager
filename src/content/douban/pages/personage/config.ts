@@ -1,12 +1,13 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { loadRecordMap } from '../../shared/load-record-map'
 
 export const mountPersonage = definePageMount({
   cssPreset: 'personage',
   overlayId: 'umm-personage-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractPersonagePageData } = await import('./personage-data')
 
@@ -36,5 +37,5 @@ export const mountPersonage = definePageMount({
     hideNavForPage({ type: 'personage' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

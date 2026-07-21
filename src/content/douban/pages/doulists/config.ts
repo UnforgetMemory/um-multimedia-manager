@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 export const mountDoulists = definePageMount({
   cssPreset: 'doulists',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractDoulistsData } = await import('./doulists-data')
     const data = extractDoulistsData()
@@ -13,5 +14,5 @@ export const mountDoulists = definePageMount({
     hideNavForPage({ type: 'doulists' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

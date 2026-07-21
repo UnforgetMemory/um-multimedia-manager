@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 export const mountGenre = definePageMount({
   cssPreset: 'genre',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractGenrePage } = await import('./extractors')
     const data = extractGenrePage()
@@ -13,5 +14,5 @@ export const mountGenre = definePageMount({
     hideNavForPage({ type: 'genre' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

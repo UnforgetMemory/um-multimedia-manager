@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 export const mountCelebrities = definePageMount({
   cssPreset: 'celebrities',
   overlayId: 'umm-celebrities-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractCelebritiesPageData } = await import('./celebrities-data')
     const data = extractCelebritiesPageData()
@@ -13,5 +14,5 @@ export const mountCelebrities = definePageMount({
     hideNavForPage({ type: 'celebrities' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

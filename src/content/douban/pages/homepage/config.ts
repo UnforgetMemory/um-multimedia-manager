@@ -1,9 +1,10 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 
 export const mountHomepage = definePageMount({
   cssPreset: 'homepage',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
-  createApp: (RootCmp) => createApp(RootCmp),
+  importApp: () => import('./App'),
+  createApp: (RootCmp, container) => { const root = createRoot(container); root.render(React.createElement(RootCmp)); return root },
 })

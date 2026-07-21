@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { loadRecordMap } from '../../shared/load-record-map'
 
 export const mountSearch = definePageMount({
   cssPreset: 'search',
   overlayId: 'umm-search-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { parseSearchData } = await import('./search-data')
     const type = location.href.includes('search.douban.com/music')
@@ -19,5 +20,5 @@ export const mountSearch = definePageMount({
     ])
     return { searchData, recordMap, type }
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, data),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, data)); return root },
 })

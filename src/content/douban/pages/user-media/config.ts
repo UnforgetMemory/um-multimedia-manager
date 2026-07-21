@@ -1,12 +1,13 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { getUserMediaSubType } from '../../shared/url-detector'
 
 export const mountUserMedia = definePageMount({
   cssPreset: 'user-media',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractUserMediaData } = await import('./user-media-data')
 
@@ -38,5 +39,5 @@ export const mountUserMedia = definePageMount({
     hideNavForPage({ type: 'user-media', subType: getUserMediaSubType(location.href) })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

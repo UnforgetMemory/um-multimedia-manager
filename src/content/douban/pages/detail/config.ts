@@ -1,12 +1,13 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
 
 export const mountDetail = definePageMount({
   cssPreset: 'detail',
   overlayId: 'umm-detail-mask',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractDetailData, loadRecord } = await import('./detail-data')
     const detailData = await extractDetailData()
@@ -20,8 +21,8 @@ export const mountDetail = definePageMount({
     hideNavForPage({ type: 'detail', mediaType })
     return detailData
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { detailData: data }),
-  async afterMount(_shadow, app, _container, data) {
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { detailData: data })); return root },
+  async afterMount(_shadow, root, _container, data) {
     // Initialize doulist modal click handler ("添加到片单" / "+ 添加到书单")
     if (data.identity) {
       initDoulistReplacement(data.identity)
@@ -32,17 +33,16 @@ export const mountDetail = definePageMount({
     const recordPoller = setInterval(async () => {
       if (!data.identity) return
       const updated = await loadRecord(data.identity)
-      if (updated && app._instance) {
-        const vm = app._instance.proxy as unknown as Record<string, unknown>
-        if (vm && typeof vm.updateRecord === 'function') {
-          vm.updateRecord(updated)
-        }
+      if (updated) {
+        window.dispatchEvent(new CustomEvent('umm:record-updated', {
+          detail: { record: updated, identity: data.identity },
+        }))
       }
     }, 3000)
 
     ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
       clearInterval(recordPoller)
-      app.unmount()
+      root.unmount()
     }
   },
 })

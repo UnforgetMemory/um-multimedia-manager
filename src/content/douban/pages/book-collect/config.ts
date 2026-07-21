@@ -1,5 +1,6 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { getBookCollectSubType } from '../../shared/url-detector'
 
@@ -7,7 +8,7 @@ import { getBookCollectSubType } from '../../shared/url-detector'
 export const mountBookCollect = definePageMount({
   cssPreset: 'book-collect',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractBookCollectData } = await import('./book-collect-data')
 
@@ -38,5 +39,5 @@ export const mountBookCollect = definePageMount({
     hideNavForPage({ type: 'book-collect', subType: getBookCollectSubType(location.href) })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })

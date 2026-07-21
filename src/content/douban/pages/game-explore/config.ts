@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { loadRecordMap } from '../../shared/load-record-map'
 
 export const mountGameExplore = definePageMount({
   cssPreset: 'game-explore',
   overlayId: 'umm-douban-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { parseGameExploreData } = await import('./game-explore-data')
     const [exploreData, recordMap] = await Promise.all([
@@ -14,5 +15,5 @@ export const mountGameExplore = definePageMount({
     ])
     return { exploreData, recordMap }
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, data),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, data)); return root },
 })

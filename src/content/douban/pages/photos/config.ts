@@ -1,11 +1,12 @@
 import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import { hideNavForPage } from '../../shared/hide-nav'
 
 export const mountPhotos = definePageMount({
   cssPreset: 'photos',
   overlayId: 'umm-photos-overlay',
-  importApp: () => import('./App.vue'),
+  importApp: () => import('./App'),
   async beforeMount() {
     const { extractPhotosPageData } = await import('./photos-data')
     const data = extractPhotosPageData()
@@ -13,5 +14,5 @@ export const mountPhotos = definePageMount({
     hideNavForPage({ type: 'photos' })
     return data
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, container, data) => { const root = createRoot(container); root.render(React.createElement(RootCmp, { data })); return root },
 })
