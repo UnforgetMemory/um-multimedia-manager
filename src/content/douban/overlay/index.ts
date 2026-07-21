@@ -12,5 +12,3 @@ export { mountUmmOverlay } from './mount-app'
 export type { MountOptions } from './mount-app'
 
 export { applyOverlayTheme, startThemeSync, getThemeFromStorage, resolveTheme, THEME_KEY } from './theme-sync'
-
-export { dismissOverlay } from './dismiss'

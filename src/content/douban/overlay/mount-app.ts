@@ -6,20 +6,20 @@
  * afterMount hook.
  */
 
-import type { App } from 'vue'
+import type { Root } from 'react-dom/client'
 
 export interface MountOptions {
   overlayId: string
   css: string
   beforeMount?: (shadow: ShadowRoot) => unknown | Promise<unknown>
-  createApp: (shadow: ShadowRoot, ctx?: unknown) => App
-  afterMount?: (shadow: ShadowRoot, app: App, container: HTMLDivElement, ctx?: unknown) => void | Promise<void>
+  createApp: (shadow: ShadowRoot, container: HTMLDivElement, ctx?: unknown) => Root
+  afterMount?: (shadow: ShadowRoot, root: Root, container: HTMLDivElement, ctx?: unknown) => void | Promise<void>
 }
 
 /**
- * Mount a Vue app inside an existing shadow DOM overlay.
+ * Mount a React app inside an existing shadow DOM overlay.
  * Creates the style element, applies theme class, then async-initializes
- * the app (beforeMount → loading remove → createApp → afterMount).
+ * the app (beforeMount → loading remove → createRoot → afterMount).
  */
 export function mountUmmOverlay(options: MountOptions): void {
   const overlay = document.getElementById(options.overlayId)
@@ -60,11 +60,10 @@ export function mountUmmOverlay(options: MountOptions): void {
 
     const container = document.createElement('div')
     shadow.appendChild(container)
-    const app = options.createApp(shadow, ctx)
-    app.mount(container)
+    const root = options.createApp(shadow, container, ctx)
 
     if (options.afterMount) {
-      await options.afterMount(shadow, app, container, ctx)
+      await options.afterMount(shadow, root, container, ctx)
     }
   }
 

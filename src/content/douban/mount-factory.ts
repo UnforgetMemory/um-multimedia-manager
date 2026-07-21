@@ -25,7 +25,8 @@
  * ```
  */
 
-import type { Component, App } from 'vue'
+import type { ComponentType } from 'react'
+import type { Root } from 'react-dom/client'
 import type { PageType } from './shared/url-detector'
 import { mountUmmOverlay } from './overlay'
 import { composeStylesForPage } from './css-composer'
@@ -53,12 +54,12 @@ export interface PageMountConfig<T = undefined> {
   overlayId: string
 
   /**
-   * Dynamic import of the root Vue component for this page.
-   * Must return `{ default: Component }`.
+   * Dynamic import of the root React component for this page.
+   * Must return `{ default: ComponentType }`.
    *
-   * Example: `() => import('./pages/detail/App.vue')`
+   * Example: `() => import('./pages/detail/App')`
    */
-  importApp: () => Promise<{ default: Component }>
+  importApp: () => Promise<{ default: ComponentType<any> }>
 
   /**
    * Optional async setup that runs inside the overlay's Shadow DOM before
@@ -76,19 +77,19 @@ export interface PageMountConfig<T = undefined> {
   beforeMount?: (shadow: ShadowRoot) => Promise<T>
 
   /**
-   * Create the Vue app instance.
+   * Create the React root instance.
    *
    * @param RootCmp - The root component (from the `importApp` dynamic import).
    * @param data - The value returned by `beforeMount`, or `undefined` if
    *   `beforeMount` is not configured.
    */
-  createApp: (RootCmp: Component, data: T) => App
+  createApp: (RootCmp: ComponentType<any>, container: HTMLDivElement, data: T) => Root
 
   /**
    * Optional post-mount hook for side effects such as polling for record
    * updates or registering global cleanup handlers.
    */
-  afterMount?: (shadow: ShadowRoot, app: App, container: HTMLDivElement, data: T) => void | Promise<void>
+  afterMount?: (shadow: ShadowRoot, root: Root, container: HTMLDivElement, data: T) => void | Promise<void>
 }
 
 /**
@@ -117,12 +118,12 @@ export function definePageMount<T = undefined>(
           return await config.beforeMount(shadow)
         }
       },
-      createApp(_shadow, ctx) {
-        return config.createApp(RootCmp, ctx as T)
+      createApp(_shadow, container, ctx) {
+        return config.createApp(RootCmp, container, ctx as T)
       },
-      afterMount(shadow, app, container, ctx) {
+      afterMount(shadow, root, container, ctx) {
         if (config.afterMount) {
-          return config.afterMount(shadow, app, container, ctx as T)
+          return config.afterMount(shadow, root, container, ctx as T)
         }
       },
     })

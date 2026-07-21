@@ -1,4 +1,4 @@
-import { h, type FunctionalComponent } from 'vue'
+import React from 'react'
 
 type StatusType = 'done' | 'none' | 'wish' | 'doing'
 type UmmBadgeType = 'movie' | 'music' | 'book' | 'game'
@@ -17,23 +17,20 @@ const BADGE_LABELS: Record<UmmBadgeType, { done: string; wish: string; none: str
   game: { done: '已玩', wish: '想玩', none: '未玩', doing: '在玩' },
 }
 
-export const UmmStatusBadge: FunctionalComponent<UmmStatusBadgeProps> = (props) => {
-  const statusType: StatusType = props.status === 2 ? 'done' : props.status === 3 ? 'doing' : props.status === 1 ? 'wish' : 'none'
-  const labels = BADGE_LABELS[props.type ?? 'movie']
+export const UmmStatusBadge: React.FC<UmmStatusBadgeProps> = ({ status, rating, variant = 'default', type = 'movie' }) => {
+  const statusType: StatusType = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
+  const labels = BADGE_LABELS[type]
   const statusText = statusType === 'done'
-    ? (props.rating ? `${labels.done} ${props.rating}` : labels.done)
+    ? (rating ? `${labels.done} ${rating}` : labels.done)
     : statusType === 'doing' ? labels.doing
     : statusType === 'wish' ? labels.wish : labels.none
-  const variant = props.variant ?? 'default'
-  const classes = `umm-status umm-status--${variant} umm-status--${statusType}`
-  const attrs: Record<string, string> = {
-    'data-umm-status-raw': String(props.status),
-    'data-umm-type': statusType,
-  }
-  if (props.rating !== undefined) {
-    attrs['data-umm-rating'] = String(props.rating)
-  }
-  return h('span', { class: classes, ...attrs }, statusText)
-}
 
-UmmStatusBadge.props = ['status', 'rating', 'variant', 'type']
+  const attrs: Record<string, string | undefined> = {
+    className: `umm-status umm-status--${variant} umm-status--${statusType}`,
+    'data-umm-status-raw': String(status),
+    'data-umm-type': statusType,
+    'data-umm-rating': rating !== undefined ? String(rating) : undefined,
+  }
+
+  return React.createElement('span', attrs, statusText)
+}
