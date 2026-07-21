@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
+    "jsxImportSource": "react",
 
     /* Linting */
     "strict": true,
@@ -22,7 +23,7 @@
     "noUncheckedSideEffectImports": false,
     
     /* Chrome Extension Types */
-    "types": ["chrome"],
+    "types": ["chrome", "vite/client"],
     
     /* TypeScript 6.0 compatibility */
     "rootDir": ".",
