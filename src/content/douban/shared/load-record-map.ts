@@ -50,5 +50,3 @@ export async function loadRecordMap(prefix?: string): Promise<Map<string, StoreR
   }
   return map
 }
-
-export { useRecordCache } from './composables/useRecordCache'

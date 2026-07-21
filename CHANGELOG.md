@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2026-07-21
+
+### Architecture
+
+- **Framework migration**: Migrated entire UI layer from Vue 3 to React 19 — all 104 Vue SFCs replaced with React TSX components, 0 `.vue` files remain in source tree
+- **State management**: Replaced Pinia 4 stores with Zustand 5 — `useAppStore`, `useThemeStore`, `useConfirmStore` with identical API surface
+- **Routing**: Replaced vue-router 5 with react-router-dom 7 — Popup and Options SPAs use HashRouter with lazy-loaded routes
+- **Internationalization**: Replaced vue-i18n 11 with react-i18next 17 — reused existing locale data, custom `t()` for content scripts unchanged
+- **UI component library**: Replaced shadcn/vue (reka-ui) with shadcn/react (radix-ui) — 13 core components ported with Tailwind CSS v4 `umm-` prefix
+- **Build system**: Removed `@wxt-dev/module-vue` and `@vitejs/plugin-vue` — now uses `@wxt-dev/module-react` with `@vitejs/plugin-react` 6
+- **Type checking**: Replaced vue-tsc 3.3.7 with `tsc --noEmit` — zero errors
+
+### Features
+
+- **Douban detail page**: Full interest marking (想看/看过/在看) with Douban API integration, 1-10 star rating selector, tag selection, comment input, cross-platform sync (IndexedDB + IMDb/TMDB/NeoDB)
+- **Douban search page**: Category tabs (电影/音乐/图书), text filtering, pagination with prev/next buttons, empty state handling
+- **EmptyState component**: Reusable empty state across all 28 Douban page types
+- **Personage page**: Profile header, biography, recent/popular works, partners grid
+- **Movie profile page**: User stats, collection sections, "view all" links, doulists
+- **Book profile page**: Read/wish grids, reviews, followed authors
+- **Game detail page**: Cover, rating, developer/publisher info, screenshots, description
+
+### Fixes
+
+- **Props structure**: Fixed data-prop mismatches across 28 page configs — unified `React.createElement` pattern with correct `{ data }` wrapping or direct spread
+- **Type safety**: Fixed 40+ type errors across migrated pages — added explicit type annotations, fixed unused imports, corrected module import paths
+- **Build stability**: All 304 TS/TSX files compile with zero errors, build output 2.5 MB
+
+### Chores
+
+- Removed all Vue dependencies: `vue`, `vue-router`, `vue-i18n`, `pinia`, `reka-ui`, `lucide-vue-next`, `@vueuse/core`, `@vitejs/plugin-vue`, `@wxt-dev/module-vue`, `vue-tsc`
+- Created ADR-001 documenting migration decision, strategy, and verification
+- Updated `type-check` script from `vue-tsc --noEmit` to `tsc --noEmit`
+- Security audit: reviewed all 256 changed files — no secrets, no hardcoded credentials, no new dependencies with known vulnerabilities (all 7 radix-ui packages are transitive-safe)
+- Build verification: `npm run build` + `npm run type-check` passed
+- Code review: PAUSED — pending user review before merge
+
 ## [5.2.2] - 2026-07-21
 
 ### Fixes
