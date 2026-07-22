@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.5.0] - 2026-07-22
+## [5.4.0] - 2026-07-22
 
 ### Features
 
@@ -40,10 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code review: 1 Important + 4 Suggestion 全部修复
 - Assisted-by: DeepSeek V4 via OpenCode
 
-## [5.4.0] - 2026-07-22
-
-### Features
-
 - **豆瓣丛书系列页面深度适配**: 新增 `book.douban.com/series/{id}` 页面完整注入
   - 新页面类型 `series` → `url-detector.ts` / `early.ts` / `main.ts` / `css-composer.ts` / `css-map.ts`
   - Vue 覆盖层: 丛书标题/出版社/册数/简介、排序切换（收藏数/出版时间）、书籍列表含封面高清图（/s/→/l/）、评分展示、记录状态徽章（已读/想读/在读）、分页器
@@ -62,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **0 项安全漏洞**: Oracle 安全审计确认——所有 DOM 提取使用 `textContent`（无 innerHTML），URL 经 `startsWith('http')` 守卫 + `/subject/\d+/` 正则过滤后使用，无 eval/innerHTML/Function 动态执行，无硬编码密钥，无 SSRF 向量
+- **0 项安全漏洞**: 安全审计确认——所有 DOM 提取使用 `textContent`（无 innerHTML），URL 经 `startsWith('http')` 守卫 + `/subject/\d+/` 正则过滤后使用，无 eval/innerHTML/Function 动态执行，无硬编码密钥，无 SSRF 向量
 
 ### Chores
 
@@ -70,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.gitignore` 扩展: +82 行防御性条目（IDE/Fleet/Docker/DevContainer/Sass/Rollup/Sentry/Storybook/Cypress/Playwright 等）
 - 测试环境清洁: 无残留测试进程，无过期测试产物，Playwright 浏览器二进制已忽略
 - 测试验证: `vue-tsc --noEmit` 零错误, `npm run build` 通过
-- Code review: 3 Critical + 2 Important 全部修复，Oracle 安全审计通过
+- Code review: 3 Critical + 2 Important + 1 Important + 4 Suggestion 全部修复，Oracle 安全审计通过
 - Assisted-by: DeepSeek V4 via OpenCode
 
 ## [5.3.0] - 2026-07-22
