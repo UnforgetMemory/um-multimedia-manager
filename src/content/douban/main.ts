@@ -37,6 +37,7 @@ import { mountCelebrities } from './pages/celebrities/config'
 import { mountPersonage } from './pages/personage/config'
 import { mountUserProfile } from './pages/user-profile/config'
 import { mountMovieProfile } from './pages/movie-profile/config'
+import { mountMusicProfile } from './pages/music-profile/config'
 import { mountDoulists } from './pages/doulists/config'
 import { mountDoulistDetail } from './pages/doulist-detail/config'
 import { mountUserMedia } from './pages/user-media/config'
@@ -50,6 +51,7 @@ import { mountGameCollect } from './pages/game-collect/config'
 import { mountGameDetail } from './pages/game-detail/config'
 import { mountGameExplore } from './pages/game-explore/config'
 import { mountSeries } from './pages/series/config'
+import { mountMusicCollect } from './pages/music-collect/config'
 
 const registry = new MountRegistry()
 
@@ -68,6 +70,7 @@ registry.register('celebrities', mountCelebrities)
 registry.register('personage', mountPersonage)
 registry.register('user-profile', mountUserProfile)
 registry.register('movie-profile', mountMovieProfile)
+registry.register('music-profile', mountMusicProfile)
 registry.register('doulists', mountDoulists)
 registry.register('doulist-detail', mountDoulistDetail)
 registry.register('user-media', mountUserMedia)
@@ -81,6 +84,7 @@ registry.register('game-collect', mountGameCollect)
 registry.register('game-detail', mountGameDetail)
 registry.register('game-explore', mountGameExplore)
 registry.register('series', mountSeries)
+registry.register('music-collect', mountMusicCollect)
 import { mountBookAuthors } from './pages/book-authors/config'
 registry.register('book-authors', mountBookAuthors)
 

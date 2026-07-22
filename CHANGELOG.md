@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.0] - 2026-07-22
+
+### Features
+
+- **豆瓣音乐收藏页深度适配**: 新增 `music.douban.com/mine?status=*` / `music.douban.com/people/{uid}/collect|wish|do` 页面完整注入
+  - 新页面类型 `music-collect` → `url-detector.ts` / `early.ts` / `hide-nav.ts` / `main.ts` / `css-composer.ts` / `css-map.ts`
+  - Vue 覆盖层: 用户信息栏（头像/昵称/导航链接）、排序切换（时间/评价/标题）、专辑网格卡片（1:1 封面比例）、评分展示（豆瓣音乐 1-3 星 → 10 分制映射）、分页器
+  - DOM 数据提取: 支持 `mine?status=*`（无 userId 路径）和 `people/{uid}/collect` 两种 URL 格式
+  - 导航隐藏: 全局导航栏 + 音乐导航栏
+
+- **豆瓣音乐个人主页深度适配**: 新增 `music.douban.com/people/{uid}/` 页面完整注入
+  - 新页面类型 `music-profile` → `url-detector.ts` / `early.ts` / `hide-nav.ts` / `main.ts` / `css-composer.ts` / `css-map.ts`
+  - Vue 覆盖层: Hero 头像区域、统计栏（听过/添加条目数）、最近听过专辑网格、喜欢的艺术家标签列表、音乐豆列列表
+  - DOM 数据提取: 从 `.music-user-profile` 提取头像/用户名，`#db-music-mine` 提取专辑，`#musicians` 提取艺术家，`.aside .mod.doulist` 提取豆列
+
+### Code Quality
+
+- **代码审查修复**: 5 轴审查（正确性/可读性/架构/安全/性能），修复 1 个 Important + 4 个 Suggestion：
+  - `music-profile-data.ts`: 空 `href` 守卫（专辑/艺术家/豆列条目）
+  - `music-collect/App.vue`: `toRatingScore()` 公式修正（n=3 → "10.0"）
+  - `music-profile/App.vue`: 参数重命名避免 shadowing
+
+### Security
+
+- **0 项安全漏洞**: 安全审计确认——所有 DOM 提取使用 `textContent`，URL 经 `startsWith('http')` 守卫 + `/subject/\d+/` 正则过滤后使用，无 innerHTML 渲染/无 eval/无硬编码密钥
+- `npm audit`: 3 项已知漏洞（adm-zip/esbuild/shell-quote），均为 dev 依赖，无可用的修复版本，不影响生产
+
+### Chores
+
+- `.localref/` Windows Zone.Identifier 工件清理
+- `test-results/` 过期 Playwright 报告清理（545KB）
+- 测试验证: `vue-tsc --noEmit` 零错误, `npm run build` 通过
+- Code review: 1 Important + 4 Suggestion 全部修复
+- Assisted-by: DeepSeek V4 via OpenCode
+
 ## [5.4.0] - 2026-07-22
 
 ### Features

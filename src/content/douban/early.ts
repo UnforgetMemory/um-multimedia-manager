@@ -25,7 +25,8 @@ const SUBTITLE: Record<string, string> = {
   search: '加载搜索结果...',
   personage: '加载影人资料...',
   'user-profile': '用户主页 · 加载中',
-'movie-profile': '电影主页 · 加载中',
+  'movie-profile': '电影主页 · 加载中',
+  'music-profile': '音乐主页 · 加载中',
 'user-celebrities': '收藏的影人 · 加载中',
 'user-reviews': '我的影评 · 加载中',
   'review-detail': '影评详情 · 加载中',
@@ -42,6 +43,7 @@ const SUBTITLE: Record<string, string> = {
   'game-detail': '游戏详情 · 加载中',
   'game-explore': '游戏探索 · 加载中',
   series: '丛书 · 加载中',
+  'music-collect': '音乐收藏 · 加载中',
 }
 
 function getOverlayConfig(): OverlayOptions | null {

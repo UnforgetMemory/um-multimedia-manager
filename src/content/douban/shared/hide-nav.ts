@@ -80,8 +80,14 @@ export function hideNavForPage(pageType: PageType): void {
     case 'user-media':
       hideNativeNav({ globalNav: true, movieNav: true })
       break
+    case 'music-profile':
+      hideNativeNav({ globalNav: true, musicNav: true })
+      break
     case 'book-reviews':
       hideNativeNav({ globalNav: true, bookNav: true })
+      break
+    case 'music-collect':
+      hideNativeNav({ globalNav: true, musicNav: true })
       break
     case 'book-collect':
       hideNativeNav({ globalNav: true, bookNav: true })
@@ -89,6 +95,7 @@ export function hideNavForPage(pageType: PageType): void {
     case 'book-authors':
     case 'series':
       hideNativeNav({ globalNav: true, bookNav: true })
+      break
       break
     case 'book-profile':
     case 'book-review-detail':

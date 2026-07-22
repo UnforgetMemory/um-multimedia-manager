@@ -36,6 +36,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'personage':        { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['personage'] },
   'user-profile':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'empty-state'], page: ['user-profile'] },
   'movie-profile':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['movie-profile'] },
+  'music-profile':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['music-profile'] },
   'doulists':         { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator'], page: ['doulists'] },
   'doulist-detail':   { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['doulist-detail'] },
   'user-media':       { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['user-media'] },
@@ -53,6 +54,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'game-explore':     { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['game-explore'] },
   'albums':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'media-chips'], page: ['albums'] },
   'series':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['series'] },
+  'music-collect':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['music-collect'] },
 }
 
 /**

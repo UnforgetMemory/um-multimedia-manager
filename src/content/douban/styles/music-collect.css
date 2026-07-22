@@ -1,0 +1,194 @@
+/* ===== UMM Douban Music Collect — Shadow DOM styles ===== */
+/* Follows the user-media/book-collect pattern for user collection pages. */
+
+:host {
+  --umm-mc-accent: #6366f1;
+  --umm-mc-accent-soft: #eef2ff;
+}
+:host(.umm-theme--dark) {
+  --umm-mc-accent: #818cf8;
+  --umm-mc-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
+}
+
+/* ===== Root ===== */
+.umm-mc-root {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== Title Bar ===== */
+.umm-mc-titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 10px);
+  margin-bottom: var(--umm-space-md, 16px);
+}
+.umm-mc-titlebar-label {
+  font-size: var(--umm-font-lg, 1rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+.umm-mc-titlebar-count {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Opt Bar ===== */
+.umm-mc-optbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--umm-space-xs, 6px) var(--umm-space-sm, 12px);
+  margin-bottom: var(--umm-space-md, 16px);
+  padding: var(--umm-space-xs, 8px) var(--umm-space-sm, 12px);
+  background: var(--umm-bg-secondary);
+  border-radius: var(--umm-card-radius, 10px);
+  font-size: var(--umm-font-xs, 0.75rem);
+}
+.umm-mc-optgroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.umm-mc-opt {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--umm-text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.umm-mc-opt:hover {
+  background: var(--umm-bg);
+  color: var(--umm-text-primary);
+}
+.umm-mc-opt--active {
+  background: var(--umm-mc-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.umm-mc-opt--active:hover {
+  background: var(--umm-mc-accent);
+  color: #fff;
+}
+
+/* ===== Card Grid ===== */
+.umm-mc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--umm-space-md, 14px);
+}
+@media (min-width: 768px) { .umm-mc-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .umm-mc-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { .umm-mc-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1920px) { .umm-mc-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 2560px) { .umm-mc-grid { grid-template-columns: repeat(7, 1fr); } }
+
+/* ===== Card ===== */
+.umm-mc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  border-radius: var(--umm-card-radius, 10px);
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+.umm-mc-card:hover {
+  transform: translateY(-4px);
+}
+.umm-mc-card-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--umm-bg-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.25s ease;
+}
+.umm-mc-card:hover .umm-mc-card-cover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+:host(.umm-theme--dark) .umm-mc-card-cover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+:host(.umm-theme--dark) .umm-mc-card:hover .umm-mc-card-cover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.umm-mc-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px;
+}
+.umm-mc-card-title {
+  font-size: var(--umm-font-xs, 0.7rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.umm-mc-card-subtitle {
+  font-size: var(--umm-font-xs, 0.6rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.umm-mc-card-intro {
+  font-size: var(--umm-font-xs, 0.55rem);
+  color: var(--umm-text-muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.umm-mc-card-date {
+  font-size: var(--umm-font-xs, 0.6rem);
+  font-weight: 600;
+  color: var(--umm-text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--umm-bg-secondary);
+  display: inline-block;
+  align-self: flex-start;
+  margin-bottom: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ===== Page Info ===== */
+.umm-mc-pageinfo {
+  text-align: center;
+  padding: var(--umm-space-md, 16px);
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Empty State ===== */
+.umm-mc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--umm-space-sm, 10px);
+  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
+  text-align: center;
+}
+.umm-mc-empty-text {
+  font-size: var(--umm-font-base, 0.875rem);
+  color: var(--umm-text-muted);
+}

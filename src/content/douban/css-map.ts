@@ -26,6 +26,7 @@ import celebritiesCss from './styles/celebrities.css?raw'
 import personageCss from './styles/personage.css?raw'
 import userProfileCss from './styles/user-profile.css?raw'
 import movieProfileCss from './styles/movie-profile.css?raw'
+import musicProfileCss from './styles/music-profile.css?raw'
 import doulistsCss from './styles/doulists.css?raw'
 import doulistDetailCss from './styles/doulist-detail.css?raw'
 import userMediaCss from './styles/user-media.css?raw'
@@ -46,6 +47,7 @@ import pageLayoutCss from './styles/page-layout.css?raw'
 import interestCss from './styles/interest.css?raw'
 import mediaChipsCss from './styles/media-chips.css?raw'
 import seriesCss from './styles/series.css?raw'
+import musicCollectCss from './styles/music-collect.css?raw'
 import titlebarCss from './styles/titlebar.css?raw'
 import emptyStateCss from './styles/empty-state.css?raw'
 
@@ -68,6 +70,7 @@ export {
   personageCss,
   userProfileCss,
   movieProfileCss,
+  musicProfileCss,
   doulistsCss,
   doulistDetailCss,
   userMediaCss,
@@ -88,6 +91,7 @@ export {
   interestCss,
   mediaChipsCss,
   titlebarCss,
+  musicCollectCss,
   emptyStateCss,
 }
 
@@ -115,6 +119,7 @@ export const cssMap: Record<string, string> = {
   personage: personageCss,
   'user-profile': userProfileCss,
   'movie-profile': movieProfileCss,
+  'music-profile': musicProfileCss,
   doulists: doulistsCss,
   'doulist-detail': doulistDetailCss,
   'user-media': userMediaCss,
@@ -129,6 +134,7 @@ export const cssMap: Record<string, string> = {
   'book-authors': bookAuthorsCss,
   albums: albumsCss,
   series: seriesCss,
+  'music-collect': musicCollectCss,
   'game-collect': gameCollectCss,
   'game-detail': gameDetailCss,
   'game-explore': gameExploreCss,

@@ -24,6 +24,7 @@ export type PageType =
   | { type: 'personage' }
   | { type: 'user-profile' }
   | { type: 'movie-profile' }
+  | { type: 'music-profile' }
   | { type: 'doulists' }
   | { type: 'doulist-detail' }
   | { type: 'user-media'; subType: 'collect' | 'wish' | 'doing' }
@@ -40,6 +41,7 @@ export type PageType =
   | { type: 'game-collect'; subType: 'collect' | 'wish' | 'do' }
   | { type: 'game-detail' }
   | { type: 'game-explore' }
+  | { type: 'music-collect'; subType: 'collect' | 'wish' | 'doing' }
   | { type: 'series' }
 
 export function isAlbumsPage(url: string): boolean {
@@ -110,6 +112,10 @@ export function isUserProfilePage(url: string): boolean {
   return /^https?:\/\/www\.douban\.com\/people\/[^/]+(?:\/)?(?:\?.*)?$/.test(url)
 }
 
+export function isMusicProfilePage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/people\/[^/]+(?:\/)?(?:\?.*)?$/.test(url)
+}
+
 export function isMovieProfilePage(url: string): boolean {
   return /^https?:\/\/movie\.douban\.com\/people\/[^/]+(?:\/)?(?:\?.*)?$/.test(url)
 }
@@ -152,6 +158,16 @@ export function isBookCollectPage(url: string): boolean {
 
 export function isBookAuthorsPage(url: string): boolean {
   return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/authors/.test(url)
+}
+
+export function isMusicCollectPage(url: string): boolean {
+  return /^https?:\/\/music\.douban\.com\/(people\/[^/]+\/(collect|wish|do)|mine)/.test(url)
+}
+
+export function getMusicCollectSubType(url: string): 'collect' | 'wish' | 'doing' {
+  if (url.includes('/wish') || url.includes('status=wish')) return 'wish'
+  if (url.includes('/do') || url.includes('status=do')) return 'doing'
+  return 'collect'
 }
 
 export function isSeriesPage(url: string): boolean {
@@ -206,6 +222,7 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isUserReviewsPage(url)) return { type: 'user-reviews' }
   if (isBookUserReviewsPage(url)) return { type: 'book-reviews' }
   if (isBookAuthorsPage(url)) return { type: 'book-authors' }
+  if (isMusicProfilePage(url)) return { type: 'music-profile' }
   if (isMovieProfilePage(url)) return { type: 'movie-profile' }
   if (isUserProfilePage(url)) return { type: 'user-profile' }
   if (isUserMediaPage(url)) {
@@ -220,6 +237,9 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isReviewDetailPage(url)) return { type: 'review-detail' }
   if (isBookReviewDetailPage(url)) return { type: 'book-review-detail' }
   if (isHomepage(url))       return { type: 'homepage' }
+  if (isMusicCollectPage(url)) {
+    return { type: 'music-collect', subType: getMusicCollectSubType(url) }
+  }
   if (isSeriesPage(url))     return { type: 'series' }
   if (isGameDetailPage(url)) return { type: 'game-detail' }
   if (isGameExplorePage(url)) return { type: 'game-explore' }

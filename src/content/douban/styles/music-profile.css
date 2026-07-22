@@ -1,0 +1,177 @@
+/* ===== UMM Douban Music Profile — Shadow DOM styles ===== */
+/* Follows the movie-profile pattern for user homepage. */
+
+:host {
+  --umm-mp-accent: #6366f1;
+  --umm-mp-accent-soft: #eef2ff;
+}
+:host(.umm-theme--dark) {
+  --umm-mp-accent: #818cf8;
+  --umm-mp-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
+}
+
+/* ===== Root ===== */
+.umm-mp-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+/* ===== Hero ===== */
+.umm-mp-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-md, 16px);
+  margin-bottom: var(--umm-space-lg, 24px);
+}
+.umm-mp-hero-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary);
+  flex-shrink: 0;
+  border: 3px solid var(--umm-mp-accent);
+}
+.umm-mp-hero-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.umm-mp-hero-name {
+  font-size: var(--umm-font-xl, 1.25rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+
+/* ===== Section ===== */
+.umm-mp-section {
+  margin-bottom: var(--umm-space-xl, 32px);
+}
+.umm-mp-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--umm-space-sm, 12px);
+}
+.umm-mp-section-lbl {
+  font-size: var(--umm-font-base, 0.875rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+}
+.umm-mp-section-more {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-mp-accent);
+  text-decoration: none;
+}
+.umm-mp-section-more:hover {
+  text-decoration: underline;
+}
+
+/* ===== Album Grid ===== */
+.umm-mp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--umm-space-sm, 12px);
+}
+@media (min-width: 768px) { .umm-mp-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1024px) { .umm-mp-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1280px) { .umm-mp-grid { grid-template-columns: repeat(6, 1fr); } }
+
+.umm-mp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  border-radius: var(--umm-card-radius, 10px);
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.umm-mp-card:hover {
+  transform: translateY(-3px);
+}
+.umm-mp-card-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--umm-bg-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.25s ease;
+}
+.umm-mp-card:hover .umm-mp-card-cover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+:host(.umm-theme--dark) .umm-mp-card-cover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+:host(.umm-theme--dark) .umm-mp-card:hover .umm-mp-card-cover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.umm-mp-card-title {
+  font-size: var(--umm-font-xs, 0.65rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Musicians ===== */
+.umm-mp-musicians {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-xs, 8px);
+}
+.umm-mp-musician {
+  display: inline-flex;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--umm-mp-accent);
+  background: var(--umm-mp-accent-soft);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.umm-mp-musician:hover {
+  background: var(--umm-mp-accent);
+  color: #fff;
+}
+
+/* ===== Doulists ===== */
+.umm-mp-doulist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs, 8px);
+}
+.umm-mp-doulist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--umm-space-xs, 10px) var(--umm-space-sm, 14px);
+  border-radius: var(--umm-card-radius, 8px);
+  background: var(--umm-bg-secondary);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.umm-mp-doulist-item:hover {
+  background: var(--umm-bg-tertiary);
+}
+.umm-mp-doulist-title {
+  font-size: var(--umm-font-sm, 0.8rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+}
+.umm-mp-doulist-followers {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+  flex-shrink: 0;
+}
