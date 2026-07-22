@@ -1,4 +1,5 @@
 
+import { throttle } from '@/utils'
 import { getMTeamSets, applyCacheFallback } from './cache'
 import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types'
 import { dimElement } from '../utils'
@@ -303,14 +304,7 @@ export class MTeamHandler implements ListPageHandler {
     fn: T,
     delay: number,
   ): (...args: Parameters<T>) => void {
-    let lastTime = 0
-    return (...args: Parameters<T>) => {
-      const now = Date.now()
-      if (now - lastTime >= delay) {
-        lastTime = now
-        fn(...args)
-      }
-    }
+    return throttle(fn, delay)
   }
 
   async process(context: HandlerContext): Promise<void> {

@@ -157,6 +157,14 @@ localref/
 # Generic cache directory (defense-in-depth)
 .cache/
 
+# Script runtime artifacts
+scripts/*.log
+scripts/tmp/
+
+# /tests/ directory: source files ARE tracked, but generated artifacts are NOT
+tests/__snapshots__/__diff_output__/
+tests/__snapshots__/__new_output__/
+
 # Extension unpack output (from npm run unpack / npm run clean)
 extracted/
 

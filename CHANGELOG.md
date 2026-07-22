@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2026-07-22
+
+### ⚠️ Dependency Upgrades
+
+- **pinia** 3.0.4 → **4.0.2** (major): Added `@vue/devtools-api ^8.1.5` as explicit
+  dependency (previously bundled). API-compatible — no breaking changes for consumers.
+- **adm-zip** 0.5.18 → **0.6.0** (major): Security fix (CVE-2026-39244 — ZIP bomb
+  memory exhaustion). Removed `@types/adm-zip` (types now bundled).
+- **vue** 3.5.38 → 3.5.40, **vue-router** 5.1.0 → 5.2.0, **vite** 8.1.4 → 8.1.5,
+  **@vitejs/plugin-vue** 6.0.7 → 6.0.8, **tailwindcss** 4.3.2 → 4.3.3,
+  **@tailwindcss/vite** 4.3.2 → 4.3.3, **vue-i18n** 11.4.6 → 11.4.7, **tsx** 4.23.0 → 4.23.1
+
+### Performance
+
+- **Page Visibility API**: New `intervalWhenVisible()` utility pauses polling
+  when the tab is hidden. Applied to 5 key timers: router SPA poll (1s),
+  detail/game-detail record refresh (3s each), TMDB card scan (2s), YouTube
+  URL watch (3s). Eliminates unnecessary CPU work in background tabs.
+- **background.ts switch splitting**: Extracted 400-line `handleMessage()` switch
+  into 3 dedicated handler modules (`db.ts`, `bilibili.ts`, `download.ts`).
+  Reduces background.ts by ~246 lines, improves single-responsibility.
+- **Router log cleanup**: 11 `console.log` calls migrated to runtime-gated
+  `infoLog`/`errorLog` — silently disabled in production builds.
+- **Dead code removal**: Deleted `useBadge.ts`, `IIdentityRepository.ts`,
+  `IdentityFactory.ts`.
+- **Throttle/debounce consolidation**: Unified 3 duplicate `throttle` and 5 inline
+  `debounce` implementations into shared `@/utils` exports.
+
+### Fixes
+
+- **SEHUATANG_ADD**: Wrapped in DataScheduler to respect rate limits and retry
+  policy (was bypassing the queue).
+- **BILIBILI_SAVE**: Added `broadcast('record:updated')` so content scripts
+  receive real-time updates when a Bilibili record changes.
+- **visibility.ts `paused` not checked**: `intervalWhenVisible.tick()` now
+  consults the `paused` flag — programmatic `pause()`/`resume()` actually works.
+
+### Maintenance
+
+- Updated `.gitignore` with script runtime artifacts and snapshot diff patterns.
+- Removed unused `@types/adm-zip` dependency.
+- Added TypeScript 7 compatibility assessment: blocked by vue-tsc
+  `require.resolve('typescript/lib/tsc')` — pending upstream Volar update.
+
 ## [5.2.3] - 2026-07-22
 
 ### Fixes

@@ -1,5 +1,6 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
+import { intervalWhenVisible } from '@/utils/visibility'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
 
@@ -28,8 +29,9 @@ export const mountDetail = definePageMount({
     }
 
     // Re-import loadRecord for the polling loop (bundler cache ensures no overhead)
+    // Pauses when tab is hidden via Page Visibility API
     const { loadRecord } = await import('./detail-data')
-    const recordPoller = setInterval(async () => {
+    const recordPoller = intervalWhenVisible(async () => {
       if (!data.identity) return
       const updated = await loadRecord(data.identity)
       if (updated && app._instance) {
@@ -41,7 +43,7 @@ export const mountDetail = definePageMount({
     }, 3000)
 
     ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-      clearInterval(recordPoller)
+      recordPoller.destroy()
       app.unmount()
     }
   },

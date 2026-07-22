@@ -5,6 +5,8 @@
 
 import { Identity, PT_HOSTS } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
+import { infoLog, errorLog } from '@/utils/logger'
+import { intervalWhenVisible } from '@/utils/visibility'
 import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleTMDBHomepage, handleTMDBDetailPage } from './handlers/tmdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
@@ -195,18 +197,18 @@ export async function dispatchRoute(url: string): Promise<void> {
   const route = findMatchingRoute(url)
   
   if (!route) {
-    console.log('[UMM Router] No matching route for:', url)
+    infoLog(`Router: No matching route for: ${url}`)
     // Clean up PTDimmer if it was running (e.g. user navigated away from a PT site)
     // Use both module-level variable AND static reference for bulletproof cleanup
     const dimmer = ptdimmerInstance || PTDimmer.currentInstance
     if (dimmer) {
-      console.log('[UMM Router] Cleaning up PTDimmer on route unmatch')
+      infoLog('Router: Cleaning up PTDimmer on route unmatch')
       dimmer.cleanup()
     }
     return
   }
   
-  console.log('[UMM Router] Matched route for:', url)
+  infoLog(`Router: Matched route for: ${url}`)
   
   try {
     // 解析身份标识
@@ -215,9 +217,9 @@ export async function dispatchRoute(url: string): Promise<void> {
     // 执行处理器
     await route.handler(identity)
     
-    console.log('[UMM Router] Route handler executed successfully')
+    infoLog('Router: Route handler executed successfully')
   } catch (error) {
-    console.error('[UMM Router] Route handler failed:', error)
+    errorLog('Router: Route handler failed:', error)
   }
 }
 
@@ -253,14 +255,15 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
   }
 
   // Fallback: interval poll for SPA edge cases (hash changes, direct location.href assignments)
-  const pollInterval = setInterval(checkUrl, 1000)
+  // Pauses automatically when the tab is hidden (Page Visibility API)
+  const pollInterval = intervalWhenVisible(checkUrl, 1000)
 
   return () => {
     window.removeEventListener('popstate', checkUrl)
     window.removeEventListener('hashchange', checkUrl)
     history.pushState = origPushState
     history.replaceState = origReplaceState
-    clearInterval(pollInterval)
+    pollInterval.destroy()
   }
 }
 
@@ -268,25 +271,25 @@ export function watchUrlChanges(callback: (url: string) => void): () => void {
  * 初始化路由器
  */
 export function initRouter(): void {
-  console.log('[UMM Router] Initializing router...')
+  infoLog('Router: Initializing router...')
   
   try {
     // 立即执行一次路由分发
     dispatchRoute(location.href).catch(error => {
-      console.error('[UMM Router] Initial route failed:', error)
+      errorLog('Router: Initial route failed:', error)
     })
     
     // 监听 URL 变化
     const cleanup = watchUrlChanges((newUrl) => {
-      console.log('[UMM Router] URL changed to:', newUrl)
+      infoLog(`Router: URL changed to: ${newUrl}`)
       dispatchRoute(newUrl).catch(error => {
-        console.error('[UMM Router] Route change failed:', error)
+        errorLog('Router: Route change failed:', error)
       })
     })
     
     window.addEventListener('beforeunload', cleanup, { once: true })
-    console.log('[UMM Router] Router initialized successfully')
+    infoLog('Router: Router initialized successfully')
   } catch (error) {
-    console.error('[UMM Router] Router initialization failed:', error)
+    errorLog('Router: Router initialization failed:', error)
   }
 }

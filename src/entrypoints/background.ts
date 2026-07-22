@@ -10,10 +10,9 @@
 
 import { defineBackground } from 'wxt/utils/define-background'
 import type { LogLevel } from '@/types'
-import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
+import { mediaDB, STORE_NAMES } from '@/features/database/models'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import { STORAGE_KEYS } from '@/config'
-import { broadcast } from '@/utils/event-bus'
 
 import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
 import { CacheManager } from '@/features/cache'
@@ -25,23 +24,18 @@ import { handleNeoDBPushRating } from './background/handlers/neodb'
 import { handleGetSettings, handleUpdateSettings, handleExportData, handleImportData, handleGetStatistics, handleGetAllRecords, handleGetMigrationStatus } from './background/handlers/data'
 import { handleShowToast } from './background/handlers/toast'
 import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll, handleSehuatangCheckViewed, handleSehuatangAdd, handleSehuatangBatchAdd, handleSehuatangGetAll } from './background/handlers/adult-av'
+import {
+  handleDbGet, handleDbPut, handleDbDelete, handleDbGetAll, handleDbQuery,
+  handleDbCount, handleDbGetWatchedIds, handleDbSyncPageRecord,
+  handlePtIdCacheGet, handlePtIdCachePut, handlePtIdCacheGetBulk,
+  type DbHandlerContext,
+} from './background/handlers/db'
+import { handleBilibiliInject, handleBilibiliSave } from './background/handlers/bilibili'
+import { handleDownloadFile } from './background/handlers/download'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
 import { RecordRepositoryAdapter } from '@/features/database/record-repository-adapter'
 import { RecordService } from '@/domain/record/RecordService'
-import { StoreRecord } from '@/domain/record/StoreRecord'
-
-/** Allowed store names for generic DB message handlers */
-const ALLOWED_DB_STORES = new Set<string>([
-  ...RECORD_STORES,
-  STORE_NAMES.TTL_CACHE,
-  STORE_NAMES.PT_ID_CACHE,
-  STORE_NAMES.JAV_IDS,
-])
-
-function isAllowedStore(storeName: string): boolean {
-  return ALLOWED_DB_STORES.has(storeName)
-}
 
 export default defineBackground({
   type: 'module',
@@ -264,175 +258,48 @@ export default defineBackground({
         return
       }
 
+      const dbCtx: DbHandlerContext = {
+        db: mediaDB as any,
+        scheduler: dataScheduler,
+        recordService,
+      }
+
       try {
         switch (message.type) {
           // ==================== Core DB Operations ====================
-          case 'DB_GET': {
-            if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' }); break
-            }
-            const record = await dataScheduler.schedule(
-              () => mediaDB.get(message.payload.storeName, message.payload.key),
-              { priority: 'HIGH', storeName: message.payload.storeName, cacheKey: `get:${message.payload.storeName}:${message.payload.key}`, cacheTTL: 5000 },
-            )
-            sendResponse({ success: true, record })
+          case 'DB_GET':
+            sendResponse(await handleDbGet(message.payload, dbCtx))
             break
-          }
-          case 'DB_PUT': {
-            if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' }); break
-            }
-            const putStore = message.payload.storeName
-            const putKey = message.payload.key
-            await dataScheduler.schedule(
-              () => mediaDB.put(putStore, putKey, message.payload.record),
-              { priority: 'HIGH', storeName: putStore, cacheKey: `put:${putStore}:${putKey}`, invalidateCache: true },
-            )
-            // Invalidate GET cache so subsequent reads return fresh data
-            dataScheduler.cacheManager?.invalidate('scheduler', `get:${putStore}:${putKey}`)
-            dataScheduler.cacheManager?.invalidate('scheduler', `all:${putStore}`)
-            broadcast('record:updated', { storeName: putStore, key: putKey })
-            sendResponse({ success: true })
+          case 'DB_PUT':
+            sendResponse(await handleDbPut(message.payload, dbCtx))
             break
-          }
-          case 'DB_DELETE': {
-            if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' }); break
-            }
-            const delStore = message.payload.storeName
-            const delKey = message.payload.key
-            await dataScheduler.schedule(
-              () => mediaDB.delete(delStore, delKey),
-              { priority: 'HIGH', storeName: delStore, cacheKey: `delete:${delStore}:${delKey}`, invalidateCache: true },
-            )
-            // Invalidate GET cache so subsequent reads reflect the deletion
-            dataScheduler.cacheManager?.invalidate('scheduler', `get:${delStore}:${delKey}`)
-            dataScheduler.cacheManager?.invalidate('scheduler', `all:${delStore}`)
-            broadcast('record:deleted', { storeName: delStore, key: delKey })
-            sendResponse({ success: true })
+          case 'DB_DELETE':
+            sendResponse(await handleDbDelete(message.payload, dbCtx))
             break
-          }
-          case 'DB_GET_ALL': {
-            if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' }); break
-            }
-            const entries = await dataScheduler.schedule(
-              () => mediaDB.getAll(message.payload.storeName),
-              { priority: 'MEDIUM', storeName: message.payload.storeName, cacheKey: `all:${message.payload.storeName}`, cacheTTL: 5000 },
-            )
-            sendResponse({ success: true, entries })
+          case 'DB_GET_ALL':
+            sendResponse(await handleDbGetAll(message.payload, dbCtx))
             break
-          }
-          case 'DB_QUERY': {
-            if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' }); break
-            }
-            const entries = await dataScheduler.schedule(
-              () => mediaDB.query(message.payload.storeName, message.payload.indexName, message.payload.value),
-              { priority: 'MEDIUM', storeName: message.payload.storeName },
-            )
-            sendResponse({ success: true, entries })
+          case 'DB_QUERY':
+            sendResponse(await handleDbQuery(message.payload, dbCtx))
             break
-          }
-          case 'DB_COUNT': {
-            if (!isAllowedStore(message.payload.storeName)) {
-              sendResponse({ success: false, error: 'Invalid store name' }); break
-            }
-            const count = await dataScheduler.schedule(
-              () => mediaDB.count(message.payload.storeName),
-              { priority: 'LOW', storeName: message.payload.storeName, cacheKey: `count:${message.payload.storeName}`, cacheTTL: 5000 },
-            )
-            sendResponse({ success: true, count })
+          case 'DB_COUNT':
+            sendResponse(await handleDbCount(message.payload, dbCtx))
             break
-          }
-          case 'DB_GET_WATCHED_IDS': {
-            const { storeNames } = message.payload
-            const results: Record<string, string[]> = {}
-            for (const storeName of storeNames) {
-              if (!isAllowedStore(storeName)) {
-                warnLog(`DB_GET_WATCHED_IDS: skipped disallowed store "${storeName}"`)
-                continue
-              }
-              const ids = await dataScheduler.schedule(
-                () => mediaDB.getWatchedIds(storeName),
-                { priority: 'HIGH', storeName, cacheKey: `watched:${storeName}`, cacheTTL: 10000 },
-              )
-              results[storeName] = Array.from(ids)
-            }
-            sendResponse({ success: true, results })
+          case 'DB_GET_WATCHED_IDS':
+            sendResponse(await handleDbGetWatchedIds(message.payload, dbCtx))
             break
-          }
-          case 'PT_ID_CACHE_GET': {
-            const entry = await dataScheduler.schedule(
-              () => mediaDB.getCacheEntry(message.payload.ptUrl),
-              { priority: 'HIGH', cacheKey: `ptcache:${message.payload.ptUrl}`, cacheTTL: 5000 },
-            )
-            sendResponse({ success: true, entry })
+          case 'PT_ID_CACHE_GET':
+            sendResponse(await handlePtIdCacheGet(message.payload, dbCtx))
             break
-          }
-          case 'PT_ID_CACHE_PUT': {
-            await dataScheduler.schedule(
-              () => mediaDB.putCacheEntry(message.payload.entry),
-              { priority: 'HIGH', cacheKey: `ptcache:${message.payload.entry.ptUrl}`, invalidateCache: true },
-            )
-            sendResponse({ success: true })
+          case 'PT_ID_CACHE_PUT':
+            sendResponse(await handlePtIdCachePut(message.payload, dbCtx))
             break
-          }
-          case 'PT_ID_CACHE_GET_BULK': {
-            const { ptUrls } = message.payload
-            const entries: Record<string, any> = {}
-            for (const ptUrl of ptUrls) {
-              const entry = await dataScheduler.schedule(
-                () => mediaDB.getCacheEntry(ptUrl),
-                { priority: 'MEDIUM', cacheKey: `ptcache:${ptUrl}`, cacheTTL: 5000 },
-              )
-              if (entry) entries[ptUrl] = entry
-            }
-            sendResponse({ success: true, entries })
+          case 'PT_ID_CACHE_GET_BULK':
+            sendResponse(await handlePtIdCacheGetBulk(message.payload, dbCtx))
             break
-          }
-          case 'DB_SYNC_PAGE_RECORD': {
-            const syncPlatform = message.payload.platform
-            if (!isAllowedStore(`${syncPlatform}_records`)) {
-              sendResponse({ success: false, error: 'Invalid platform' }); break
-            }
-            const linked = message.payload.linked
-            let linkedInvalid = false
-            if (linked && Array.isArray(linked)) {
-              for (const link of linked) {
-                if (!isAllowedStore(`${link.platform}_records`)) {
-                  linkedInvalid = true; break
-                }
-              }
-            }
-            if (linkedInvalid) {
-              sendResponse({ success: false, error: 'Invalid linked platform' }); break
-            }
-            const syncStoreName = `${syncPlatform}_records`
-            const syncKey = message.payload.key
-            if (!recordService) { sendResponse({ success: false, error: 'Service not ready' }); break }
-            const rs = recordService
-            const domainRecord = StoreRecord.fromSnapshot(message.payload.record)
-            const syncResult = await dataScheduler.schedule(
-              () => rs.syncRecord(
-                syncPlatform,
-                syncKey,
-                domainRecord,
-                linked?.map((l: { platform: string; key: string; url: string }) => ({
-                  platform: l.platform,
-                  key: l.key,
-                  url: l.url,
-                })),
-              ),
-              { priority: 'HIGH', storeName: syncStoreName, cacheKey: `sync:${syncPlatform}:${syncKey}`, invalidateCache: true },
-            )
-            // Invalidate GET cache for the synced record
-            dataScheduler.cacheManager?.invalidate('scheduler', `get:${syncStoreName}:${syncKey}`)
-            dataScheduler.cacheManager?.invalidate('scheduler', `all:${syncStoreName}`)
-            broadcast('record:updated', { storeName: syncStoreName, key: syncKey })
-            sendResponse({ success: true, result: syncResult })
+          case 'DB_SYNC_PAGE_RECORD':
+            sendResponse(await handleDbSyncPageRecord(message.payload, dbCtx))
             break
-          }
 
           // ==================== Settings ====================
           case 'GET_SETTINGS':
@@ -509,7 +376,7 @@ export default defineBackground({
             await dataScheduler.schedule(() => handleSehuatangCheckViewed(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-check-viewed' })
             break
           case 'SEHUATANG_ADD':
-            await handleSehuatangAdd(message.payload, sendResponse)
+            await dataScheduler.schedule(() => handleSehuatangAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-add' })
             break
           case 'SEHUATANG_BATCH_ADD':
             await dataScheduler.schedule(() => handleSehuatangBatchAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-batch-add' })
@@ -518,105 +385,17 @@ export default defineBackground({
             await dataScheduler.schedule(() => handleSehuatangGetAll(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-get-all' })
             break
 
-          // ==================== Bilibili Inject ====================
-          case 'BILIBILI_INJECT': {
-            const { tabId } = message.payload ?? {}
-            if (!tabId) {
-              sendResponse({ success: false, error: 'Missing tabId' })
-              return
-            }
-            chrome.scripting.executeScript({
-              target: { tabId },
-              func: () => {
-                const d = document.createElement('div')
-                d.setAttribute('data-umm-bili-float', '')
-                d.textContent = 'UMM'
-                Object.assign(d.style, {
-                  position: 'fixed', left: '20px', top: '20px',
-                  zIndex: '2147483647',
-                  width: '50px', height: '50px', borderRadius: '50%',
-                  background: '#22c55e', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', fontSize: '14px', fontWeight: '700',
-                  fontFamily: 'Arial,sans-serif',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-                  userSelect: 'none',
-                })
-                document.body.appendChild(d)
-              },
-            }).then(() => {
-              sendResponse({ success: true })
-            }).catch((err: any) => {
-              sendResponse({ success: false, error: err?.message || String(err) })
-            })
-            return // keep channel open
-          }
-
-          // ==================== Bilibili Save ====================
-          case 'BILIBILI_SAVE': {
-            const { bvid, status, rating } = message.payload ?? {}
-            if (!bvid) {
-              sendResponse({ success: false, error: 'Missing bvid' })
-              return
-            }
-            try {
-              const record = {
-                url: `https://www.bilibili.com/video/${bvid}/`,
-                status,
-                rating: Math.min(10, Math.max(0, rating ?? 0)),
-                comment: '',
-                updatedAt: new Date().toISOString(),
-                linkedIds: {},
-              }
-              await dataScheduler.schedule(
-                () => mediaDB.put(STORE_NAMES.BILIBILI, bvid, record),
-                { priority: 'HIGH', storeName: STORE_NAMES.BILIBILI, cacheKey: `put:${STORE_NAMES.BILIBILI}:${bvid}`, invalidateCache: true },
-              )
-              dataScheduler.cacheManager?.invalidate('scheduler', `get:${STORE_NAMES.BILIBILI}:${bvid}`)
-              sendResponse({ success: true })
-            } catch (err: any) {
-              sendResponse({ success: false, error: err?.message || String(err) })
-            }
-            return
-          }
+          // ==================== Bilibili ====================
+          case 'BILIBILI_INJECT':
+            sendResponse(await handleBilibiliInject(message.payload, _sender))
+            break
+          case 'BILIBILI_SAVE':
+            sendResponse(await handleBilibiliSave(message.payload, { db: mediaDB as any, scheduler: dataScheduler }))
+            break
 
           // ==================== File Download (MAIN world) ====================
           case 'DOWNLOAD_FILE': {
-            const { url, filename } = message.payload ?? {}
-            if (!url || !filename || !_sender.tab?.id) {
-              sendResponse({ success: false, error: 'Missing params or tab' })
-              return
-            }
-            chrome.scripting.executeScript({
-              target: { tabId: _sender.tab.id },
-              world: 'MAIN',
-              args: [url, filename],
-              func: (u: string, fn: string) => {
-                fetch(u, { credentials: 'include' })
-                  .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob() })
-                  .then((blob) => {
-                    const blobUrl = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = blobUrl
-                    a.download = fn
-                    a.style.display = 'none'
-                    document.body.appendChild(a)
-                    a.click()
-                    a.remove()
-                    URL.revokeObjectURL(blobUrl)
-                  })
-                  .catch(() => {
-                    const a = document.createElement('a')
-                    a.href = u
-                    a.target = '_blank'
-                    a.style.display = 'none'
-                    document.body.appendChild(a)
-                    a.click()
-                    a.remove()
-                  })
-              },
-            })
-            sendResponse({ success: true })
+            sendResponse(await handleDownloadFile(message.payload, _sender))
             return
           }
 

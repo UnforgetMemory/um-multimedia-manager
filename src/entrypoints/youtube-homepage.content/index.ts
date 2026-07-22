@@ -853,7 +853,8 @@ export default defineContentScript({
         origReplace.apply(this, args)
         onUrlChange()
       }
-      setInterval(onUrlChange, 3000)
+      // Poll for SPA URL changes, skip when tab is hidden
+      setInterval(() => { if (!document.hidden) onUrlChange(); }, 3000)
     }
 
     // ══════════════════════════════════════════════════════════

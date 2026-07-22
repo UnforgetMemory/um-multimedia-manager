@@ -1,7 +1,8 @@
 
 import { MTeamHandler } from './mteam'
 import { NexusPHPHandler } from './nexusphp'
-import { throttle, waitForElement } from '../utils'
+import { throttle } from '@/utils'
+import { waitForElement } from '../utils'
 import type { HandlerContext, ListPageHandler } from '../types'
 
 export class PTDimmer {

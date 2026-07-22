@@ -1,5 +1,6 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
+import { intervalWhenVisible } from '@/utils/visibility'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { Store } from '@/features/database'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
@@ -39,7 +40,8 @@ let data: import('./game-detail-data').GameDetailData | null = null
     }
 
     if (!data.identity) return
-    const recordPoller = setInterval(async () => {
+    // Pauses when tab is hidden via Page Visibility API
+    const recordPoller = intervalWhenVisible(async () => {
       if (!data.identity) return
       const key = `${data.identity.type}::${data.identity.providerId}`
       const updated = await Store.dbGet('douban_records', key)
@@ -52,7 +54,7 @@ let data: import('./game-detail-data').GameDetailData | null = null
     }, 3000)
 
     ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-      clearInterval(recordPoller)
+      recordPoller.destroy()
       app.unmount()
     }
   },

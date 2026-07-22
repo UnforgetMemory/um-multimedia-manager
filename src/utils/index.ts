@@ -71,41 +71,17 @@ export const Utils = {
   },
 
   /**
-   * 节流函数
+   * 节流函数（委托到独立导出）
    */
   throttle<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-    let last = 0;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    return ((...args: Parameters<T>) => {
-      const now = Date.now();
-      if (now - last >= delay) {
-        last = now;
-        fn(...args);
-        return;
-      }
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => {
-        last = Date.now();
-        fn(...args);
-      }, delay - (now - last));
-    }) as T;
+    return throttle(fn, delay);
   },
 
   /**
-   * 防抖函数
+   * 防抖函数（委托到独立导出）
    */
   debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    return ((...args: Parameters<T>) => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => fn(...args), delay);
-    }) as T;
+    return debounce(fn, delay);
   },
 
   /**
@@ -221,3 +197,43 @@ export const Utils = {
     return new Date(isoString).toLocaleDateString('zh-CN');
   },
 };
+
+/**
+ * 节流函数（带 trailing edge）
+ * 确保函数在指定间隔内至少执行一次，且最后一次调用会在延迟后执行。
+ */
+export function throttle<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let last = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  return ((...args: Parameters<T>) => {
+    const now = Date.now();
+    if (now - last >= delay) {
+      last = now;
+      fn(...args);
+      return;
+    }
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      last = Date.now();
+      fn(...args);
+    }, delay - (now - last));
+  }) as T;
+}
+
+/**
+ * 防抖函数
+ * 在连续调用中，只在最后一次调用后的延迟时间到达时执行。
+ */
+export function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  return ((...args: Parameters<T>) => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => fn(...args), delay);
+  }) as T;
+}

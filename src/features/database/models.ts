@@ -56,7 +56,7 @@ export function storeNameForPlatform(platform: string): string {
   return `${platform}_records`
 }
 
-class MediaDatabase {
+export class MediaDatabase {
   private db: IDBDatabase | null = null
   private initPromise: Promise<void> | null = null
   private readCache = new LruCache<StoreRecord | null | Array<{ key: string; record: StoreRecord }>>({

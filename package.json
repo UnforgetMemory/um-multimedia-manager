@@ -1,7 +1,7 @@
 {
   "name": "um-multimedia-manager",
   "private": true,
-  "version": "5.2.3",
+  "version": "5.3.0",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -15,7 +15,6 @@
     "resize-icons": "tsx scripts/resize-icons.ts",
     "test": "playwright test",
     "test:unit": "playwright test tests/unit",
-    
     "test:ui": "playwright test --ui",
     "package": "node scripts/package.js",
     "package:patch": "node scripts/package.js patch",
@@ -31,13 +30,14 @@
     "reinstall": "npm run clean && npm install"
   },
   "dependencies": {
+    "@vue/devtools-api": "^8.1.5",
     "@vueuse/core": "^14.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.11",
     "jszip": "^3.10.1",
     "lucide-vue-next": "^1.0.0",
-    "pinia": "^3.0.4",
+    "pinia": "^4.0.2",
     "reka-ui": "^2.10.1",
     "tailwind-merge": "^3.6.0",
     "vue": "^3.5.38",
@@ -47,7 +47,6 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.3.2",
-    "@types/adm-zip": "^0.5.8",
     "@types/archiver": "^8.0.0",
     "@types/chrome": "^0.2.2",
     "@types/dompurify": "^3.2.0",
@@ -55,7 +54,7 @@
     "@types/node": "^26.1.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "@wxt-dev/module-vue": "^1.0.3",
-    "adm-zip": "^0.5.18",
+    "adm-zip": "^0.6.0",
     "archiver": "^8.0.0",
     "jsdom": "^29.1.1",
     "playwright": "^1.60.0",

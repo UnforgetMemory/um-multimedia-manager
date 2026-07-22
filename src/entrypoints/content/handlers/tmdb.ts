@@ -8,6 +8,7 @@
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
+import { intervalWhenVisible } from '@/utils/visibility'
 import { createStatusChip, waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
 import { t } from '../i18n'
@@ -131,13 +132,13 @@ function observeTMDBGrids(
   const bodyObserver = new MutationObserver(scanAllCards)
   bodyObserver.observe(document.body, { childList: true, subtree: true })
 
-  const pollInterval = setInterval(scanAllCards, 2000)
+  const pollInterval = intervalWhenVisible(scanAllCards, 2000)
 
   scanAllCards()
 
   return () => {
     bodyObserver.disconnect()
-    clearInterval(pollInterval)
+    pollInterval.destroy()
   }
 }
 

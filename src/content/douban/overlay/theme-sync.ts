@@ -7,6 +7,8 @@
  * applying it onto a shadow DOM host element with html background sync.
  */
 
+import { debounce } from '@/utils'
+
 export const THEME_KEY = 'umm:appearance'
 
 /**
@@ -73,14 +75,6 @@ export function applyOverlayTheme(host: HTMLElement): void {
       setTheme((raw?.theme as string) ?? 'auto')
     })
   } catch { fallback() }
-}
-
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
-  let timer: ReturnType<typeof setTimeout>
-  return ((...args: unknown[]) => {
-    clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), ms)
-  }) as T
 }
 
 /**
