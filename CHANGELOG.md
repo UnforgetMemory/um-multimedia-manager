@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.3] - 2026-07-22
+
+### Fixes
+
+- **Douban detail page data sync**: Auto-save records to IndexedDB when the
+  Douban API confirms a watched/wishlist status but the legacy DOM-based scan
+  fails (missing `form[action="remove"]` for no-rating entries) — closes a gap
+  where API-detected statuses never entered the local DB
+- **Cross-platform linkedIds reconciliation**: On every page load, extract
+  IMDb/TMDB IDs from the current DOM and merge any new ones into the stored
+  record. Automatically creates the corresponding platform store entries
+  (`imdb_records`, `tmdb_records`) for newly detected associations
+- **NeoDB "Open" button**: `neoDBInjector` now loads the actual DB record
+  instead of using a stale closure variable or `null` — the "Open in NeoDB"
+  button reliably appears when `linkedIds.neodb` exists
+- **Rating dialog 403 guard**: `fetchInterest()` no longer unconditionally
+  clears initial status/rating on 403/302/301 responses — preserves valid
+  values loaded from IndexedDB or DOM detection
+
+### Performance
+
+- **DB_GET_ALL cache invalidation**: Added `all:{store}` cache invalidation
+  to `DB_PUT`, `DB_DELETE`, and `DB_SYNC_PAGE_RECORD` handlers — content
+  scripts using `Store.dbGetAll()` no longer receive stale data for up to
+  5 seconds after a write
+
+### Security
+
+- No new vulnerabilities introduced; all changes operate within the existing
+  content script ↔ Service Worker message-passing boundary
+- Inputs are DOM-extracted content-script data serialized through structured
+  clone — no injection surface
+
+### Chores
+
+- Version bump 5.2.2 → 5.2.3
+- `.gitignore` expanded: runtime/daemon artifacts (`nohup.out`, `*.pid`),
+  Playwright browser binaries, Yarn Berry state, macOS resource forks
+- Code review: 5-axis audit — correctness, security, readability, architecture,
+  performance (all passed)
+- Security audit: 0 new findings — all changes are read/write within existing
+  `chrome.runtime.sendMessage` patterns
+- Test verification: `vue-tsc --noEmit` zero errors, `npm run build` passes
+- Assisted-by: DeepSeek V4 via OpenCode
+
 ## [5.2.2] - 2026-07-21
 
 ### Fixes

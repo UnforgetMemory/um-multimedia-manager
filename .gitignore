@@ -166,3 +166,36 @@ extracted/
 # Scratch/temp test directories
 scratch/
 tmp/
+
+# Runtime / daemon output
+nohup.out
+*.pid
+*.pid.lock
+
+# OS-level mount metadata
+.Trashes
+.fseventsd
+.VolumeIcon.icns
+
+# Playwright browser binaries (downloaded on demand)
+ms-playwright/
+playwright-*.json
+
+# Chromium/Chrome user data directories
+chrome-user-data/
+
+# Test fixture downloads (generated)
+downloads/
+fixtures/generated/
+
+# MacOS resource fork files
+._*
+
+# Yarn Berry (PnP) — if used
+.yarn/
+.yarnrc.yml
+.pnp.*
+.yarn/
+!.yarn/releases
+!.yarn/plugins
+!.yarn/patches

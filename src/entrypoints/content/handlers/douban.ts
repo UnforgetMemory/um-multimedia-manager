@@ -10,6 +10,7 @@
  */
 
 import type { UrlIdentity } from '@/types'
+import { Store } from '@/features/database'
 import { scanDoubanPageStatus } from './douban-scanner'
 import { getLocalRecord, syncToLocalStorage } from './douban-sync'
 import { injectNeoDBPushButtons } from './douban-neodb'
@@ -66,7 +67,12 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
       await syncToLocalStorage(identity, pageState.status, pageState.rating, localRecord)
     }
 
-    setNeoDBInjector(() => { injectNeoDBPushButtons(identity, null) })
+    setNeoDBInjector(async () => {
+      const storeName = `${identity.provider}_records`
+      const key = `${identity.type}::${identity.providerId}`
+      const rec = await Store.dbGet(storeName, key)
+      injectNeoDBPushButtons(identity, rec)
+    })
     initDoulistReplacement(identity)
   } catch (error) {
     console.error('[UMM Douban] Detail page background tasks failed:', error)

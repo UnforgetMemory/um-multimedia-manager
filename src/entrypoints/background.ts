@@ -290,6 +290,7 @@ export default defineBackground({
             )
             // Invalidate GET cache so subsequent reads return fresh data
             dataScheduler.cacheManager?.invalidate('scheduler', `get:${putStore}:${putKey}`)
+            dataScheduler.cacheManager?.invalidate('scheduler', `all:${putStore}`)
             broadcast('record:updated', { storeName: putStore, key: putKey })
             sendResponse({ success: true })
             break
@@ -306,6 +307,7 @@ export default defineBackground({
             )
             // Invalidate GET cache so subsequent reads reflect the deletion
             dataScheduler.cacheManager?.invalidate('scheduler', `get:${delStore}:${delKey}`)
+            dataScheduler.cacheManager?.invalidate('scheduler', `all:${delStore}`)
             broadcast('record:deleted', { storeName: delStore, key: delKey })
             sendResponse({ success: true })
             break
@@ -426,6 +428,7 @@ export default defineBackground({
             )
             // Invalidate GET cache for the synced record
             dataScheduler.cacheManager?.invalidate('scheduler', `get:${syncStoreName}:${syncKey}`)
+            dataScheduler.cacheManager?.invalidate('scheduler', `all:${syncStoreName}`)
             broadcast('record:updated', { storeName: syncStoreName, key: syncKey })
             sendResponse({ success: true, result: syncResult })
             break

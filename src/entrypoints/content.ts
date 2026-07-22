@@ -226,7 +226,15 @@ export default defineContentScript({
         observeThemeChanges()
 
         // NeoDB push buttons (Douban detail pages)
-        setNeoDBInjector(() => injectNeoDBPushButtons(currentIdentity, currentRecord))
+        // Load the current record dynamically so injector always has fresh data
+        setNeoDBInjector(async () => {
+          if (!currentIdentity) return
+          const storeName = `${currentIdentity.provider}_records`
+          const key = `${currentIdentity.type}::${currentIdentity.providerId}`
+          const rec = await Store.dbGet(storeName, key)
+          currentRecord = rec
+          injectNeoDBPushButtons(currentIdentity, rec)
+        })
         startRatingObserver()
 
         window.addEventListener('beforeunload', () => {

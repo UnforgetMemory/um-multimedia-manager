@@ -156,8 +156,11 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
 
       // 403 / redirect usually means not authenticated
       if (resp.status === 403 || resp.status === 302 || resp.status === 301) {
-        interestStatus.value = null
-        currentRating.value = 0
+        // Preserve initial values from IndexedDB/DOM when API fails
+        if (interestStatus.value === null) {
+          interestStatus.value = null
+          currentRating.value = 0
+        }
         myTags.value = []
         savedTags.value = []
         currentComment.value = ''

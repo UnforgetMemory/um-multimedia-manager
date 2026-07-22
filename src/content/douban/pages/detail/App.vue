@@ -7,7 +7,9 @@ import { UmmInterestBar } from '@/content/douban/components/UmmInterestBar'
 import { ASPECT_RATIO } from '@/content/douban/shared/constants'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
 import { onCrossPlatformSave, syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
+import { extractCrossPlatformLinks } from '@/content/douban/shared/legacy-bridge'
 import { Store } from '@/features/database'
+import type { StoreRecord } from '@/types'
 import type { DetailData } from './detail-data'
 
 const props = defineProps<{ detailData: DetailData }>()
@@ -66,9 +68,88 @@ const initialRating: number =
 const interested = useInterest(() => d.identity.providerId, initialStatus, initialRating)
 
 onMounted(() => {
-  interested.fetchInterest().then(() => {
+  interested.fetchInterest().then(async () => {
+    // Auto-save to DB when the Douban API confirms a status but the legacy
+    // DOM-based scan (scanDoubanPageStatus) didn't trigger syncToLocalStorage.
+    // Without this, records detected only via API (e.g. no form[action="remove"]
+    // in the native DOM) never enter IndexedDB.
+    const apiStatus = interested.interestStatus.value
+    if (apiStatus && !d.record) {
+      const newStatus = apiStatus === 'collect' ? 2 : apiStatus === 'do' ? 3 : 1
+      const newRating = interested.currentRating.value * 2
+      const key = `${d.identity.type}::${d.identity.providerId}`
+      try {
+        const existing = await Store.dbGet('douban_records', key)
+        if (!existing) {
+          // Save basic record; linkedIds will be reconciled in the step below
+          await Store.dbPut('douban_records', key, {
+            url: window.location.href,
+            status: newStatus,
+            rating: newRating,
+            comment: interested.currentComment.value || '',
+            updatedAt: new Date().toISOString(),
+            linkedIds: {},
+          } as StoreRecord)
+        }
+      } catch (e) {
+        console.warn('[UMM] Auto-save on mount failed:', e)
+      }
+    }
+
+    // Dynamic linkedIds reconciliation: extract cross-platform IDs from the
+    // current DOM and merge any new ones into the DB record. Handles cases
+    // where a Douban page is updated with new IMDb/TMDB associations after
+    // the initial save.
+    const identity = { provider: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
+    const linkKey = `${d.identity.type}::${d.identity.providerId}`
+    try {
+      const currentRecord = await Store.dbGet('douban_records', linkKey)
+      if (currentRecord && currentRecord.status >= 2) {
+        const oldLinkedIds = currentRecord.linkedIds ?? {}
+        const domLinkedIds = extractCrossPlatformLinks(identity, oldLinkedIds)
+        if (JSON.stringify(domLinkedIds) !== JSON.stringify(oldLinkedIds)) {
+          // Find newly detected platforms (ones not in old linkedIds)
+          const newPlatforms = Object.keys(domLinkedIds).filter(k => domLinkedIds[k] && !oldLinkedIds[k])
+          // Track which imdb/tmdb key changed (platform already existed but ID changed)
+          const changedPlatforms = Object.keys(domLinkedIds).filter(
+            k => domLinkedIds[k] && oldLinkedIds[k] && domLinkedIds[k] !== oldLinkedIds[k],
+          )
+
+          currentRecord.linkedIds = domLinkedIds
+          currentRecord.updatedAt = new Date().toISOString()
+          await Store.dbPut('douban_records', linkKey, currentRecord)
+
+          // Create/update cross-platform records for imdb/tmdb, matching
+          // the pattern in onCrossPlatformSave.
+          for (const platform of [...newPlatforms, ...changedPlatforms]) {
+            if (platform === 'neodb') continue
+            const fullKey = domLinkedIds[platform]
+            if (!fullKey) continue
+            const [, pid] = fullKey.split('::')
+            const targetStore = `${platform}_records`
+            const existingTarget = await Store.dbGet(targetStore, fullKey)
+            if (!existingTarget || existingTarget.status !== currentRecord.status) {
+              const targetUrl = platform === 'imdb'
+                ? `https://www.imdb.com/title/${pid}/`
+                : `https://www.themoviedb.org/movie/${pid}/`
+              await Store.dbPut(targetStore, fullKey, {
+                url: targetUrl,
+                status: currentRecord.status,
+                rating: currentRecord.rating,
+                comment: currentRecord.comment || '',
+                updatedAt: new Date().toISOString(),
+                linkedIds: { ...(existingTarget?.linkedIds || {}), douban: linkKey },
+              } as StoreRecord)
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[UMM] linkedIds reconciliation failed:', e)
+    }
+
     // Trigger NeoDB injection once Vue app is mounted and interest is fetched
-    if (interested.interestStatus.value === 'collect') {
+    if (apiStatus === 'collect') {
       import('@/entrypoints/content/neodb-push').then(({ injectNeoDBPushButtons: inject }) => {
         Store.dbGet('douban_records', `${d.identity.type}::${d.identity.providerId}`).then(rec => {
           inject(
@@ -79,7 +160,6 @@ onMounted(() => {
       })
     }
     // Companion NeoDB sync check for existing watched records
-    const identity = { provider: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
     syncNeoDBOnLoad(identity, record.value).catch(e =>
       console.warn('[UMM] NeoDB on-load check failed:', e)
     )
