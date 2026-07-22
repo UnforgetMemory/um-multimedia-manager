@@ -157,6 +157,88 @@ localref/
 # Generic cache directory (defense-in-depth)
 .cache/
 
+# IDE and editor configs (defense-in-depth)
+.fleet/
+.idea/
+*.iml
+*.ipr
+*.iws
+.history/
+.zed/
+.eclipse/
+
+# Docker
+.docker/
+docker-compose.override.yml
+Dockerfile.*.local
+
+# Dev container
+.devcontainer/
+
+# Sass/SCSS compile cache
+.sass-cache/
+*.css.map
+
+# Rollup / ESBuild cache
+.rollup.cache/
+.esbuild/
+
+# Sentry
+.sentryclirc
+
+# Environment override files (defense-in-depth)
+.env.staging
+.env.production
+.env.test.local
+.env.development.local
+
+# Playwright trace/viewer cache
+playwright/.cache/
+
+# Storybook build
+storybook-static/
+
+# TypeScript project build info (more specific)
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# dprint / biome / prettier cache
+.dprint/
+.biome/
+.prettierd/
+
+# ESLint and Prettier (comprehensive)
+.eslintcache
+.prettiercache
+
+# Stylelint
+.stylelintcache
+
+# Puppeteer
+puppeteer/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
+# WebdriverIO
+.wdio/
+
+# Istanbul code coverage
+.nyc_output/
+
+# Visual regression test screenshots
+backstop_data/bitmaps_test/
+backstop_data/html_report/
+
+# Yarn 2+ PnP (comprehensive)
+.yarn/
+!.yarn/releases
+!.yarn/plugins
+.pnp.*
+.yarnrc.yml
+
 # Script runtime artifacts
 scripts/*.log
 scripts/tmp/

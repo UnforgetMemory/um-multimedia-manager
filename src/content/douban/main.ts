@@ -49,6 +49,7 @@ import { mountBookCollect } from './pages/book-collect/config'
 import { mountGameCollect } from './pages/game-collect/config'
 import { mountGameDetail } from './pages/game-detail/config'
 import { mountGameExplore } from './pages/game-explore/config'
+import { mountSeries } from './pages/series/config'
 
 const registry = new MountRegistry()
 
@@ -79,6 +80,7 @@ registry.register('book-collect', mountBookCollect)
 registry.register('game-collect', mountGameCollect)
 registry.register('game-detail', mountGameDetail)
 registry.register('game-explore', mountGameExplore)
+registry.register('series', mountSeries)
 import { mountBookAuthors } from './pages/book-authors/config'
 registry.register('book-authors', mountBookAuthors)
 

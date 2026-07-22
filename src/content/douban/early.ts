@@ -41,6 +41,7 @@ const SUBTITLE: Record<string, string> = {
   'game-collect': '游戏收藏 · 加载中',
   'game-detail': '游戏详情 · 加载中',
   'game-explore': '游戏探索 · 加载中',
+  series: '丛书 · 加载中',
 }
 
 function getOverlayConfig(): OverlayOptions | null {

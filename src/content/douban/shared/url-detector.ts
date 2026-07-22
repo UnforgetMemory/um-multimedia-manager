@@ -40,6 +40,7 @@ export type PageType =
   | { type: 'game-collect'; subType: 'collect' | 'wish' | 'do' }
   | { type: 'game-detail' }
   | { type: 'game-explore' }
+  | { type: 'series' }
 
 export function isAlbumsPage(url: string): boolean {
   return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url)
@@ -153,6 +154,10 @@ export function isBookAuthorsPage(url: string): boolean {
   return /^https?:\/\/book\.douban\.com\/people\/[^/]+\/authors/.test(url)
 }
 
+export function isSeriesPage(url: string): boolean {
+  return /^https?:\/\/book\.douban\.com\/series\/\d+/.test(url)
+}
+
 export function isGameCollectPage(url: string): boolean {
   return /^https?:\/\/www\.douban\.com\/people\/[^/]+\/games(\?.*)?$/.test(url)
 }
@@ -215,6 +220,7 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isReviewDetailPage(url)) return { type: 'review-detail' }
   if (isBookReviewDetailPage(url)) return { type: 'book-review-detail' }
   if (isHomepage(url))       return { type: 'homepage' }
+  if (isSeriesPage(url))     return { type: 'series' }
   if (isGameDetailPage(url)) return { type: 'game-detail' }
   if (isGameExplorePage(url)) return { type: 'game-explore' }
   if (isGameCollectPage(url)) {

@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.0] - 2026-07-22
+
+### Features
+
+- **豆瓣丛书系列页面深度适配**: 新增 `book.douban.com/series/{id}` 页面完整注入
+  - 新页面类型 `series` → `url-detector.ts` / `early.ts` / `main.ts` / `css-composer.ts` / `css-map.ts`
+  - Vue 覆盖层: 丛书标题/出版社/册数/简介、排序切换（收藏数/出版时间）、书籍列表含封面高清图（/s/→/l/）、评分展示、记录状态徽章（已读/想读/在读）、分页器
+  - 书籍记录状态从 IndexedDB 异步加载（`loadRecordMap('book')`），每本书自动显示阅读状态
+  - 排序按钮动态识别 `?order=time` URL 参数，无需依赖 DOM 文本解析
+  - 跨页总数估算：有分页器时使用 `totalPages × itemsPerPage`
+
+### Code Quality
+
+- **Oracle 代码审查**: 5 轴审查（正确性/可读性/架构/安全/性能），修复 3 个 Critical 问题：
+  - `totalCount` 从 `items.length`（仅当前页）改为分页器估算
+  - `volumes` 提取从全页 `body.textContent` 扫描改为 `.clear-both` 精准定位
+  - 简介提取从 `div[style*="margin-bottom:25px"]` 脆弱选择器改为 `h2:contains("简介")` 兄弟元素
+- **注释精简**: App.vue 冗长 JSDoc 移除，data.ts 保留必要英文注释
+- **formatCount 统一**: 移除不一致的 `k` 单位，统一使用中文 `万` + `toLocaleString`
+
+### Security
+
+- **0 项安全漏洞**: Oracle 安全审计确认——所有 DOM 提取使用 `textContent`（无 innerHTML），URL 经 `startsWith('http')` 守卫 + `/subject/\d+/` 正则过滤后使用，无 eval/innerHTML/Function 动态执行，无硬编码密钥，无 SSRF 向量
+
+### Chores
+
+- Version bump 5.3.0 → 5.4.0
+- `.gitignore` 扩展: +82 行防御性条目（IDE/Fleet/Docker/DevContainer/Sass/Rollup/Sentry/Storybook/Cypress/Playwright 等）
+- 测试环境清洁: 无残留测试进程，无过期测试产物，Playwright 浏览器二进制已忽略
+- 测试验证: `vue-tsc --noEmit` 零错误, `npm run build` 通过
+- Code review: 3 Critical + 2 Important 全部修复，Oracle 安全审计通过
+- Assisted-by: DeepSeek V4 via OpenCode
+
 ## [5.3.0] - 2026-07-22
 
 ### ⚠️ Dependency Upgrades

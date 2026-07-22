@@ -52,6 +52,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'game-detail':      { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['detail', 'interest', 'game-detail'] },
   'game-explore':     { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['game-explore'] },
   'albums':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'media-chips'], page: ['albums'] },
+  'series':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['series'] },
 }
 
 /**

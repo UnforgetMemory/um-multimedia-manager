@@ -45,6 +45,7 @@ import gameExploreCss from './styles/game-explore.css?raw'
 import pageLayoutCss from './styles/page-layout.css?raw'
 import interestCss from './styles/interest.css?raw'
 import mediaChipsCss from './styles/media-chips.css?raw'
+import seriesCss from './styles/series.css?raw'
 import titlebarCss from './styles/titlebar.css?raw'
 import emptyStateCss from './styles/empty-state.css?raw'
 
@@ -127,6 +128,7 @@ export const cssMap: Record<string, string> = {
   paginator: paginatorCss,
   'book-authors': bookAuthorsCss,
   albums: albumsCss,
+  series: seriesCss,
   'game-collect': gameCollectCss,
   'game-detail': gameDetailCss,
   'game-explore': gameExploreCss,
