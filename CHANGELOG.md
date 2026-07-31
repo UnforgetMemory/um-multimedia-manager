@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.1] - 2026-07-31
+
+### Bug Fixes
+
+- **豆瓣搜索规范化修复** (`src/utils/search-normalizer.ts`):
+  - 季/集标记保留实际季数: `S03E1` / `S03.E01` / `S3E1` → `Season 3`（此前硬编码为 `Season 1`）
+  - 新增强信号 release 标记截断（分辨率/来源/编码 token）: 无年份的 PT 文件名 `A.Knight.of.the.Seven.Kingdoms.S01.1080p.WEB-DL.DDP5.1.x265.10bit-Yumi@FRDS` → `A Knight of the Seven Kingdoms Season 1`
+  - 移除年份截断（`slice` 到年份末尾会误删年份后的标题词），函数保持幂等，搜索页回填查询不再二次变换
+  - **CJK 搜索词保护**: 截断点后含 CJK 字符时不截断（`4K修复版` / `大话西游 4K修复版` 等中文搜索词不再被清空）
+  - 弱信号列表扩展: TRUHD/DUAL/MULTi/HYBRID（无分辨率标记伴随的音频/语言标志）
+  - 回溯正则改 lazy 量化符（`\s+?`/`\s*?`），消除 O(n) 二次回溯
+
+### Tests
+
+- 新增 `tests/unit/search-normalizer.spec.ts`: 28 个用例（季标记/ release 截断/ CJK 保护/ 垃圾 token/ 幂等性）
+- 验证: `vue-tsc --noEmit` 零错误，`npm run build` 通过，全量单元测试 86 个通过
+
 ## [5.4.0] - 2026-07-22
 
 ### Features
