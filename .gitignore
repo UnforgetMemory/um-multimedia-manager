@@ -116,6 +116,9 @@ docs/superpowers/
 data-exports/
 data-imports/
 
+# Archived/decommissioned scripts (not active source)
+scripts/archived/
+
 # Editor local history
 .history/
 
