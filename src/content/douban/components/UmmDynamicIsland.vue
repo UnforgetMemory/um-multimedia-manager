@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue'
-import { normalizeSearchQuery } from '@/utils/search-normalizer'
+import { collapseInputSpaces, normalizeSearchQuery } from '@/utils/search-normalizer'
 
 /**
  * Unified search & navigation bar for all Douban pages.
@@ -39,17 +39,18 @@ function open(url: string): void {
   }
 }
 
-/** Debounced real-time normalization */
-let isNormalizing = false
+/**
+ * Live-typing handler: collapse runs of 2+ spaces into a single space so at
+ * most ONE trailing space survives while typing ("Mean Streets " stays put,
+ * "Mean Streets  " becomes "Mean Streets "). L/R trimming is deliberately
+ * deferred to search trigger — {@link doSearch} runs normalizeSearchQuery,
+ * which ends in .trim().
+ */
 function handleInput(): void {
-  if (isNormalizing) return
-  isNormalizing = true
-  const raw = searchQuery.value
-  const normalized = normalizeSearchQuery(raw)
-  if (normalized !== raw) {
-    searchQuery.value = normalized
+  const collapsed = collapseInputSpaces(searchQuery.value)
+  if (collapsed !== searchQuery.value) {
+    searchQuery.value = collapsed
   }
-  setTimeout(() => { isNormalizing = false }, 0)
 }
 
 function doSearch(): void {

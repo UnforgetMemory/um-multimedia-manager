@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { normalizeSearchQuery } from '@/utils/search-normalizer'
+import { collapseInputSpaces, normalizeSearchQuery } from '@/utils/search-normalizer'
 
 test.describe('normalizeSearchQuery', () => {
   test.describe('season/episode markers', () => {
@@ -170,5 +170,120 @@ test.describe('normalizeSearchQuery', () => {
 
     test('蜘蛛侠-英雄归来 → 空格分隔', () => {
       expect(normalizeSearchQuery('蜘蛛侠-英雄归来')).toBe('蜘蛛侠 英雄归来')
+    })
+  })
+
+  test.describe('special release markers (CC/Criterion/UNCUT/DC/...) stripping', () => {
+    test('CC marker stripped (Mean Streets case)', () => {
+      const input = 'Mean.Streets.1973.CC.2160p.UHD.BluRay.x265.10bit.DV.FLAC.1.0-ADE'
+      expect(normalizeSearchQuery(input)).toBe('Mean Streets 1973')
+    })
+
+    test('CC marker without resolution marker stripped', () => {
+      expect(normalizeSearchQuery('The.Fisher.King.CC.1991')).toBe('The Fisher King 1991')
+    })
+
+    test('Criterion Collection phrase stripped', () => {
+      expect(normalizeSearchQuery('The.Fisher.King.Criterion.Collection.2160p.BluRay.x265')).toBe(
+        'The Fisher King',
+      )
+    })
+
+    test('standalone Criterion token stripped', () => {
+      expect(normalizeSearchQuery('The.Fisher.King.Criterion.1991.2160p')).toBe('The Fisher King 1991')
+    })
+
+    test('UNCUT is NOT stripped (Uncut Gems is a real title)', () => {
+      expect(normalizeSearchQuery('Uncut.Gems.2019.1080p.BluRay.x264')).toBe('Uncut Gems 2019')
+    })
+
+    test('UNCUT after year stays when no real-title conflict (release flag residue accepted)', () => {
+      expect(normalizeSearchQuery('The.Exorcist.1973.UNCUT.1080p.BluRay.x264')).toBe(
+        'The Exorcist 1973 UNCUT',
+      )
+    })
+
+    test('DC is NOT stripped (AC/DC band, DC League of Super-Pets are real titles)', () => {
+      expect(normalizeSearchQuery('AC.DC.Live.at.River.Plate.2009.BluRay.x264')).toBe(
+        'AC DC Live at River Plate 2009',
+      )
+      expect(normalizeSearchQuery('DC.League.of.Super-Pets.2022.1080p.BluRay.x265')).toBe(
+        'DC League of Super Pets 2022',
+      )
+    })
+
+    test('RESTORED marker stripped', () => {
+      expect(normalizeSearchQuery('The.Exorcist.1973.RESTORED.2160p.BluRay')).toBe('The Exorcist 1973')
+    })
+
+    test('THEATRICAL marker stripped', () => {
+      expect(normalizeSearchQuery('Dune.2021.THEATRICAL.2160p.BluRay.x265')).toBe('Dune 2021')
+    })
+
+    test('CJK guard on strip list: CC字幕 preserved (no CJK tail guard bypass)', () => {
+      expect(normalizeSearchQuery('CC字幕')).toBe('CC字幕')
+    })
+
+    test('CJK guard on strip list: space-separated Chinese phrase preserved (CC 字幕)', () => {
+      expect(normalizeSearchQuery('CC 字幕')).toBe('CC 字幕')
+    })
+
+    test('CJK guard on strip list: DC动画电影宇宙 preserved', () => {
+      expect(normalizeSearchQuery('DC动画电影宇宙')).toBe('DC动画电影宇宙')
+    })
+
+    test('UHD before resolution marker cut', () => {
+      expect(normalizeSearchQuery('Movie.2023.UHD.BluRay.x265')).toBe('Movie 2023')
+    })
+
+    test('IMAX before resolution marker cut', () => {
+      expect(normalizeSearchQuery('Oppenheimer.2023.IMAX.2160p.BluRay.x265')).toBe('Oppenheimer 2023')
+    })
+
+    test('DV before resolution marker cut', () => {
+      expect(normalizeSearchQuery('Movie.2023.DV.2160p.HDR')).toBe('Movie 2023')
+    })
+
+    test('WEB-DL without resolution still cut (space-form match)', () => {
+      expect(normalizeSearchQuery('Movie.2023.WEB-DL.x265')).toBe('Movie 2023')
+    })
+
+    test('CJK phrase with new cut marker still preserved (HDR修复版)', () => {
+      expect(normalizeSearchQuery('HDR修复版')).toBe('HDR修复版')
+    })
+
+    test('idempotence: CC-normalized query stays stable', () => {
+      const once = normalizeSearchQuery('Mean.Streets.1973.CC.2160p.UHD.BluRay.x265.10bit.DV.FLAC.1.0-ADE')
+      expect(normalizeSearchQuery(once)).toBe(once)
+    })
+  })
+
+  test.describe('collapseInputSpaces (live typing space handling)', () => {
+    test('single trailing space preserved while typing', () => {
+      expect(collapseInputSpaces('Mean Streets ')).toBe('Mean Streets ')
+    })
+
+    test('two trailing spaces collapsed to one', () => {
+      expect(collapseInputSpaces('Mean Streets  ')).toBe('Mean Streets ')
+    })
+
+    test('three trailing spaces collapsed to one', () => {
+      expect(collapseInputSpaces('Mean Streets   ')).toBe('Mean Streets ')
+    })
+
+    test('internal double space collapsed', () => {
+      expect(collapseInputSpaces('Mean  Streets')).toBe('Mean Streets')
+    })
+
+    test('leading spaces collapsed to one, not trimmed', () => {
+      expect(collapseInputSpaces('  Mean Streets')).toBe(' Mean Streets')
+    })
+
+    test('input without double spaces unchanged', () => {
+      expect(collapseInputSpaces('Mean.Streets.1973')).toBe('Mean.Streets.1973')
+    })
+
+    test('trigger-time trim still strips trailing space (doSearch path)', () => {
+      expect(normalizeSearchQuery('Mean Streets ')).toBe('Mean Streets')
     })
   })

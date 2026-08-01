@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Bug Fixes
+
+- **豆瓣搜索输入框空格处理** (`src/content/douban/components/UmmDynamicIsland.vue`):
+  - 输入时允许 1 个末尾空格（2+ 空格折叠为 1），左右空格去除延后到触发搜索时执行（`doSearch` → `normalizeSearchQuery` 已含 trim）
+  - 新增 `collapseInputSpaces()`；移除每次击键的完整归一化回写与 `isNormalizing` 重入标志
+- **PT 资源名特殊标记适配** (`src/utils/search-normalizer.ts`):
+  - 新增 CC / Criterion Collection / RESTORED / THEATRICAL / DUBBED 前置标记剥离：`Mean.Streets.1973.CC.2160p.UHD.BluRay.x265.10bit.DV.FLAC.1.0-ADE` → `Mean Streets 1973`
+  - 强标记截断列表新增 UHD / DV / HDR / HDR10 / IMAX 与音频标志（DTS/FLAC/DDP/AAC/AC3/Atmos/TrueHD）
+  - 修复 `WEB-DL` 截断死正则（连字符预处理转空格后永不匹配，改为 `WEB.DL` 通配符适配空格形式）
+  - strip 列表增加 CJK 负向前瞻守卫：`CC字幕` / `DC动画电影宇宙` 等中文短语不再被误剥离
+  - UNCUT / DC 刻意排除：与真实标题碰撞（Uncut Gems、AC/DC、DC League of Super-Pets）
+
+### Tests
+
+- 新增 32 个测试（search-normalizer 本文件 64 个全过）：特殊标记剥离、真实标题碰撞回归、CJK 守卫、空格输入行为、幂等性
+- 全量单元测试 150 个通过，`vue-tsc --noEmit` 零错误，`npm run build` 通过，`npm audit` 0 漏洞
+
 ## [5.5.0] - 2026-08-01
 
 ### Features
