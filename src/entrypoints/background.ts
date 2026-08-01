@@ -9,7 +9,7 @@
  */
 
 import { defineBackground } from 'wxt/utils/define-background'
-import type { LogLevel } from '@/types'
+import type { LogLevel, MessageType, MessagePayloadMap } from '@/types'
 import { mediaDB, STORE_NAMES } from '@/features/database/models'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import { STORAGE_KEYS } from '@/config'
@@ -34,8 +34,13 @@ import { handleBilibiliInject, handleBilibiliSave } from './background/handlers/
 import { handleDownloadFile } from './background/handlers/download'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
-import { RecordRepositoryAdapter } from '@/features/database/record-repository-adapter'
+import { RecordRepositoryAdapter, type DbAdapterForRepo } from '@/features/database/record-repository-adapter'
 import { RecordService } from '@/domain/record/RecordService'
+
+/** Extract a safe message from an unknown thrown value */
+function errorMessage(err: unknown): string {
+  return (err as Error)?.message || String(err)
+}
 
 export default defineBackground({
   type: 'module',
@@ -62,7 +67,7 @@ export default defineBackground({
     const pendingMessages: Array<{
       message: any
       sender: chrome.runtime.MessageSender
-      sendResponse: (response?: any) => void
+      sendResponse: (response?: unknown) => void
     }> = []
 
     function flushPendingMessages() {
@@ -124,7 +129,7 @@ export default defineBackground({
       // API availability check
       const requiredAPIs = ['storage', 'runtime', 'notifications', 'alarms']
       for (const api of requiredAPIs) {
-        if (!(chrome as any)[api]) {
+        if (!(chrome as Record<string, unknown>)[api]) {
           errorLog(`❌ Required API missing: ${api}`)
         }
       }
@@ -141,7 +146,7 @@ export default defineBackground({
         dbReady = true
 
         // Wire domain layer
-        const recordRepo = new RecordRepositoryAdapter(mediaDB as any)
+        const recordRepo = new RecordRepositoryAdapter(mediaDB as unknown as DbAdapterForRepo)
         recordService = new RecordService(recordRepo)
 
         flushPendingMessages()
@@ -206,15 +211,17 @@ export default defineBackground({
       return true // Keep channel open for async response
     })
 
-    interface RuntimeMessage {
-      type: string
-      payload?: any
-    }
+    type RuntimeMessage = {
+      [K in MessageType]: {
+        type: K
+        payload?: MessagePayloadMap[K]
+      }
+    }[MessageType]
 
     async function handleMessage(
       message: RuntimeMessage,
       _sender: chrome.runtime.MessageSender,
-      sendResponse: (response?: any) => void
+      sendResponse: (response?: unknown) => void
     ) {
       if (!chrome.runtime?.id) {
         sendResponse({ success: false, error: 'Extension context invalidated' })
@@ -228,7 +235,7 @@ export default defineBackground({
 
       // SHOW_TOAST bypasses all DB gates — pure UI message
       if (message.type === 'SHOW_TOAST') {
-        await handleShowToast(message.payload, sendResponse)
+        await handleShowToast(message.payload!, sendResponse)
         return
       }
 
@@ -259,7 +266,7 @@ export default defineBackground({
       }
 
       const dbCtx: DbHandlerContext = {
-        db: mediaDB as any,
+        db: mediaDB,
         scheduler: dataScheduler,
         recordService,
       }
@@ -268,37 +275,37 @@ export default defineBackground({
         switch (message.type) {
           // ==================== Core DB Operations ====================
           case 'DB_GET':
-            sendResponse(await handleDbGet(message.payload, dbCtx))
+            sendResponse(await handleDbGet(message.payload!, dbCtx))
             break
           case 'DB_PUT':
-            sendResponse(await handleDbPut(message.payload, dbCtx))
+            sendResponse(await handleDbPut(message.payload!, dbCtx))
             break
           case 'DB_DELETE':
-            sendResponse(await handleDbDelete(message.payload, dbCtx))
+            sendResponse(await handleDbDelete(message.payload!, dbCtx))
             break
           case 'DB_GET_ALL':
-            sendResponse(await handleDbGetAll(message.payload, dbCtx))
+            sendResponse(await handleDbGetAll(message.payload!, dbCtx))
             break
           case 'DB_QUERY':
-            sendResponse(await handleDbQuery(message.payload, dbCtx))
+            sendResponse(await handleDbQuery(message.payload!, dbCtx))
             break
           case 'DB_COUNT':
-            sendResponse(await handleDbCount(message.payload, dbCtx))
+            sendResponse(await handleDbCount(message.payload!, dbCtx))
             break
           case 'DB_GET_WATCHED_IDS':
-            sendResponse(await handleDbGetWatchedIds(message.payload, dbCtx))
+            sendResponse(await handleDbGetWatchedIds(message.payload!, dbCtx))
             break
           case 'PT_ID_CACHE_GET':
-            sendResponse(await handlePtIdCacheGet(message.payload, dbCtx))
+            sendResponse(await handlePtIdCacheGet(message.payload!, dbCtx))
             break
           case 'PT_ID_CACHE_PUT':
-            sendResponse(await handlePtIdCachePut(message.payload, dbCtx))
+            sendResponse(await handlePtIdCachePut(message.payload!, dbCtx))
             break
           case 'PT_ID_CACHE_GET_BULK':
-            sendResponse(await handlePtIdCacheGetBulk(message.payload, dbCtx))
+            sendResponse(await handlePtIdCacheGetBulk(message.payload!, dbCtx))
             break
           case 'DB_SYNC_PAGE_RECORD':
-            sendResponse(await handleDbSyncPageRecord(message.payload, dbCtx))
+            sendResponse(await handleDbSyncPageRecord(message.payload!, dbCtx))
             break
 
           // ==================== Settings ====================
@@ -306,7 +313,7 @@ export default defineBackground({
             await handleGetSettings(sendResponse)
             break
           case 'UPDATE_SETTINGS':
-            await handleUpdateSettings(message.payload, sendResponse)
+            await handleUpdateSettings(message.payload!, sendResponse)
             break
 
           // ==================== Export / Import ====================
@@ -314,7 +321,7 @@ export default defineBackground({
             await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM', cacheKey: 'export' })
             break
           case 'IMPORT_DATA':
-            await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', cacheKey: 'import' })
+            await dataScheduler.schedule(() => handleImportData(message.payload!, sendResponse), { priority: 'HIGH', cacheKey: 'import' })
             break
 
           // ==================== Statistics ====================
@@ -337,7 +344,7 @@ export default defineBackground({
 
           // ==================== WebDAV Sync ====================
           case 'WEBDAV_TEST':
-            await dataScheduler.schedule(() => handleWebDAVTest(message.payload, sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-test' })
+            await dataScheduler.schedule(() => handleWebDAVTest(message.payload!, sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-test' })
             break
           case 'WEBDAV_UPLOAD':
             await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-upload' })
@@ -351,61 +358,61 @@ export default defineBackground({
 
           // ==================== NeoDB Push ====================
           case 'NEODB_PUSH_RATING':
-            await handleNeoDBPushRating(message.payload, sendResponse)
+            await handleNeoDBPushRating(message.payload!, sendResponse)
             break
 
           // ==================== Adult AV ID Operations ====================
           case 'ADULT_AV_CHECK':
-            await dataScheduler.schedule(() => handleAdultAvCheck(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-check' })
+            await dataScheduler.schedule(() => handleAdultAvCheck(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'av-check' })
             break
           case 'ADULT_AV_CHECK_BATCH':
-            await dataScheduler.schedule(() => handleAdultAvCheckBatch(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-check-batch' })
+            await dataScheduler.schedule(() => handleAdultAvCheckBatch(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'av-check-batch' })
             break
           case 'ADULT_AV_ADD':
-            await dataScheduler.schedule(() => handleAdultAvAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-add' })
+            await dataScheduler.schedule(() => handleAdultAvAdd(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'av-add' })
             break
           case 'ADULT_AV_BATCH_ADD':
-            await dataScheduler.schedule(() => handleAdultAvBatchAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-batch-add' })
+            await dataScheduler.schedule(() => handleAdultAvBatchAdd(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'av-batch-add' })
             break
           case 'ADULT_AV_GET_ALL':
-            await dataScheduler.schedule(() => handleAdultAvGetAll(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-get-all' })
+            await dataScheduler.schedule(() => handleAdultAvGetAll(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'av-get-all' })
             break
 
           // Legacy handlers (backward compat)
           case 'SEHUATANG_CHECK_VIEWED':
-            await dataScheduler.schedule(() => handleSehuatangCheckViewed(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-check-viewed' })
+            await dataScheduler.schedule(() => handleSehuatangCheckViewed(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-check-viewed' })
             break
           case 'SEHUATANG_ADD':
-            await dataScheduler.schedule(() => handleSehuatangAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-add' })
+            await dataScheduler.schedule(() => handleSehuatangAdd(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-add' })
             break
           case 'SEHUATANG_BATCH_ADD':
-            await dataScheduler.schedule(() => handleSehuatangBatchAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-batch-add' })
+            await dataScheduler.schedule(() => handleSehuatangBatchAdd(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-batch-add' })
             break
           case 'SEHUATANG_GET_ALL':
-            await dataScheduler.schedule(() => handleSehuatangGetAll(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-get-all' })
+            await dataScheduler.schedule(() => handleSehuatangGetAll(message.payload!, sendResponse), { priority: 'LOW', cacheKey: 'sehuatang-get-all' })
             break
 
           // ==================== Bilibili ====================
           case 'BILIBILI_INJECT':
-            sendResponse(await handleBilibiliInject(message.payload, _sender))
+            sendResponse(await handleBilibiliInject(message.payload!, _sender))
             break
           case 'BILIBILI_SAVE':
-            sendResponse(await handleBilibiliSave(message.payload, { db: mediaDB as any, scheduler: dataScheduler }))
+            sendResponse(await handleBilibiliSave(message.payload!, { db: mediaDB, scheduler: dataScheduler }))
             break
 
           // ==================== File Download (MAIN world) ====================
           case 'DOWNLOAD_FILE': {
-            sendResponse(await handleDownloadFile(message.payload, _sender))
+            sendResponse(await handleDownloadFile(message.payload!, _sender))
             return
           }
 
           default:
-            debugLog('Unknown message type:', message.type)
+            debugLog('Unknown message type:', (message as RuntimeMessage).type)
             sendResponse({ success: false, error: 'Unknown message type' })
         }
-      } catch (err: any) {
+      } catch (err) {
         errorLog(`❌ Error handling '${message.type}':`, err)
-        sendResponse({ success: false, error: err?.message || String(err) })
+        sendResponse({ success: false, error: errorMessage(err) })
       }
     }
 

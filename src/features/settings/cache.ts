@@ -42,7 +42,7 @@ class SettingsCache {
   async updateAll(settings: Partial<AppSettings>): Promise<void> {
     if (!this.cache) await this.init()
     Object.assign(this.cache!, settings)
-    await chrome.storage.local.set(settings as Record<string, any>)
+    await chrome.storage.local.set(settings as Record<string, unknown>)
   }
 
   startListening(): void {
@@ -50,7 +50,7 @@ class SettingsCache {
       if (area !== 'local' || !this.cache) return
       for (const [key, change] of Object.entries(changes)) {
         if (change.newValue !== undefined) {
-          ;(this.cache as any)[key] = change.newValue
+          ;(this.cache as unknown as Record<string, unknown>)[key] = change.newValue
         }
       }
       // Sync theme from umm:appearance key (used by content scripts / AppearanceTab)

@@ -72,6 +72,11 @@ export const Utils = {
 
   /**
    * 节流函数（委托到独立导出）
+   * @deprecated 直接导入 `throttle` 函数代替 `Utils.throttle`：
+   * ```ts
+   * import { throttle } from '@/utils'
+   * throttle(fn, delay)
+   * ```
    */
   throttle<T extends (...args: any[]) => void>(fn: T, delay: number): T {
     return throttle(fn, delay);
@@ -79,6 +84,11 @@ export const Utils = {
 
   /**
    * 防抖函数（委托到独立导出）
+   * @deprecated 直接导入 `debounce` 函数代替 `Utils.debounce`：
+   * ```ts
+   * import { debounce } from '@/utils'
+   * debounce(fn, delay)
+   * ```
    */
   debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
     return debounce(fn, delay);
@@ -93,6 +103,10 @@ export const Utils = {
 
   /**
    * 等待 DOM 元素出现
+   *
+   * @deprecated Use the Promise-based `waitForElement` from
+   * `src/entrypoints/content/utils/dom.ts` instead.
+   * This callback version is retained for reference only.
    */
   waitForElement(
     selector: string,

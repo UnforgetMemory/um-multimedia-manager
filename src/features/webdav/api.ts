@@ -16,6 +16,11 @@ import type { RemoteMeta } from '@/types'
 
 const WEBDAV_TIMEOUT = 30_000
 
+/** Extract a safe message from an unknown thrown value */
+function errorMessage(err: unknown): string {
+  return (err as Error)?.message || String(err)
+}
+
 // ==================== Auth helpers ====================
 
 function basicAuth(username: string, password: string): string {
@@ -111,8 +116,8 @@ export async function testConnection(
       return { ok: false, message: 'Authentication failed (401/403)' }
     }
     return { ok: false, message: `HTTP ${res.status}` }
-  } catch (err: any) {
-    return { ok: false, message: err?.message || String(err) }
+  } catch (err) {
+    return { ok: false, message: errorMessage(err) }
   }
 }
 

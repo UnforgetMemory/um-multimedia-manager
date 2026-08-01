@@ -2,6 +2,11 @@
  * File download handler — uses MAIN world fetch for Referer-gated CDNs.
  */
 
+/** Extract a safe message from an unknown thrown value */
+function errorMessage(err: unknown): string {
+  return (err as Error)?.message || String(err)
+}
+
 export async function handleDownloadFile(
   payload: { url?: string; filename?: string },
   sender: chrome.runtime.MessageSender,
@@ -42,7 +47,7 @@ export async function handleDownloadFile(
       },
     })
     return { success: true }
-  } catch (err: any) {
-    return { success: false, error: err?.message || String(err) }
+  } catch (err) {
+    return { success: false, error: errorMessage(err) }
   }
 }

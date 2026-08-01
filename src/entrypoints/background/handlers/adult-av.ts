@@ -6,12 +6,12 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { AdultAvId } from '@/types'
+import type { AdultAvId, StoreRecordSnapshot } from '@/types'
 import { mediaDB } from '@/features/database/models'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { broadcast } from '@/utils/event-bus'
 
-type SendResponse = (response?: any) => void
+type SendResponse = (response?: unknown) => void
 
 const KNOWN_SOURCES = ['javdb', 'sehuatang']
 
@@ -25,7 +25,7 @@ export async function handleAdultAvCheck(
 
   const cleanId = normalizeAvId(id)
   const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
-  let found: any = null
+  let found: { key: string; record: StoreRecordSnapshot } | null = null
   let watched = false
 
   // Level 1: known sources exact match

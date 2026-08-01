@@ -5,7 +5,7 @@
  * Extracted from background.ts for modularity.
  */
 
-type SendResponse = (response?: any) => void
+type SendResponse = (response?: unknown) => void
 
 /** Valid toast notification types */
 const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const

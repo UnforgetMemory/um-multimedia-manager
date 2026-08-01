@@ -4,6 +4,15 @@
  * 用于解决 "Extension context invalidated" 错误
  */
 
+declare global {
+  interface Window {
+    __UMM_DEBUG__?: {
+      checkContext: () => void
+      simulateInvalidation: () => void
+    }
+  }
+}
+
 /**
  * 检查扩展上下文是否有效
  */
@@ -90,7 +99,7 @@ function sendMessageWithTimeout(message: any, timeout: number): Promise<any> {
 
 // ✅ 仅在 Popup/Content 等有 window 的环境中暴露调试工具
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  ;(window as any).__UMM_DEBUG__ = {
+  window.__UMM_DEBUG__ = {
     checkContext: () => {
       console.log('Extension ID:', chrome.runtime?.id)
       console.log('sendMessage available:', !!chrome.runtime?.sendMessage)

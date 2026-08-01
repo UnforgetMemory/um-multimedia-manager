@@ -12,13 +12,13 @@ const TTL = 'ttl_cache'
 
 /** Typed wrapper for ttl_cache get. */
 async function ttlCacheGet<T>(key: string): Promise<T | null> {
-  const raw: any = await Store.dbGet(TTL, key)
+  const raw: unknown = await Store.dbGet(TTL, key)
   return raw as T | null
 }
 
 /** Typed wrapper for ttl_cache put. Cast is contained here. */
 async function ttlCachePut<T>(key: string, value: T): Promise<void> {
-  await (Store as any).dbPut(TTL, key, value)
+  await (Store.dbPut as (storeName: string, key: string, value: unknown) => Promise<void>)(TTL, key, value)
 }
 
 /** Store an array of strings as a set. */

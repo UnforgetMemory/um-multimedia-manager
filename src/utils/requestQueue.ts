@@ -36,11 +36,11 @@ export class RequestQueue {
    * 将任务加入队列
    */
   async enqueue<T>(key: string, task: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ key, task, resolve, reject })
-      this.totalCount++
-      this.processQueue()
-    })
+    const { promise, resolve, reject } = Promise.withResolvers<T>()
+    this.queue.push({ key, task, resolve, reject })
+    this.totalCount++
+    this.processQueue()
+    return promise
   }
 
   /**
