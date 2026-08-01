@@ -66,9 +66,9 @@ const titleLabel = computed(() => {
       />
 
       <!-- Title Bar -->
-      <div class="umm-bc-titlebar">
-        <h2 class="umm-bc-titlebar-label">{{ titleLabel }}</h2>
-        <span class="umm-bc-titlebar-count">共 {{ data.total.toLocaleString() }} 本</span>
+      <div class="umm-titlebar">
+        <h2 class="umm-titlebar-label">{{ titleLabel }}</h2>
+        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 本</span>
       </div>
 
       <!-- Sort Bar -->

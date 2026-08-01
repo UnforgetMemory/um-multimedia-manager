@@ -364,11 +364,4 @@
   color: #fff;
 }
 
-/* ── Empty state ── */
 
-.umm-dlist-empty {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--umm-text-muted);
-  font-size: var(--umm-font-base, 14px);
-}

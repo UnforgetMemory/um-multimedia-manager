@@ -132,12 +132,12 @@ Entire contents:
 
 ```ts
 // src/features/identity/index.ts → export * from './models'
-// src/features/identity/models.ts → export { Identity } from '@/shared/identity'
+// src/features/identity/models.ts → export { UrlResolverBuilder } from '@/shared/identity'
 ```
 
 This is a backward-compat shim. However:
 
-- `src/entrypoints/content.ts` imports `Identity` from `@/features/identity`
+- `src/entrypoints/content.ts` imports `UrlResolverBuilder` from `@/shared/identity`
 - `src/entrypoints/content/router.ts` imports direct from `@/shared/identity`
 
 Two different import styles for the same module. **Recommendation**: Migrate the `content.ts` import and remove `src/features/identity/`. **HIGH priority.**
@@ -249,12 +249,14 @@ handlers/douban/
 
 ### 6.2 Key finding
 
-The most substantial file in `shared/` — `identity.ts` — is **not re-exported through `shared/index.ts`**:
+The most substantial file in `shared/` — `identity.ts` — now re-exports through `shared/index.ts`:
 
 ```ts
-import { Identity } from '@/shared'           // ❌ Does NOT include identity.ts
-import { Identity } from '@/shared/identity'  // ✅ Must use full path
+import { UrlResolverBuilder } from '@/shared'          // ✅ Re-exported via barrel
+import { UrlResolverBuilder } from '@/shared/identity'  // ✅ Direct import (also works)
 ```
+
+Backward compatibility: `import { Identity } from '@/shared'` still works via alias.
 
 ### 6.3 Barrel quality guide
 
@@ -296,12 +298,12 @@ import { Identity } from '@/shared/identity'  // ✅ Must use full path
 
 ### Phase 1 — High priority (architectural correctness)
 
-1. Migrate `content.ts` import of `Identity` from `@/features/identity` → `@/shared/identity`
+1. ~~Migrate `content.ts` import of `Identity` from `@/features/identity` → `@/shared/identity`~~ ✅ Done (now `UrlResolverBuilder`)
 2. Delete `src/features/identity/` directory
 3. Remove `src/shared/utils/`, `src/shared/composables/`, `src/shared/stores/`, `src/shared/types/` indirection layers
-4. Update `src/shared/index.ts` to export only unique content (`identity.ts`, `ui/`, `plugins/`, `locales/`)
-5. Add `identity.ts` exports to `src/shared/index.ts`
-6. Rename `shared/identity.ts`'s `Identity` export to `UrlResolver` (or rename domain `Identity` if the URL utility is more widely used)
+4. ~~Update `src/shared/index.ts` to export only unique content (`identity.ts`, `ui/`, `plugins/`, `locales/`)~~ ✅ Done
+5. ~~Add `identity.ts` exports to `src/shared/index.ts`~~ ✅ Done
+6. ~~Rename `shared/identity.ts`'s `Identity` export to `UrlResolverBuilder`~~ ✅ Done (closes #4 type audit)
 
 ### Phase 2 — Medium priority (cleanup)
 

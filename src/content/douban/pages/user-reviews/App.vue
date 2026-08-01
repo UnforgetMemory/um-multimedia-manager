@@ -45,9 +45,9 @@ function starHtml(rating: number): string {
       />
 
       <!-- Title -->
-      <div class="umm-reviews-titlebar">
-        <h1 class="umm-reviews-title">我的影评</h1>
-        <span class="umm-reviews-count">共 {{ data.total }} 篇</span>
+      <div class="umm-titlebar">
+        <h1 class="umm-titlebar-label">我的影评</h1>
+        <span class="umm-titlebar-count">共 {{ data.total }} 篇</span>
       </div>
 
       <!-- Reviews -->

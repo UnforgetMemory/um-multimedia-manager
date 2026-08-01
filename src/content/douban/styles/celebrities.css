@@ -170,13 +170,4 @@
   color: var(--umm-link, var(--umm-celebrity-accent));
 }
 
-/* ===== Empty / fallback states ===== */
 
-.umm-celebrity-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--umm-space-2xl, 32px) var(--umm-space-lg, 24px);
-  font-size: var(--umm-font-base, 0.875rem);
-  color: var(--umm-text-muted);
-}

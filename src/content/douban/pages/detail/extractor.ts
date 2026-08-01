@@ -5,7 +5,7 @@
  * All HTML is DOMPurify-sanitised before returning.
  */
 import DOMPurify from 'dompurify'
-import { Identity } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
 import type { RatingBar, MetaRow, AwardItem } from './types'
 
@@ -22,7 +22,7 @@ export function extractCoreMetadata(): {
   year: string
   subtitle: string
 } {
-  const identity = Identity.fromUrl(location.href)!
+  const identity = UrlResolverBuilder.fromUrl(location.href)!
 
   const isMusic = location.href.includes('music.douban.com')
   const isBook = location.href.includes('book.douban.com')

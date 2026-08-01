@@ -247,14 +247,6 @@
   color: var(--umm-text-muted);
 }
 
-/* ---- Empty state ---- */
-.umm-game-explore-empty {
-  padding: 48px;
-  text-align: center;
-  color: var(--umm-text-muted);
-  font-size: 0.9375rem;
-}
-
 /* ---- Load more ---- */
 .umm-game-load-more {
   display: flex;

@@ -57,9 +57,9 @@ function isSafeDoubanUrl(url: string): boolean {
       />
 
       <!-- Title -->
-      <div class="umm-authors-titlebar">
-        <h1 class="umm-authors-title">收藏的作者</h1>
-        <span class="umm-authors-count">共 {{ data.total.toLocaleString() }} 位</span>
+      <div class="umm-titlebar">
+        <h1 class="umm-titlebar-label">收藏的作者</h1>
+        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 位</span>
       </div>
 
       <!-- Grid -->

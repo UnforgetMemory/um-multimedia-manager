@@ -105,7 +105,5 @@ export const CONFIG = {
 
 // 类型定义
 export type Domain = 'movie' | 'tv' | 'music' | 'book' | 'game' | 'video';
-// ✅ Provider 保持 string 类型，避免与多处 MediaRecord 定义冲突
-// 实际使用时通过运行时校验保证有效性
-export type Provider = string;
+export type Provider = 'douban' | 'imdb' | 'neodb' | 'tmdb' | 'bilibili' | 'youtube' | 'javdb' | 'mukaku' | 'sehuatang'
 export type Status = (typeof STATUS)[keyof typeof STATUS];

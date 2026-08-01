@@ -20,7 +20,7 @@ const toast = useToast()
 
 interface RatingQueryRecord extends StoreRecord {
   type: string
-  provider: Provider
+  provider: Provider | 'jav_ids'
   providerId: string
 }
 
@@ -40,7 +40,7 @@ const parseResult = computed(() => {
   return parseRatingInput()
 })
 
-function validateAndNormalizeProviderId(provider: Provider, _type: Domain, rawId: string): { valid: boolean; normalizedId: string; error?: string } {
+function validateAndNormalizeProviderId(provider: Provider | 'jav_ids', _type: Domain, rawId: string): { valid: boolean; normalizedId: string; error?: string } {
   const trimmed = rawId.trim()
   if (!trimmed) return { valid: false, normalizedId: '', error: t('validation.idRequired') }
   if (provider === 'imdb') {
@@ -78,7 +78,7 @@ function validateAndNormalizeProviderId(provider: Provider, _type: Domain, rawId
 function parseRatingInput() {
   const input = ratingInput.value.trim()
   if (!input) return null
-  const provider = selectedPlatform.value as Provider
+  const provider = selectedPlatform.value as Provider | 'jav_ids'
   const type = selectedDomain.value
 
   // URL-based parsing
@@ -104,7 +104,7 @@ function parseRatingInput() {
   // Auto-detect jav_id format — only if platform is jav_ids
   if (provider === 'jav_ids' && JAV_ID_REGEX.test(input)) {
     const key = `${selectedJavSource.value}::${normalizeAvId(input)}`
-    return { type: 'jav_ids', provider: 'jav_ids' as Provider, providerId: key, url: '', valid: true }
+    return { type: 'jav_ids', provider: 'jav_ids' as Provider | 'jav_ids', providerId: key, url: '', valid: true }
   }
 
   // ID-based parsing for jav_ids
@@ -112,7 +112,7 @@ function parseRatingInput() {
     const validation = validateAndNormalizeProviderId(provider, type, input)
     if (!validation.valid) return { type, provider, providerId: input, url: '', valid: false, error: validation.error }
     const key = `${selectedJavSource.value}::${validation.normalizedId}`
-    return { type: 'jav_ids', provider: 'jav_ids' as Provider, providerId: key, url: '', valid: true }
+    return { type: 'jav_ids', provider: 'jav_ids' as Provider | 'jav_ids', providerId: key, url: '', valid: true }
   }
 
   const validation = validateAndNormalizeProviderId(provider, type, input)

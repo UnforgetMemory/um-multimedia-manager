@@ -85,8 +85,6 @@
   scrollbar-width: none;
 }
 
-.umm-doulist-xbar::-webkit-scrollbar { display: none; }
-
 .umm-doulist-xbar-tab {
   display: inline-flex;
   align-items: center;
@@ -398,17 +396,6 @@
   color: var(--umm-text-muted);
   line-height: 1.4;
   white-space: nowrap;
-}
-
-/* ===== Empty / fallback states ===== */
-
-.umm-doulists-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--umm-space-2xl) var(--umm-space-lg);
-  font-size: var(--umm-font-base);
-  color: var(--umm-text-muted);
 }
 
 /* ===== Paginator ===== */

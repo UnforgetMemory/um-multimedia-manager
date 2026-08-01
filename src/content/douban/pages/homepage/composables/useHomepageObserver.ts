@@ -1,5 +1,5 @@
 import { onUnmounted } from 'vue'
-import { Utils } from '@/utils'
+import { throttle } from '@/utils'
 
 export interface PageObserverOptions {
   /** CSS selectors for containers to watch for injected content */
@@ -28,7 +28,7 @@ export function usePageObserver(callback: () => void, options: PageObserverOptio
   let checkInterval: ReturnType<typeof setInterval> | null = null
   let pollingTimeout: ReturnType<typeof setTimeout> | null = null
   const observedContainers = new Set<Element>()
-  const throttledCallback = Utils.throttle(callback, throttleMs)
+  const throttledCallback = throttle(callback, throttleMs)
 
   function refreshObserverTargets(): void {
     const targets = document.querySelectorAll(containerSelectors)

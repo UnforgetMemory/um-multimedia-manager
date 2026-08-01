@@ -52,9 +52,9 @@ function onPageChange(page: number): void {
       />
 
       <!-- Title -->
-      <div class="umm-celebrities-titlebar">
-        <h1 class="umm-celebrities-title">收藏的影人</h1>
-        <span class="umm-celebrities-count">共 {{ data.total.toLocaleString() }} 位</span>
+      <div class="umm-titlebar">
+        <h1 class="umm-titlebar-label">收藏的影人</h1>
+        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 位</span>
       </div>
 
       <!-- Grid -->

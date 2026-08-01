@@ -254,22 +254,4 @@
   color: #fff;
 }
 
-/* ===== Empty State ===== */
-.umm-umedia-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--umm-space-sm, 10px);
-  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
-  text-align: center;
-}
-.umm-umedia-empty-icon {
-  font-size: 2.5rem;
-  line-height: 1;
-  opacity: 0.4;
-}
-.umm-umedia-empty-text {
-  font-size: var(--umm-font-base, 0.875rem);
-  color: var(--umm-text-muted);
-}
+

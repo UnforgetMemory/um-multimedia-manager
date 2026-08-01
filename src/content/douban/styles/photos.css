@@ -224,16 +224,6 @@
   .umm-photo-grid--stills { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ---- Empty state ---- */
-.umm-photo-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  font-size: var(--umm-font-base, 0.875rem);
-  color: var(--umm-text-muted);
-}
-
 /* ---- Photo card ---- */
 .umm-photo-card {
   display: flex;

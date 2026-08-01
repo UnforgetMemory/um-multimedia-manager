@@ -62,9 +62,9 @@ const titleLabel = computed(() => {
       />
 
       <!-- Title Bar -->
-      <div class="umm-umedia-titlebar">
-        <h2 class="umm-umedia-titlebar-label">{{ titleLabel }}</h2>
-        <span class="umm-umedia-titlebar-count">共 {{ data.total.toLocaleString() }} 部</span>
+      <div class="umm-titlebar">
+        <h2 class="umm-titlebar-label">{{ titleLabel }}</h2>
+        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 部</span>
       </div>
 
       <!-- Sort & Filter Bar -->

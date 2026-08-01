@@ -63,9 +63,9 @@ const titleLabel = computed(() => {
         :nav-links="data.navLinks"
       />
 
-      <div class="umm-gc-titlebar">
-        <h2 class="umm-gc-titlebar-label">{{ titleLabel }}</h2>
-        <span class="umm-gc-titlebar-count">共 {{ data.total.toLocaleString() }} 个</span>
+      <div class="umm-titlebar">
+        <h2 class="umm-titlebar-label">{{ titleLabel }}</h2>
+        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 个</span>
       </div>
 
       <div v-if="data.total === 0 && data.items.length === 0" class="umm-gc-empty">

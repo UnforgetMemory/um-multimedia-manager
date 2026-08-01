@@ -8,7 +8,7 @@
  */
 
 import { execSync } from 'child_process'
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
@@ -163,15 +163,12 @@ function validateAndReadData(extractDir) {
   console.log('\n🔍 Validating data structure...')
   
   // 查找 JSON 文件（排除 metadata）
-  const fs = require('fs')
-  const path = require('path')
-  
   let jsonFiles = []
   try {
-    const files = fs.readdirSync(extractDir)
+    const files = readdirSync(extractDir)
     jsonFiles = files.filter(f => 
       f.endsWith('.json') && !f.includes('metadata')
-    ).map(f => path.join(extractDir, f))
+    ).map(f => join(extractDir, f))
   } catch (error) {
     console.error('❌ Failed to read directory:', error.message)
     process.exit(1)

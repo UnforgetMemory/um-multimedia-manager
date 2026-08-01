@@ -32,7 +32,7 @@ const hasQueryed = ref(false)
 function parseLinkedInput() {
   const input = linkedInput.value.trim()
   if (!input) return null
-  const provider = linkedSelectedPlatform.value as Provider
+  const provider = linkedSelectedPlatform.value as Provider | 'jav_ids'
   const type = linkedSelectedDomain.value
 
   // URL-based parsing
@@ -54,7 +54,7 @@ function parseLinkedInput() {
   // Auto-detect jav_id format — only if platform is jav_ids
   if (provider === 'jav_ids' && /^[A-Za-z0-9]+-[\w-]+(-[UCuc]{1,2})?$/i.test(input)) {
     const key = `${linkedSelectedJavSource.value}::${normalizeAvId(input)}`
-    return { type: 'jav_ids', provider: 'jav_ids' as Provider, providerId: key, url: '', valid: true }
+    return { type: 'jav_ids', provider: 'jav_ids' as Provider | 'jav_ids', providerId: key, url: '', valid: true }
   }
 
   // ID-based parsing for jav_ids

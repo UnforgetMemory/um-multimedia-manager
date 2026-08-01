@@ -100,13 +100,4 @@
   text-align: center;
 }
 
-.umm-gc-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
-}
-.umm-gc-empty-text {
-  font-size: var(--umm-font-base, 0.875rem);
-  color: var(--umm-text-muted);
-}
+

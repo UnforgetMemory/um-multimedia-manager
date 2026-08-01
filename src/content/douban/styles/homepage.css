@@ -18,23 +18,6 @@
   --umm-mask-from: var(--umm-color-surface, #1a1b1e);
 }
 
-/* Scrollbar track inside scroll rows */
-.umm-scroll-track::-webkit-scrollbar {
-  height: 4px;
-}
-.umm-scroll-track::-webkit-scrollbar-track {
-  background: var(--umm-bg-secondary, #f8f9fa);
-  border-radius: 2px;
-}
-.umm-scroll-track::-webkit-scrollbar-thumb {
-  background: var(--umm-border, #e5e7eb);
-  border-radius: 2px;
-}
-.umm-scroll-track {
-  scrollbar-width: thin;
-  scrollbar-color: var(--umm-border, #e5e7eb) var(--umm-bg-secondary, #f8f9fa);
-}
-
 /* ---- Root panel ---- */
 .umm-top-panel {
   display: block;
@@ -95,24 +78,6 @@
   scrollbar-color: var(--umm-border) var(--umm-bg-secondary);
   box-sizing: border-box;
   width: 100%;
-}
-
-.umm-scroll-track::-webkit-scrollbar {
-  height: 6px;
-}
-
-.umm-scroll-track::-webkit-scrollbar-track {
-  background: var(--umm-bg-secondary);
-  border-radius: 3px;
-}
-
-.umm-scroll-track::-webkit-scrollbar-thumb {
-  background: var(--umm-border);
-  border-radius: 3px;
-}
-
-.umm-scroll-track::-webkit-scrollbar-thumb:hover {
-  background: var(--umm-text-muted);
 }
 
 /* ---- Scroll masks (fade edges) ---- */

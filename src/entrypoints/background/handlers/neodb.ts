@@ -9,7 +9,7 @@ import * as NeoDB from '@/features/neodb/api'
 import { infoLog, warnLog, errorLog } from '@/utils/logger'
 import { STORAGE_KEYS } from '@/config'
 
-type SendResponse = (response?: any) => void
+type SendResponse = (response?: unknown) => void
 
 /** Build Douban URL from provider info */
 function buildDoubanUrl(type: string, providerId: string): string {
@@ -41,7 +41,7 @@ export async function handleNeoDBPushRating(
     }
 
     // Get NeoDB token
-    const result = (await chrome.storage.local.get(STORAGE_KEYS.NEODB_TOKEN)) as Record<string, any>
+    const result = (await chrome.storage.local.get(STORAGE_KEYS.NEODB_TOKEN)) as { [STORAGE_KEYS.NEODB_TOKEN]?: string }
     const token = result[STORAGE_KEYS.NEODB_TOKEN] || ''
     if (!token) {
       sendResponse({ success: false, message: 'NeoDB token not configured' })
@@ -61,7 +61,7 @@ export async function handleNeoDBPushRating(
         catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token)
         infoLog('[NeoDB] Catalog result:', { uuid: catalog.uuid, hasUuid: !!catalog.uuid, attempt })
         break
-      } catch (fetchErr: any) {
+      } catch (fetchErr) {
         if (fetchErr instanceof NeoDB.NeoDBError) {
           if (fetchErr.status === 429) {
             warnLog('[NeoDB] Rate limited (429) — NeoDB 无法抓取该作品数据')
@@ -90,13 +90,13 @@ export async function handleNeoDBPushRating(
     const shelfType = statusToShelfType(record.status ?? 0)
     const rating = record.rating ?? 0
     const comment = record.comment ?? ''
-    let shelfItem: any = null
+    let shelfItem: NeoDB.ShelfItemResponse | null = null
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, comment, token)
         break
-      } catch (markErr: any) {
+      } catch (markErr) {
         if (markErr instanceof NeoDB.NeoDBError) {
           if (markErr.status === 429) {
             warnLog('[NeoDB] Rate limited (429) on markItem')
@@ -118,10 +118,10 @@ export async function handleNeoDBPushRating(
 
     infoLog('[NeoDB] Push success:', { catalogUuid: catalog.uuid, shelfItemUuid: shelfItem?.uuid })
     sendResponse({ success: true, shelfItem, catalogUuid: catalog.uuid })
-  } catch (err: any) {
+  } catch (err) {
     const msg = err instanceof NeoDB.NeoDBError
       ? err.message
-      : err?.message || '推送失败'
+      : (err as Error)?.message || '推送失败'
     errorLog('NeoDB push failed:', msg)
     sendResponse({ success: false, message: msg })
   }
