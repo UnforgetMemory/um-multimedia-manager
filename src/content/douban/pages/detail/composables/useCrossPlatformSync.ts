@@ -1,5 +1,5 @@
 import { Store } from '@/features/database'
-import { Identity } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/shared/identity'
 import { safeSendMessage } from '@/utils/context'
 import { extractCrossPlatformLinks, injectNeoDBPushButtons, FloatingToast, t } from '@/content/douban/shared/legacy-bridge'
 import type { StoreRecord, UrlIdentity } from '@/types'
@@ -210,7 +210,7 @@ async function syncToNeoDB(
       await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
     } else {
       const neodbRecord: StoreRecord = {
-        url: Identity.buildNeoDBUrl(identity.type, syncResponse.catalogUuid),
+        url: UrlResolverBuilder.buildNeoDBUrl(identity.type, syncResponse.catalogUuid),
         status,
         rating,
         updatedAt: new Date().toISOString(),

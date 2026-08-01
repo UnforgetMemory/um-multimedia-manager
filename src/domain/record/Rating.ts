@@ -54,6 +54,22 @@ export class Rating {
     return rating;
   }
 
+  /**
+   * Create a Rating from a Douban 5-star value (e.g. 4 stars → 8.0 / 10).
+   *
+   * Douban exposes user ratings on a 1–5 star scale (with 0.5 steps), while
+   * this domain model stores ratings on a 0–10 scale. This factory performs
+   * the ×2 conversion and validates the input is within 1–5.
+   *
+   * Returns null when the input is outside 1–5 or not a finite number.
+   */
+  static fromStars(stars: number): Rating | null {
+    if (!Number.isFinite(stars)) return null;
+    if (stars <= 0 || stars > 5) return null;
+    if (Math.abs(stars % Rating.STEP) > Number.EPSILON * 10) return null;
+    return Rating.fromNumber(stars * 2);
+  }
+
   // ---- Operations ----
 
   /**

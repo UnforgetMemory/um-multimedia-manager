@@ -82,3 +82,31 @@ test.describe('Rating value object', () => {
     expect(a.toNumber()).toBe(b.toNumber())
   })
 })
+test.describe('Rating.fromStars — Douban 5-star → 10-scale conversion', () => {
+  test('converts 5-star ratings to 10-scale (×2)', () => {
+    expect(Rating.fromStars(1)?.toNumber()).toBe(2)
+    expect(Rating.fromStars(2)?.toNumber()).toBe(4)
+    expect(Rating.fromStars(3)?.toNumber()).toBe(6)
+    expect(Rating.fromStars(4)?.toNumber()).toBe(8)
+    expect(Rating.fromStars(5)?.toNumber()).toBe(10)
+  })
+
+  test('supports half-star values', () => {
+    expect(Rating.fromStars(0.5)?.toNumber()).toBe(1)
+    expect(Rating.fromStars(3.5)?.toNumber()).toBe(7)
+    expect(Rating.fromStars(4.5)?.toNumber()).toBe(9)
+  })
+
+  test('rejects out-of-range star values', () => {
+    expect(Rating.fromStars(0)).toBeNull()
+    expect(Rating.fromStars(6)).toBeNull()
+    expect(Rating.fromStars(-1)).toBeNull()
+  })
+
+  test('round-trips with stars getter', () => {
+    for (let stars = 0.5; stars <= 5; stars += 0.5) {
+      const r = Rating.fromStars(stars)!
+      expect(r.stars).toBe(stars)
+    }
+  })
+})

@@ -8,6 +8,7 @@ import { ASPECT_RATIO } from '@/content/douban/shared/constants'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
 import { onCrossPlatformSave, syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
 import { extractCrossPlatformLinks } from '@/content/douban/shared/legacy-bridge'
+import { rating10ToDoubanStars, doubanStarsToRating10, shouldWriteRecord } from '@/content/douban/shared/rating-scale'
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
 import type { DetailData } from './detail-data'
@@ -63,32 +64,39 @@ const initialStatus: 'wish' | 'do' | 'collect' | null =
   : d.record?.status === 2 ? 'collect'
   : detectStatusFromDom()
 const initialRating: number =
-  d.record?.status && d.record?.rating ? d.record.rating
+  d.record?.status && d.record?.rating ? rating10ToDoubanStars(d.record.rating)
   : detectRatingFromDom()
 const interested = useInterest(() => d.identity.providerId, initialStatus, initialRating)
 
 onMounted(() => {
   interested.fetchInterest().then(async () => {
-    // Auto-save to DB when the Douban API confirms a status but the legacy
-    // DOM-based scan (scanDoubanPageStatus) didn't trigger syncToLocalStorage.
-    // Without this, records detected only via API (e.g. no form[action="remove"]
-    // in the native DOM) never enter IndexedDB.
+    // Auto-save to DB when the Douban API confirms a status. Handles both:
+    // 1. NEW records (no local record yet) — create it.
+    // 2. EXISTING watched records whose rating changed on the page — update it.
+    // (Previously gated on !d.record, which dropped rating updates for already-watched items.)
     const apiStatus = interested.interestStatus.value
-    if (apiStatus && !d.record) {
+    if (apiStatus) {
       const newStatus = apiStatus === 'collect' ? 2 : apiStatus === 'do' ? 3 : 1
-      const newRating = interested.currentRating.value * 2
+      const newRating = doubanStarsToRating10(interested.currentRating.value)
       const key = `${d.identity.type}::${d.identity.providerId}`
       try {
         const existing = await Store.dbGet('douban_records', key)
-        if (!existing) {
-          // Save basic record; linkedIds will be reconciled in the step below
+        if (shouldWriteRecord({
+          hasLocal: !!existing,
+          localStatus: existing?.status,
+          localRating: existing?.rating,
+          newStatus,
+          newRating10: newRating,
+        })) {
           await Store.dbPut('douban_records', key, {
             url: window.location.href,
             status: newStatus,
-            rating: newRating,
-            comment: interested.currentComment.value || '',
+            // Keep the existing rating when the page reports none (0),
+            // so an already-watched record is never wiped to unrated.
+            rating: newRating || existing?.rating || 0,
+            comment: interested.currentComment.value || existing?.comment || '',
             updatedAt: new Date().toISOString(),
-            linkedIds: {},
+            linkedIds: existing?.linkedIds ?? {},
           } as StoreRecord)
         }
       } catch (e) {
@@ -100,7 +108,7 @@ onMounted(() => {
     // current DOM and merge any new ones into the DB record. Handles cases
     // where a Douban page is updated with new IMDb/TMDB associations after
     // the initial save.
-    const identity = { provider: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
+    const identity = { platform: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
     const linkKey = `${d.identity.type}::${d.identity.providerId}`
     try {
       const currentRecord = await Store.dbGet('douban_records', linkKey)
@@ -153,7 +161,7 @@ onMounted(() => {
       import('@/entrypoints/content/neodb-push').then(({ injectNeoDBPushButtons: inject }) => {
         Store.dbGet('douban_records', `${d.identity.type}::${d.identity.providerId}`).then(rec => {
           inject(
-            { provider: 'douban', type: d.identity.type, providerId: d.identity.providerId, url: window.location.href },
+            { platform: 'douban', type: d.identity.type, providerId: d.identity.providerId, url: window.location.href },
             rec,
           )
         })
@@ -195,7 +203,7 @@ async function onInterestSave(interest: 'wish' | 'do' | 'collect', stars: number
   const newRating = stars * 2
   updateRecord({ status: newStatus, rating: newRating })
 
-  const identity = { provider: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
+  const identity = { platform: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
   await onCrossPlatformSave({ identity, interest, stars, comment, newStatus, newRating })
 }
 
