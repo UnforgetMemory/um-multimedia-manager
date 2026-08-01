@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.0] - 2026-08-01
+
+### Features
+
+- **豆瓣评分 5分制 → 10分制 全链路适配** (`src/content/douban/shared/rating-scale.ts`):
+  - 新增 `rating10ToDoubanStars`（10制→5星，UI 回填）/ `doubanStarsToRating10`（5星→10制，DB 写入）/ `shouldWriteRecord`（auto-save 守卫）
+  - `Rating.fromStars()` 领域工厂: 5星制 ×2 转换为 0-10 制，校验 1-5/0.5 步进
+  - 修复豆瓣详情页已看记录评分未正确存储与后续不更新的 bug（initialRating 反向转换 + auto-save 守卫放开 + 页面未评分不覆盖已有评分）
+  - `src/utils/search-normalizer.ts` 复用评分转换（`doubanStarsToRating10` 委托领域层，消除重复）
+- **搜索组件 IMDb 链接识别与提取** (`src/content/douban/shared/imdb-extract.ts`):
+  - 从搜索结果 abstract/abstract_2/url 或顶层 imdb 字段提取 tt-xxx ID
+  - 支持完整 URL / `IMDb: ttxxx` 标签（半角/全角冒号）/ 裸 tt-id
+  - 搜索卡片显示 IMDb 徽章链接（点击跳转 imdb.com）
+
+### Bug Fixes
+
+- **PT 文件名 V2 版本标记剥离** (`src/utils/search-normalizer.ts`): `Wrinkles.2011.V2.1080p...` → `Wrinkles 2011`
+  - 新增 `V\d+` 独立 token 剥离 + `-` 预处理转空格（修复 `2Audio-ADE` 残留）
+  - CJK 连字符标题回归保护（`X-战警` → `X 战警`）
+- **IMDb 链接搜索输入规范化**: `https://www.imdb.com/title/tt22084616/` → `tt22084616`
+  - 在字符替换前提取 tt-id，避免 URL 被拆成垃圾 token
+- **game-detail 页 HTML 消毒**: 对齐 detail 页，`extractMetaRows`/`extractSynopsis` 增加 DOMPurify.sanitize
+
+### Security
+
+- **IMPORT_DATA 设置白名单收紧** (`src/entrypoints/background/handlers/data.ts`):
+  - import 白名单改为 `IMPORT_SETTINGS_KEYS = EXPORT_SETTINGS_KEYS`，排除 webdavUrl/webdavUsername/webdavPassword 凭据键
+  - 修复恶意备份可重定向 WebDAV 同步导致数据外泄的漏洞（安全审计 #4a）
+- **WebDAV 远程数据校验** (`src/entrypoints/background/handlers/webdav.ts`):
+  - download/sync 双路径增加 `RECORD_STORES` 校验 + record 结构校验
+  - 修复恶意 WebDAV 端点可向任意 store 写入的漏洞（安全审计 #4b）
+- **经 5 成员安全审计团队验证**: 3 猎人 + 2 PoC 工程师，双轮独立验证，0 可利用漏洞
+
+### Refactors
+
+- **Vue 组件 defineModel 化**: Input / SegmentedControl / OptionPicker / UmmSearchFilter
+- **TypeScript erasableSyntaxOnly 兼容**: 11 处 parameter properties 改写为显式字段声明（TS7 前置）
+- **类型收紧**: catch-unknown 收窄、SendResponse `any`→`unknown`、`Record<string, any>`→`unknown`
+- **UmmSearchCard 嵌套 `<a>` 修复**: IMDb 徽章重构为独立链接 + CSS 定位
+
+### Build / Dependencies
+
+- **Vite 8.2.0**（Rolldown 默认打包器）: `build.rollupOptions` → `build.rolldownOptions`
+- **WXT 0.21.3**（ModuleRunner 重写）: 破坏性变更审计通过，无 url: imports 等阻塞项
+- **Vue 3.5.40 / vue-router 5.2.0 / vue-i18n 11.4.8 / @vueuse 14.4.0** 等 18 依赖升级
+- **TypeScript 6.0.3 保持**（官方稳妥路线，TS7 因 vue-tsc 不兼容暂缓）: tsconfig 启用 `erasableSyntaxOnly` + lib ES2024
+- **修复 scripts/package.js + data-export.js 读取不存在 manifest.json 的打包崩溃**（改为读 wxt.config.ts/package.json）
+
+### Tests
+
+- 新增 16 个测试: 评分制式适配（8）、IMDb 提取（10）、import 白名单安全回归（3）、V2/IMDb URL/CJK 回归（5）
+- 全量单元测试 125 个通过，`vue-tsc --noEmit` 零错误，`npm run build` 通过，`npm audit` 0 漏洞
+
 ## [5.4.1] - 2026-07-31
 
 ### Bug Fixes
