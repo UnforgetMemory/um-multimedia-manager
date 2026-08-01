@@ -14,11 +14,20 @@ import { errorLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
 import { STORAGE_KEYS } from '@/config'
 
-type SendResponse = (response?: any) => void
+/** Extract a safe message from an unknown thrown value */
+function errorMessage(err: unknown): string {
+  return (err as Error)?.message || String(err)
+}
+
+type SendResponse = (response?: unknown) => void
 
 /** Read WebDAV settings from chrome.storage.local */
 async function getWebDAVSettings() {
-  const result = (await chrome.storage.local.get(null)) as Record<string, any>
+  const result = (await chrome.storage.local.get(null)) as {
+    [STORAGE_KEYS.WEBDAV_URL]?: string
+    [STORAGE_KEYS.WEBDAV_USERNAME]?: string
+    [STORAGE_KEYS.WEBDAV_PASSWORD]?: string
+  }
   return {
     webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
     webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
@@ -91,8 +100,8 @@ export async function handleWebDAVTest(
 
     const result = await WebDAV.testConnection(webdavUrl, webdavUsername, webdavPassword)
     sendResponse({ success: true, ...result })
-  } catch (err: any) {
-    sendResponse({ success: false, message: err?.message || String(err) })
+  } catch (err) {
+    sendResponse({ success: false, message: errorMessage(err) })
   }
 }
 
@@ -144,9 +153,9 @@ export async function handleWebDAVUpload(sendResponse: SendResponse) {
       direction: 'upload',
       message: `已上传 ${totalUploaded} 条记录`,
     })
-  } catch (err: any) {
+  } catch (err) {
     errorLog('WebDAV upload failed:', err)
-    sendResponse({ success: false, error: err?.message || String(err), message: err?.message || '上传失败' })
+    sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '上传失败' })
   }
 }
 
@@ -168,15 +177,24 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
     let totalDownloaded = 0
     for (const ds of remoteMeta.datasets) {
       if (ds.recordCount === 0) continue
+      // Security: only accept datasets whose store name is a known record store.
+      // remoteMeta comes from an external WebDAV server and is attacker-influenceable;
+      // an arbitrary store name would let a malicious server write into any store.
+      if (!RECORD_STORES.includes(ds.key as RecordStoreName)) {
+        errorLog(`WebDAV download skipped '${ds.key}': not a known record store`)
+        continue
+      }
       try {
         const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, ds.key)
         const { data } = await unpackageDataset(blob)
         for (const [key, record] of Object.entries(data)) {
+          // Validate record shape before writing (external data is untrusted).
+          if (typeof record !== 'object' || record === null || typeof key !== 'string') continue
           await mediaDB.put(ds.key as RecordStoreName, key, record)
         }
         totalDownloaded += Object.keys(data).length
-      } catch (dsErr: any) {
-        errorLog(`WebDAV download skipped '${ds.key}': ${dsErr?.message || String(dsErr)}`)
+      } catch (dsErr) {
+        errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
         continue
       }
     }
@@ -189,9 +207,9 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
       direction: 'download',
       message: `已下载 ${totalDownloaded} 条记录`,
     })
-  } catch (err: any) {
+  } catch (err) {
     errorLog('WebDAV download failed:', err)
-    sendResponse({ success: false, error: err?.message || String(err), message: err?.message || '下载失败' })
+    sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '下载失败' })
   }
 }
 
@@ -220,6 +238,22 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
     for (const key of allKeys) {
       const local = localMap.get(key)
       const remote = remoteMap.get(key)
+
+      // Security: mirror the download-path guard — only sync known record stores.
+      // remoteMeta.datasets[].key is attacker-influenceable on a malicious/compromised
+      // WebDAV endpoint; writing into non-record stores (pt_id_cache / jav_ids / ttl_cache)
+      // would poison them (wrong PT dimming, adult-content marked viewed, stale cache).
+      if (!RECORD_STORES.includes(key as RecordStoreName)) {
+        errorLog(`WebDAV sync skipped dataset '${key}': not a known record store`)
+        resultingMetas.push(local || remote || {
+          key,
+          hash: 'empty',
+          updatedAt: new Date().toISOString(),
+          recordCount: 0,
+          dataVersion: 1,
+        })
+        continue
+      }
 
       try {
         // Both empty → skip
@@ -250,6 +284,7 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
           const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
           const { data } = await unpackageDataset(blob)
           for (const [recordKey, record] of Object.entries(data)) {
+            if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
             await mediaDB.put(key as RecordStoreName, recordKey, record)
           }
           resultingMetas.push(remote)
@@ -275,13 +310,14 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
           const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
           const { data } = await unpackageDataset(blob)
           for (const [recordKey, record] of Object.entries(data)) {
+            if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
             await mediaDB.put(key as RecordStoreName, recordKey, record)
           }
           resultingMetas.push(remote)
           downloaded += Object.keys(data).length
         }
-      } catch (dsErr: any) {
-        errorLog(`WebDAV sync skipped dataset '${key}': ${dsErr?.message || String(dsErr)}`)
+      } catch (dsErr) {
+        errorLog(`WebDAV sync skipped dataset '${key}': ${errorMessage(dsErr)}`)
         resultingMetas.push(local || remote || {
           key,
           hash: 'empty',
@@ -319,8 +355,8 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
       skipped,
       timestamp: newRemoteMeta.generatedAt,
     })
-  } catch (err: any) {
+  } catch (err) {
     errorLog('WebDAV sync failed:', err)
-    sendResponse({ success: false, error: err?.message || String(err), message: err?.message || '同步失败' })
+    sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '同步失败' })
   }
 }

@@ -12,10 +12,9 @@ import { validateExportVersion, getMigrationInfo, MigrationError } from '@/featu
 import { settingsCache } from '@/features/settings/cache'
 import { infoLog, warnLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
-import { STORAGE_KEYS } from '@/config'
 
 /** Settings fields to include in export (all AppSettings keys except sensitive credentials) */
-const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
+export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
   'autoSync',
   'autoSyncNeoDB',
   'syncInterval',
@@ -30,7 +29,18 @@ const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
   'neodbToken',
 ]
 
-type SendResponse = (response?: any) => void
+/**
+ * Settings keys allowed on IMPORT.
+ *
+ * Security: this MUST mirror EXPORT_SETTINGS_KEYS and must NOT include
+ * credential keys (webdavUrl/webdavUsername/webdavPassword). Previously the
+ * import whitelist used every STORAGE_KEYS value, so a malicious backup could
+ * rewrite the WebDAV target to an attacker-controlled server; the next sync
+ * would then push the user's full library + real WebDAV password there.
+ */
+const IMPORT_SETTINGS_KEYS: ReadonlySet<string> = new Set(EXPORT_SETTINGS_KEYS)
+
+type SendResponse = (response?: unknown) => void
 
 /** GET_SETTINGS — return cached settings */
 export async function handleGetSettings(sendResponse: SendResponse) {
@@ -114,12 +124,11 @@ export async function handleImportData(
     }
   }
 
-  // Import settings if present (whitelist allowed keys only)
+  // Import settings if present (whitelist allowed keys only — excludes credentials)
   if (payload.settings) {
-    const allowedKeys = new Set<string>(Object.values(STORAGE_KEYS))
-    const filtered: Record<string, any> = {}
+    const filtered: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(payload.settings)) {
-      if (allowedKeys.has(key)) {
+      if (IMPORT_SETTINGS_KEYS.has(key)) {
         filtered[key] = value
       }
     }
@@ -157,13 +166,13 @@ export async function handleGetStatistics(sendResponse: SendResponse) {
 
     stats.total += entries.length
     if (platform && platform in stats) {
-      (stats as any)[platform] += entries.length
+      (stats as unknown as Record<string, number>)[platform] += entries.length
     }
 
     for (const entry of entries) {
       const type = entry.key.split('::')[0]
       if (type && type in stats) {
-        (stats as any)[type]++
+        (stats as unknown as Record<string, number>)[type]++
       }
     }
   }
