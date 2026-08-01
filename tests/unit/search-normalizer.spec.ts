@@ -118,3 +118,57 @@ test.describe('normalizeSearchQuery', () => {
     }
   })
 })
+
+  test.describe('version markers (V2/V3/REPACK) stripping', () => {
+    test('V2 version marker stripped (Wrinkles case)', () => {
+      const input = 'Wrinkles.2011.V2.1080p.BluRay.x265.10bit.DTS.2Audio-ADE'
+      expect(normalizeSearchQuery(input)).toBe('Wrinkles 2011')
+    })
+
+    test('V3 version marker stripped', () => {
+      expect(normalizeSearchQuery('Inception.2010.V3.1080p.BluRay.x264')).toBe('Inception 2010')
+    })
+
+    test('version marker without resolution still stripped (release group kept)', () => {
+      // Without a resolution marker, release-group vs title word is ambiguous — keep ADE.
+      expect(normalizeSearchQuery('Movie.2019.V2-ADE')).toBe('Movie 2019 ADE')
+    })
+
+    test('idempotence: V2 already normalized stays stable', () => {
+      const once = normalizeSearchQuery('Wrinkles.2011.V2.1080p.BluRay')
+      expect(normalizeSearchQuery(once)).toBe(once)
+    })
+  })
+
+  test.describe('IMDb URL input normalization', () => {
+    test('full IMDb URL → extracted tt-id', () => {
+      expect(normalizeSearchQuery('https://www.imdb.com/title/tt22084616/')).toBe('tt22084616')
+    })
+
+    test('IMDb URL without trailing slash', () => {
+      expect(normalizeSearchQuery('https://www.imdb.com/title/tt22084616')).toBe('tt22084616')
+    })
+
+    test('imdb.com short URL form', () => {
+      expect(normalizeSearchQuery('https://imdb.com/title/tt0111161')).toBe('tt0111161')
+    })
+
+    test('plain tt-id stays unchanged', () => {
+      expect(normalizeSearchQuery('tt22084616')).toBe('tt22084616')
+    })
+
+    test('idempotence: extracted tt-id stable', () => {
+      const once = normalizeSearchQuery('https://www.imdb.com/title/tt22084616/')
+      expect(normalizeSearchQuery(once)).toBe(once)
+    })
+  })
+
+  test.describe('CJK 连字符标题（回归保护）', () => {
+    test('X-战警 → X 战警（连字符转空格，不破坏搜索）', () => {
+      expect(normalizeSearchQuery('X-战警')).toBe('X 战警')
+    })
+
+    test('蜘蛛侠-英雄归来 → 空格分隔', () => {
+      expect(normalizeSearchQuery('蜘蛛侠-英雄归来')).toBe('蜘蛛侠 英雄归来')
+    })
+  })

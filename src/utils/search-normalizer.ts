@@ -1,3 +1,5 @@
+import { extractImdbIdFromText } from '@/content/douban/shared/imdb-extract'
+
 /**
  * Search query normalizer for Douban search enhancement.
  * Shared between content enhancers and popup components.
@@ -29,10 +31,18 @@
  * search input.
  */
 export function normalizeSearchQuery(raw: string): string {
+  // IMDb URL fast-path: extract the tt-id BEFORE any character substitution.
+  // The URL contains '.'/'/'/':' which the substitution below would otherwise
+  // shred into garbage tokens ("https www imdb com title tt22084616").
+  // Douban's search understands tt-ids directly.
+  const imdbId = extractImdbIdFromText(raw.trim())
+  if (imdbId) return imdbId
+
   let s = raw
     .replace(/\./g, ' ')
     .replace(/[[\]()（）【】「」『』〈〉《》]/g, ' ')
     .replace(/[*#@!~`%^&+=|\\{}:;"'<>,?/]/g, ' ')
+    .replace(/-/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -47,11 +57,14 @@ export function normalizeSearchQuery(raw: string): string {
   // Drop version-release tokens that may appear before resolution markers
   // (TRUHD/DUAL/MULTi/HYBRID are audio/language flags that occur without a
   // resolution marker and are never part of a title.)
+  // `V\d+` (V2/V3/…) are release version markers in PT filenames — strip them
+  // as standalone tokens too (e.g. "Wrinkles.2011.V2.1080p" → "Wrinkles 2011").
   s = s
     .replace(
       /\b(?:iNTERNAL|PROPER|REPACK|EXTENDED|UNRATED|REMASTERED|COMPLETE|RERIP|FIXED|LiMiTED|TRUHD|DUAL|MULTi|HYBRID)\b/gi,
       ' ',
     )
+    .replace(/\bV\d+\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 
