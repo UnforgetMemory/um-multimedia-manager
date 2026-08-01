@@ -38,6 +38,13 @@ const FORMAT_COLORS: Record<string, string> = {
   '流媒体': 'umm-chip-streaming',
 }
 
+/** 规范化 IMDb ID → 小写 tt-xxx；非法值返回 null */
+function normalizeImdbId(id: string | undefined | null): string | null {
+  if (!id) return null
+  const m = id.trim().match(/^(tt\d+)$/i)
+  return m ? m[1].toLowerCase() : null
+}
+
 interface Props {
   item: SearchItem
   records: Map<string, StoreRecord>
@@ -52,6 +59,10 @@ const badgeRating = rec?.rating ?? 0
 
 const isMusic = props.type === 'music'
 const isBook = props.type === 'book'
+
+/** 渲染 IMDb 链接（跟随详情页 metaToChips 模式） */
+const imdbId = normalizeImdbId(props.item.imdb)
+const imdbHref = imdbId ? `https://www.imdb.com/title/${imdbId}/` : null
 
 /** Extract media format from abstract metadata string (music only) */
 const mediaFormat = computed(() => {
@@ -68,6 +79,7 @@ const mediaFormat = computed(() => {
 </script>
 
 <template>
+  <div class="umm-search-card-wrap" :class="{ 'umm-search-card-wrap--music': isMusic }">
   <a
     :href="item.url"
     target="_blank" rel="noopener noreferrer"
@@ -102,4 +114,15 @@ const mediaFormat = computed(() => {
       <div v-if="item.abstract_2 && !isBook" class="umm-search-cast">{{ item.abstract_2 }}</div>
     </div>
   </a>
+  <a
+    v-if="imdbHref"
+    :href="imdbHref"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="umm-search-imdb"
+    @click.stop
+  >
+    IMDb {{ imdbId }}
+  </a>
+  </div>
 </template>

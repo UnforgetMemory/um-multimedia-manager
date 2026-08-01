@@ -18,4 +18,6 @@ export interface SearchItem {
   interest: { actions: string[]; status_text: string }
   tpl_name: string
   topics: string[]
+  /** IMDb ID (tt-xxx)，从 abstract/abstract_2/url 或 __DATA__ 顶层字段提取 */
+  imdb?: string
 }

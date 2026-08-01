@@ -3,6 +3,7 @@
  */
 
 import type { DoubanSearchData, SearchItem } from './types'
+import { extractImdbIdFromItem, type SearchItemLike } from '@/content/douban/shared/imdb-extract'
 
 /** Extract __DATA__ from inline script tags — bypasses CSP and isolated world */
 function parseDataFromScriptTag(): DoubanSearchData | undefined {
@@ -83,7 +84,7 @@ function extractFromDOM(): SearchItem[] {
 
     const value = parseFloat(ratingEl?.textContent?.trim() || '0') || 0
 
-    items.push({
+    const item: SearchItem = {
       id: parseInt(idMatch[1]),
       title: link?.textContent?.trim() || '',
       cover_url,
@@ -95,7 +96,11 @@ function extractFromDOM(): SearchItem[] {
       interest: { actions: [], status_text: '' },
       tpl_name: 'search_subject',
       topics: [],
-    })
+    }
+
+    // IMDb ID 提取（从 abstract/abstract_2/url 或顶层 imdb 字段）
+    item.imdb = extractImdbIdFromItem(item) ?? undefined
+    items.push(item)
   })
   return items
 }
@@ -103,7 +108,13 @@ function extractFromDOM(): SearchItem[] {
 async function parseSearchDataImpl(): Promise<DoubanSearchData | undefined> {
   const fromPage = await readDataFromPage()
   if (fromPage) {
-    const filtered = fromPage.items.filter(i => i.tpl_name === 'search_subject' && i.id && i.cover_url)
+    const filtered = fromPage.items
+      .filter(i => i.tpl_name === 'search_subject' && i.id && i.cover_url)
+      .map(i => ({
+        ...i,
+        // 从 __DATA__ 条目中提取 IMDb ID（可能直接带 imdb 字段或藏在文本里）
+        imdb: extractImdbIdFromItem(i as SearchItemLike) ?? undefined,
+      }))
     if (filtered.length) return { ...fromPage, items: filtered, count: fromPage.count || fromPage.items.length }
     return fromPage
   }

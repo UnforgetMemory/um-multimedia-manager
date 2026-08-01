@@ -6,16 +6,13 @@
 export type FilterType = 'all' | 'movie' | 'tv'
 
 interface Props {
-  modelValue: FilterType
   total: number
   filtered: number
   query: string
 }
 
 defineProps<Props>()
-const emit = defineEmits<{
-  'update:modelValue': [value: FilterType]
-}>()
+const modelValue = defineModel<FilterType>('modelValue', { required: true })
 </script>
 
 <template>
@@ -26,17 +23,17 @@ const emit = defineEmits<{
         <button
           class="umm-type-btn"
           :class="{ 'umm-type-btn--active': modelValue === 'all' }"
-          @click="emit('update:modelValue', 'all')"
+          @click="modelValue = 'all'"
         >全部</button>
         <button
           class="umm-type-btn"
           :class="{ 'umm-type-btn--active': modelValue === 'movie' }"
-          @click="emit('update:modelValue', 'movie')"
+          @click="modelValue = 'movie'"
         >电影</button>
         <button
           class="umm-type-btn"
           :class="{ 'umm-type-btn--active': modelValue === 'tv' }"
-          @click="emit('update:modelValue', 'tv')"
+          @click="modelValue = 'tv'"
         >剧集</button>
       </div>
     </div>

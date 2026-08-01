@@ -241,11 +241,33 @@
   overflow: hidden;
 }
 
-/* ---- Empty state ---- */
-.umm-search-empty {
-  text-align: center;
-  padding: var(--umm-space-2xl, 64px) var(--umm-space-xl, 24px);
-  color: var(--umm-text-muted);
+/* IMDb link chip on search cards — positioned over the cover, top-right */
+.umm-search-card-wrap {
+  position: relative;
+}
+
+.umm-search-imdb {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--umm-text-accent, #e7a33e);
+  background: rgba(231, 163, 62, 0.12);
+  border: 1px solid rgba(231, 163, 62, 0.3);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.umm-search-imdb:hover {
+  background: var(--umm-text-accent, #e7a33e);
+  color: #fff;
 }
 
 /* ---- Pagination (unchanged) ---- */
