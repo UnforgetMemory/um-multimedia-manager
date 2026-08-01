@@ -32,7 +32,7 @@ async function onInterestSave(interest: 'wish' | 'do' | 'collect', stars: number
   const newStatus = interest === 'collect' ? 2 : interest === 'do' ? 3 : 1
   const newRating = stars * 2
   record.value = { status: newStatus, rating: newRating }
-  const identity = { provider: 'douban' as const, type: 'game', providerId: d.identity.providerId, url: window.location.href }
+  const identity = { platform: 'douban' as const, type: 'game', providerId: d.identity.providerId, url: window.location.href }
   await onCrossPlatformSave({ identity, interest, stars, comment, newStatus, newRating })
 }
 
@@ -46,14 +46,14 @@ onMounted(() => {
       import('@/entrypoints/content/neodb-push').then(({ injectNeoDBPushButtons: inject }) => {
         Store.dbGet('douban_records', `${d.identity.type}::${d.identity.providerId}`).then(rec => {
           inject(
-            { provider: 'douban', type: d.identity.type, providerId: d.identity.providerId, url: window.location.href },
+            { platform: 'douban', type: d.identity.type, providerId: d.identity.providerId, url: window.location.href },
             rec,
           )
         })
       })
     }
     // Companion NeoDB sync check for existing watched records
-    const identity = { provider: 'douban' as const, type: 'game', providerId: d.identity.providerId, url: window.location.href }
+    const identity = { platform: 'douban' as const, type: 'game', providerId: d.identity.providerId, url: window.location.href }
     syncNeoDBOnLoad(identity, record.value).catch(e =>
       console.warn('[UMM] NeoDB on-load check failed:', e)
     )

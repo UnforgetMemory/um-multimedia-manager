@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify'
+
 export interface GameRatingBar {
   label: string
   pct: string
@@ -38,7 +40,7 @@ export interface GameRecItem {
 export interface GameDetailData {
   title: string
   posterSrc: string
-  identity: { provider: 'douban'; type: 'game'; providerId: string; url: string }
+  identity: { platform: 'douban'; type: 'game'; providerId: string; url: string }
   ratingNum: string
   ratingPeople: string
   bigstarNum: string
@@ -158,16 +160,16 @@ function extractMetaRows(): { label: string; html: string }[] {
     const dd = dt.nextElementSibling
     const label = dt.textContent?.replace(/[：:]\s*$/, '').trim() || ''
     const html = dd?.innerHTML?.trim() || ''
-    if (label && html) rows.push({ label, html })
+    if (label && html) rows.push({ label, html: DOMPurify.sanitize(html) })
   })
   return rows
 }
 
-function extractIdentity(): { provider: 'douban'; type: 'game'; providerId: string; url: string } | null {
+function extractIdentity(): { platform: 'douban'; type: 'game'; providerId: string; url: string } | null {
   const match = location.pathname.match(/\/game\/(\d+)/)
   if (!match) return null
   return {
-    provider: 'douban',
+    platform: 'douban',
     type: 'game',
     providerId: match[1],
     url: location.href,
@@ -181,7 +183,7 @@ function extractSynopsis(): string {
   if (!p) return ''
   // Read full innerHTML from clone to avoid mutating the page's DOM
   const clone = p.cloneNode(true) as HTMLElement
-  return clone.innerHTML?.trim() || ''
+  return DOMPurify.sanitize(clone.innerHTML?.trim() || '')
 }
 
 function extractGallery(): GamePhotoItem[] {
