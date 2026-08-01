@@ -38,10 +38,16 @@ export interface ConflictInfo {
 const STAMP_KEY = 'recordVersion'
 
 export class OptimisticLock {
+  private readonly db: DbReader
+  private readonly onConflictDefault: ConflictAction
+
   constructor(
-    private readonly db: DbReader,
-    private readonly onConflictDefault: ConflictAction = 'abort',
-  ) {}
+    db: DbReader,
+    onConflictDefault: ConflictAction = 'abort',
+  ) {
+    this.db = db
+    this.onConflictDefault = onConflictDefault
+  }
 
   /**
    * Conditionally write a record — only succeeds if the expected version
@@ -58,19 +64,19 @@ export class OptimisticLock {
     options?: LockOptions,
   ): Promise<WriteResult> {
     const current = await this.db.get(storeName, key)
-    const currentVersion = (current as any)?.[STAMP_KEY] ?? 0
+    const currentVersion = current?.recordVersion ?? 0
 
     // No version check requested — write immediately
     if (expectedVersion === undefined) {
       const newVersion = currentVersion + 1
-      ;(record as any)[STAMP_KEY] = newVersion
+      record.recordVersion = newVersion
       return { ok: true, version: newVersion }
     }
 
     // Version check
     if (currentVersion === expectedVersion) {
       const newVersion = currentVersion + 1
-      ;(record as any)[STAMP_KEY] = newVersion
+      record.recordVersion = newVersion
       return { ok: true, version: newVersion }
     }
 
@@ -99,20 +105,20 @@ export class OptimisticLock {
 
     if (conflictAction === 'force') {
       const newVersion = currentVersion + 1
-      ;(record as any)[STAMP_KEY] = newVersion
+      record.recordVersion = newVersion
       return { ok: true, version: newVersion }
     }
 
     // 'merge' — write but keep existing version
     const newVersion = currentVersion + 1
-    ;(record as any)[STAMP_KEY] = newVersion
+    record.recordVersion = newVersion
     return { ok: true, version: newVersion }
   }
 
   /** Get the current version of a record (0 if not found). */
   async getVersion(storeName: string, key: string): Promise<number> {
     const record = await this.db.get(storeName, key)
-    return (record as any)?.[STAMP_KEY] ?? 0
+    return record?.recordVersion ?? 0
   }
 }
 

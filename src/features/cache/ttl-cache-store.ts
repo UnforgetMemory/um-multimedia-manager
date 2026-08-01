@@ -20,7 +20,11 @@ export interface DbAdapter {
 }
 
 export class TtlCacheStore {
-  constructor(private readonly db: DbAdapter) {}
+  private readonly db: DbAdapter
+
+  constructor(db: DbAdapter) {
+    this.db = db
+  }
 
   async get<T>(key: string): Promise<T | null> {
     const row = await this.db.get<TtlCacheRow>(key)

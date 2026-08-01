@@ -1,7 +1,7 @@
 /**
  * RecordRepositoryAdapter — IRecordRepository implementation backed by MediaDatabase.
  *
- * Derives IndexedDB storage keys from StoreRecord canonical URLs via Identity.fromUrl().
+ * Derives IndexedDB storage keys from StoreRecord canonical URLs via UrlResolverBuilder.fromUrl().
  * Converts between domain StoreRecord instances and their serialized snapshots at the
  * boundary, keeping the repository layer infrastructure-agnostic.
  *
@@ -9,8 +9,8 @@
  */
 
 import type { IRecordRepository, RecordFilter, PageOptions, PageResult } from '@/domain/record/IRecordRepository'
-import { StoreRecord } from '@/domain/record/StoreRecord'
-import { Identity } from '@/shared/identity'
+import { StoreRecord, type StoreRecordSnapshot } from '@/domain/record/StoreRecord'
+import { UrlResolverBuilder } from '@/shared/identity'
 /** Minimal interface for the database dependency — makes the adapter testable. */
 export interface DbAdapterForRepo {
   get(storeName: string, key: string): Promise<any>
@@ -25,7 +25,11 @@ export interface DbAdapterForRepo {
 }
 
 export class RecordRepositoryAdapter implements IRecordRepository {
-  constructor(private readonly db: DbAdapterForRepo) {}
+  private readonly db: DbAdapterForRepo
+
+  constructor(db: DbAdapterForRepo) {
+    this.db = db
+  }
 
   async findByKey(storeName: string, key: string): Promise<StoreRecord | null> {
     const snapshot = await this.db.get(this.normalizeStore(storeName), key)
@@ -34,7 +38,7 @@ export class RecordRepositoryAdapter implements IRecordRepository {
   }
 
   async findByUrl(storeName: string, url: string): Promise<StoreRecord | null> {
-    const identity = Identity.fromUrl(url)
+    const identity = UrlResolverBuilder.fromUrl(url)
     if (identity) {
       return this.findByKey(storeName, `${identity.type}::${identity.providerId}`)
     }
@@ -125,7 +129,7 @@ export class RecordRepositoryAdapter implements IRecordRepository {
     const entries = await this.db.batchGet(this.normalizeStore(storeName), keys)
     const result = new Map<string, StoreRecord>()
     for (const [key, record] of entries.entries()) {
-      result.set(String(key), StoreRecord.fromSnapshot(record as any))
+      result.set(String(key), StoreRecord.fromSnapshot(record as StoreRecordSnapshot))
     }
     return result
   }
@@ -145,7 +149,7 @@ export class RecordRepositoryAdapter implements IRecordRepository {
 
   /** Derive IndexedDB key (`{type}::{providerId}`) from a StoreRecord's canonical URL. */
   private resolveKey(record: StoreRecord): string {
-    const identity = Identity.fromUrl(record.url)
+    const identity = UrlResolverBuilder.fromUrl(record.url)
     if (!identity || !identity.providerId) {
       throw new Error(`Cannot resolve storage key for URL: ${record.url}`)
     }

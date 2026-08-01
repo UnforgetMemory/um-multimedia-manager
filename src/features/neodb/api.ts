@@ -14,16 +14,19 @@ import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
 
 /** Structured error with HTTP status + business message */
 export class NeoDBError extends Error {
-  constructor(
-    public status: number,
-    public statusText: string,
-    public businessMsg?: string
-  ) {
+  readonly status: number
+  readonly statusText: string
+  readonly businessMsg?: string
+
+  constructor(status: number, statusText: string, businessMsg?: string) {
     const parts = [`[${status}]`]
     if (businessMsg) parts.push(businessMsg)
     else parts.push(statusText || 'Unknown error')
     super(parts.join(' '))
     this.name = 'NeoDBError'
+    this.status = status
+    this.statusText = statusText
+    this.businessMsg = businessMsg
   }
 }
 

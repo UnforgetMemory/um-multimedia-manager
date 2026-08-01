@@ -28,10 +28,14 @@ export class DataScheduler {
   readonly retryPolicy = new RetryPolicy()
   readonly monitor = new SchedulerMonitor()
 
+  readonly cacheManager?: CacheManager
+
   private processing = false
   private taskCounter = 0
 
-  constructor(readonly cacheManager?: CacheManager) {}
+  constructor(cacheManager?: CacheManager) {
+    this.cacheManager = cacheManager
+  }
 
   // ==================== Public API ====================
 

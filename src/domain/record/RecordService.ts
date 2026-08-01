@@ -36,7 +36,11 @@ export interface SyncTarget {
 }
 
 export class RecordService {
-  constructor(private readonly repo: IRecordRepository) {}
+  private readonly repo: IRecordRepository
+
+  constructor(repo: IRecordRepository) {
+    this.repo = repo
+  }
 
   // ==================== Cross-platform sync ====================
 

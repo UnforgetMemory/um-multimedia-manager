@@ -39,18 +39,28 @@ export const CURRENT_EXPORT_VERSION = 2
 // ==================== Error Types ====================
 
 export class MigrationError extends Error {
+  readonly code:
+    | 'VERSION_TOO_OLD'
+    | 'VERSION_TOO_NEW'
+    | 'NO_MIGRATION_PATH'
+    | 'MIGRATION_FAILED'
+    | 'IMPORT_INCOMPATIBLE'
+  readonly details?: Record<string, unknown>
+
   constructor(
     message: string,
-    public readonly code:
+    code:
       | 'VERSION_TOO_OLD'
       | 'VERSION_TOO_NEW'
       | 'NO_MIGRATION_PATH'
       | 'MIGRATION_FAILED'
       | 'IMPORT_INCOMPATIBLE',
-    public readonly details?: Record<string, unknown>
+    details?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'MigrationError'
+    this.code = code
+    this.details = details
   }
 }
 
