@@ -6,12 +6,9 @@ interface Option {
 
 defineProps<{
   options: Option[]
-  modelValue: string
 }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
+const modelValue = defineModel<string>('modelValue', { required: true })
 </script>
 
 <template>
@@ -19,7 +16,7 @@ const emit = defineEmits<{
     <button
       v-for="option in options"
       :key="option.id"
-      @click="emit('update:modelValue', option.id)"
+      @click="modelValue = option.id"
       :class="[
         'umm:flex-1 umm:px-4 umm:py-2 umm:text-sm umm:font-medium umm:rounded-lg umm:transition-all umm:duration-200',
         modelValue === option.id

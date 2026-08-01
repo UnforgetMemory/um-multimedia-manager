@@ -16,14 +16,11 @@ interface OptionPickerOption {
 
 defineProps<{
   options: OptionPickerOption[]
-  modelValue: string
   columns?: number
   compact?: boolean
 }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
+const modelValue = defineModel<string>('modelValue', { required: true })
 </script>
 
 <template>
@@ -35,7 +32,7 @@ const emit = defineEmits<{
       v-for="opt in options"
       :key="opt.value"
       variant="outline"
-      @click="emit('update:modelValue', opt.value)"
+      @click="modelValue = opt.value"
       :class="[
         'umm:flex umm:flex-col umm:items-center umm:h-auto',
         compact
