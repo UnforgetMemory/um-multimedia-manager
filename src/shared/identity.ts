@@ -67,7 +67,7 @@ export function isPTListPage(url: string): boolean {
 
 // ==================== Identity Object (UrlIdentity DTO adapter) ====================
 
-export const Identity = {
+export const UrlResolverBuilder = {
   /**
    * 创建身份信息对象
    */
@@ -84,7 +84,7 @@ export const Identity = {
     if (!url) {
       return null;
     }
-    return { type, provider, providerId, url };
+    return { type, platform: provider, providerId, url };
   },
 
   /**
@@ -134,7 +134,7 @@ export const Identity = {
     }
     return {
       type: identity.type.id,
-      provider: identity.platform.id,
+      platform: identity.platform.id as Provider,
       providerId: identity.providerId,
       url: identity.url,
     };

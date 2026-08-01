@@ -11,7 +11,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Identity } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/shared/identity'
 import { Store } from '@/features/database'
 import { initRouter, hasMatchingRoute } from './content/router'
 import { initI18n, startLocaleSync } from './content/i18n'
@@ -24,7 +24,7 @@ import { STORAGE_KEYS } from '@/config'
 import { initEventBus } from '@/utils/event-bus'
 import { injectNeoDBPushButtons } from './content/neodb-push'
 
-let currentIdentity: ReturnType<typeof Identity.fromUrl> = null
+let currentIdentity: ReturnType<typeof UrlResolverBuilder.fromUrl> = null
 let currentRecord: StoreRecord | null = null
 let themeChangeListener: ((e: MediaQueryListEvent) => void) | null = null
 
@@ -161,7 +161,7 @@ export default defineContentScript({
       }
     })
 
-    currentIdentity = Identity.fromUrl(window.location.href)
+    currentIdentity = UrlResolverBuilder.fromUrl(window.location.href)
     infoLog('Script loaded on:', window.location.href)
 
     if (!chrome?.runtime?.id) {
@@ -217,7 +217,7 @@ export default defineContentScript({
 
         injectGlobalStyles()
 
-        currentIdentity = Identity.fromUrl(window.location.href)
+        currentIdentity = UrlResolverBuilder.fromUrl(window.location.href)
         if (currentIdentity) {
           await loadCurrentRecord()
         }
@@ -229,7 +229,7 @@ export default defineContentScript({
         // Load the current record dynamically so injector always has fresh data
         setNeoDBInjector(async () => {
           if (!currentIdentity) return
-          const storeName = `${currentIdentity.provider}_records`
+          const storeName = `${currentIdentity.platform}_records`
           const key = `${currentIdentity.type}::${currentIdentity.providerId}`
           const rec = await Store.dbGet(storeName, key)
           currentRecord = rec
@@ -258,7 +258,7 @@ async function loadCurrentRecord() {
   if (!currentIdentity) return
   try {
     const key = `${currentIdentity.type}::${currentIdentity.providerId}`
-    const storeName = `${currentIdentity.provider}_records`
+    const storeName = `${currentIdentity.platform}_records`
     currentRecord = await Promise.race([
       Store.dbGet(storeName, key),
       new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
@@ -269,7 +269,7 @@ async function loadCurrentRecord() {
 }
 
 function isDoubanDetailPage(): boolean {
-  if (currentIdentity?.provider !== 'douban') return false
+  if (currentIdentity?.platform !== 'douban') return false
   if (window.location.pathname.includes('/subject/')) return true
   if (currentIdentity?.type === 'game' && window.location.pathname.startsWith('/game/')) return true
   return false

@@ -113,7 +113,7 @@ export async function syncToLocalStorage(
     `[UMM Douban] Page shows ${statusLabel} status, saving to database...`,
   )
 
-  const storeName = `${identity.provider}_records`
+  const storeName = `${identity.platform}_records`
   const key = `${identity.type}::${identity.providerId}`
   const existingRecord =
     cachedRecord || (await Store.dbGet(storeName, key))
@@ -174,7 +174,7 @@ export async function syncToLocalStorage(
     console.log(`[UMM Douban] ✅ Record saved (status=${numericStatus})`)
 
     // Cooldown-gated notification
-    const cacheKey = `${identity.provider}:${identity.providerId}`
+    const cacheKey = `${identity.platform}:${identity.providerId}`
     const lastNotificationTime = notificationCache.get(cacheKey) || 0
     const nowTime = Date.now()
     const inCooldown =
@@ -285,7 +285,7 @@ export async function getLocalRecord(
   try {
     console.log('[UMM] getLocalRecord called with:', identity)
 
-    const storeName = `${identity.provider}_records`
+    const storeName = `${identity.platform}_records`
     const key = `${identity.type}::${identity.providerId}`
     const record = await Store.dbGet(storeName, key)
 

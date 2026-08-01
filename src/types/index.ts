@@ -11,23 +11,8 @@ import type { Provider } from '@/config'
 
 // ==================== Store Record ====================
 
-/** Per-platform store record (one entry per object store) */
-/**
- * Serialized form of a StoreRecord for IndexedDB storage and message passing.
- * The domain class (src/domain/record/StoreRecord.ts) is the canonical type;
- * this interface represents its snapshot for serialization.
- */
-export interface StoreRecordSnapshot {
-  url: string
-  status: number
-  rating: number
-  comment?: string
-  updatedAt: string
-  linkedIds: Record<string, string>
-  schemaVersion?: number
-  /** Optimistic concurrency version (incremented on each put). */
-  recordVersion?: number
-}
+import type { StoreRecordSnapshot } from '@/domain/record/StoreRecord'
+export type { StoreRecordSnapshot }
 
 /** @deprecated Use StoreRecordSnapshot — kept for backward compatibility. */
 export type StoreRecord = StoreRecordSnapshot
@@ -38,7 +23,7 @@ export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records
 // ==================== URL Identity ====================
 
 export interface UrlIdentity {
-  provider: Provider
+  platform: Provider
   type: string           // movie / tv / music / book
   providerId: string     // Platform-specific ID
   url: string            // Canonical URL
@@ -157,6 +142,13 @@ export type MessageType =
   | 'SEHUATANG_ADD'
   | 'SEHUATANG_GET_ALL'
   | 'DOWNLOAD_FILE'
+  | 'BILIBILI_INJECT'
+  | 'BILIBILI_SAVE'
+  | 'WEBDAV_TEST'
+  | 'WEBDAV_UPLOAD'
+  | 'WEBDAV_DOWNLOAD'
+  | 'WEBDAV_SYNC'
+  | 'NEODB_PUSH_RATING'
 
 export interface MessagePayloadMap {
   SHOW_TOAST: { type: ToastType; title: string; message?: string }
@@ -189,6 +181,13 @@ export interface MessagePayloadMap {
   ADULT_AV_BATCH_ADD: { source: string; items: AdultAvIdInput[] }
   ADULT_AV_GET_ALL: { source?: string }
   DOWNLOAD_FILE: { url: string; filename: string }
+  BILIBILI_INJECT: { tabId?: number }
+  BILIBILI_SAVE: { bvid?: string; status?: number; rating?: number }
+  WEBDAV_TEST: { webdavUrl?: string; webdavUsername?: string; webdavPassword?: string }
+  WEBDAV_UPLOAD: void
+  WEBDAV_DOWNLOAD: void
+  WEBDAV_SYNC: void
+  NEODB_PUSH_RATING: { record: { providerId: string; type: string; provider: string } }
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {

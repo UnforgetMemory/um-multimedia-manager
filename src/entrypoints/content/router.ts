@@ -3,7 +3,7 @@
  * 功能：根据 URL 动态加载对应的页面处理器
  */
 
-import { Identity, PT_HOSTS } from '@/shared/identity'
+import { UrlResolverBuilder, PT_HOSTS } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
 import { infoLog, errorLog } from '@/utils/logger'
 import { intervalWhenVisible } from '@/utils/visibility'
@@ -212,7 +212,7 @@ export async function dispatchRoute(url: string): Promise<void> {
   
   try {
     // 解析身份标识
-    const identity = Identity.fromUrl(url)
+    const identity = UrlResolverBuilder.fromUrl(url)
     
     // 执行处理器
     await route.handler(identity)

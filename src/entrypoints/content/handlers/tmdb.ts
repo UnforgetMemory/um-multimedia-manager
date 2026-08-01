@@ -7,11 +7,10 @@
 
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { Store } from '@/features/database'
-import { Utils } from '@/utils'
+import { Utils, throttle } from '@/utils'
 import { intervalWhenVisible } from '@/utils/visibility'
-import { createStatusChip, waitForElement } from '../utils/dom'
-import { FloatingToast } from '../utils/toast'
-import { t } from '../i18n'
+import { createStatusChip } from '../utils/dom'
+import { createDetailPageHandler } from './create-detail-handler'
 
 // ---- Constants ----
 
@@ -119,7 +118,7 @@ async function renderCardBadge(
 function observeTMDBGrids(
   recordMap: Map<string, StoreRecord>
 ): () => void {
-  const scanAllCards = Utils.throttle(async () => {
+  const scanAllCards = throttle(async () => {
     const cards = document.querySelectorAll<HTMLElement>(TMDB_CARD_SELECTOR)
     const pendings: Promise<void>[] = []
     for (const card of cards) {
@@ -218,57 +217,28 @@ function scanTMDBVibesStatus(): { status: string; rating: number } {
 }
 
 /** Entry point: detail page status chip injection. */
+const _handleTMDBDetailPage = createDetailPageHandler({
+  platform: 'tmdb',
+  titleSelector: TMDB_TITLE_SELECTOR,
+  scanFn: () => scanTMDBVibesStatus(),
+  renderFn: renderTMDBStatusChip,
+  savedMessageKey: 'tmdb.saved',
+  mergeStatusFn: (pageState, localRecord) => {
+    if (pageState.status === 'done') return 2
+    if (localRecord?.status === 2) return 2
+    if (localRecord?.status === 3) return 3
+    if (localRecord?.status === 1) return 1
+    return 0
+  },
+})
+
 export async function handleTMDBDetailPage(
   identity: UrlIdentity
 ): Promise<void> {
   if (!identity) return
-
   try {
-    await waitForElement(TMDB_TITLE_SELECTOR, 5000)
+    await _handleTMDBDetailPage(identity)
   } catch {
     return
-  }
-
-  // Read TMDB Vibes rating
-  const pageState = scanTMDBVibesStatus()
-
-  // Fetch local record and merge: page state > local DB
-  const storeName = `${identity.provider}_records`
-  const key = `${identity.type}::${identity.providerId}`
-  const localRecord = await Store.dbGet(storeName, key)
-
-  const isPageDone = pageState.status === 'done'
-  const isLocalDone = localRecord?.status === 2
-  const isLocalWish = localRecord?.status === 1
-  const isLocalDoing = localRecord?.status === 3
-
-  const finalStatus = isPageDone ? 2 : isLocalDone ? 2 : isLocalDoing ? 3 : isLocalWish ? 1 : 0
-  const finalRating = Utils.clampRating10(
-    isPageDone ? pageState.rating : localRecord?.rating || 0
-  )
-  const note = isLocalDone && !isPageDone ? t('common.cache_hint') : ''
-
-  await renderTMDBStatusChip(identity, finalStatus, finalRating, note)
-
-  // Save to DB if TMDB shows user rated
-  if (isPageDone) {
-    const statusChanged = localRecord?.status !== 2
-    const ratingChanged = localRecord?.rating !== pageState.rating
-
-    if (statusChanged || ratingChanged || !localRecord) {
-      await Store.dbPut(storeName, key, {
-        url: identity.url,
-        status: 2,
-        rating: pageState.rating,
-        comment: localRecord?.comment ?? '',
-        updatedAt: new Date().toISOString(),
-        linkedIds: localRecord?.linkedIds ?? {},
-      })
-
-      FloatingToast.success('UMM', t('tmdb.saved'))
-      console.log('[UMM] Updated TMDB local record from page Vibes rating')
-    } else {
-      console.log('[UMM] ⏭️ TMDB record unchanged, skipping save')
-    }
   }
 }

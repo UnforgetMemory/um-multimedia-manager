@@ -5,7 +5,7 @@
 
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
-import { Utils } from '@/utils'
+import { Utils, throttle } from '@/utils'
 import { debugLog } from '@/utils/logger'
 import { t } from '../i18n'
 import { escapeHtml, waitForElement } from '../utils/dom'
@@ -210,7 +210,7 @@ function observeContainerChanges(container: Element, config: SearchPageConfig): 
   console.log(`[UMM] Current URL: ${location.href}`)
   
   // 使用节流函数限制回调频率
-  const throttledRender = Utils.throttle(async () => {
+  const throttledRender = throttle(async () => {
     // 检查是否已清理
     if (isCleanupCalled) {
       return

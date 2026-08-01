@@ -68,7 +68,7 @@ export async function handleDoubanDetailPage(identity: UrlIdentity): Promise<voi
     }
 
     setNeoDBInjector(async () => {
-      const storeName = `${identity.provider}_records`
+      const storeName = `${identity.platform}_records`
       const key = `${identity.type}::${identity.providerId}`
       const rec = await Store.dbGet(storeName, key)
       injectNeoDBPushButtons(identity, rec)

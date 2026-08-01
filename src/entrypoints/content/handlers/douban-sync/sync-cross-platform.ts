@@ -8,13 +8,14 @@
 
 import { Store } from '@/features/database'
 import type { UrlIdentity, StoreRecord } from '@/types'
-import { Identity } from '@/shared/identity'
+import type { Provider } from '@/config'
+import { UrlResolverBuilder } from '@/shared/identity'
 import { showNotification } from '../douban-toast'
 import { t } from '../../i18n'
 
 /** A linked platform entry extracted from mergedLinkedIds */
 export interface CrossPlatformEntry {
-  provider: string
+  provider: Provider
   type: string
   providerId: string
 }
@@ -87,7 +88,7 @@ export async function syncCrossPlatformRecords(
     }
 
     const targetRecord: StoreRecord = {
-      url: Identity.buildUrl(entry.type, entry.provider, entry.providerId),
+      url: UrlResolverBuilder.buildUrl(entry.type, entry.provider, entry.providerId),
       status: numericStatus,
       rating: pageRating,
       comment: pageComment,
@@ -147,9 +148,9 @@ export async function checkCrossPlatformRecords(
     // Build target URL
     let targetUrl: string
     if (platform === 'neodb')
-      targetUrl = Identity.buildNeoDBUrl(identity.type, pid)
+      targetUrl = UrlResolverBuilder.buildNeoDBUrl(identity.type, pid)
     else
-      targetUrl = Identity.buildUrl(identity.type, platform, pid)
+      targetUrl = UrlResolverBuilder.buildUrl(identity.type, platform as Provider, pid)
     if (!targetUrl) continue
 
     if (!existingTarget) {
@@ -160,7 +161,7 @@ export async function checkCrossPlatformRecords(
         rating: pageRating,
         comment: pageComment || '',
         updatedAt: now,
-        linkedIds: { [identity.provider]: doubanFullKey },
+        linkedIds: { [identity.platform]: doubanFullKey },
       })
       console.log(
         `[UMM Douban] Health check: created ${platform} record:`,
@@ -177,7 +178,7 @@ export async function checkCrossPlatformRecords(
       existingTarget.updatedAt = now
       existingTarget.linkedIds = {
         ...(existingTarget.linkedIds || {}),
-        [identity.provider]: doubanFullKey,
+        [identity.platform]: doubanFullKey,
       }
       await Store.dbPut(targetStore, linkKey, existingTarget)
       console.log(

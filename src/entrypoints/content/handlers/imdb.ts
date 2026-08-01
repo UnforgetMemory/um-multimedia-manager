@@ -4,11 +4,9 @@
  */
 
 import type { UrlIdentity } from '@/types'
-import { Store } from '@/features/database'
 import { Utils } from '@/utils'
-import { createStatusChip, waitForElement } from '../utils/dom'
-import { FloatingToast } from '../utils/toast'
-import { t } from '../i18n'
+import { createStatusChip } from '../utils/dom'
+import { createDetailPageHandler } from './create-detail-handler'
 
 /**
  * 扫描 IMDb 页面状态
@@ -96,53 +94,10 @@ export async function renderIMDbStatusChip(
 /**
  * 处理 IMDb 详情页
  */
-export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void> {
-  if (!identity) return
-
-  // 等待标题元素加载
-  await waitForElement('[data-testid="hero__pageTitle"], [data-testid="hero-title-block__title"]', 5000)
-
-  // 扫描页面状态
-  const pageState = await scanIMDbPageStatus()
-
-  // 获取本地记录状态
-  const storeName = `${identity.provider}_records`
-  const key = `${identity.type}::${identity.providerId}`
-  const localRecord = await Store.dbGet(storeName, key)
-  const isLocalDone = localRecord?.status === 2  // 2 = 已看
-  const isPageDone = pageState.status === 'done'
-
-  // 合并状态：页面状态优先，其次本地记录
-  const finalStatus = isPageDone || isLocalDone ? 2 : 0  // 2=已看, 0=未看
-  const finalRating = Utils.clampRating10(
-    isPageDone ? pageState.rating : localRecord?.rating || 0
-  )
-
-  // 生成备注信息
-  const note = isLocalDone && !isPageDone ? t('common.cache_hint') : ''
-
-  // 渲染状态标签
-  await renderIMDbStatusChip(identity, finalStatus, finalRating, note)
-
-  // 如果页面显示已看，检测变化后更新本地记录
-  if (isPageDone) {
-    const statusChanged = localRecord?.status !== 2
-    const ratingChanged = localRecord?.rating !== pageState.rating
-
-    if (statusChanged || ratingChanged || !localRecord) {
-      await Store.dbPut(storeName, key, {
-        url: identity.url,
-        status: 2,
-        rating: pageState.rating,
-        comment: localRecord?.comment ?? '',
-        updatedAt: new Date().toISOString(),
-        linkedIds: localRecord?.linkedIds ?? {},
-      })
-
-      FloatingToast.success('UMM', t('imdb.saved'))
-      console.log('[UMM] Updated IMDb local record from page state')
-    } else {
-      console.log('[UMM] ⏭️ IMDb record unchanged, skipping save')
-    }
-  }
-}
+export const handleIMDbDetailPage = createDetailPageHandler({
+  platform: 'imdb',
+  titleSelector: '[data-testid="hero__pageTitle"], [data-testid="hero-title-block__title"]',
+  scanFn: () => scanIMDbPageStatus(),
+  renderFn: renderIMDbStatusChip,
+  savedMessageKey: 'imdb.saved',
+})

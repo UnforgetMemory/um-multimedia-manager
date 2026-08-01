@@ -9,7 +9,7 @@
 import type { StoreRecord } from '@/types'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
-import { Identity } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/shared/identity'
 import { safeSendMessage } from '@/utils/context'
 import { FloatingToast } from './utils/toast'
 import { t } from './i18n'
@@ -140,7 +140,7 @@ export function injectNeoDBPushButtons(
     const parts = neodbLinkedId.split('::')
     if (parts.length === 2) {
       const [neodbType, neodbUuid] = parts
-      const neodbUrl = Identity.buildNeoDBUrl(neodbType, neodbUuid)
+      const neodbUrl = UrlResolverBuilder.buildNeoDBUrl(neodbType, neodbUuid)
       const openBtn = document.createElement('a')
       openBtn.id = 'umm-neodb-open'
       openBtn.className = 'umm-neodb-btn umm-neodb-btn--open'
@@ -239,7 +239,7 @@ async function pushToNeoDB(
       rating: adjustedRating,
       status: currentRecord?.status ?? 0,
       type: currentIdentity.type,
-      provider: currentIdentity.provider,
+      provider: currentIdentity.platform,
       comment: currentRecord?.comment ?? '',
     }
 
@@ -261,7 +261,7 @@ async function pushToNeoDB(
         const neodbFullKey = `${currentIdentity.type}::${response.catalogUuid}`
         const doubanFullKey = `${currentIdentity.type}::${currentIdentity.providerId}`
 
-        const storeName = `${currentIdentity.provider}_records`
+        const storeName = `${currentIdentity.platform}_records`
         const key = `${currentIdentity.type}::${currentIdentity.providerId}`
         const existing = await Store.dbGet(storeName, key)
         if (existing) {
@@ -287,7 +287,7 @@ async function pushToNeoDB(
           infoLog('Updated existing NeoDB record:', neodbFullKey)
         } else {
           const neodbRecord: StoreRecord = {
-            url: Identity.buildNeoDBUrl(currentIdentity.type, response.catalogUuid),
+            url: UrlResolverBuilder.buildNeoDBUrl(currentIdentity.type, response.catalogUuid),
             status: 2,
             rating: adjustedRating,
             updatedAt: new Date().toISOString(),

@@ -11,7 +11,7 @@ import { Store } from '@/features/database'
 import { safeSendMessage } from '@/utils/context'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { FloatingToast } from '../../utils/toast'
-import { Identity } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/shared/identity'
 import { injectNeoDBPushButtons } from '../../neodb-push'
 import { t } from '../../i18n'
 import type { CrossPlatformEntry } from './sync-cross-platform'
@@ -102,7 +102,7 @@ export async function syncNeoDBRecord(
             rating: ratingToPush,
             status: numericStatus,
             type: identity.type,
-            provider: identity.provider,
+            provider: identity.platform,
             comment: pageComment,
           },
         },
@@ -152,7 +152,7 @@ export async function syncNeoDBRecord(
         await Store.dbPut(neodbStoreName, neodbKey, existingNeoDB)
       } else {
         const neodbRecord: StoreRecord = {
-          url: Identity.buildNeoDBUrl(identity.type, syncResponse.catalogUuid),
+          url: UrlResolverBuilder.buildNeoDBUrl(identity.type, syncResponse.catalogUuid),
           status: numericStatus,
           rating: pageRating,
           updatedAt: new Date().toISOString(),
