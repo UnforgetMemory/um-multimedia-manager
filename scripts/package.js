@@ -24,7 +24,7 @@ const __dirname = dirname(__filename)
 const rootDir = join(__dirname, '..')
 const distDir = join(rootDir, 'dist')
 const packageJsonPath = join(rootDir, 'package.json')
-const manifestPath = join(rootDir, 'manifest.json')
+const wxtConfigPath = join(rootDir, 'wxt.config.ts')
 const releasesDir = join(rootDir, 'releases')
 
 // ==================== 配置 ====================
@@ -168,8 +168,7 @@ async function main() {
   // 2. 读取当前版本
   console.log('\n📋 Step 2: Reading current version...')
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
-  
+
   const currentVersion = packageJson.version
   console.log(`Current version: ${currentVersion}`)
   console.log(`Version bump strategy: ${CONFIG.versionBump}`)
@@ -185,10 +184,19 @@ async function main() {
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n', 'utf-8')
     console.log('✓ Updated package.json')
     
-    // 更新 manifest.json
-    manifest.version = newVersion
-    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
-    console.log('✓ Updated manifest.json')
+    // 同步 wxt.config.ts 的 manifest version（版本单一事实来源: package.json + wxt.config.ts）
+    // 注意: manifest.json 已不存在 — 版本由 wxt.config.ts 在构建时生成
+    const wxtConfig = readFileSync(wxtConfigPath, 'utf-8')
+    if (!wxtConfig.includes(`version: '${currentVersion}'`)) {
+      console.warn('⚠ wxt.config.ts does not contain the current version string; skipping sync')
+    } else {
+      const updatedWxt = wxtConfig.replace(
+        `version: '${currentVersion}'`,
+        `version: '${newVersion}'`,
+      )
+      writeFileSync(wxtConfigPath, updatedWxt, 'utf-8')
+      console.log('✓ Updated wxt.config.ts')
+    }
   } else {
     console.log('⚠ Skipping version bump (strategy: none)')
   }
@@ -241,7 +249,7 @@ async function main() {
   if (CONFIG.createGitTag && newVersion !== currentVersion) {
     console.log('\n📋 Step 6: Creating Git tag...')
     try {
-      execCommand(`git add package.json manifest.json`)
+      execCommand(`git add package.json wxt.config.ts`)
       execCommand(`git commit -m "chore: bump version to ${newVersion}"`)
       execCommand(`git tag -a v${newVersion} -m "Release version ${newVersion}"`)
       console.log(`✓ Git tag v${newVersion} created`)

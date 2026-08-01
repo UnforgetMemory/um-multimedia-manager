@@ -23,7 +23,6 @@ const __dirname = dirname(__filename)
 
 const rootDir = join(__dirname, '..')
 const packageJsonPath = join(rootDir, 'package.json')
-const manifestPath = join(rootDir, 'manifest.json')
 const exportsDir = join(rootDir, 'data-exports')
 
 // ==================== 配置 ====================
@@ -63,10 +62,10 @@ function formatTimestamp(date = new Date()) {
  */
 function getCurrentVersion() {
   try {
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
-    return manifest.version || 'unknown'
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+    return packageJson.version || 'unknown'
   } catch (error) {
-    console.warn('⚠ Failed to read version from manifest.json')
+    console.warn('⚠ Failed to read version from package.json')
     return 'unknown'
   }
 }
