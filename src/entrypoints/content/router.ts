@@ -10,8 +10,12 @@ import { intervalWhenVisible } from '@/utils/visibility'
 import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleTMDBHomepage, handleTMDBDetailPage } from './handlers/tmdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
+import { handleBangumiDetailPage } from './handlers/bangumi'
+import { handleBangumiListPage } from './handlers/bangumi-list'
 import { PTDimmer } from './enhancers/pt'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
+import { extractBangumiSubjectId } from './handlers/bangumi-extract'
+import { extractBrowserPathType } from './handlers/bangumi-list-extract'
 import { handlePTDetailPage } from './handlers/pt-detail'
 import { handleSehuatangListPage } from './handlers/sehuatang'
 import { handleJavDBPage } from './handlers/javdb'
@@ -68,6 +72,28 @@ const ROUTES: RouteRule[] = [
       if (identity) {
         await handleNeoDBDetailPage(identity)
       }
+    },
+  },
+
+  // Bangumi subject detail page — media type inferred from infobox DOM (resolveIdentity)
+  {
+    match: (url) =>
+      /bgm\.tv|bangumi\.tv|chii\.in/.test(url) &&
+      extractBangumiSubjectId(new URL(url).pathname) !== null,
+    handler: async (identity) => {
+      if (identity) {
+        await handleBangumiDetailPage(identity)
+      }
+    },
+  },
+
+  // Bangumi browse/list pages — status markers on subject cards (no overlap with /subject/)
+  {
+    match: (url) =>
+      /bgm\.tv|bangumi\.tv|chii\.in/.test(url) &&
+      extractBrowserPathType(new URL(url).pathname) !== null,
+    handler: async () => {
+      await handleBangumiListPage()
     },
   },
 
