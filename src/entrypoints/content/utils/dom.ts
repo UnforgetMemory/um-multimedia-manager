@@ -52,15 +52,25 @@ export function createStatusChip(
   chip.className = 'umm-status-chip'
   chip.dataset.status = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
   
+  // 按媒体类型选择状态文案键：music→听（_music）、book→读（_book）、game→玩（_game），其余（movie/tv）→基础键
+  const k = (suffix: string, base: string): string =>
+    type === 'music'
+      ? `status.${suffix}_music`
+      : type === 'book'
+        ? `status.${suffix}_book`
+        : type === 'game'
+          ? `status.${suffix}_game`
+          : base
+
   const label = status === 2
     ? (note 
-        ? t(type === 'music' ? 'status.done_local_music' : 'status.done_local')
-        : t(type === 'music' ? 'status.done_music' : 'status.done'))
+        ? t(k('done_local', 'status.done_local'))
+        : t(k('done', 'status.done')))
     : status === 3
-      ? t(type === 'music' ? 'status.doing_music' : 'status.doing')
+      ? t(k('doing', 'status.doing'))
       : status === 1
-        ? t(type === 'music' ? 'status.wish_music' : 'status.wish')
-        : t(type === 'music' ? 'status.none_music' : 'status.none')
+        ? t(k('wish', 'status.wish'))
+        : t(k('none', 'status.none'))
   
   const ratingText = rating > 0 ? `${Utils.formatRating10(rating)}/10` : ''
   

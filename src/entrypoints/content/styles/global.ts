@@ -158,6 +158,51 @@ const STATUS_CHIP_STYLES = `
 `
 
 /**
+ * 列表页状态标记样式（Bangumi 浏览列表等）
+ * 语义色由 .umm-list-status[data-status=...] 驱动，与详情页 .umm-status-chip /
+ * 搜索徽章 .umm-search-badge 共用同一套 token（COLOR_DONE / NONE / WISH / DOING 系列），
+ * 暗色主题由 ALL_STYLES_DARK 中的 _DARK token 覆盖。
+ */
+const LIST_STATUS_STYLES = `
+.umm-list-status {
+  display: inline-block;
+  margin: 4px 0 0;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.7;
+  vertical-align: middle;
+}
+.umm-list-status[data-status="done"] {
+  background: linear-gradient(180deg, ${COLOR_DONE_START}, ${COLOR_DONE_END});
+  color: ${COLOR_DONE_TEXT};
+  box-shadow: 0 2px 4px ${COLOR_DONE_SHADOW};
+}
+.umm-list-status[data-status="none"] {
+  background: linear-gradient(180deg, ${COLOR_NONE_START}, ${COLOR_NONE_END});
+  color: ${COLOR_NONE_TEXT};
+  box-shadow: 0 2px 4px ${COLOR_NONE_SHADOW};
+}
+.umm-list-status[data-status="wish"] {
+  background: linear-gradient(180deg, ${COLOR_WISH_START}, ${COLOR_WISH_END});
+  color: ${COLOR_WISH_TEXT};
+  box-shadow: 0 2px 4px ${COLOR_WISH_SHADOW};
+}
+.umm-list-status[data-status="doing"] {
+  background: linear-gradient(180deg, ${COLOR_DOING_START}, ${COLOR_DOING_END});
+  color: ${COLOR_DOING_TEXT};
+  box-shadow: 0 2px 4px ${COLOR_DOING_SHADOW};
+}
+.umm-list-status .umm-rating {
+  background: ${COLOR_RATING_BG};
+  color: ${COLOR_RATING_TEXT};
+  padding: 0 6px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+`
+/**
  * NeoDB 推送按钮样式
  * CANONICAL: interest.css is the canonical Shadow DOM source.
  * This is the global-injection equivalent for host-page NeoDB push buttons.
@@ -512,6 +557,7 @@ const REVIEWS_BADGE_STYLES = `
 const ALL_STYLES = `
 ${SEARCH_BADGE_STYLES}
 ${STATUS_CHIP_STYLES}
+${LIST_STATUS_STYLES}
 ${NEODB_BUTTON_STYLES}
 ${DIMMER_STYLES}
 ${HOMEPAGE_BADGE_STYLES}
@@ -571,6 +617,30 @@ const ALL_STYLES_DARK = `
   background: ${COLOR_RATING_BG_DARK} !important;
   color: ${COLOR_RATING_TEXT_DARK} !important;
   -webkit-text-fill-color: ${COLOR_RATING_TEXT_DARK};
+}
+[data-umm-theme="dark"] .umm-list-status[data-status="done"] {
+  color: ${COLOR_DONE_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_DONE_START_DARK}, ${COLOR_DONE_END_DARK}) !important;
+  box-shadow: 0 2px 4px ${COLOR_DONE_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-list-status[data-status="none"] {
+  color: ${COLOR_NONE_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_NONE_START_DARK}, ${COLOR_NONE_END_DARK}) !important;
+  box-shadow: 0 2px 4px ${COLOR_NONE_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-list-status[data-status="wish"] {
+  color: ${COLOR_WISH_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_WISH_START_DARK}, ${COLOR_WISH_END_DARK}) !important;
+  box-shadow: 0 2px 4px ${COLOR_WISH_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-list-status[data-status="doing"] {
+  color: ${COLOR_DOING_TEXT_DARK} !important;
+  background: linear-gradient(180deg, ${COLOR_DOING_START_DARK}, ${COLOR_DOING_END_DARK}) !important;
+  box-shadow: 0 2px 4px ${COLOR_DOING_SHADOW_DARK};
+}
+[data-umm-theme="dark"] .umm-list-status .umm-rating {
+  background: ${COLOR_RATING_BG_DARK} !important;
+  color: ${COLOR_RATING_TEXT_DARK} !important;
 }
 [data-umm-theme="dark"] .umm-neodb-btn--minus {
   background: linear-gradient(180deg, ${COLOR_MINUS_START_DARK} 0%, ${COLOR_MINUS_END_DARK} 100%);
