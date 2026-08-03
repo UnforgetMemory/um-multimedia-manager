@@ -6,11 +6,7 @@ import type { DataScheduler } from '@/features/data-scheduler/data-scheduler'
 import type { MediaDatabase } from '@/features/database/models'
 import { STORE_NAMES } from '@/features/database/models'
 import { broadcast } from '@/utils/event-bus'
-
-/** Extract a safe message from an unknown thrown value */
-function errorMessage(err: unknown): string {
-  return (err as Error)?.message || String(err)
-}
+import { errorMessage } from '@/utils/error-message'
 
 export interface BiliHandlerContext {
   db: MediaDatabase
@@ -46,7 +42,7 @@ export async function handleBilibiliInject(
       },
     })
     return { success: true }
-  } catch (err) {
+  } catch (err: unknown) {
     return { success: false, error: errorMessage(err) }
   }
 }
@@ -74,7 +70,7 @@ export async function handleBilibiliSave(
     ctx.scheduler.cacheManager?.invalidate('scheduler', `get:${STORE_NAMES.BILIBILI}:${bvid}`)
     broadcast('record:updated', { storeName: STORE_NAMES.BILIBILI, key: bvid })
     return { success: true }
-  } catch (err) {
+  } catch (err: unknown) {
     return { success: false, error: errorMessage(err) }
   }
 }

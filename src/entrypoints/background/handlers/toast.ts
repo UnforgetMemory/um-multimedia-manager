@@ -5,17 +5,17 @@
  * Extracted from background.ts for modularity.
  */
 
-type SendResponse = (response?: unknown) => void
-
-/** Valid toast notification types */
-const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const
-
 import { escapeHtml } from '@/utils/escape-html'
 import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
+import type { MessagePayloadMap, ToastType } from '@/types'
+import type { SendResponse } from '@/utils/error-message'
+
+/** Valid toast notification types — single source: ToastType in @/types */
+const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const satisfies readonly ToastType[]
 
 /** SHOW_TOAST — send toast notification to active tab */
 export async function handleShowToast(
-  payload: any,
+  payload: MessagePayloadMap['SHOW_TOAST'],
   sendResponse: SendResponse
 ) {
   try {

@@ -13,13 +13,9 @@
  */
 
 import type { RemoteMeta } from '@/types'
+import { errorMessage } from '@/utils/error-message'
 
 const WEBDAV_TIMEOUT = 30_000
-
-/** Extract a safe message from an unknown thrown value */
-function errorMessage(err: unknown): string {
-  return (err as Error)?.message || String(err)
-}
 
 // ==================== Auth helpers ====================
 
@@ -51,7 +47,7 @@ async function fetchWithTimeout(
     const res = await fetch(url, { ...options, signal: controller.signal })
     clearTimeout(timer)
     return res
-  } catch (err) {
+  } catch (err: unknown) {
     clearTimeout(timer)
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error(`WebDAV timeout after ${timeout}ms: ${url}`)
@@ -116,7 +112,7 @@ export async function testConnection(
       return { ok: false, message: 'Authentication failed (401/403)' }
     }
     return { ok: false, message: `HTTP ${res.status}` }
-  } catch (err) {
+  } catch (err: unknown) {
     return { ok: false, message: errorMessage(err) }
   }
 }

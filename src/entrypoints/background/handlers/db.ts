@@ -12,6 +12,7 @@ import { broadcast } from '@/utils/event-bus'
 import { warnLog } from '@/utils/logger'
 import { RecordService } from '@/domain/record/RecordService'
 import { StoreRecord } from '@/domain/record/StoreRecord'
+import type { MessagePayloadMap } from '@/types'
 
 /** Allowed store names for generic DB message handlers */
 const ALLOWED_DB_STORES = new Set<string>([
@@ -34,7 +35,7 @@ export interface DbHandlerContext {
 // ==================== Core CRUD ====================
 
 export async function handleDbGet(
-  payload: { storeName: string; key: string },
+  payload: MessagePayloadMap['DB_GET'],
   ctx: DbHandlerContext,
 ) {
   if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
@@ -46,7 +47,7 @@ export async function handleDbGet(
 }
 
 export async function handleDbPut(
-  payload: { storeName: string; key: string; record: any },
+  payload: MessagePayloadMap['DB_PUT'],
   ctx: DbHandlerContext,
 ) {
   if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
@@ -63,7 +64,7 @@ export async function handleDbPut(
 }
 
 export async function handleDbDelete(
-  payload: { storeName: string; key: string },
+  payload: MessagePayloadMap['DB_DELETE'],
   ctx: DbHandlerContext,
 ) {
   if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
@@ -80,7 +81,7 @@ export async function handleDbDelete(
 }
 
 export async function handleDbGetAll(
-  payload: { storeName: string },
+  payload: MessagePayloadMap['DB_GET_ALL'],
   ctx: DbHandlerContext,
 ) {
   if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
@@ -92,7 +93,7 @@ export async function handleDbGetAll(
 }
 
 export async function handleDbQuery(
-  payload: { storeName: string; indexName: string; value: any },
+  payload: MessagePayloadMap['DB_QUERY'],
   ctx: DbHandlerContext,
 ) {
   if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
@@ -104,7 +105,7 @@ export async function handleDbQuery(
 }
 
 export async function handleDbCount(
-  payload: { storeName: string },
+  payload: MessagePayloadMap['DB_COUNT'],
   ctx: DbHandlerContext,
 ) {
   if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
@@ -116,7 +117,7 @@ export async function handleDbCount(
 }
 
 export async function handleDbGetWatchedIds(
-  payload: { storeNames: string[] },
+  payload: MessagePayloadMap['DB_GET_WATCHED_IDS'],
   ctx: DbHandlerContext,
 ) {
   const { storeNames } = payload
@@ -136,7 +137,7 @@ export async function handleDbGetWatchedIds(
 }
 
 export async function handleDbSyncPageRecord(
-  payload: { platform: string; key: string; record: any; linked?: Array<{ platform: string; key: string; url: string }> },
+  payload: MessagePayloadMap['DB_SYNC_PAGE_RECORD'],
   ctx: DbHandlerContext,
 ) {
   const syncPlatform = payload.platform
@@ -171,7 +172,7 @@ export async function handleDbSyncPageRecord(
 // ==================== PT ID Cache ====================
 
 export async function handlePtIdCacheGet(
-  payload: { ptUrl: string },
+  payload: MessagePayloadMap['PT_ID_CACHE_GET'],
   ctx: DbHandlerContext,
 ) {
   const entry = await ctx.scheduler.schedule(
@@ -182,7 +183,7 @@ export async function handlePtIdCacheGet(
 }
 
 export async function handlePtIdCachePut(
-  payload: { entry: any },
+  payload: MessagePayloadMap['PT_ID_CACHE_PUT'],
   ctx: DbHandlerContext,
 ) {
   await ctx.scheduler.schedule(
@@ -193,17 +194,14 @@ export async function handlePtIdCachePut(
 }
 
 export async function handlePtIdCacheGetBulk(
-  payload: { ptUrls: string[] },
+  payload: MessagePayloadMap['PT_ID_CACHE_GET_BULK'],
   ctx: DbHandlerContext,
 ) {
   const { ptUrls } = payload
-  const entries: Record<string, any> = {}
-  for (const ptUrl of ptUrls) {
-    const entry = await ctx.scheduler.schedule(
-      () => ctx.db.getCacheEntry(ptUrl),
-      { priority: 'MEDIUM', cacheKey: `ptcache:${ptUrl}`, cacheTTL: 5000 },
-    )
-    if (entry) entries[ptUrl] = entry
-  }
+  // Single-transaction batch read — avoids N sequential scheduler round-trips
+  const entries = await ctx.scheduler.schedule(
+    () => ctx.db.getCacheEntries(ptUrls),
+    { priority: 'MEDIUM', cacheKey: `ptcache-bulk:${ptUrls.join(',')}`, cacheTTL: 5000 },
+  )
   return { success: true, entries }
 }

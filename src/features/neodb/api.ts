@@ -9,6 +9,7 @@
  */
 
 import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
+import { sleep } from '@/utils'
 
 // ==================== 错误类型 ====================
 
@@ -87,14 +88,14 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = NEO_D
     const response = await fetch(url, options)
     if (!response.ok && retries > 0 && response.status >= 500) {
       debugLog(`NeoDB request failed with ${response.status}, retrying... (${retries} attempts left)`)
-      await new Promise(resolve => setTimeout(resolve, NEO_DB_RETRY_DELAY))
+      await sleep(NEO_DB_RETRY_DELAY)
       return fetchWithRetry(url, options, retries - 1)
     }
     return response
-  } catch (error) {
+  } catch (error: unknown) {
     if (retries > 0) {
       debugLog(`NeoDB request error, retrying... (${retries} attempts left)`, error)
-      await new Promise(resolve => setTimeout(resolve, NEO_DB_RETRY_DELAY))
+      await sleep(NEO_DB_RETRY_DELAY)
       return fetchWithRetry(url, options, retries - 1)
     }
     throw error
@@ -181,7 +182,7 @@ export async function searchWorks(
       cover_image_url: item.cover_image_url,
       type: item.category || 'movie',
     }))
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Search failed:', error)
     return []
   }
@@ -214,7 +215,7 @@ export async function getWorkDetail(
       release_date: data.release_date,
       type: data.category || 'movie',
     }
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Get detail failed:', error)
     return null
   }
@@ -236,7 +237,7 @@ export async function getWorkByUrl(
 
     const workId = match[1]
     return await getWorkDetail(workId, token)
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Get work by URL failed:', error)
     return null
   }
@@ -252,7 +253,7 @@ export async function validateToken(token: string): Promise<boolean> {
     const url = `${NEOBASE_URL}/me/`
     await getRequest<any>(url, token)
     return true
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Token validation failed:', error)
     return false
   }
@@ -401,7 +402,7 @@ export async function updateShelfItem(
       created_time: data.created_time,
       updated_time: data.updated_time,
     }
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Update shelf item failed:', error)
     return null
   }
@@ -447,7 +448,7 @@ export async function getShelfItemUuid(
     }
     
     return result
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Get shelf item uuid failed:', error)
     return null
   }

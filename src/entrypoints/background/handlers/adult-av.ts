@@ -1,23 +1,21 @@
 /**
  * Adult AV ID Message Handlers
  *
- * Handles ADULT_AV_CHECK, ADULT_AV_ADD, ADULT_AV_BATCH_ADD, ADULT_AV_GET_ALL,
- * and legacy SEHUATANG_* messages.
+ * Handles ADULT_AV_CHECK, ADULT_AV_ADD, ADULT_AV_BATCH_ADD, ADULT_AV_GET_ALL.
  * Extracted from background.ts for modularity.
  */
 
-import type { AdultAvId, StoreRecordSnapshot } from '@/types'
+import type { AdultAvId, StoreRecordSnapshot, MessagePayloadMap } from '@/types'
 import { mediaDB } from '@/features/database/models'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { broadcast } from '@/utils/event-bus'
-
-type SendResponse = (response?: unknown) => void
+import type { SendResponse } from '@/utils/error-message'
 
 const KNOWN_SOURCES = ['javdb', 'sehuatang']
 
 /** ADULT_AV_CHECK — check if AV ID exists across ALL sources */
 export async function handleAdultAvCheck(
-  payload: { id: string },
+  payload: MessagePayloadMap['ADULT_AV_CHECK'],
   sendResponse: SendResponse
 ) {
   const { id } = payload
@@ -62,7 +60,7 @@ export async function handleAdultAvCheck(
 
 /** ADULT_AV_CHECK_BATCH — batch check: which of these IDs are watched? */
 export async function handleAdultAvCheckBatch(
-  payload: { ids: string[] },
+  payload: MessagePayloadMap['ADULT_AV_CHECK_BATCH'],
   sendResponse: SendResponse
 ) {
   const { ids } = payload
@@ -97,7 +95,7 @@ export async function handleAdultAvCheckBatch(
 
 /** ADULT_AV_ADD — add single AV ID */
 export async function handleAdultAvAdd(
-  payload: { source: string; id: string; rating?: number; url?: string },
+  payload: MessagePayloadMap['ADULT_AV_ADD'],
   sendResponse: SendResponse
 ) {
   const { source, id, rating = 0, url = '' } = payload
@@ -117,7 +115,7 @@ export async function handleAdultAvAdd(
 
 /** ADULT_AV_BATCH_ADD — add multiple AV IDs */
 export async function handleAdultAvBatchAdd(
-  payload: { source: string; items: Array<{ id: string; rating?: number; url?: string; updatedAt?: string }> },
+  payload: MessagePayloadMap['ADULT_AV_BATCH_ADD'],
   sendResponse: SendResponse
 ) {
   const { source, items } = payload
@@ -145,7 +143,7 @@ export async function handleAdultAvBatchAdd(
 
 /** ADULT_AV_GET_ALL — list all AV IDs, optionally filtered by source */
 export async function handleAdultAvGetAll(
-  payload: { source?: string } | undefined,
+  payload: MessagePayloadMap['ADULT_AV_GET_ALL'] | undefined,
   sendResponse: SendResponse
 ) {
   const { source } = payload || {}
@@ -155,10 +153,11 @@ export async function handleAdultAvGetAll(
   }
 
   const items: AdultAvId[] = entries.map(e => {
+    // Key prefix is arbitrary at runtime — cast at this trust boundary.
     const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
     const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
     return {
-      source: s,
+      source: s as AdultAvId['source'],
       id: avId,
       url: e.record.url || '',
       rating: e.record.rating || 0,
@@ -166,85 +165,5 @@ export async function handleAdultAvGetAll(
     }
   })
 
-  sendResponse({ success: true, items })
-}
-
-// ==================== Legacy Handlers (backward compat) ====================
-
-/** SEHUATANG_CHECK_VIEWED — legacy, delegates to ADULT_AV_CHECK logic */
-export async function handleSehuatangCheckViewed(
-  payload: { id: string },
-  sendResponse: SendResponse
-) {
-  const { id: legacyId } = payload
-  if (!legacyId) { sendResponse({ success: false, error: 'Missing id' }); return }
-
-  const legacyKey = `sehuatang::${normalizeAvId(legacyId)}`
-  const legacyRecord = await mediaDB.get(JAV_IDS_STORE_NAME, legacyKey)
-  sendResponse({ success: true, exists: !!legacyRecord, record: legacyRecord })
-}
-
-/** SEHUATANG_ADD — legacy single add */
-export async function handleSehuatangAdd(
-  payload: { id: string; rating?: number },
-  sendResponse: SendResponse
-) {
-  const { id: legacyAddId, rating: legacyRating = 0 } = payload
-  if (!legacyAddId) { sendResponse({ success: false, error: 'Missing id' }); return }
-
-  const legacyAddKey = `sehuatang::${normalizeAvId(legacyAddId)}`
-  await mediaDB.put(JAV_IDS_STORE_NAME, legacyAddKey, {
-    url: '',
-    status: 2,
-    rating: legacyRating,
-    updatedAt: new Date().toISOString(),
-    linkedIds: {},
-  })
-  sendResponse({ success: true })
-}
-
-/** SEHUATANG_BATCH_ADD — legacy batch add */
-export async function handleSehuatangBatchAdd(
-  payload: { items: Array<{ id: string; rating?: number; updatedAt?: string }> },
-  sendResponse: SendResponse
-) {
-  const { items: legacyItems } = payload
-  if (!Array.isArray(legacyItems) || legacyItems.length === 0) {
-    sendResponse({ success: false, error: 'Invalid items' }); return
-  }
-
-  let legacyAddedCount = 0
-  for (const item of legacyItems) {
-    if (!item.id) continue
-    const key = `sehuatang::${normalizeAvId(item.id)}`
-    await mediaDB.put(JAV_IDS_STORE_NAME, key, {
-      url: '',
-      status: 2,
-      rating: item.rating || 0,
-      updatedAt: item.updatedAt || new Date().toISOString(),
-      linkedIds: {},
-    })
-    legacyAddedCount++
-  }
-  sendResponse({ success: true, addedCount: legacyAddedCount })
-}
-
-/** SEHUATANG_GET_ALL — legacy list all */
-export async function handleSehuatangGetAll(
-  _payload: any,
-  sendResponse: SendResponse
-) {
-  const entries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
-  const items: AdultAvId[] = entries.map(e => {
-    const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
-    const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
-    return {
-      source: s,
-      id: avId,
-      url: e.record.url || '',
-      rating: e.record.rating || 0,
-      updatedAt: e.record.updatedAt,
-    }
-  })
   sendResponse({ success: true, items })
 }

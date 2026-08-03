@@ -5,7 +5,7 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { RecordStoreName, RemoteMeta, DatasetMeta } from '@/types'
+import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap } from '@/types'
 import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
 import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
@@ -13,13 +13,7 @@ import { calculateStoreHash } from '@/utils/hash-utils'
 import { errorLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
 import { STORAGE_KEYS } from '@/config'
-
-/** Extract a safe message from an unknown thrown value */
-function errorMessage(err: unknown): string {
-  return (err as Error)?.message || String(err)
-}
-
-type SendResponse = (response?: unknown) => void
+import { errorMessage, type SendResponse } from '@/utils/error-message'
 
 /** Read WebDAV settings from chrome.storage.local */
 async function getWebDAVSettings() {
@@ -77,9 +71,19 @@ async function buildLocalMeta(): Promise<RemoteMeta> {
   }
 }
 
+/**
+ * WEBDAV_TEST payload — canonical fields from MessagePayloadMap plus
+ * legacy aliases ({ url, username, password }) still sent by older callers.
+ */
+type WebDAVTestPayload = MessagePayloadMap['WEBDAV_TEST'] & {
+  url?: string
+  username?: string
+  password?: string
+}
+
 /** WEBDAV_TEST — check connection */
 export async function handleWebDAVTest(
-  payload: any,
+  payload: WebDAVTestPayload,
   sendResponse: SendResponse
 ) {
   try {
@@ -100,7 +104,7 @@ export async function handleWebDAVTest(
 
     const result = await WebDAV.testConnection(webdavUrl, webdavUsername, webdavPassword)
     sendResponse({ success: true, ...result })
-  } catch (err) {
+  } catch (err: unknown) {
     sendResponse({ success: false, message: errorMessage(err) })
   }
 }
@@ -153,7 +157,7 @@ export async function handleWebDAVUpload(sendResponse: SendResponse) {
       direction: 'upload',
       message: `已上传 ${totalUploaded} 条记录`,
     })
-  } catch (err) {
+  } catch (err: unknown) {
     errorLog('WebDAV upload failed:', err)
     sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '上传失败' })
   }
@@ -193,7 +197,7 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
           await mediaDB.put(ds.key as RecordStoreName, key, record)
         }
         totalDownloaded += Object.keys(data).length
-      } catch (dsErr) {
+      } catch (dsErr: unknown) {
         errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
         continue
       }
@@ -207,7 +211,7 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
       direction: 'download',
       message: `已下载 ${totalDownloaded} 条记录`,
     })
-  } catch (err) {
+  } catch (err: unknown) {
     errorLog('WebDAV download failed:', err)
     sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '下载失败' })
   }
@@ -316,7 +320,7 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
           resultingMetas.push(remote)
           downloaded += Object.keys(data).length
         }
-      } catch (dsErr) {
+      } catch (dsErr: unknown) {
         errorLog(`WebDAV sync skipped dataset '${key}': ${errorMessage(dsErr)}`)
         resultingMetas.push(local || remote || {
           key,
@@ -355,7 +359,7 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
       skipped,
       timestamp: newRemoteMeta.generatedAt,
     })
-  } catch (err) {
+  } catch (err: unknown) {
     errorLog('WebDAV sync failed:', err)
     sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '同步失败' })
   }

@@ -1,7 +1,7 @@
-import type { AdultAvId, AdultAvIdInput } from '@/types'
+import type { AdultAvId, AdultAvIdInput, MessageType, MessagePayloadMap } from '@/types'
 import { safeSendMessage } from '@/utils/context'
 
-async function sendMsg(type: string, payload?: any): Promise<any> {
+async function sendMsg<K extends MessageType>(type: K, payload: MessagePayloadMap[K]): Promise<any> {
   const res = await safeSendMessage({ type, payload }, { timeout: 8000, retries: 1 })
   if (!res?.success) throw new Error(res?.error || `${type} failed`)
   return res

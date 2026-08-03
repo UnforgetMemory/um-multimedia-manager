@@ -7,26 +7,32 @@
  * retry/timeout handling if needed.
  */
 
-import type { StoreRecord, AppSettings, ExportData, Statistics, PtIdCacheEntry, MigrationStatus } from '@/types'
+import type { Provider } from '@/config'
+import type { MessageType, MessagePayloadMap, StoreRecord, AppSettings, ExportData, Statistics, PtIdCacheEntry, MigrationStatus } from '@/types'
 
 /**
- * Send a runtime message with timeout.
+ * Send a typed runtime message with timeout.
+ * `K` is the message type; `payload` is type-checked against MessagePayloadMap.
  * Thin wrapper — errors propagate to caller.
  */
-async function send<T = any>(message: any, timeout = 8000): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
+async function send<K extends MessageType>(
+  type: K,
+  payload: MessagePayloadMap[K],
+  timeout = 8000,
+): Promise<any> {
+  return new Promise<any>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error(`[DB API] '${message.type}' timed out after ${timeout}ms`))
+      reject(new Error(`[DB API] '${type}' timed out after ${timeout}ms`))
     }, timeout)
 
-    chrome.runtime.sendMessage(message, (response) => {
+    chrome.runtime.sendMessage({ type, payload }, (response) => {
       clearTimeout(timer)
       if (chrome.runtime.lastError) {
         reject(new Error(`[DB API] sendMessage failed: ${chrome.runtime.lastError.message}`))
       } else if (response?.success === false) {
         reject(new Error(`[DB API] ${response.error || 'Unknown error'}`))
       } else {
-        resolve(response as T)
+        resolve(response)
       }
     })
   })
@@ -35,48 +41,36 @@ async function send<T = any>(message: any, timeout = 8000): Promise<T> {
 // ==================== Core CRUD ====================
 
 export async function dbGet(storeName: string, key: string): Promise<StoreRecord | null> {
-  const res = await send<{ record?: StoreRecord | null }>(
-    { type: 'DB_GET', payload: { storeName, key } }
-  )
+  const res = await send('DB_GET', { storeName, key })
   return res?.record ?? null
 }
 
 export async function dbPut(storeName: string, key: string, record: StoreRecord): Promise<void> {
-  await send(
-    { type: 'DB_PUT', payload: { storeName, key, record } }
-  )
+  await send('DB_PUT', { storeName, key, record })
 }
 
 export async function dbDelete(storeName: string, key: string): Promise<void> {
-  await send(
-    { type: 'DB_DELETE', payload: { storeName, key } }
-  )
+  await send('DB_DELETE', { storeName, key })
 }
 
 export async function dbGetAll(
   storeName: string
 ): Promise<Array<{ key: string; record: StoreRecord }>> {
-  const res = await send<{ entries?: Array<{ key: string; record: StoreRecord }> }>(
-    { type: 'DB_GET_ALL', payload: { storeName } }
-  )
+  const res = await send('DB_GET_ALL', { storeName })
   return res?.entries || []
 }
 
 export async function dbQuery(
   storeName: string,
   indexName: string,
-  value: any
+  value: IDBValidKey
 ): Promise<Array<{ key: string; record: StoreRecord }>> {
-  const res = await send<{ entries?: Array<{ key: string; record: StoreRecord }> }>(
-    { type: 'DB_QUERY', payload: { storeName, indexName, value } }
-  )
+  const res = await send('DB_QUERY', { storeName, indexName, value })
   return res?.entries || []
 }
 
 export async function dbCount(storeName: string): Promise<number> {
-  const res = await send<{ count?: number }>(
-    { type: 'DB_COUNT', payload: { storeName } }
-  )
+  const res = await send('DB_COUNT', { storeName })
   return res?.count ?? 0
 }
 
@@ -87,79 +81,67 @@ export async function dbCount(storeName: string): Promise<number> {
 export async function dbGetWatchedIds(
   storeNames: string[]
 ): Promise<Record<string, string[]>> {
-  const res = await send<{ results?: Record<string, string[]> }>(
-    { type: 'DB_GET_WATCHED_IDS', payload: { storeNames } }
-  )
+  const res = await send('DB_GET_WATCHED_IDS', { storeNames })
   return res?.results || {}
 }
 
 // ==================== PT ID Cache ====================
 
 export async function ptIdCacheGet(ptUrl: string): Promise<PtIdCacheEntry | null> {
-  const res = await send<{ entry?: PtIdCacheEntry | null }>(
-    { type: 'PT_ID_CACHE_GET', payload: { ptUrl } }
-  )
+  const res = await send('PT_ID_CACHE_GET', { ptUrl })
   return res?.entry ?? null
 }
 
 export async function ptIdCachePut(entry: PtIdCacheEntry): Promise<void> {
-  await send(
-    { type: 'PT_ID_CACHE_PUT', payload: { entry } }
-  )
+  await send('PT_ID_CACHE_PUT', { entry })
 }
 
 export async function ptIdCacheGetBulk(
   ptUrls: string[]
 ): Promise<Record<string, PtIdCacheEntry>> {
-  const res = await send<{ entries?: Record<string, PtIdCacheEntry> }>(
-    { type: 'PT_ID_CACHE_GET_BULK', payload: { ptUrls } }
-  )
+  const res = await send('PT_ID_CACHE_GET_BULK', { ptUrls })
   return res?.entries || {}
 }
 
 // ==================== Sync ====================
 
 export async function dbSyncPageRecord(
-  platform: string,
+  platform: Provider,
   key: string,
   record: StoreRecord,
-  linked?: Array<{ platform: string; key: string; url: string }>
+  linked?: Array<{ platform: Provider; key: string; url: string }>
 ): Promise<{ changed: boolean; syncedPlatforms: string[] }> {
-  const res = await send<{ result?: { changed: boolean; syncedPlatforms: string[] } }>(
-    { type: 'DB_SYNC_PAGE_RECORD', payload: { platform, key, record, linked } }
-  )
+  const res = await send('DB_SYNC_PAGE_RECORD', { platform, key, record, linked })
   return res?.result || { changed: false, syncedPlatforms: [] }
 }
 
 // ==================== Settings ====================
 
 export async function getSettings(): Promise<AppSettings> {
-  const res = await send<{ settings?: AppSettings }>({ type: 'GET_SETTINGS' })
+  const res = await send('GET_SETTINGS', undefined)
   return res?.settings || ({} as AppSettings)
 }
 
 export async function updateSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
-  const res = await send<{ settings?: AppSettings }>(
-    { type: 'UPDATE_SETTINGS', payload: partial }
-  )
+  const res = await send('UPDATE_SETTINGS', partial)
   return res?.settings || ({} as AppSettings)
 }
 
 // ==================== Export / Import ====================
 
 export async function exportData(): Promise<ExportData> {
-  const res = await send<{ data?: ExportData }>({ type: 'EXPORT_DATA' })
+  const res = await send('EXPORT_DATA', undefined)
   return res?.data || ({} as ExportData)
 }
 
 export async function importData(data: ExportData): Promise<void> {
-  await send({ type: 'IMPORT_DATA', payload: data })
+  await send('IMPORT_DATA', data)
 }
 
 // ==================== Statistics ====================
 
 export async function getStatistics(): Promise<Statistics> {
-  const res = await send<{ stats?: Statistics }>({ type: 'GET_STATISTICS' })
+  const res = await send('GET_STATISTICS', undefined)
   return res?.stats || {
     total: 0, movie: 0, tv: 0, music: 0, book: 0,
     douban: 0, imdb: 0, neodb: 0, tmdb: 0, bilibili: 0, youtube: 0,
@@ -170,7 +152,7 @@ export async function getStatistics(): Promise<Statistics> {
 
 export async function healthCheck(): Promise<boolean> {
   try {
-    await send<{}>({ type: 'HEALTH_CHECK' }, 3000)
+    await send('HEALTH_CHECK', undefined, 3000)
     return true
   } catch {
     return false
@@ -180,7 +162,7 @@ export async function healthCheck(): Promise<boolean> {
 // ==================== Migration ====================
 
 export async function getMigrationStatus(): Promise<MigrationStatus> {
-  const res = await send<{ migration?: MigrationStatus }>({ type: 'GET_MIGRATION_STATUS' })
+  const res = await send('GET_MIGRATION_STATUS', undefined)
   return res?.migration || {
     currentRecordVersion: 0,
     currentCacheVersion: 0,

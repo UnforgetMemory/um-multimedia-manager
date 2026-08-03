@@ -7,9 +7,10 @@
 
 import * as NeoDB from '@/features/neodb/api'
 import { infoLog, warnLog, errorLog } from '@/utils/logger'
+import { sleep } from '@/utils'
 import { STORAGE_KEYS } from '@/config'
-
-type SendResponse = (response?: unknown) => void
+import type { MessagePayloadMap } from '@/types'
+import type { SendResponse } from '@/utils/error-message'
 
 /** Build Douban URL from provider info */
 function buildDoubanUrl(type: string, providerId: string): string {
@@ -30,7 +31,7 @@ function statusToShelfType(status: number): 'complete' | 'progress' | 'wishlist'
 
 /** NEODB_PUSH_RATING — push rating from Douban to NeoDB */
 export async function handleNeoDBPushRating(
-  payload: any,
+  payload: MessagePayloadMap['NEODB_PUSH_RATING'],
   sendResponse: SendResponse
 ) {
   try {
@@ -61,7 +62,7 @@ export async function handleNeoDBPushRating(
         catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token)
         infoLog('[NeoDB] Catalog result:', { uuid: catalog.uuid, hasUuid: !!catalog.uuid, attempt })
         break
-      } catch (fetchErr) {
+      } catch (fetchErr: unknown) {
         if (fetchErr instanceof NeoDB.NeoDBError) {
           if (fetchErr.status === 429) {
             warnLog('[NeoDB] Rate limited (429) — NeoDB 无法抓取该作品数据')
@@ -71,7 +72,7 @@ export async function handleNeoDBPushRating(
           if (fetchErr.status === 404 && attempt < maxRetries) {
             const delay = retryDelays[attempt]
             warnLog(`[NeoDB] Catalog not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
-            await new Promise(resolve => setTimeout(resolve, delay))
+            await sleep(delay)
           } else {
             throw fetchErr
           }
@@ -96,7 +97,7 @@ export async function handleNeoDBPushRating(
       try {
         shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, comment, token)
         break
-      } catch (markErr) {
+      } catch (markErr: unknown) {
         if (markErr instanceof NeoDB.NeoDBError) {
           if (markErr.status === 429) {
             warnLog('[NeoDB] Rate limited (429) on markItem')
@@ -106,7 +107,7 @@ export async function handleNeoDBPushRating(
           if (markErr.status === 404 && attempt < maxRetries) {
             const delay = retryDelays[attempt]
             warnLog(`[NeoDB] Mark item failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
-            await new Promise(resolve => setTimeout(resolve, delay))
+            await sleep(delay)
           } else {
             throw markErr
           }
@@ -118,7 +119,7 @@ export async function handleNeoDBPushRating(
 
     infoLog('[NeoDB] Push success:', { catalogUuid: catalog.uuid, shelfItemUuid: shelfItem?.uuid })
     sendResponse({ success: true, shelfItem, catalogUuid: catalog.uuid })
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof NeoDB.NeoDBError
       ? err.message
       : (err as Error)?.message || '推送失败'

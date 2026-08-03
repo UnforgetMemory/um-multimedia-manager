@@ -12,6 +12,7 @@ import { validateExportVersion, getMigrationInfo, MigrationError } from '@/featu
 import { settingsCache } from '@/features/settings/cache'
 import { infoLog, warnLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
+import type { SendResponse } from '@/utils/error-message'
 
 /** Settings fields to include in export (all AppSettings keys except sensitive credentials) */
 export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
@@ -40,7 +41,15 @@ export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
  */
 const IMPORT_SETTINGS_KEYS: ReadonlySet<string> = new Set(EXPORT_SETTINGS_KEYS)
 
-type SendResponse = (response?: unknown) => void
+/** Map store names to platform identifiers for stats/records aggregation */
+const storePlatformMap: Record<string, string> = {
+  [STORE_NAMES.DOUBAN]: 'douban',
+  [STORE_NAMES.IMDB]: 'imdb',
+  [STORE_NAMES.NEODB]: 'neodb',
+  [STORE_NAMES.TMDB]: 'tmdb',
+  [STORE_NAMES.BILIBILI]: 'bilibili',
+  [STORE_NAMES.YOUTUBE]: 'youtube',
+}
 
 /** GET_SETTINGS — return cached settings */
 export async function handleGetSettings(sendResponse: SendResponse) {
@@ -91,7 +100,7 @@ export async function handleImportData(
   // Validate export data version compatibility
   try {
     validateExportVersion(payload.version ?? 1)
-  } catch (err) {
+  } catch (err: unknown) {
     if (err instanceof MigrationError) {
       warnLog(`Import rejected: ${err.message}`)
       sendResponse({
@@ -114,11 +123,11 @@ export async function handleImportData(
     if (!RECORD_STORES.includes(storeName) && storeName !== STORE_NAMES.JAV_IDS) continue
     for (const [key, record] of Object.entries(records)) {
       // Normalize: ensure required fields exist (imported JSON may omit them)
-      if (record.linkedIds === undefined) record.linkedIds = {}
-      if (record.url === undefined) record.url = ''
-      if (record.status === undefined) record.status = 0
-      if (record.rating === undefined) record.rating = 0
-      if (record.updatedAt === undefined) record.updatedAt = new Date().toISOString()
+      record.linkedIds ??= {}
+      record.url ??= ''
+      record.status ??= 0
+      record.rating ??= 0
+      record.updatedAt ??= new Date().toISOString()
       await mediaDB.put(storeName, key, record)
       totalImported++
     }
@@ -151,15 +160,6 @@ export async function handleGetStatistics(sendResponse: SendResponse) {
     youtube: 0,
   }
 
-  const storePlatformMap: Record<string, string> = {
-    [STORE_NAMES.DOUBAN]: 'douban',
-    [STORE_NAMES.IMDB]: 'imdb',
-    [STORE_NAMES.NEODB]: 'neodb',
-    [STORE_NAMES.TMDB]: 'tmdb',
-    [STORE_NAMES.BILIBILI]: 'bilibili',
-    [STORE_NAMES.YOUTUBE]: 'youtube',
-  }
-
   for (const storeName of RECORD_STORES) {
     const entries = await mediaDB.getAll(storeName)
     const platform = storePlatformMap[storeName] || 'unknown'
@@ -183,14 +183,6 @@ export async function handleGetStatistics(sendResponse: SendResponse) {
 /** GET_ALL_RECORDS — flatten all stores for popup display */
 export async function handleGetAllRecords(sendResponse: SendResponse) {
   const allRecords: any[] = []
-  const storePlatformMap: Record<string, string> = {
-    [STORE_NAMES.DOUBAN]: 'douban',
-    [STORE_NAMES.IMDB]: 'imdb',
-    [STORE_NAMES.NEODB]: 'neodb',
-    [STORE_NAMES.TMDB]: 'tmdb',
-    [STORE_NAMES.BILIBILI]: 'bilibili',
-    [STORE_NAMES.YOUTUBE]: 'youtube',
-  }
 
   for (const storeName of RECORD_STORES) {
     const entries = await mediaDB.getAll(storeName)
