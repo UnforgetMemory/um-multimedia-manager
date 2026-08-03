@@ -8,6 +8,9 @@
  * @remarks
  * Immutable value object—equality is by string identity only.
  */
+/** Canonical media type identifiers. */
+export type MediaTypeId = 'movie' | 'tv' | 'music' | 'book' | 'game';
+
 export class MediaType {
   /** Canonical type identifiers. */
   static readonly MOVIE = new MediaType('movie');
@@ -26,9 +29,9 @@ export class MediaType {
   ];
 
   /** String identifier — always lowercase. */
-  readonly id: string;
+  readonly id: MediaTypeId;
 
-  private constructor(id: string) {
+  private constructor(id: MediaTypeId) {
     this.id = id;
   }
 

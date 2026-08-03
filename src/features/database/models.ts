@@ -241,7 +241,7 @@ export class MediaDatabase {
       }
       this.readCache.set(cacheKey, record)
       return record
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof MigrationError) {
         console.error(`[DB] Migration failed for ${storeName}/${key}:`, err.message, err.details)
         return result as StoreRecord
@@ -313,11 +313,6 @@ export class MediaDatabase {
     return { ok: true, version: expectedVersion + 1 }
   }
 
-  /** Get the current optimistic version of a record (0 if not found). */
-  async getRecordVersion(storeName: string, key: string): Promise<number> {
-    const record = await this.get(storeName, key)
-    return record?.recordVersion ?? 0
-  }
 
   /** Delete a record by key. */
   async delete(storeName: string, key: string): Promise<void> {
@@ -349,7 +344,7 @@ export class MediaDatabase {
                 console.warn(`[DB] Failed to write back migrated record ${cursor.key}:`, err)
               })
             }
-          } catch (err) {
+          } catch (err: unknown) {
             if (err instanceof MigrationError) {
               console.error(`[DB] Migration failed for ${storeName}/${cursor.key}:`, err.message)
               results.push({ key: cursor.key as string, record: cursor.value as StoreRecord })
@@ -393,7 +388,7 @@ export class MediaDatabase {
                 console.warn(`[DB] Failed to write back migrated record ${cursor.primaryKey}:`, err)
               })
             }
-          } catch (err) {
+          } catch (err: unknown) {
             if (err instanceof MigrationError) {
               console.error(`[DB] Migration failed for ${storeName}/${cursor.primaryKey}:`, err.message)
               results.push({ key: cursor.primaryKey as string, record: cursor.value as StoreRecord })
@@ -517,7 +512,7 @@ export class MediaDatabase {
             })
           }
           resolve(record)
-        } catch (err) {
+        } catch (err: unknown) {
           if (err instanceof MigrationError) {
             console.error(`[DB] Cache migration failed for ${ptUrl}:`, err.message)
             resolve(request.result as PtIdCacheEntry)
@@ -531,7 +526,42 @@ export class MediaDatabase {
     })
   }
 
-  /** Put a PT ID cache entry. Stamps schema version. */
+  /** Batch get PT ID cache entries by URL in a single transaction. Missing keys are omitted. */
+  async getCacheEntries(ptUrls: string[]): Promise<Record<string, PtIdCacheEntry>> {
+    if (ptUrls.length === 0) return {}
+    const db = await this.ensureDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readonly')
+      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE)
+      const entries: Record<string, PtIdCacheEntry> = {}
+
+      for (const ptUrl of ptUrls) {
+        const request = store.get(ptUrl)
+        request.onsuccess = () => {
+          if (!request.result) return
+          try {
+            const { record, migrated } = normalizeCacheEntry(request.result)
+            if (migrated) {
+              this.putCacheEntry(record).catch(err => {
+                console.warn(`[DB] Failed to write back migrated cache entry ${ptUrl}:`, err)
+              })
+            }
+            entries[ptUrl] = record
+          } catch (err: unknown) {
+            if (err instanceof MigrationError) {
+              console.error(`[DB] Cache migration failed for ${ptUrl}:`, err.message)
+              entries[ptUrl] = request.result as PtIdCacheEntry
+            } else {
+              reject(err)
+            }
+          }
+        }
+      }
+
+      tx.oncomplete = () => resolve(entries)
+      tx.onerror = () => reject(tx.error)
+    })
+  }
   async putCacheEntry(entry: PtIdCacheEntry): Promise<void> {
     const db = await this.ensureDB()
     const stamped = stampCacheVersion(entry)
@@ -544,123 +574,6 @@ export class MediaDatabase {
       tx.onerror = () => reject(tx.error)
     })
   }
-
-  /**
-   * Core cross-platform sync logic.
-   *
-   * Decision tree:
-   * 1. Primary platform:
-   *    - No existing data → write
-   *    - Has data + status/rating changed → update
-   *    - Same → skip
-   * 2. Each linked platform:
-   *    - No existing data → write (with linkedIds pointing to primary)
-   *    - Has data + status != 2 → sync status from primary (rating NEVER overwritten)
-   *    - Has data + status == 2 (已看) → skip (don't overwrite watched)
-   *
-   * @returns Object describing what changed and which platforms were synced
-   */
-  async syncPageRecord(
-    platform: string,
-    key: string,
-    record: StoreRecord,
-    linked?: Array<{ platform: string; key: string; url: string }>
-  ): Promise<{ changed: boolean; syncedPlatforms: string[] }> {
-    const primaryStore = storeNameForPlatform(platform)
-    const syncedPlatforms: string[] = []
-    let changed = false
-
-    // 1. Primary platform
-      const existingPrimary = await this.get(primaryStore, key)
-
-    if (!existingPrimary) {
-      // No existing data → write
-      await this.put(primaryStore, key, {
-        ...record,
-        linkedIds: record.linkedIds || {},
-        updatedAt: new Date().toISOString(),
-      })
-      changed = true
-      syncedPlatforms.push(platform)
-    } else {
-      // Has existing data → check if status, rating, or comment changed
-      const statusChanged = existingPrimary.status !== record.status
-      const ratingChanged = existingPrimary.rating !== record.rating
-      const commentChanged = existingPrimary.comment !== record.comment
-      if (statusChanged || ratingChanged || commentChanged) {
-        await this.put(primaryStore, key, {
-          ...existingPrimary,
-          ...record,
-          linkedIds: { ...existingPrimary.linkedIds, ...record.linkedIds },
-          updatedAt: new Date().toISOString(),
-        })
-        changed = true
-        syncedPlatforms.push(platform)
-      }
-    }
-
-    // 2. Linked platforms — read all with separate transactions first,
-    //    then write in a single readwrite transaction (avoids the IndexedDB
-    //    anti-pattern of awaiting inside a transaction loop).
-    if (linked && linked.length > 0) {
-      const db = await this.ensureDB()
-      const now = new Date().toISOString()
-
-      // Phase 1: read all linked records using separate read-only transactions (safe)
-      const linkedResults: Array<{
-        link: { platform: string; key: string; url: string }
-        existing: StoreRecord | null
-      }> = []
-      for (const link of linked) {
-        const linkedStoreName = storeNameForPlatform(link.platform)
-        const existing = await this.get(linkedStoreName, link.key)
-        linkedResults.push({ link, existing })
-      }
-
-      // Phase 2: write all updates in a single readwrite transaction
-      const allStoreNames = [...RECORD_STORES]
-      const tx = db.transaction(allStoreNames, 'readwrite')
-
-      for (const { link, existing } of linkedResults) {
-        const linkedStoreName = storeNameForPlatform(link.platform)
-        const linkedStore = tx.objectStore(linkedStoreName)
-        const backwardLinkedIds: Record<string, string> = { [platform]: key }
-
-        if (!existing) {
-          linkedStore.put({
-            url: link.url,
-            status: record.status,
-            rating: record.rating,
-            comment: record.comment,
-            updatedAt: now,
-            linkedIds: backwardLinkedIds,
-          }, link.key)
-          changed = true
-          syncedPlatforms.push(link.platform)
-        } else if (existing.status !== 2) {
-          linkedStore.put({
-            ...existing,
-            status: record.status,
-            rating: existing.rating,          // NEVER overwrite linked rating
-            comment: record.comment ?? existing.comment,
-            updatedAt: now,
-            linkedIds: { ...existing.linkedIds, ...backwardLinkedIds },
-          }, link.key)
-          changed = true
-          syncedPlatforms.push(link.platform)
-        }
-      }
-
-      await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve()
-        tx.onerror = () => reject(tx.error)
-        tx.onabort = () => reject(tx.error)
-      })
-    }
-
-    return { changed, syncedPlatforms }
-  }
-
   // ==================== Bulk Operations ====================
 
   /** Get all records from all record stores + jav_ids (for export). */

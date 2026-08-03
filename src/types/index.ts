@@ -90,7 +90,7 @@ export interface PtIdCacheEntry {
 
 /** Adult AV ID record (unified for javdb, sehuatang, etc.) */
 export interface AdultAvId {
-  source: string       // "javdb" | "sehuatang" | future sources
+  source: 'javdb' | 'sehuatang' | 'mukaku'
   id: string           // AV ID uppercase
   url: string          // Source page URL
   rating: number       // 0-10
@@ -104,10 +104,6 @@ export interface AdultAvIdInput {
   url?: string
   updatedAt?: string
 }
-
-// Kept for backward compatibility during migration
-/** @deprecated Use AdultAvId instead */
-export type SehuatangAvId = AdultAvId
 
 // ==================== Messages ====================
 
@@ -137,10 +133,6 @@ export type MessageType =
   | 'ADULT_AV_ADD'
   | 'ADULT_AV_BATCH_ADD'
   | 'ADULT_AV_GET_ALL'
-  | 'SEHUATANG_CHECK_VIEWED'
-  | 'SEHUATANG_BATCH_ADD'
-  | 'SEHUATANG_ADD'
-  | 'SEHUATANG_GET_ALL'
   | 'DOWNLOAD_FILE'
   | 'BILIBILI_INJECT'
   | 'BILIBILI_SAVE'
@@ -156,10 +148,10 @@ export interface MessagePayloadMap {
   DB_PUT: { storeName: string; key: string; record: StoreRecord }
   DB_DELETE: { storeName: string; key: string }
   DB_GET_ALL: { storeName: string }
-  DB_QUERY: { storeName: string; indexName: string; value: any }
+  DB_QUERY: { storeName: string; indexName: string; value: IDBValidKey }
   DB_COUNT: { storeName: string }
   DB_GET_WATCHED_IDS: { storeNames: string[] }
-  DB_SYNC_PAGE_RECORD: { platform: string; key: string; record: StoreRecord; linked?: Array<{ platform: string; key: string; url: string }> }
+  DB_SYNC_PAGE_RECORD: { platform: Provider; key: string; record: StoreRecord; linked?: Array<{ platform: Provider; key: string; url: string }> }
   PT_ID_CACHE_GET: { ptUrl: string }
   PT_ID_CACHE_PUT: { entry: PtIdCacheEntry }
   PT_ID_CACHE_GET_BULK: { ptUrls: string[] }
@@ -171,10 +163,6 @@ export interface MessagePayloadMap {
   GET_STATISTICS: void
   HEALTH_CHECK: void
   GET_MIGRATION_STATUS: void
-  SEHUATANG_CHECK_VIEWED: { id: string }
-  SEHUATANG_BATCH_ADD: { items: SehuatangAvId[] }
-  SEHUATANG_ADD: { id: string; rating?: number }
-  SEHUATANG_GET_ALL: void
   ADULT_AV_CHECK: { id: string }
   ADULT_AV_CHECK_BATCH: { ids: string[] }
   ADULT_AV_ADD: { source: string; id: string; rating?: number; url?: string }
@@ -187,7 +175,7 @@ export interface MessagePayloadMap {
   WEBDAV_UPLOAD: void
   WEBDAV_DOWNLOAD: void
   WEBDAV_SYNC: void
-  NEODB_PUSH_RATING: { record: { providerId: string; type: string; provider: string } }
+  NEODB_PUSH_RATING: { record: { providerId: string; type: 'movie' | 'tv' | 'music' | 'book' | 'game'; provider: Provider; status?: number; rating?: number; comment?: string } }
 }
 
 export interface MessagePayload<T extends MessageType = MessageType> {

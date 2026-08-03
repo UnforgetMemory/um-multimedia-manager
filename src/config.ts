@@ -3,6 +3,9 @@
  * 从 Tampermonkey 脚本迁移而来,适配 Chrome Extension 环境
  */
 
+import { Platform } from '@/domain/platform/Platform';
+import { Status as DomainStatus } from '@/domain/record/Status';
+
 // 版本信息
 export const VERSION = 2;
 
@@ -56,10 +59,13 @@ export const DATASET_ORDER: Array<[Domain, Provider]> = [
 ];
 
 // 记录状态
+// 字符串状态映射 — 保留用于向后兼容。规范表示是 domain Status 值对象
+// (src/domain/record/Status, 0/1/2/3 数值码)。字符串值派生自
+// Status.legacyString,避免 config 与 domain 双份状态清单漂移。
 export const STATUS = {
-  DONE: 'done',
-  NONE: 'none',
-  WISH: 'wish',
+  DONE: DomainStatus.DONE.legacyString,
+  NONE: DomainStatus.NONE.legacyString,
+  WISH: DomainStatus.WISHLIST.legacyString,
 } as const;
 
 // UI 相关常量
@@ -105,5 +111,6 @@ export const CONFIG = {
 
 // 类型定义
 export type Domain = 'movie' | 'tv' | 'music' | 'book' | 'game' | 'video';
-export type Provider = 'douban' | 'imdb' | 'neodb' | 'tmdb' | 'bilibili' | 'youtube' | 'javdb' | 'mukaku' | 'sehuatang'
+// Provider 派生自 Platform.KNOWN — 单一平台清单来源,避免手工维护漂移。
+export type Provider = (typeof Platform.KNOWN)[number];
 export type Status = (typeof STATUS)[keyof typeof STATUS];

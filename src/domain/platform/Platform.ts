@@ -13,6 +13,9 @@ export class Platform {
   /** Known platform identifiers */
   static readonly KNOWN = ['douban', 'imdb', 'neodb', 'tmdb', 'bilibili', 'youtube', 'javdb', 'mukaku', 'sehuatang'] as const;
 
+  /** Widened string view of KNOWN for `includes` lookups against arbitrary string ids. */
+  private static readonly KNOWN_IDS: readonly string[] = Platform.KNOWN;
+
   /** Platform identifier — always lowercase */
   readonly id: string;
 
@@ -81,7 +84,7 @@ export class Platform {
 
   /** True if this platform is in the known list. */
   get isKnown(): boolean {
-    return (Platform.KNOWN as readonly string[]).includes(this.id);
+    return Platform.KNOWN_IDS.includes(this.id);
   }
 
   // ---- Equality ----
