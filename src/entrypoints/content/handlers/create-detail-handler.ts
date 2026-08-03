@@ -18,7 +18,7 @@ import { t } from '../i18n'
 // ---- Types ----
 
 export interface PageScanResult {
-  status: string  // 'done' | 'none'
+  status: string  // 'done' | 'none' | 'wish' | 'doing'
   rating: number  // 0-10
 }
 
@@ -38,6 +38,13 @@ export interface DetailPageHandlerConfig {
   titleSelector: string
   /** Scan the page for status/rating. Receives identity so neodb can use identity.type. */
   scanFn: (identity: UrlIdentity) => PageScanResult | Promise<PageScanResult>
+  /**
+   * Optional identity resolution hook, invoked AFTER scanFn and BEFORE the dbGet
+   * (so the store key `${type}::${providerId}` uses the resolved type).
+   * Used by Bangumi where the media type is only detectable from the page DOM
+   * (Identity.fromUrl defaults to 'tv'). May return the same identity.
+   */
+  resolveIdentity?: (identity: UrlIdentity, pageState: PageScanResult) => UrlIdentity | Promise<UrlIdentity>
   /** Render the status chip onto the page. */
   renderFn: (identity: UrlIdentity, status: number, rating: number, note: string) => Promise<void>
   /** i18n key for the save toast. When omitted the base save is skipped (use onSave instead). */
@@ -67,9 +74,14 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
     // Scan page state (status + rating)
     const pageState = await config.scanFn(identity)
 
+    // Optional identity resolution (e.g. Bangumi infobox media-type inference)
+    const resolvedIdentity = config.resolveIdentity
+      ? await config.resolveIdentity(identity, pageState)
+      : identity
+
     // Fetch local record from IndexedDB
-    const storeName = `${identity.platform}_records`
-    const key = `${identity.type}::${identity.providerId}`
+    const storeName = `${resolvedIdentity.platform}_records`
+    const key = `${resolvedIdentity.type}::${resolvedIdentity.providerId}`
     const localRecord = await Store.dbGet(storeName, key)
 
     const isLocalDone = localRecord?.status === 2
@@ -89,7 +101,7 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
     const note = isLocalDone && !isPageDone ? t('common.cache_hint') : ''
 
     // Render the status chip
-    await config.renderFn(identity, finalStatus, finalRating, note)
+    await config.renderFn(resolvedIdentity, finalStatus, finalRating, note)
 
     // Base save: only when page shows done and a message key is configured
     if (isPageDone && config.savedMessageKey) {
@@ -98,7 +110,7 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
 
       if (statusChanged || ratingChanged || !localRecord) {
         await Store.dbPut(storeName, key, {
-          url: identity.url,
+          url: resolvedIdentity.url,
           status: 2,
           rating: pageState.rating,
           comment: localRecord?.comment ?? '',
@@ -113,7 +125,7 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
     // Post-save hook (e.g. neodb's cross-platform sync)
     if (config.onSave) {
       await config.onSave({
-        identity,
+        identity: resolvedIdentity,
         pageState,
         localRecord,
         storeName,
