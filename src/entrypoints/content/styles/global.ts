@@ -653,7 +653,7 @@ export function addStyleRule(selector: string, rules: string): void {
   
   try {
     styleElement.sheet.insertRule(`${selector} { ${rules} }`, styleElement.sheet.cssRules.length)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[UMM] Failed to add style rule:', error)
   }
 }

@@ -306,7 +306,7 @@ async function pushToNeoDB(
       showToast(t('neodb.push_failed', { message: response.message || t('neodb.unknown_error') }), 'error')
     }
     restoreBtns()
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Push to NeoDB failed:', error)
     showToast(t('neodb.sync_failed'), 'error')
     restoreBtns()

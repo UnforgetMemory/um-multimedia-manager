@@ -89,7 +89,7 @@ onUnmounted(() => {
 })
 
 async function saveNeoDBToken() {
-  try { await Store.updateSettings({ neodbToken: neodbToken.value.trim() }); toast.success(t('toast.saved')) } catch (e) { toast.error(t('toast.saveFailed'), String(e)) }
+  try { await Store.updateSettings({ neodbToken: neodbToken.value.trim() }); toast.success(t('toast.saved')) } catch (e: unknown) { toast.error(t('toast.saveFailed'), String(e)) }
 }
 
 watch(autoSyncNeoDB, (v, oldV) => {
@@ -98,7 +98,7 @@ watch(autoSyncNeoDB, (v, oldV) => {
     try {
       await Store.updateSettings({ autoSyncNeoDB: v })
       toast.info(v ? t('toast.autoSyncEnabled') : t('toast.autoSyncDisabled'))
-    } catch (e) {
+    } catch (e: unknown) {
       toast.error(t('toast.saveFailed'), String(e))
       autoSyncNeoDB.value = oldV as boolean
     }
@@ -111,7 +111,7 @@ watch([debugEnabled, logLevel], ([e, l], [oldE, oldL]) => {
     try {
       await Store.updateSettings({ debugEnabled: e, logLevel: l })
       toast.info(e ? t('toast.logEnabled', { level: l }) : t('toast.logDisabled'))
-    } catch (err) {
+    } catch (err: unknown) {
       toast.error(t('toast.saveFailed'), String(err))
       debugEnabled.value = oldE as boolean
       logLevel.value = oldL as AppSettings['logLevel']

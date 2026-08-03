@@ -25,7 +25,7 @@ async function exportData() {
     const a = document.createElement('a'); a.href = url; a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
     toast.success(t('toast.exportSuccess'))
-  } catch (e) { toast.error(t('toast.exportFailed'), String(e)) } finally { isExporting.value = false }
+  } catch (e: unknown) { toast.error(t('toast.exportFailed'), String(e)) } finally { isExporting.value = false }
 }
 
 function triggerImport() {
@@ -40,7 +40,7 @@ function triggerImport() {
         let payload: any
         try {
           payload = JSON.parse(clean)
-        } catch (parseErr) {
+        } catch (parseErr: unknown) {
           const preview = raw.slice(0, 80).replace(/[\x00-\x1f]/g, ch => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`)
           console.error('[Import] JSON parse failed. Raw[:80]:', preview, 'length:', raw.length)
           toast.error(t('toast.importFailed'), `${String(parseErr)}\n\nFile starts with: "${preview}"`)
@@ -74,14 +74,14 @@ function triggerImport() {
                 console.error('[Import] background handler returned error:', JSON.stringify(res))
                 throw new Error(res?.error || 'Import returned no response')
               }
-            } catch (e) {
+            } catch (e: unknown) {
               const errMsg = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
               console.error('[Import] action error:', errMsg)
               toast.error(t('toast.importFailed'), errMsg)
             } finally { isImporting.value = false }
           },
         })
-      } catch (e) { toast.error(t('toast.importFailed'), String(e)) }
+      } catch (e: unknown) { toast.error(t('toast.importFailed'), String(e)) }
     }
     reader.readAsText(file)
   }

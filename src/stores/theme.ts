@@ -5,6 +5,16 @@ import { STORAGE_KEYS } from '@/config'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
+/**
+ * Theme store's own persistent key.
+ *
+ * Dual-key relationship with settings (do NOT unify in this wave):
+ * - `umm:appearance` — written here via useStorage and re-read on
+ *   chrome.storage.onChanged for cross-context sync (content scripts / popup).
+ * - `theme` (STORAGE_KEYS.THEME) — mirrored by syncThemeToSettings() into the
+ *   background settings cache; src/features/settings/cache.ts startListening()
+ *   shims `umm:appearance` changes into `cache.theme` so both stay consistent.
+ */
 const STORAGE_KEY = 'umm:appearance'
 
 export const useThemeStore = defineStore('theme', () => {

@@ -10,6 +10,7 @@
 
 import type { UrlIdentity } from '@/types'
 import { FloatingToast } from '../utils/toast'
+import { sleep } from '@/utils'
 
 export const DL_MODAL_ID = 'umm-dl-modal'
 const DOULIST_API_PAGE_SIZE = 100
@@ -175,7 +176,7 @@ async function fetchAllDoulists(subject: SubjectInfo): Promise<DoulistItem[]> {
     }}).filter(item => item.id && item.name)
     console.log(`[UMM] fetchAllDoulists: parsed ${items.length} items from API`)
     return items
-  } catch (e) {
+  } catch (e: unknown) {
     console.warn('[UMM] fetchAllDoulists failed:', e)
     return []
   }
@@ -674,7 +675,7 @@ export function initDoulistReplacement(identity: UrlIdentity): void {
     async function fetchWithRetry(s: SubjectInfo): Promise<DoulistItem[]> {
       const items = await fetchAllDoulists(s)
       if (items.length > 0) return items
-      await new Promise(r => setTimeout(r, 500))
+      await sleep(500)
       return fetchAllDoulists(s)
     }
     const clearLoading = () => {

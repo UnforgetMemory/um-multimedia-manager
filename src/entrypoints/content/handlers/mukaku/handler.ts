@@ -186,7 +186,7 @@ class MukakuHandler {
     try {
       const infoRoot = await waitForElement('.media-details-area .info')
       await this.renderDetailState(infoRoot, mvId)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[Mukaku] Detail page rendering failed:', error)
       if (MukakuToastController.hasActive()) {
         MukakuToastController.error(t('mukaku.detail_failed', { error: String(error) }))
@@ -234,7 +234,7 @@ class MukakuHandler {
     if (!linkedIds.doubanId && !linkedIds.imdbId) {
       try {
         linkedIds = await this.probeLinkedIds(mvId)
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('[Mukaku] API probe failed:', error)
         if (MukakuToastController.hasActive()) {
           MukakuToastController.error(t('mukaku.api_failed', { error: String(error) }))
@@ -434,7 +434,7 @@ class MukakuHandler {
       } else {
         this.addToBatchUnwatched(mvId)
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[Mukaku] Card processing failed:', error)
     }
   }

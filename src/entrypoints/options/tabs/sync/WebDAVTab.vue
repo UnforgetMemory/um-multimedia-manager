@@ -59,7 +59,7 @@ async function saveConfig() {
     await Store.updateSettings({ webdavUrl: webdavConfig.value.url, webdavUsername: webdavConfig.value.username, webdavPassword: webdavConfig.value.password })
     isConfigSaved.value = true
     toast.success(t('toast.configSaved'))
-  } catch (e) { isConfigSaved.value = false; toast.error(t('toast.saveFailed'), String(e)) }
+  } catch (e: unknown) { isConfigSaved.value = false; toast.error(t('toast.saveFailed'), String(e)) }
 }
 
 async function testConnection() {
@@ -82,7 +82,7 @@ async function syncCloud() {
         const r = await safeSendMessage({ type: 'WEBDAV_SYNC' }, { timeout: 30000 })
         if (r?.success) toast.success(t('toast.syncSuccess'), r.message)
         else toast.error(t('toast.syncFailed'), r?.message)
-      } catch (e) { toast.error(t('toast.syncFailed'), String(e)) } finally { loading.value.sync = false }
+      } catch (e: unknown) { toast.error(t('toast.syncFailed'), String(e)) } finally { loading.value.sync = false }
     },
   })
 }
@@ -101,7 +101,7 @@ async function downloadCloud() {
         const r = await safeSendMessage({ type: 'WEBDAV_DOWNLOAD' }, { timeout: 30000 })
         if (r?.success) toast.success(t('sync.downloadSuccess'), r.message)
         else toast.error(t('sync.downloadFailed'), r?.message)
-      } catch (e) { toast.error(t('sync.downloadFailed'), String(e)) } finally { loading.value.download = false }
+      } catch (e: unknown) { toast.error(t('sync.downloadFailed'), String(e)) } finally { loading.value.download = false }
     },
   })
 }
@@ -120,7 +120,7 @@ async function uploadCloud() {
         const r = await safeSendMessage({ type: 'WEBDAV_UPLOAD' }, { timeout: 30000 })
         if (r?.success) toast.success(t('sync.uploadSuccess'), r.message)
         else toast.error(t('sync.uploadFailed'), r?.message)
-      } catch (e) { toast.error(t('sync.uploadFailed'), String(e)) } finally { loading.value.upload = false }
+      } catch (e: unknown) { toast.error(t('sync.uploadFailed'), String(e)) } finally { loading.value.upload = false }
     },
   })
 }

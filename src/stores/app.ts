@@ -28,7 +28,7 @@ export const useAppStore = defineStore('app', () => {
       records.value = recordsRes.records
       adultAvItems.value = adultAvRes?.success ? (adultAvRes.items || []) : []
       dataReady.value = true
-    } catch (e) {
+    } catch (e: unknown) {
       error.value = '数据加载失败，请重试'
       records.value = []
     } finally {

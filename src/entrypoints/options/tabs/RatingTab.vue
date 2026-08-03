@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { Button } from '@/shared/ui/button'
 import { Star, CheckCircle2, XCircle, Database, RefreshCw } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
+import { errorMessage } from '@/utils/error-message'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { JAV_ID_REGEX, autoDetectPlatform } from '@/features/adult-av/auto-detect'
 import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
@@ -202,7 +203,7 @@ watch(selectedPlatform, () => { if (ratingInput.value.trim() && !isQuerying.valu
     }
     toast.success(t('toast.saved'))
     ratingInput.value = ''; ratingValue.value = null; ratingComment.value = ''; ratingQueryResult.value = null
-  } catch (e) { toast.error(t('toast.saveFailed'), (e as Error).message) }
+  } catch (e: unknown) { toast.error(t('toast.saveFailed'), errorMessage(e)) }
 }
 
 onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
