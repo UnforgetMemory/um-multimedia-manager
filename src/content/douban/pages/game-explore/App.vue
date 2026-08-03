@@ -74,7 +74,7 @@ async function fetchMoreGames(): Promise<void> {
     moreCursor.value = json.more
     totalCount.value = json.total
     hasMore.value = json.more > 0
-  } catch (err) {
+  } catch (err: unknown) {
     console.warn('[UMM] Failed to load more games:', err)
   } finally {
     loading.value = false

@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 
 export const mountBookProfile = definePageMount({
   cssPreset: 'book-profile',
@@ -10,12 +11,10 @@ export const mountBookProfile = definePageMount({
     const { extractBookProfileData } = await import('./data')
 
     // Retry extraction — data may load async
-    let data: import('./types').BookProfileData | null = null
-    for (let i = 0; i < 5; i++) {
-      data = extractBookProfileData()
-      if (data && (data.readBooks.length > 0 || data.recentReading.length > 0)) break
-      await new Promise((r) => setTimeout(r, 500 * (i + 1)))
-    }
+    const data: import('./types').BookProfileData | null = await withRetry(
+      () => extractBookProfileData(),
+      { attempts: 5, baseDelay: 500, isValid: (d) => d && (d.readBooks.length > 0 || d.recentReading.length > 0) },
+    )
     if (!data) throw new Error('[UMM] Could not extract book profile data')
     hideNavForPage({ type: 'book-profile' })
     return data

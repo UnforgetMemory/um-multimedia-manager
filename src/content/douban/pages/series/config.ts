@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 import { loadRecordMap } from '../../shared/load-record-map'
 
 /** Mount config for the Douban book series page overlay */
@@ -12,12 +13,10 @@ export const mountSeries = definePageMount({
     const { extractSeriesData } = await import('./data')
 
     // Retry extraction up to 8 times with increasing delay
-    let data: import('./types').SeriesPageData | null = null
-    for (let i = 0; i < 8; i++) {
-      data = extractSeriesData()
-      if (data && (data.items.length > 0 || data.volumes > 0)) break
-      await new Promise(r => setTimeout(r, 300 * (i + 1)))
-    }
+    const data: import('./types').SeriesPageData | null = await withRetry(
+      () => extractSeriesData(),
+      { attempts: 8, baseDelay: 300, isValid: (d) => d && (d.items.length > 0 || d.volumes > 0) },
+    )
     if (!data) throw new Error('[UMM] Could not extract series page data')
     hideNavForPage({ type: 'series' })
 

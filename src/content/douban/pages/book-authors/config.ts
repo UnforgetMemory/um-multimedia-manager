@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 
 /** Mount config for the Douban user book authors page overlay */
 export const mountBookAuthors = definePageMount({
@@ -11,12 +12,10 @@ export const mountBookAuthors = definePageMount({
     const { extractBookAuthorsData } = await import('./book-authors-data')
 
     // Retry extraction up to 8 times — the page content may not be in the DOM yet
-    let data: import('./types').BookAuthorsData | null = null
-    for (let i = 0; i < 8; i++) {
-      data = extractBookAuthorsData()
-      if (data && (data.items.length > 0 || data.total > 0)) break
-      await new Promise(r => setTimeout(r, 300))
-    }
+    const data: import('./types').BookAuthorsData | null = await withRetry(
+      () => extractBookAuthorsData(),
+      { attempts: 8, fixedDelay: 300, isValid: (d) => d && (d.items.length > 0 || d.total > 0) },
+    )
     if (!data) throw new Error('[UMM] Could not extract book authors data')
     hideNavForPage({ type: 'book-authors' })
     return data

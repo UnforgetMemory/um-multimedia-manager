@@ -69,7 +69,7 @@ function handlePageJump(): void {
 }
 
 function clampJumpInput(): void {
-  if (jumpToPage.value === null || jumpToPage.value === undefined) return
+  if (jumpToPage.value == null) return
   const p = Math.round(Number(jumpToPage.value))
   if (!Number.isFinite(p)) { jumpToPage.value = null; return }
   jumpToPage.value = Math.max(1, Math.min(p, totalPages.value))

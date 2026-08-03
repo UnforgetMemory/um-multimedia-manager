@@ -7,6 +7,7 @@ import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { extractNewAlbums, extractGenreTags, extractPopularArtists } from './extractors'
+import { sleep } from '@/utils'
 import type { GenreTag, PopularArtistItem } from './types'
 
 const { records, load } = useRecordCache()
@@ -35,7 +36,7 @@ onMounted(async () => {
   // Dedicated retry for popular artists (SPA renders asynchronously)
   ;(async function retryPopularArtists() {
     for (const delay of [1000, 2000, 3000, 5000]) {
-      await new Promise(r => setTimeout(r, delay))
+      await sleep(delay)
       if (popularArtists.value.length > 0) return
       const artists = extractPopularArtists()
       if (artists.length > 0) { popularArtists.value = artists; return }

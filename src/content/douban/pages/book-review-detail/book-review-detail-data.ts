@@ -1,11 +1,5 @@
 import type { BookReviewDetailData } from './types'
-
-/** Parse Douban "allstarN" class name → 0-10 rating scale */
-function parseRating(className: string): number {
-  const m = className.match(/allstar(\d+)/)
-  if (!m) return 0
-  return parseInt(m[1], 10) / 10
-}
+import { parseRating } from '../../shared/douban-extract'
 
 /**
  * Extract book review detail data from the native Douban book review page DOM.
@@ -14,7 +8,7 @@ function parseRating(className: string): number {
  */
 export function extractBookReviewDetailData(): BookReviewDetailData | null {
   try { return _extractBookReviewDetailData() }
-  catch (err) { console.warn('[UMM] Error extracting book review detail:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting book review detail:', err); return null }
 }
 
 function _extractBookReviewDetailData(): BookReviewDetailData | null {

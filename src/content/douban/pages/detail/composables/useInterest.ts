@@ -206,7 +206,7 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
       savedTags.value = Array.isArray(parsed.tags) ? parsed.tags.filter((t): t is string => typeof t === 'string') : []
       currentComment.value = parsed.html ? extractCommentFromHtml(parsed.html) : ''
       hasDo.value = parsed.html ? extractHasDoFromHtml(parsed.html) : false
-    } catch (err) {
+    } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : 'Network error'
       // Preserve initial status/rating when network fails
       if (interestStatus.value === null) {
@@ -294,7 +294,7 @@ export function useInterest(subjectId: MaybeRefOrGetter<string>, initial?: Inter
         FloatingToast.error('UMM', msg)
       }
       return false
-    } catch (err) {
+    } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : 'Network error'
       return false
     } finally {

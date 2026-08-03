@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 
 export const mountMovieProfile = definePageMount({
   cssPreset: 'movie-profile',
@@ -9,12 +10,10 @@ export const mountMovieProfile = definePageMount({
   async beforeMount() {
     const { extractMovieProfileData } = await import('./movie-profile-data')
 
-    let data: import('./types').MovieProfileData | null = null
-    for (let i = 0; i < 5; i++) {
-      data = extractMovieProfileData()
-      if (data && data.stats.length > 0) break
-      await new Promise((r) => setTimeout(r, 500 * (i + 1)))
-    }
+    const data: import('./types').MovieProfileData | null = await withRetry(
+      () => extractMovieProfileData(),
+      { attempts: 5, baseDelay: 500, isValid: (d) => d && d.stats.length > 0 },
+    )
     if (!data) throw new Error('[UMM] Could not extract movie profile data')
     hideNavForPage({ type: 'movie-profile' })
     return data

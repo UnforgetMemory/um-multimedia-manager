@@ -30,7 +30,7 @@ export function useRecordCache(prefix?: string) {
         }
       }
       records.value = map
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[UMM] Failed to load douban records')
     } finally {
       loading.value = false

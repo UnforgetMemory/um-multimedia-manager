@@ -14,7 +14,7 @@ function getSubTypeFromUrl(url: string): MusicCollectData['subType'] {
  */
 export function extractMusicCollectData(): MusicCollectData | null {
   try { return _extractMusicCollectData() }
-  catch (err) { console.warn('[UMM] Error extracting music collect:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting music collect:', err); return null }
 }
 
 /** Internal extraction — separated so the public wrapper can catch errors */

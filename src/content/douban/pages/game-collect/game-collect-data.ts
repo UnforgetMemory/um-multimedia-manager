@@ -8,7 +8,7 @@ function getSubTypeFromUrl(url: string): GameCollectData['subType'] {
 
 export function extractGameCollectData(): GameCollectData | null {
   try { return _extractGameCollectData() }
-  catch (err) { console.warn('[UMM] Error extracting game collect:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting game collect:', err); return null }
 }
 
 function _extractGameCollectData(): GameCollectData | null {

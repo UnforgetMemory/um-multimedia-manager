@@ -4,19 +4,18 @@ import { intervalWhenVisible } from '@/utils/visibility'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { Store } from '@/features/database'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
+import { withRetry } from '../../shared/retry'
 
 export const mountGameDetail = definePageMount({
   cssPreset: 'game-detail',
   overlayId: 'umm-douban-overlay',
   importApp: () => import('./App.vue'),
   async beforeMount() {
-const { extractGameDetailData, enrichGameRecItems } = await import('./game-detail-data')
-let data: import('./game-detail-data').GameDetailData | null = null
-    for (let i = 0; i < 8; i++) {
-      data = extractGameDetailData()
-      if (data?.title) break
-      await new Promise(r => setTimeout(r, 300 * (i + 1)))
-    }
+    const { extractGameDetailData, enrichGameRecItems } = await import('./game-detail-data')
+    const data: import('./game-detail-data').GameDetailData | null = await withRetry(
+      () => extractGameDetailData(),
+      { attempts: 8, baseDelay: 300, isValid: (d) => d?.title },
+    )
     if (!data) throw new Error('[UMM] Could not extract game detail data')
 
     if (data.identity) {

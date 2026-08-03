@@ -13,7 +13,7 @@ function getSubTypeFromUrl(url: string): BookCollectData['subType'] {
  */
 export function extractBookCollectData(): BookCollectData | null {
   try { return _extractBookCollectData() }
-  catch (err) { console.warn('[UMM] Error extracting book collect:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting book collect:', err); return null }
 }
 
 /** Internal extraction — separated so the public wrapper can catch errors */

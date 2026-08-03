@@ -1,10 +1,5 @@
 import type { ReviewDetailData } from './types'
-
-function parseRating(className: string): number {
-  const m = className.match(/allstar(\d+)/)
-  if (!m) return 0
-  return parseInt(m[1], 10) / 10
-}
+import { parseRating } from '../../shared/douban-extract'
 
 /**
  * Extract review detail data from the native Douban review page DOM.
@@ -13,7 +8,7 @@ function parseRating(className: string): number {
  */
 export function extractReviewDetailData(): ReviewDetailData | null {
   try { return _extractReviewDetailData() }
-  catch (err) { console.warn('[UMM] Error extracting review detail:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting review detail:', err); return null }
 }
 
 function _extractReviewDetailData(): ReviewDetailData | null {

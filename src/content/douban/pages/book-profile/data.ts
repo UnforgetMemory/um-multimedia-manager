@@ -5,15 +5,7 @@
  * reading collections, recent activity, reviews, and doulists.
  */
 import type { BookProfileData, BookItem, AuthorItem, RecentReadingItem, ReviewItem, DoulistItem, UserInfo, NavItem } from './types'
-
-/**
- * Parse rating from CSS class like "allstar50" → 5.0
- */
-function parseRating(className: string): number {
-  const m = className.match(/allstar(\d+)/)
-  if (!m) return 0
-  return parseInt(m[1], 10) / 10
-}
+import { parseRating } from '../../shared/douban-extract'
 
 /**
  * Extract user basic info from the sidebar `.book-user-profile`.

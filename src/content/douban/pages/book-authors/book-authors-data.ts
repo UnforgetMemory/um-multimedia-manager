@@ -6,7 +6,7 @@ import type { BookAuthorsData, AuthorItem } from './types'
  */
 export function extractBookAuthorsData(): BookAuthorsData | null {
   try { return _extractBookAuthorsData() }
-  catch (err) { console.warn('[UMM] Error extracting book authors:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting book authors:', err); return null }
 }
 
 /** Internal extraction — separated so the public wrapper can catch errors */

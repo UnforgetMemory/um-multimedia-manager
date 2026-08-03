@@ -5,42 +5,18 @@ import { UmmRating } from '@/content/douban/components/UmmRating'
 import type { UserMediaPageData } from './types'
 import UmmPaginator from '@/content/douban/components/UmmPaginator.vue'
 import UmmUserBar from '@/content/douban/components/UmmUserBar.vue'
+import { usePaginator } from '../../shared/composables/usePaginator'
 
 const props = defineProps<{
   data: UserMediaPageData
 }>()
 
 /** Derive current page number from pageLinks */
-const currentPage = computed(() => {
-  const current = props.data.pageLinks.find(p => p.current)
-  if (!current) return 1
-  const n = parseInt(current.label, 10)
-  return isNaN(n) ? 1 : n
-})
-
-/** Derive total pages from last page link label */
-const totalPages = computed(() => {
-  const links = props.data.pageLinks
-  if (links.length === 0) return 1
-  const last = links[links.length - 1].label
-  const n = parseInt(last, 10)
-  return isNaN(n) ? 1 : n
-})
-
-/** Navigate to the URL for the requested page */
-function onPageChange(page: number): void {
-  const link = props.data.pageLinks.find(p => p.label === String(page))
-  if (link?.url) {
-    window.location.href = link.url
-    return
-  }
-  if (page < currentPage.value && props.data.prevPageUrl) {
-    window.location.href = props.data.prevPageUrl
-  } else if (page > currentPage.value && props.data.nextPageUrl) {
-    window.location.href = props.data.nextPageUrl
-  }
-}
-
+const { currentPage, totalPages, onPageChange } = usePaginator(
+  () => props.data.pageLinks,
+  () => props.data.prevPageUrl,
+  () => props.data.nextPageUrl,
+)
 const titleLabel = computed(() => {
   switch (props.data.subType) {
     case 'wish': return '想看'

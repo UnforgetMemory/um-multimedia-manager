@@ -102,7 +102,7 @@ export async function onCrossPlatformSave(options: SaveOptions): Promise<StoreRe
           }
         }
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn('[UMM] NeoDB auto-sync failed:', e)
       FloatingToast.error('UMM', t('sync.neodb_auto_failed_err'))
     }
@@ -157,7 +157,7 @@ export async function syncNeoDBOnLoad(
         await Store.dbPut('neodb_records', neodbKey, existingNeoDB)
       }
     }
-  } catch (e) {
+  } catch (e: unknown) {
     console.warn('[UMM] NeoDB on-load sync check failed:', e)
   }
 }

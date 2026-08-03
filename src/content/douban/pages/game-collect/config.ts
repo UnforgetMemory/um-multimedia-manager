@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 
 export const mountGameCollect = definePageMount({
   cssPreset: 'game-collect',
@@ -8,12 +9,10 @@ export const mountGameCollect = definePageMount({
   importApp: () => import('./App.vue'),
   async beforeMount() {
     const { extractGameCollectData } = await import('./game-collect-data')
-    let data: import('./types').GameCollectData | null = null
-    for (let i = 0; i < 8; i++) {
-      data = extractGameCollectData()
-      if (data && (data.items.length > 0 || data.total === 0)) break
-      await new Promise(r => setTimeout(r, 300 * (i + 1)))
-    }
+    let data: import('./types').GameCollectData | null = await withRetry(
+      () => extractGameCollectData(),
+      { attempts: 8, baseDelay: 300, isValid: (d) => d && (d.items.length > 0 || d.total === 0) },
+    )
     if (!data) {
       const subType: import('./types').GameCollectData['subType'] =
         location.href.includes('action=wish') ? 'wish'

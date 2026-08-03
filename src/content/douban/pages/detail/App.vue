@@ -20,7 +20,7 @@ const d = props.detailData
 
 
 const sortedAwards = computed(() => {
-  return [...d.awardItems].sort((a, b) => {
+  return d.awardItems.toSorted((a, b) => {
     if (a.isNomination === b.isNomination) return 0
     return a.isNomination ? 1 : -1
   })
@@ -99,7 +99,7 @@ onMounted(() => {
             linkedIds: existing?.linkedIds ?? {},
           } as StoreRecord)
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.warn('[UMM] Auto-save on mount failed:', e)
       }
     }
@@ -152,7 +152,7 @@ onMounted(() => {
           }
         }
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn('[UMM] linkedIds reconciliation failed:', e)
     }
 

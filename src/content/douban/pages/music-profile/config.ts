@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 
 export const mountMusicProfile = definePageMount({
   cssPreset: 'music-profile',
@@ -9,12 +10,10 @@ export const mountMusicProfile = definePageMount({
   async beforeMount() {
     const { extractMusicProfileData } = await import('./music-profile-data')
 
-    let data: import('./types').MusicProfileData | null = null
-    for (let i = 0; i < 5; i++) {
-      data = extractMusicProfileData()
-      if (data && data.stats.length > 0) break
-      await new Promise((r) => setTimeout(r, 500 * (i + 1)))
-    }
+    const data: import('./types').MusicProfileData | null = await withRetry(
+      () => extractMusicProfileData(),
+      { attempts: 5, baseDelay: 500, isValid: (d) => d && d.stats.length > 0 },
+    )
     if (!data) throw new Error('[UMM] Could not extract music profile data')
     hideNavForPage({ type: 'music-profile' })
     return data

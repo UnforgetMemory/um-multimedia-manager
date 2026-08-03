@@ -2,7 +2,7 @@ import type { MusicProfileData, MusicProfileStat, MusicProfileSection, MusicProf
 
 export function extractMusicProfileData(): MusicProfileData | null {
   try { return _extractMusicProfileData() }
-  catch (err) { console.warn('[UMM] Error extracting music profile:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting music profile:', err); return null }
 }
 
 function _extractMusicProfileData(): MusicProfileData {

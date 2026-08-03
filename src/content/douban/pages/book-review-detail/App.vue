@@ -8,14 +8,10 @@ defineProps<{
 
 /** Render 0-10 rating as ★/½/☆ characters */
 function starHtml(rating: number): string {
-  const full = Math.floor(rating)
+  const full = Math.max(0, Math.floor(rating))
   const half = rating - full >= 0.5
-  let s = ''
-  for (let i = 0; i < full; i++) s += '★'
-  if (half) s += '½'
-  const empty = 5 - full - (half ? 1 : 0)
-  for (let i = 0; i < empty; i++) s += '☆'
-  return s
+  const empty = Math.max(0, 5 - full - (half ? 1 : 0))
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
 }
 </script>
 

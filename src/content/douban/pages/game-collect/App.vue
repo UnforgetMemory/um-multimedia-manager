@@ -4,40 +4,15 @@ import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { GameCollectData } from './types'
 import UmmPaginator from '@/content/douban/components/UmmPaginator.vue'
 import UmmUserBar from '@/content/douban/components/UmmUserBar.vue'
+import { usePaginator } from '../../shared/composables/usePaginator'
 
 const props = defineProps<{ data: GameCollectData }>()
 
-const currentPage = computed(() => {
-  const current = props.data.pageLinks.find(p => p.current)
-  if (!current) return 1
-  const n = parseInt(current.label, 10)
-  return isNaN(n) ? 1 : n
-})
-
-const totalPages = computed(() => {
-  const links = props.data.pageLinks
-  if (links.length === 0) return 1
-  const last = links[links.length - 1].label
-  const n = parseInt(last, 10)
-  return isNaN(n) ? 1 : n
-})
-
-function onPageChange(page: number): void {
-  const link = props.data.pageLinks.find(p => p.label === String(page))
-  if (link?.url) {
-    if (isSafeDoubanUrl(link.url)) window.location.href = link.url
-    return
-  }
-  if (page < currentPage.value && props.data.prevPageUrl && isSafeDoubanUrl(props.data.prevPageUrl)) {
-    window.location.href = props.data.prevPageUrl
-  } else if (page > currentPage.value && props.data.nextPageUrl && isSafeDoubanUrl(props.data.nextPageUrl)) {
-    window.location.href = props.data.nextPageUrl
-  }
-}
-
-function isSafeDoubanUrl(url: string): boolean {
-  return /^https?:\/\/([a-z0-9-]+\.)*douban\.com\//.test(url)
-}
+const { currentPage, totalPages, onPageChange } = usePaginator(
+  () => props.data.pageLinks,
+  () => props.data.prevPageUrl,
+  () => props.data.nextPageUrl,
+)
 
 function parseRating(rating: string): number {
   const match = rating.match(/allstar(\d+)/)

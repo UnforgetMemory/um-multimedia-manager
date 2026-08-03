@@ -1,4 +1,5 @@
 import type { UserProfileData, UserProfileSection, ReviewItem, StatusItem, FollowingInfo, DoulistSectionData, DoulistSectionItem, FriendSectionData, FollowingItem } from './types'
+import { parseRating } from '../../shared/douban-extract'
 
 /**
  * Extract the first text node from an element, before its child elements.
@@ -22,15 +23,6 @@ function getFirstTextNode(el: Element): string {
 function parseStatCount(text: string): number {
   const m = text.match(/(\d+)/)
   return m ? parseInt(m[1], 10) : 0
-}
-
-/**
- * Parse a rating class like "allstar50" → 5.0
- */
-function parseRating(className: string): number {
-  const m = className.match(/allstar(\d+)/)
-  if (!m) return 0
-  return parseInt(m[1], 10) / 10
 }
 
 /**

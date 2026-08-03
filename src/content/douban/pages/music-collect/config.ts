@@ -1,6 +1,7 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
+import { withRetry } from '../../shared/retry'
 import { getMusicCollectSubType } from '../../shared/url-detector'
 
 /** Mount config for the Douban user music collection page overlay */
@@ -12,12 +13,10 @@ export const mountMusicCollect = definePageMount({
     const { extractMusicCollectData } = await import('./music-collect-data')
 
     // Retry extraction up to 8 times with increasing delay
-    let data: import('./types').MusicCollectData | null = null
-    for (let i = 0; i < 8; i++) {
-      data = extractMusicCollectData()
-      if (data && (data.items.length > 0 || data.total === 0)) break
-      await new Promise(r => setTimeout(r, 300 * (i + 1)))
-    }
+    let data: import('./types').MusicCollectData | null = await withRetry(
+      () => extractMusicCollectData(),
+      { attempts: 8, baseDelay: 300, isValid: (d) => d && (d.items.length > 0 || d.total === 0) },
+    )
     if (!data) {
       data = {
         subType: getMusicCollectSubType(location.href),

@@ -1,14 +1,9 @@
 import type { UserReviewsData, UserReviewItem } from './types'
-
-function parseRating(className: string): number {
-  const m = className.match(/allstar(\d+)/)
-  if (!m) return 0
-  return parseInt(m[1], 10) / 10
-}
+import { parseRating } from '../../shared/douban-extract'
 
 export function extractUserReviewsData(): UserReviewsData | null {
   try { return _extractUserReviewsData() }
-  catch (err) { console.warn('[UMM] Error extracting reviews:', err); return null }
+  catch (err: unknown) { console.warn('[UMM] Error extracting reviews:', err); return null }
 }
 
 function _extractUserReviewsData(): UserReviewsData | null {
