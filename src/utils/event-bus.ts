@@ -48,7 +48,7 @@ export function initEventBus(): void {
     const callbacks = subscribers.get(msg.event)
     if (callbacks) {
       for (const cb of callbacks) {
-        try { cb(msg.data) } catch (e) { console.error('[EventBus] Subscriber error:', e) }
+        try { cb(msg.data) } catch (e: unknown) { console.error('[EventBus] Subscriber error:', e) }
       }
     }
   })

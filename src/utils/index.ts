@@ -2,7 +2,7 @@
  * 工具函数模块
  */
 
-import { CONFIG } from '../config';
+import { Status } from '@/domain/record/Status';
 
 export const Utils = {
   /**
@@ -11,7 +11,7 @@ export const Utils = {
   safeParse<T = any>(raw: string, fallback: T): T {
     try {
       return JSON.parse(raw) as T;
-    } catch (_error) {
+    } catch (_error: unknown) {
       return fallback;
     }
   },
@@ -21,10 +21,10 @@ export const Utils = {
    * 处理遗留字符串格式（'done', 'wish'）和 Tampermonkey 旧版数值
    */
   normalizeStatus(status: unknown): number {
-    if (status === 'done' || status === CONFIG.STATUS.DONE || status === 2) {
+    if (status === Status.DONE.legacyString || status === 2) {
       return 2  // 已看
     }
-    if (status === 'wish' || status === CONFIG.STATUS.WISH || status === 1) {
+    if (status === Status.WISHLIST.legacyString || status === 1) {
       return 1  // 想看
     }
     if (status === 3) {
@@ -98,7 +98,7 @@ export const Utils = {
    * 延迟执行
    */
   sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return sleep(ms);
   },
 
   /**
@@ -250,4 +250,18 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, delay: numbe
     }
     timer = setTimeout(() => fn(...args), delay);
   }) as T;
+}
+
+/**
+ * 延迟执行
+ */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 本地时区 YYYY-MM-DD 日期键（用于按天聚合统计）
+ */
+export function dateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }

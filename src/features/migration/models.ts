@@ -206,7 +206,7 @@ export function migrateRecord(
       result = step.migrate(result)
       version = step.to
       appliedSteps.push(step.to)
-    } catch (err) {
+    } catch (err: unknown) {
       throw new MigrationError(
         `Migration from v${step.from} to v${step.to} failed: ${err instanceof Error ? err.message : String(err)}`,
         'MIGRATION_FAILED',

@@ -80,7 +80,7 @@ export class SchedulerMonitor {
 
   /** Get a snapshot of current metrics. */
   getMetrics(): MonitorMetrics {
-    const sorted = [...this.responseTimes].sort((a, b) => a - b)
+    const sorted = this.responseTimes.toSorted((a, b) => a - b)
     const totalCacheOps = this.totalCacheHits + this.totalCacheMisses
 
     return {

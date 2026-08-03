@@ -4,6 +4,8 @@
  * 用于解决 "Extension context invalidated" 错误
  */
 
+import { sleep } from '@/utils'
+
 declare global {
   interface Window {
     __UMM_DEBUG__?: {
@@ -48,7 +50,7 @@ export async function safeSendMessage<T = any>(
       const response = await sendMessageWithTimeout(message, timeout)
       return response as T
       
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error as Error
       
       // 如果是上下文失效错误，不再重试
@@ -63,7 +65,7 @@ export async function safeSendMessage<T = any>(
         const errorMsg = error instanceof Error ? error.message : String(error)
         console.warn(`[UMM] Retry ${attempt}/${retries} after error:`, errorMsg)
         // 指数退避：1s, 2s, 4s...
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)))
+        await sleep(1000 * Math.pow(2, attempt - 1))
       }
     }
   }

@@ -8,6 +8,8 @@
  * - 状态回调
  */
 
+import { sleep } from '@/utils'
+
 export interface RequestQueueOptions {
   maxConcurrent: number
   minDelayMs: number
@@ -70,7 +72,7 @@ export class RequestQueue {
 
       const result = await item.task()
       item.resolve(result)
-    } catch (error) {
+    } catch (error: unknown) {
       item.reject(error)
     } finally {
       this.activeCount--
@@ -89,7 +91,7 @@ export class RequestQueue {
       this.options.minDelayMs +
       Math.random() * (this.options.maxDelayMs - this.options.minDelayMs)
     
-    return new Promise((resolve) => setTimeout(resolve, delay))
+    return sleep(delay)
   }
 
   /**

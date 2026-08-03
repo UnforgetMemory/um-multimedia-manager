@@ -180,7 +180,7 @@ export class DataScheduler {
       })
 
       task.resolve(result)
-    } catch (error) {
+    } catch (error: unknown) {
       this.monitor.recordEvent({
         type: 'task:failed',
         taskId: task.id,

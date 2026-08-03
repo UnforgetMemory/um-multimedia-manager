@@ -24,7 +24,7 @@ export async function calculateStoreHash(
 ): Promise<string> {
   if (entries.length === 0) return 'empty'
 
-  const sorted = [...entries].sort((a, b) => a.key.localeCompare(b.key))
+  const sorted = entries.toSorted((a, b) => a.key.localeCompare(b.key))
 
   const dataToHash = sorted.map(({ key, record }) => ({
     key,

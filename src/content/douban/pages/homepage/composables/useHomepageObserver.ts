@@ -38,6 +38,15 @@ export function usePageObserver(callback: () => void, options: PageObserverOptio
         observer?.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
       }
     })
+
+    // Drop containers that have left the DOM so we don't retain stale
+    // element references for the page's lifetime (SPA navigation can
+    // replace section roots while the overlay stays mounted).
+    for (const stale of observedContainers) {
+      if (!document.contains(stale)) {
+        observedContainers.delete(stale)
+      }
+    }
   }
 
   function start(): void {

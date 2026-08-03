@@ -7,6 +7,7 @@
 
 import type { RetryConfig, RetryCallback } from './types'
 import { DEFAULT_RETRY_CONFIG } from './types'
+import { sleep } from '@/utils'
 
 /**
  * Calculate exponential backoff delay with optional jitter.
@@ -53,13 +54,13 @@ export class RetryPolicy {
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       try {
         return await fn()
-      } catch (err) {
+      } catch (err: unknown) {
         lastError = err
 
         if (attempt < this.config.maxRetries) {
           onRetry?.(attempt + 1, err)
           const delay = this.calculateDelay(attempt)
-          await new Promise((resolve) => setTimeout(resolve, delay))
+          await sleep(delay)
         }
       }
     }

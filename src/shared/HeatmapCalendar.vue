@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardHeader, CardContent } from '@/shared/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/shared/ui/tooltip'
+import { dateKey } from '@/utils'
 
 const { t } = useI18n()
 
@@ -23,7 +24,7 @@ function formatDate(date: Date): string {
   try {
     return date.toLocaleDateString(localeStr.value, { month: 'short', day: 'numeric', year: 'numeric' })
   } catch {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    return dateKey(date)
   }
 }
 
@@ -35,13 +36,13 @@ const calendarData = computed(() => {
   for (const r of props.records) {
     if (!r.updatedAt) continue
     const d = new Date(r.updatedAt)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const key = dateKey(d)
     map[key] = (map[key] || 0) + 1
   }
   for (const item of props.adultAvItems) {
     if (!item.updatedAt) continue
     const d = new Date(item.updatedAt)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const key = dateKey(d)
     map[key] = (map[key] || 0) + 1
   }
   const maxDaily = Math.max(1, ...Object.values(map))
@@ -52,7 +53,7 @@ const calendarData = computed(() => {
   startDate.setDate(startDate.getDate() - startDay)
   for (let i = 0; i < days + startDay; i++) {
     const d = new Date(startDate.getTime() + i * dayMs)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const key = dateKey(d)
     const count = map[key] || 0
     const level = count === 0 ? 0 : Math.min(8, Math.ceil(8 * Math.log2(1 + count) / Math.log2(1 + maxDaily)))
     currentWeek.push({ date: d, count, level })

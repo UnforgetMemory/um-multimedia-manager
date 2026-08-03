@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useStats, type RecordWithType } from '@/composables/useStats'
 import { PLATFORM_HUES } from '@/composables/usePlatformMeta'
+import { dateKey } from '@/utils'
 
 
 import HeatmapCalendar from '@/shared/HeatmapCalendar.vue'
@@ -82,14 +83,14 @@ const weeklyStats = computed(() => {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getTime() - i * dayMs)
     const dateStr = `${d.getMonth() + 1}/${d.getDate()}`
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const key = dateKey(d)
     const isToday = i === 0
 
     const sourceCounts: Record<string, number> = {}
     for (const r of data || []) {
       if (!r.updatedAt) continue
       const rd = new Date(r.updatedAt)
-      const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
+      const rKey = dateKey(rd)
       if (rKey !== key) continue
       const provider: string = r.provider || r.storeName?.replace('_records', '') || 'unknown'
       sourceCounts[provider] = (sourceCounts[provider] || 0) + 1
@@ -98,7 +99,7 @@ const weeklyStats = computed(() => {
     for (const item of appStore.adultAvItems || []) {
       if (!item.updatedAt) continue
       const rd = new Date(item.updatedAt)
-      const rKey = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}-${String(rd.getDate()).padStart(2, '0')}`
+      const rKey = dateKey(rd)
       if (rKey !== key) continue
       sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1
     }
