@@ -107,7 +107,7 @@ export class PTDimmer {
         }
         try {
           await active.process(ctx)
-        } catch (err) {
+        } catch (err: unknown) {
           console.warn('[PT Dimmer] Initial process failed:', err)
         }
 

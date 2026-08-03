@@ -8,13 +8,13 @@
  * the importing files to import directly from the new shared location.
  *
  * Current legacy dependencies:
- * - extractCrossPlatformLinks  from handlers/douban-scanner  → should move to shared/
+ * - extractCrossPlatformLinks  from shared/cross-platform-links (moved out of legacy)
  * - injectNeoDBPushButtons     from neodb-push.ts             → duplicate, needs merge
  * - FloatingToast              from utils/toast               → should move to shared/
  * - t                          from i18n                      → separate i18n system
  */
 
-export { extractCrossPlatformLinks } from '@/entrypoints/content/handlers/douban-scanner'
+export { extractCrossPlatformLinks } from '@/content/douban/shared/cross-platform-links'
 export { injectNeoDBPushButtons } from '@/entrypoints/content/neodb-push'
 export { FloatingToast } from '@/entrypoints/content/utils/toast'
 export { t } from '@/entrypoints/content/i18n'

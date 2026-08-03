@@ -10,8 +10,6 @@ import { intervalWhenVisible } from '@/utils/visibility'
 import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleTMDBHomepage, handleTMDBDetailPage } from './handlers/tmdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'
-import { handleDoubanDetailPage } from './handlers/douban'
-import { startSearchEnhancer } from './enhancers/douban-search'
 import { PTDimmer } from './enhancers/pt'
 import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './handlers/mukaku'
 import { handlePTDetailPage } from './handlers/pt-detail'
@@ -49,20 +47,6 @@ const ROUTES: RouteRule[] = [
     },
   },
 
-  // 豆瓣详情页（电影/音乐/图书/游戏）
-  {
-    match: (url) =>
-      url.includes('movie.douban.com/subject/') ||
-      url.includes('music.douban.com/subject/') ||
-      url.includes('book.douban.com/subject/') ||
-      (url.includes('www.douban.com') && /\/game\/\d+\/?(\?.*)?$/.test(url)),
-    handler: async (identity) => {
-      if (identity) {
-        await handleDoubanDetailPage(identity)
-      }
-    },
-  },
-
   // IMDb detail page
   {
     match: (url) => url.includes('www.imdb.com/title/tt'),
@@ -83,24 +67,6 @@ const ROUTES: RouteRule[] = [
     handler: async (identity) => {
       if (identity) {
         await handleNeoDBDetailPage(identity)
-      }
-    },
-  },
-
-  // 豆瓣搜索页增强器
-  {
-    match: (url) =>
-      url.includes('search.douban.com/movie/subject_search') ||
-      url.includes('search.douban.com/music/subject_search') ||
-      url.includes('search.douban.com/book/subject_search') ||
-      url.includes('movie.douban.com/chart') ||
-      url.includes('movie.douban.com/typerank') ||
-      url.includes('music.douban.com/top250'),
-    handler: async () => {
-      const cleanup = await startSearchEnhancer()
-      // 保存清理函数，用于页面卸载时调用
-      if (cleanup) {
-        window.addEventListener('beforeunload', cleanup, { once: true })
       }
     },
   },
@@ -218,7 +184,7 @@ export async function dispatchRoute(url: string): Promise<void> {
     await route.handler(identity)
     
     infoLog('Router: Route handler executed successfully')
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Router: Route handler failed:', error)
   }
 }
@@ -289,7 +255,7 @@ export function initRouter(): void {
     
     window.addEventListener('beforeunload', cleanup, { once: true })
     infoLog('Router: Router initialized successfully')
-  } catch (error) {
+  } catch (error: unknown) {
     errorLog('Router: Router initialization failed:', error)
   }
 }

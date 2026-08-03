@@ -17,8 +17,8 @@ import { initRouter, hasMatchingRoute } from './content/router'
 import { initI18n, startLocaleSync } from './content/i18n'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
-import { startRatingObserver, cleanupRatingObserver, setNeoDBInjector } from './content/observers/rating'
 import { infoLog, errorLog, configureLogging } from '@/utils/logger'
+import { sleep } from '@/utils'
 import type { LogLevel, StoreRecord } from '@/types'
 import { STORAGE_KEYS } from '@/config'
 import { initEventBus } from '@/utils/event-bus'
@@ -212,7 +212,7 @@ export default defineContentScript({
           const ok = await Store.healthCheck()
           if (ok) break
           attempts++
-          await new Promise(r => setTimeout(r, Math.min(500 * Math.pow(2, attempts), 8000)))
+          await sleep(Math.min(500 * Math.pow(2, attempts), 8000))
         }
 
         injectGlobalStyles()
@@ -225,29 +225,16 @@ export default defineContentScript({
         initRouter()
         observeThemeChanges()
 
-        // NeoDB push buttons (Douban detail pages)
-        // Load the current record dynamically so injector always has fresh data
-        setNeoDBInjector(async () => {
-          if (!currentIdentity) return
-          const storeName = `${currentIdentity.platform}_records`
-          const key = `${currentIdentity.type}::${currentIdentity.providerId}`
-          const rec = await Store.dbGet(storeName, key)
-          currentRecord = rec
-          injectNeoDBPushButtons(currentIdentity, rec)
-        })
-        startRatingObserver()
-
         window.addEventListener('beforeunload', () => {
           if (themeChangeListener) {
             const mq = window.matchMedia('(prefers-color-scheme: dark)')
             if (mq.removeEventListener) mq.removeEventListener('change', themeChangeListener)
             else if (mq.removeListener) mq.removeListener(themeChangeListener)
           }
-          cleanupRatingObserver()
         })
 
         infoLog('✅ Initialization complete')
-      } catch (error) {
+      } catch (error: unknown) {
         errorLog('❌ Initialization failed:', error)
       }
     }

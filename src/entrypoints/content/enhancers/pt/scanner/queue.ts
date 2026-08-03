@@ -8,6 +8,7 @@ import type { PtIdCacheEntry } from '@/types'
 import type { SiteScannerConfig } from '../types'
 import { Semaphore } from './semaphore'
 import { SITE_CONFIGS } from '../config/sites'
+import { sleep } from '@/utils'
 
 const ALLOWED_ORIGINS = new Set<string>(
   SITE_CONFIGS.flatMap(config => [`https://${config.domain}`, `http://${config.domain}`]),
@@ -93,7 +94,7 @@ export class ScanQueue {
   private async randomDelay(): Promise<void> {
     const [min, max] = this.delayRange
     const delay = Math.floor(Math.random() * (max - min + 1)) + min
-    return new Promise((resolve) => setTimeout(resolve, delay))
+    return sleep(delay)
   }
 
   /**
@@ -167,7 +168,7 @@ export class ScanQueue {
       const result: ScanResult = { url, entry, success: true }
       if (onTaskComplete) onTaskComplete(result)
       return result
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error)
       console.warn(`[PT Scanner] Failed: ${errorMsg}`)
       const result: ScanResult = {

@@ -119,7 +119,7 @@ export async function mountDoubanMain(): Promise<void> {
     const pageKey = pageType.type === 'video' ? 'trailer' : pageType.type
     const mountFn = registry.getMountFn(pageKey)
     if (mountFn) await mountFn()
-  } catch (err) {
+  } catch (err: unknown) {
     console.warn('[UMM] mountDoubanMain error:', err)
   }
 }

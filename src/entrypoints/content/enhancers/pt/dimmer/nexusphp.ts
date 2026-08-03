@@ -53,7 +53,13 @@ export class NexusPHPHandler implements ListPageHandler {
     // Collect URLs for scanning
     const scanTasks: ScanTask[] = []
 
+    // Rows that need a cache lookup (no direct ID match yet)
+    const toResolve: { row: Element; url: string }[] = []
+
     for (const row of Array.from(rows)) {
+      // Skip already-resolved rows — they were either dimmed or confirmed no-match
+      if (row.getAttribute('data-umm-resolved') === 'true') continue
+
       if (config.skipRowSelector && row.querySelector(config.skipRowSelector)) {
         notMatched++
         continue
@@ -95,31 +101,40 @@ export class NexusPHPHandler implements ListPageHandler {
         normalizedUrl = detailUrl
       }
 
-      const cached = await Store.ptIdCacheGet(normalizedUrl)
-      if (cached) {
-        const cachedDouban = cached.doubanId?.replace('movie::', '')
-        const cachedImdb = cached.imdbId?.replace('movie::', '')
-        const matched =
-          (cachedDouban && doubanIds.has(cachedDouban)) ||
-          (cachedImdb && imdbIds.has(cachedImdb))
+      toResolve.push({ row, url: normalizedUrl })
+    }
 
-        if (matched) {
-          dimElement(row as HTMLElement)
-          dimmed++
-        } else {
-          notMatched++
+    // Batch cache lookup — one message round-trip for all unresolved rows
+    if (toResolve.length > 0) {
+      const cacheMap = await Store.ptIdCacheGetBulk(toResolve.map((t) => t.url))
+
+      for (const { row, url } of toResolve) {
+        const cached = cacheMap[url]
+        if (cached) {
+          const cachedDouban = cached.doubanId?.replace('movie::', '')
+          const cachedImdb = cached.imdbId?.replace('movie::', '')
+          const matched =
+            (cachedDouban && doubanIds.has(cachedDouban)) ||
+            (cachedImdb && imdbIds.has(cachedImdb))
+
+          if (matched) {
+            dimElement(row as HTMLElement)
+            dimmed++
+          } else {
+            notMatched++
+          }
+          row.setAttribute('data-umm-resolved', 'true')
+          continue
         }
-        row.setAttribute('data-umm-resolved', 'true')
-        continue
-      }
 
-      // Enqueue for background scan
-      scanTasks.push({
-        url: normalizedUrl,
-        config,
-        priority: 1,
-      })
-      needScan++
+        // Enqueue for background scan
+        scanTasks.push({
+          url,
+          config,
+          priority: 1,
+        })
+        needScan++
+      }
     }
 
     debug(`[${config.domain}] Done — rows:`, rows.length, '| dimmed:', dimmed, '| no match:', notMatched, '| need scan:', needScan)
