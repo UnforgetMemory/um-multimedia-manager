@@ -102,14 +102,9 @@ coverage/
 review_diff*.txt
 
 # Generated plan documents
-docs/plans/
-
-# Generated specs
-docs/superpowers/specs/
+docs/
 
 # AI-generated documentation
-docs/_generated/
-docs/superpowers/
 .cortexkit/
 
 # Data export/import temporary directories

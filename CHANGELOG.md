@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.6.0] - 2026-08-02
+
+### Architecture & Maintainability
+
+- **死代码清理（净删 ~3,300 行）**：删除无调用者的 `MediaDatabase.syncPageRecord` / `getRecordVersion`、`RecordService` 死方法（bulkUpdateStatus/deduplicate/merge/getWatchedKeysAcrossStores）、死模块 memoizer/memory-manager/OptimisticLock/TtlCacheStore、不可达 legacy Douban handler 链（content.ts 已 excludeMatches 全部 Douban 域）、无发送方的 SEHUATANG_* 消息类型
+- **跨平台 sync 收敛为单一实现**：`RecordService.syncRecord` 经 `IRecordRepository`（收窄为 findByKey/save）→ `mediaDB.put`（自带缓存失效）
+- **去重合并**：`parseRating` ×6 副本 → `shared/douban-extract.ts`；collect 家族 7 页分页四件套 → `shared/composables/usePaginator.ts`；`errorMessage()` ×5 副本 → `utils/error-message.ts`；16 个页面 config retry 循环 → `shared/retry.ts` withRetry
+- **新增共享模块**：retry.ts / usePaginator.ts / douban-extract.ts / cross-platform-links.ts（extractCrossPlatformLinks 自 legacy 迁移）
+
+### TypeScript
+
+- **Provider 类型派生自 `Platform.KNOWN`**（消除 config/domain 双平台清单漂移）；`STATUS` 字符串派生自 domain `Status.legacyString`；`MediaTypeId` 字面量联合
+- **消息层全链路类型化**：`send<K extends MessageType>` 泛型、handler payload 类型化、`RuntimeMessage.type: MessageType` + payload 非可选 → 26 处 `message.payload!` 归零
+- **77 处 untyped catch → `catch (e: unknown)`**，复用 errorMessage() 收窄
+
+### Performance
+
+- **PT 站 dimmer N+1 消除**（nexusphp.ts）：逐行 `ptIdCacheGet` → 单次 `ptIdCacheGetBulk`，并跳过 `data-umm-resolved` 行避免 MutationObserver 全表重扫
+- **`handlePtIdCacheGetBulk` 单事务批量**：新增 `MediaDatabase.getCacheEntries()`，O(n) 串行事务 → O(1)
+- **useHomepageObserver 容器引用清理**（DOM 已移除节点不再保留）
+
+### Security
+
+- **修复 3 个页面开放重定向防护缺失**（user-media / user-celebrities / doulists 的 onPageChange 缺少 `isSafeDoubanUrl` 同源校验，其余 collect 页均有）
+
+### Modern Syntax
+
+- 22 处内联 `new Promise(r => setTimeout(...))` → `sleep()`；12 处星标字符串循环 → `'★'.repeat()`（Math.max 保护负边界）；3 处拷贝排序 → `toSorted()`；`??=` / `== null` / `dateKey()` 共享工具
 
 ### Bug Fixes
 
@@ -22,7 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - 新增 32 个测试（search-normalizer 本文件 64 个全过）：特殊标记剥离、真实标题碰撞回归、CJK 守卫、空格输入行为、幂等性
-- 全量单元测试 150 个通过，`vue-tsc --noEmit` 零错误，`npm run build` 通过，`npm audit` 0 漏洞
+- 新增 `tests/unit/optimization-shared.spec.ts` 14 个测试：parseRating / isSafeDoubanUrl 守卫 / withRetry 重试时序 / dateKey 格式化
+- 全量单元测试 164 个通过，`vue-tsc --noEmit` 零错误，`npm run build` 通过，`npm audit` 0 漏洞
 
 ## [5.5.0] - 2026-08-01
 
