@@ -93,6 +93,7 @@ export default {
    'platform.imdb': 'IMDb',
    'platform.neodb': 'NeoDB',
    'platform.tmdb': 'TMDB',
+   'platform.bangumi': 'Bangumi',
    'platform.bilibili': 'Bilibili',
   'platform.youtube': 'YouTube',
   'platform.jav': 'Adult Videos',

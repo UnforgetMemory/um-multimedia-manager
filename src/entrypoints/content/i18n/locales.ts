@@ -28,14 +28,24 @@ const locales: Record<Locale, Record<string, string>> = {
     // Status chip labels
     'status.done': '✅ Watched',
     'status.done_music': '✅ Listened',
+    'status.done_book': '✅ Read',
+    'status.done_game': '✅ Played',
     'status.done_local': '📦 Watched (local)',
     'status.done_local_music': '📦 Listened (local)',
+    'status.done_local_book': '📦 Read (local)',
+    'status.done_local_game': '📦 Played (local)',
     'status.none': '⏳ Unwatched',
     'status.none_music': '⏳ Unlistened',
+    'status.none_book': '⏳ Unread',
+    'status.none_game': '⏳ Unplayed',
     'status.wish': '⭐ Wishlist',
     'status.wish_music': '⭐ Want to listen',
+    'status.wish_book': '⭐ Want to read',
+    'status.wish_game': '⭐ Want to play',
     'status.doing': '▶️ Watching',
     'status.doing_music': '▶️ Listening',
+    'status.doing_book': '▶️ Reading',
+    'status.doing_game': '▶️ Playing',
     // Search badge ARIA
     'search.aria_done': 'Marked as watched',
     'search.aria_wish': 'Marked as wishlist',
@@ -94,6 +104,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'imdb.saved': '✅ IMDb watch status saved',
     // TMDB
     'tmdb.saved': '✅ TMDB watch status saved',
+    // Bangumi
+    'bangumi.saved': '✅ Bangumi watch status saved',
     // NeoDB toasts
     'neodb.saved_state': '✅ NeoDB watch status saved',
     'neodb.updated_link': '✅ NeoDB data link updated',
@@ -101,6 +113,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'platform.douban': 'Douban',
     'platform.imdb': 'IMDb',
     'platform.tmdb': 'TMDB',
+    'platform.bangumi': 'Bangumi',
     // Mukaku
     'mukaku.toast_title': 'Mukaku link queue',
     'mukaku.queue_done': 'Queue complete · {{total}} items',
@@ -143,14 +156,24 @@ const locales: Record<Locale, Record<string, string>> = {
     // Status chip labels
     'status.done': '✅ 已看',
     'status.done_music': '✅ 已听',
+    'status.done_book': '✅ 已读',
+    'status.done_game': '✅ 已玩',
     'status.done_local': '📦 已看(本地)',
     'status.done_local_music': '📦 已听(本地)',
+    'status.done_local_book': '📦 已读(本地)',
+    'status.done_local_game': '📦 已玩(本地)',
     'status.none': '⏳ 未看',
     'status.none_music': '⏳ 未听',
+    'status.none_book': '⏳ 未读',
+    'status.none_game': '⏳ 未玩',
     'status.wish': '⭐ 想看',
     'status.wish_music': '⭐ 想听',
+    'status.wish_book': '⭐ 想读',
+    'status.wish_game': '⭐ 想玩',
     'status.doing': '▶️ 在看',
     'status.doing_music': '▶️ 在听',
+    'status.doing_book': '▶️ 在读',
+    'status.doing_game': '▶️ 在玩',
     // Search badge ARIA
     'search.aria_done': '已标记为已看',
     'search.aria_wish': '已标记为想看',
@@ -209,6 +232,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'imdb.saved': '✅ 已保存 IMDb 观看状态',
     // TMDB
     'tmdb.saved': '✅ 已保存 TMDB 观看状态',
+    // Bangumi
+    'bangumi.saved': '✅ 已保存 Bangumi 观看状态',
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 观看状态',
     'neodb.updated_link': '✅ 已更新 NeoDB 数据关联',
@@ -216,6 +241,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'platform.douban': '豆瓣',
     'platform.imdb': 'IMDb',
     'platform.tmdb': 'TMDB',
+    'platform.bangumi': 'Bangumi',
     // Mukaku
     'mukaku.toast_title': 'Mukaku 链路队列中',
     'mukaku.queue_done': '队列处理完成 · 全部 {{total}} 项',
@@ -258,14 +284,24 @@ const locales: Record<Locale, Record<string, string>> = {
     // Status chip labels
     'status.done': '✅ 已看',
     'status.done_music': '✅ 已聽',
+    'status.done_book': '✅ 已讀',
+    'status.done_game': '✅ 已玩',
     'status.done_local': '📦 已看(本地)',
     'status.done_local_music': '📦 已聽(本地)',
+    'status.done_local_book': '📦 已讀(本地)',
+    'status.done_local_game': '📦 已玩(本地)',
     'status.wish': '⭐ 想看',
     'status.wish_music': '⭐ 想聽',
+    'status.wish_book': '⭐ 想讀',
+    'status.wish_game': '⭐ 想玩',
     'status.doing': '▶️ 在看',
     'status.doing_music': '▶️ 在聽',
+    'status.doing_book': '▶️ 在讀',
+    'status.doing_game': '▶️ 在玩',
     'status.none': '⏳ 未看',
     'status.none_music': '⏳ 未聽',
+    'status.none_book': '⏳ 未讀',
+    'status.none_game': '⏳ 未玩',
     // Search badge ARIA
     'search.aria_done': '已標記為已看',
     'search.aria_wish': '已標記為想看',
@@ -325,6 +361,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'imdb.saved': '✅ 已保存 IMDb 觀看狀態',
     // TMDB
     'tmdb.saved': '✅ 已保存 TMDB 觀看狀態',
+    // Bangumi
+    'bangumi.saved': '✅ 已保存 Bangumi 觀看狀態',
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 觀看狀態',
     'neodb.updated_link': '✅ 已更新 NeoDB 數據關聯',
@@ -332,6 +370,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'platform.douban': '豆瓣',
     'platform.imdb': 'IMDb',
     'platform.tmdb': 'TMDB',
+    'platform.bangumi': 'Bangumi',
     // Mukaku
     'mukaku.toast_title': 'Mukaku 鏈路隊列中',
     'mukaku.queue_done': '隊列處理完成 · 全部 {{total}} 項',
@@ -374,14 +413,24 @@ const locales: Record<Locale, Record<string, string>> = {
     // Status chip labels
     'status.done': '✅ 已看',
     'status.done_music': '✅ 已聽',
+    'status.done_book': '✅ 已讀',
+    'status.done_game': '✅ 已玩',
     'status.done_local': '📦 已看(本地)',
     'status.done_local_music': '📦 已聽(本地)',
+    'status.done_local_book': '📦 已讀(本地)',
+    'status.done_local_game': '📦 已玩(本地)',
     'status.wish': '⭐ 想看',
     'status.wish_music': '⭐ 想聽',
+    'status.wish_book': '⭐ 想讀',
+    'status.wish_game': '⭐ 想玩',
     'status.doing': '▶️ 在看',
     'status.doing_music': '▶️ 在聽',
+    'status.doing_book': '▶️ 在讀',
+    'status.doing_game': '▶️ 在玩',
     'status.none': '⏳ 未看',
     'status.none_music': '⏳ 未聽',
+    'status.none_book': '⏳ 未讀',
+    'status.none_game': '⏳ 未玩',
     // Search badge ARIA
     'search.aria_done': '已標記為已看',
     'search.aria_wish': '已標記為想看',
@@ -441,6 +490,8 @@ const locales: Record<Locale, Record<string, string>> = {
     'imdb.saved': '✅ 已保存 IMDb 觀看狀態',
     // TMDB
     'tmdb.saved': '✅ 已保存 TMDB 觀看狀態',
+    // Bangumi
+    'bangumi.saved': '✅ 已保存 Bangumi 觀看狀態',
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 觀看狀態',
     'neodb.updated_link': '✅ 已更新 NeoDB 數據關聯',
@@ -448,6 +499,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'platform.douban': '豆瓣',
     'platform.imdb': 'IMDb',
     'platform.tmdb': 'TMDB',
+    'platform.bangumi': 'Bangumi',
     // Mukaku
     'mukaku.toast_title': 'Mukaku 鏈路隊列中',
     'mukaku.queue_done': '隊列處理完成 · 全部 {{total}} 項',
