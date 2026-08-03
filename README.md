@@ -9,7 +9,7 @@
 <h1 align="center">UMM — 多媒体管理器</h1>
 
 <p align="center">
-  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.6.0-blue?logo=git" alt="Version"></a>
+  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.7.0-blue?logo=git" alt="Version"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen?logo=googlechrome" alt="Chrome"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest_V3-orange?logo=googlechrome" alt="MV3"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-green?logo=apache" alt="License"></a>
@@ -30,7 +30,7 @@
 
 | | |
 |---|---|
-| 🎯 **跨平台标记** | 在豆瓣、IMDb、NeoDB、TMDB 页面一键标记状态和评分 |
+| 🎯 **跨平台标记** | 在豆瓣、IMDb、NeoDB、TMDB、Bangumi 页面一键标记状态和评分 |
 | 🔗 **ID 关联** | 自动建立多平台 ID 映射，一份记录关联所有平台 |
 | 🌙 **PT 自动淡化** | 已看种子在支持的 PT 站点自动置灰 |
 | 📦 **WebDAV 备份** | 自动备份到任意 WebDAV 服务器，支持 ZIP 导出/导入 |
@@ -44,7 +44,7 @@
 
 | 类型 | 站点 |
 |------|------|
-| 影视 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` |
+| 影视 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` `bgm.tv` |
 | 音乐 | `music.douban.com` `neodb.social/album` |
 | 书籍 | `book.douban.com` |
 | 游戏 | `game.douban.com` |

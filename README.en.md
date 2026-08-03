@@ -30,7 +30,7 @@
 
 | | |
 |---|---|
-| 🎯 **Cross-Platform Marking** | One-click status and rating on Douban, IMDb, NeoDB, TMDB pages |
+| 🎯 **Cross-Platform Marking** | One-click status and rating on Douban, IMDb, NeoDB, TMDB, Bangumi pages |
 | 🔗 **ID Linking** | Auto-map IDs across platforms — one record, all platforms |
 | 🌙 **PT Auto-Dimming** | Gray out watched torrents on supported private trackers |
 | 📦 **WebDAV Backup** | Auto-backup to any WebDAV server, plus ZIP export/import |
@@ -44,7 +44,7 @@
 
 | Category | Sites |
 |---|---|
-| Film & TV | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` |
+| Film & TV | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` `bgm.tv` |
 | Music | `music.douban.com` `neodb.social/album` |
 | Books | `book.douban.com` |
 | Games | `game.douban.com` |
