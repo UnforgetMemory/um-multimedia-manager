@@ -175,6 +175,12 @@ export class Identity {
         if (tvId) return Identity.create('tmdb', 'tv', tvId);
         return null;
       }
+
+      // Bangumi — subject pages (URL does not encode media type; default to tv)
+      const bangumi = pathname.match(/^\/subject\/(\d+)/i);
+      if ((host.endsWith('bgm.tv') || host.endsWith('bangumi.tv') || host.endsWith('chii.in')) && bangumi) {
+        return Identity.create('bangumi', 'tv', bangumi[1]);
+      }
     } catch {
       // Invalid URL — return null
     }
@@ -243,6 +249,9 @@ export class Identity {
     if (p === 'tmdb') {
       return Identity.buildTmdbUrl(t, providerId);
     }
+
+    // Bangumi — same URL shape for all media types
+    if (p === 'bangumi') return `https://bgm.tv/subject/${providerId}/`;
 
     return '';
   }

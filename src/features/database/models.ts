@@ -26,7 +26,7 @@ import type { PageQueryOptions, PageResult } from './query-utils'
 import type { WriteResult } from '@/features/optimistic-lock/types'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 11
+export const DB_VERSION = 12
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
@@ -35,6 +35,7 @@ export const STORE_NAMES = {
   TMDB: 'tmdb_records',
   BILIBILI: 'bilibili_records',
   YOUTUBE: 'youtube_records',
+  BANGUMI: 'bangumi_records',
   TTL_CACHE: 'ttl_cache',
   SYNC_LOGS: 'sync_logs',
   PT_ID_CACHE: 'pt_id_cache',
@@ -49,6 +50,7 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.TMDB,
   STORE_NAMES.BILIBILI,
   STORE_NAMES.YOUTUBE,
+  STORE_NAMES.BANGUMI,
 ]
 
 /** Helper: get the store name for a platform */
@@ -144,6 +146,16 @@ export class MediaDatabase {
             ytStore.createIndex('status', 'status', { unique: false })
             ytStore.createIndex('updatedAt', 'updatedAt', { unique: false })
             console.log('[DB] Added youtube_records store')
+          }
+        }
+
+        // v11→v12: add bangumi_records store
+        if (oldVersion < 12) {
+          if (!db.objectStoreNames.contains(STORE_NAMES.BANGUMI)) {
+            const bangumiStore = db.createObjectStore(STORE_NAMES.BANGUMI)
+            bangumiStore.createIndex('status', 'status', { unique: false })
+            bangumiStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+            console.log('[DB] Added bangumi_records store')
           }
         }
 

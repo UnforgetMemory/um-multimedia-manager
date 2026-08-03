@@ -7,6 +7,7 @@ test.describe('Platform value object', () => {
     expect(Platform.fromString('imdb')?.id).toBe('imdb')
     expect(Platform.fromString('neodb')?.id).toBe('neodb')
     expect(Platform.fromString('tmdb')?.id).toBe('tmdb')
+    expect(Platform.fromString('bangumi')?.id).toBe('bangumi')
   })
 
   test('normalizes to lowercase', () => {
@@ -23,6 +24,7 @@ test.describe('Platform value object', () => {
     expect(Platform.fromString('douban')!.isKnown).toBe(true)
     expect(Platform.fromString('bilibili')!.isKnown).toBe(true)
     expect(Platform.fromString('youtube')!.isKnown).toBe(true)
+    expect(Platform.fromString('bangumi')!.isKnown).toBe(true)
   })
 
   test('displayName has correct capitalization', () => {
@@ -32,11 +34,13 @@ test.describe('Platform value object', () => {
     expect(Platform.fromString('neodb')!.displayName).toBe('NeoDB')
     expect(Platform.fromString('bilibili')!.displayName).toBe('Bilibili')
     expect(Platform.fromString('youtube')!.displayName).toBe('Youtube')
+    expect(Platform.fromString('bangumi')!.displayName).toBe('Bangumi')
   })
 
   test('storeName follows pattern', () => {
     expect(Platform.fromString('douban')!.storeName).toBe('douban_records')
     expect(Platform.fromString('imdb')!.storeName).toBe('imdb_records')
+    expect(Platform.fromString('bangumi')!.storeName).toBe('bangumi_records')
   })
 
   test('equality', () => {

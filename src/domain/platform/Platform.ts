@@ -11,7 +11,7 @@
  */
 export class Platform {
   /** Known platform identifiers */
-  static readonly KNOWN = ['douban', 'imdb', 'neodb', 'tmdb', 'bilibili', 'youtube', 'javdb', 'mukaku', 'sehuatang'] as const;
+  static readonly KNOWN = ['douban', 'imdb', 'neodb', 'tmdb', 'bilibili', 'youtube', 'javdb', 'mukaku', 'sehuatang', 'bangumi'] as const;
 
   /** Widened string view of KNOWN for `includes` lookups against arbitrary string ids. */
   private static readonly KNOWN_IDS: readonly string[] = Platform.KNOWN;
@@ -73,6 +73,7 @@ export class Platform {
       neodb: 'NeoDB',
       javdb: 'JavDB',
       bilibili: 'Bilibili',
+      bangumi: 'Bangumi',
     };
     return SPECIAL[this.id] ?? this.id.charAt(0).toUpperCase() + this.id.slice(1);
   }
