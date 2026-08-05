@@ -32,6 +32,8 @@ export interface ScanTask {
   config: SiteScannerConfig
   /** 优先级（数字越小优先级越高） */
   priority?: number
+  /** 跳过缓存优先检查（调用方已批量确认未命中缓存时置 true） */
+  skipCacheCheck?: boolean
 }
 
 /** 扫描结果 */
@@ -113,11 +115,13 @@ export class ScanQueue {
       return result
     }
 
-    const cached = await Store.ptIdCacheGet(url)
-    if (cached) {
-      const result: ScanResult = { url, entry: cached, success: true }
-      if (onTaskComplete) onTaskComplete(result)
-      return result
+    if (!task.skipCacheCheck) {
+      const cached = await Store.ptIdCacheGet(url)
+      if (cached) {
+        const result: ScanResult = { url, entry: cached, success: true }
+        if (onTaskComplete) onTaskComplete(result)
+        return result
+      }
     }
 
     this.processing.add(url)

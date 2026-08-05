@@ -4,6 +4,7 @@
 
 import { Store } from '@/features/database'
 import type { CachedIdSets } from '../types'
+import type { PtIdCacheEntry } from '@/types'
 
 /** 缓存 TTL（毫秒） */
 export const CACHE_TTL = 30_000 // 30 seconds
@@ -83,6 +84,26 @@ export async function getMTeamSets(
 }
 
 /**
+ * In-page bulk ID-cache memo.
+ *
+ * Key is the [sorted set of normalized URLs]; the background handlePtIdCacheGetBulk
+ * scheduler cacheKey is `ptcache-bulk:${ptUrls.join(',')}` (db.ts:250, order-sensitive),
+ * so when rows are rebuilt/reordered the join result changes → the 5s scheduler cache
+ * never hits → full IndexedDB bulk re-read every MutationObserver round (S2). A sorted
+ * key lets the same set (any order) hit the memo, skipping a second background message.
+ * Module-level singleton: the content-script context lives with the page, reset per page.
+ */
+let ptBulkMemo: { key: string; result: Record<string, PtIdCacheEntry> } | null = null
+
+/**
+ * Clear the bulk memo. Called by PTDimmer.onRecordChange when a record:updated /
+ * record:deleted event arrives — the records changed, so the cached result is stale.
+ */
+export function resetPtBulkMemo(): void {
+  ptBulkMemo = null
+}
+
+/**
  * Cache fallback: for rows without direct platform IDs, look up pt_id_cache by detail URL.
  * Uses bulk query to minimize DB calls.
  */
@@ -120,8 +141,16 @@ export async function applyCacheFallback(
     return
   }
 
-  debug('[CacheFallback] Looking up', urlMap.size, 'detail URLs in pt_id_cache...')
-  const cacheMap = await Store.ptIdCacheGetBulk([...urlMap.keys()])
+  const memoKey = [...urlMap.keys()].sort().join('\n')
+  let cacheMap: Record<string, PtIdCacheEntry>
+  if (ptBulkMemo && ptBulkMemo.key === memoKey) {
+    cacheMap = ptBulkMemo.result
+    debug('[CacheFallback] Memo hit — reusing bulk lookup for', urlMap.size, 'URLs')
+  } else {
+    debug('[CacheFallback] Looking up', urlMap.size, 'detail URLs in pt_id_cache...')
+    cacheMap = await Store.ptIdCacheGetBulk([...urlMap.keys()])
+    ptBulkMemo = { key: memoKey, result: cacheMap }
+  }
   const cacheEntries = Object.keys(cacheMap).length
   debug('[CacheFallback] Cache hits:', cacheEntries, '| missed:', urlMap.size - cacheEntries)
 

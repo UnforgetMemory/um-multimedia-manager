@@ -27,13 +27,21 @@ export class MTeamHandler implements ListPageHandler {
   private debug: (...args: any[]) => void = () => {}
   private observer: MutationObserver | null = null
 
-  // Watched IDs cache (avoids repeated DB fetches on pollTimer cycles)
+  /** Watched IDs cache (avoids repeated DB fetches on pollTimer cycles) */
   private movieDoubanIds: Set<string> | null = null
   private musicDoubanIds: Set<string> | null = null
   private imdbIds: Set<string> | null = null
   private setsExpiry = 0
 
   constructor() {}
+
+  /**
+   * 使 30s 的 ID 集合 TTL 缓存立即过期。record:updated/deleted 事件触发时由
+   * PTDimmer.onRecordChange 调用，确保重跑 process() 会重新从 DB 拉取已看集合。
+   */
+  invalidateCache(): void {
+    this.setsExpiry = 0
+  }
 
   private getCachedSets(): { movieDoubanIds: Set<string>; musicDoubanIds: Set<string>; imdbIds: Set<string> } | null {
     if (

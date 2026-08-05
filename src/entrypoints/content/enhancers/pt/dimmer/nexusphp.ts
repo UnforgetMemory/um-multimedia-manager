@@ -8,6 +8,7 @@ import { getListPageConfig } from '../config'
 import { getMovieSets } from './cache'
 import type { HandlerContext, ListPageHandler } from '../types'
 import { dimElement } from '../utils'
+import { buildRowByUrl } from './nexusphp-rowmap'
 
 export class NexusPHPHandler implements ListPageHandler {
   readonly id = 'nexusphp'
@@ -127,11 +128,12 @@ export class NexusPHPHandler implements ListPageHandler {
           continue
         }
 
-        // Enqueue for background scan
+        // Enqueue for background scan — URLs already bulk-checked as cache misses above
         scanTasks.push({
           url,
           config,
           priority: 1,
+          skipCacheCheck: true,
         })
         needScan++
       }
@@ -141,6 +143,9 @@ export class NexusPHPHandler implements ListPageHandler {
 
     if (scanTasks.length > 0) {
       debug(`[${config.domain}] Starting background scan for`, scanTasks.length, 'urls')
+
+      // O(1) URL → row 索引：扫描回调按 result.url 直接命中，避免每次回调重查全表
+      const rowByUrl = buildRowByUrl(rows, config)
 
       const scanner = getScanner(config.scanConcurrency, config.scanDelayRange)
 
@@ -155,27 +160,10 @@ export class NexusPHPHandler implements ListPageHandler {
           (cachedImdb && iIds.has(cachedImdb))
         if (!matched) return
 
-        const rows = document.querySelectorAll(config.rowSelector)
-        for (const row of Array.from(rows)) {
-          if ((row as HTMLElement).classList.contains('umm-dimmed')) continue
-          if (row.getAttribute('data-umm-resolved') === 'true') continue
-
-          const detailUrl = config.extractDetailUrl(row)
-          if (!detailUrl) continue
-
-          let normalizedUrl: string
-          try {
-            const u = new URL(detailUrl, location.origin)
-            normalizedUrl = `${u.origin}${u.pathname}${u.search}`
-          } catch {
-            normalizedUrl = detailUrl
-          }
-
-          if (normalizedUrl === result.url) {
-            dimElement(row as HTMLElement)
-            row.setAttribute('data-umm-resolved', 'true')
-            break
-          }
+        const row = rowByUrl.get(result.url)
+        if (row && !row.classList.contains('umm-dimmed') && row.getAttribute('data-umm-resolved') !== 'true') {
+          dimElement(row)
+          row.setAttribute('data-umm-resolved', 'true')
         }
       }).then(async (results) => {
         const successCount = results.filter((r) => r.success).length
