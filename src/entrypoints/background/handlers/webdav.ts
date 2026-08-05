@@ -13,6 +13,7 @@ import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 import { calculateStoreHash } from '@/utils/hash-utils'
 import { errorLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
+import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 import { STORAGE_KEYS } from '@/config'
 import { errorMessage, type SendResponse } from '@/utils/error-message'
 
@@ -37,6 +38,24 @@ async function getWebDAVSettings() {
  * stay under 'video::' keys that movie::-reading code never finds. Duplicate
  * canonical keys within one batch: last write wins (batchPut puts sequentially).
  */
+
+/**
+ * Invalidate the scheduler L1 cache and broadcast record:updated for every
+ * store written by a bulk WebDAV download/merge path, so merged/downloaded
+ * records are visible immediately instead of after the 5-10s cache TTL.
+ */
+function flushStoreCacheInvalidations(
+  writtenStores: Set<string>,
+  writtenKeys: Map<string, string[]>
+): void {
+  const cm = getCacheManager()
+  if (cm) {
+    for (const s of writtenStores) invalidateSchedulerStore(cm, s, writtenKeys.get(s))
+  }
+  for (const s of writtenStores) {
+    broadcast('record:updated', { storeName: s, key: '*', bulk: true })
+  }
+}
 
 /** Build local meta for all record stores */
 async function buildLocalMeta(): Promise<RemoteMeta> {
@@ -189,6 +208,8 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
     }
 
     let totalDownloaded = 0
+    const writtenStores = new Set<string>()
+    const writtenKeys = new Map<string, string[]>()
     for (const ds of remoteMeta.datasets) {
       if (ds.recordCount === 0) continue
       // Security: only accept datasets whose store name is a known backup store
@@ -215,7 +236,11 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
             errorLog(`WebDAV download skipped record '${key}' in '${ds.key}': ${errorMessage(err)}`)
           }
         }
-        if (batch.length > 0) await mediaDB.batchPut(ds.key as RecordStoreName, batch)
+        if (batch.length > 0) {
+          await mediaDB.batchPut(ds.key as RecordStoreName, batch)
+          writtenStores.add(ds.key)
+          writtenKeys.set(ds.key, [...(writtenKeys.get(ds.key) ?? []), ...batch.map(b => b.key)])
+        }
         totalDownloaded += Object.keys(data).length
       } catch (dsErr: unknown) {
         errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
@@ -223,6 +248,7 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
       }
     }
 
+    flushStoreCacheInvalidations(writtenStores, writtenKeys)
     broadcast('sync:completed', { direction: 'download', totalDownloaded })
     sendResponse({
       success: true,
@@ -258,6 +284,8 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
     let downloaded = 0
     let skipped = 0
     const resultingMetas: DatasetMeta[] = []
+    const writtenStores = new Set<string>()
+    const writtenKeys = new Map<string, string[]>()
 
     for (const key of allKeys) {
       const local = localMap.get(key)
@@ -319,7 +347,11 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
               errorLog(`WebDAV sync skipped record '${recordKey}' in '${key}': ${errorMessage(err)}`)
             }
           }
-          if (batch.length > 0) await mediaDB.batchPut(key as RecordStoreName, batch)
+          if (batch.length > 0) {
+            await mediaDB.batchPut(key as RecordStoreName, batch)
+            writtenStores.add(key)
+            writtenKeys.set(key, [...(writtenKeys.get(key) ?? []), ...batch.map(b => b.key)])
+          }
           resultingMetas.push(remote)
           downloaded += Object.keys(data).length
           continue
@@ -354,7 +386,11 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
             errorLog(`WebDAV sync skipped record '${recordKey}' in '${key}': ${errorMessage(err)}`)
             }
           }
-          if (batch.length > 0) await mediaDB.batchPut(key as RecordStoreName, batch)
+          if (batch.length > 0) {
+            await mediaDB.batchPut(key as RecordStoreName, batch)
+            writtenStores.add(key)
+            writtenKeys.set(key, [...(writtenKeys.get(key) ?? []), ...batch.map(b => b.key)])
+          }
           resultingMetas.push(remote)
           downloaded += Object.keys(data).length
         }
@@ -387,6 +423,7 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
     if (skipped > 0) parts.push(`${skipped} 个数据集无变化`)
     const msg = parts.length > 0 ? parts.join('，') : '所有数据集均无变化'
 
+    flushStoreCacheInvalidations(writtenStores, writtenKeys)
     broadcast('sync:completed', { direction: 'merge', uploaded, downloaded, skipped })
     sendResponse({
       success: true,

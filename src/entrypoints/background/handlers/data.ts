@@ -18,6 +18,7 @@ import { settingsCache } from '@/features/settings/cache'
 import { infoLog, warnLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
 import type { SendResponse } from '@/utils/error-message'
+import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 
 /** Settings fields to include in export (all AppSettings keys except sensitive credentials) */
 export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
@@ -126,6 +127,10 @@ export async function handleImportData(
   // Import each store — batchPut() auto-stamps schemaVersion + recordVersion
   // (one readwrite transaction per store instead of one per record)
   let totalImported = 0
+  // Track written stores+keys so the scheduler L1 cache can be invalidated and
+  // consumers re-read immediately instead of serving stale cache in the TTL window
+  const writtenStores = new Set<string>()
+  const writtenKeys = new Map<string, string[]>()
   for (const [storeName, records] of Object.entries(payload.stores)) {
     if (!RECORD_STORES.includes(storeName) && storeName !== STORE_NAMES.JAV_IDS) continue
     const batch: Array<{ key: string; record: StoreRecord }> = []
@@ -152,7 +157,12 @@ export async function handleImportData(
       batch.push({ key: normalizedKey, record: migrated })
       totalImported++
     }
-    if (batch.length > 0) await mediaDB.batchPut(storeName, batch)
+    if (batch.length > 0) {
+      await mediaDB.batchPut(storeName, batch)
+      writtenStores.add(storeName)
+      const keys = writtenKeys.get(storeName) ?? (writtenKeys.set(storeName, []).get(storeName)!)
+      keys.push(...batch.map((b) => b.key))
+    }
   }
 
   // Import settings if present (whitelist allowed keys only — excludes credentials)
@@ -167,6 +177,12 @@ export async function handleImportData(
       await chrome.storage.local.set(filtered)
     }
   }
+
+  // Invalidate scheduler L1 cache for every written store, then broadcast so
+  // consumers (popup, douban overlays, PT dimmer) pick up the data immediately
+  const cm = getCacheManager()
+  if (cm) for (const s of writtenStores) invalidateSchedulerStore(cm, s, writtenKeys.get(s))
+  for (const s of writtenStores) broadcast('record:updated', { storeName: s, key: '*', bulk: true })
 
   infoLog(`📥 Imported ${totalImported} records across ${Object.keys(payload.stores).length} stores`)
   broadcast('sync:completed', { storeCount: Object.keys(payload.stores).length, totalImported })

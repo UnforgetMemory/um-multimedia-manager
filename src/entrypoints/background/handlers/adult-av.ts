@@ -5,11 +5,12 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { AdultAvId, StoreRecordSnapshot, MessagePayloadMap } from '@/types'
-import { mediaDB } from '@/features/database/models'
+import type { AdultAvId, StoreRecord, StoreRecordSnapshot, MessagePayloadMap } from '@/types'
+import { mediaDB, type MediaDatabase } from '@/features/database/models'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { broadcast } from '@/utils/event-bus'
 import type { SendResponse } from '@/utils/error-message'
+import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 
 const KNOWN_SOURCES = ['javdb', 'sehuatang']
 
@@ -110,33 +111,49 @@ export async function handleAdultAvAdd(
     linkedIds: {},
   })
   broadcast('record:updated', { storeName: JAV_IDS_STORE_NAME, key })
+
+  // Invalidate scheduler L1 cache so DB_GET_ALL('jav_ids') / adult list see fresh data.
+  const cm = getCacheManager()
+  if (cm) invalidateSchedulerStore(cm, JAV_IDS_STORE_NAME, [key])
+
   sendResponse({ success: true })
 }
 
 /** ADULT_AV_BATCH_ADD — add multiple AV IDs */
 export async function handleAdultAvBatchAdd(
   payload: MessagePayloadMap['ADULT_AV_BATCH_ADD'],
-  sendResponse: SendResponse
+  sendResponse: SendResponse,
+  db: Pick<MediaDatabase, 'batchGet' | 'batchPut'> = mediaDB
 ) {
   const { source, items } = payload
   if (!source || !Array.isArray(items) || items.length === 0) {
     sendResponse({ success: false, error: 'Invalid payload' }); return
   }
 
-  let addedCount = 0
-  for (const item of items) {
-    if (!item.id) continue
-    const key = `${source}::${normalizeAvId(item.id)}`
-    const existing = await mediaDB.get(JAV_IDS_STORE_NAME, key)
-    await mediaDB.put(JAV_IDS_STORE_NAME, key, {
-      url: item.url || existing?.url || '',
-      status: 2,
-      rating: item.rating ?? existing?.rating ?? 0,
-      updatedAt: item.updatedAt || new Date().toISOString(),
-      linkedIds: existing?.linkedIds || {},
-    })
-    addedCount++
-  }
+  const valid = items.filter((i) => i.id)
+  const keys = valid.map((i) => `${source}::${normalizeAvId(i.id)}`)
+  const existing = await db.batchGet(JAV_IDS_STORE_NAME, keys)
+  const batch: Array<{ key: string; record: StoreRecord }> = valid.map((item, idx) => {
+    const key = keys[idx]
+    const prev = existing.get(key)
+    return {
+      key,
+      record: {
+        url: item.url || prev?.url || '',
+        status: 2,
+        rating: item.rating ?? prev?.rating ?? 0,
+        updatedAt: item.updatedAt || new Date().toISOString(),
+        linkedIds: prev?.linkedIds || {},
+      },
+    }
+  })
+  if (batch.length > 0) await db.batchPut(JAV_IDS_STORE_NAME, batch)
+  const addedCount = batch.length
+
+  // Invalidate scheduler L1 cache and notify UI consumers (adult list, DB_GET_ALL).
+  const cm = getCacheManager()
+  if (cm) invalidateSchedulerStore(cm, JAV_IDS_STORE_NAME, keys)
+  broadcast('record:updated', { storeName: JAV_IDS_STORE_NAME, key: '*', bulk: true })
   broadcast('sync:completed', { addedCount, source })
   sendResponse({ success: true, addedCount })
 }
