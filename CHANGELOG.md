@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.10.0] - 2026-08-05
+
+### 新增功能
+
+- **PT 站点淡化实时化**：M-Team / NexusPHP 列表页订阅 record:updated/deleted 事件（300ms 防抖），标记记录后 ~1s 内淡化/恢复淡化，不再依赖 DOM 突变或等待 30s 缓存过期；事件后清除 resolved 标记重新评估
+- **mukaku 站点淡化实时化 + 路由切换修复**：订阅事件总线（仅 douban/imdb 记录变化触发）；SPA 路由切换时 resetForPage 断开 observer、清空缓存，杜绝前页 data-umm-mukaku-processed / umm-dimmed 残留的"视觉停滞"；isProcessing 丢弃语义改为合并串行 runner；修复 MutationObserver 每次导航泄漏
+- **豆瓣首页/音乐/读书/豆列详情徽章实时刷新**：useRecordCache 订阅 record:updated，其他标签页标记后徽章即时更新
+
+### 修复与优化
+
+- **数据链路实时性**：IMPORT_DATA / WebDAV 下载同步 / adult-av 批量写入 / 跨平台 linked 写入后立即失效 scheduler L1 缓存并广播（key:'*' bulk 语义），消除 5-10s TTL 窗口内的陈旧读取（含缓存 null 误判）
+- **状态门控修正**：getWatchedIds 仅返回 status=2（已看），doing(3)/wishlist(1) 不再触发淡化（isWatchedStatus 谓词，符合 #2110）
+- **getWatchedIds 性能**：全表游标扫描改为 status 索引双游标（numeric 2 + legacy 'done'），O(N)→O(watched)；characterization 测试锁定新旧输出等价
+- **mukaku 批量性能**：每卡串行 DB 探测改为单次 dbGetBulk 预填；watched ID 双消息改为单消息双 store；批量已看集 Set 化（includes→has）；每卡 ttl_cache 读改写改为周期末 2 次落库（每周期消息数 N×3 → 6）
+- **mukaku 探测并发修复**：卡片循环不再逐卡 await 网络探测（曾使 RequestQueue maxConcurrent=10 形同虚设、实际并发仅 1），改为两阶段——先并行发起全部 needs-probe 请求、再统一处理结果；探测失败静默跳过不标记未看（防瞬时错误抑制淡化）；新增 RequestQueue 并发契约测试
+- **PT 淡化性能**：ptcache-bulk 缓存 key 抖动修复（排序 URL 页面级 memo）；scanner 去除 bulk miss 后的冗余单查
+- **整表扫描消除**：tmdb / bangumi / bilibili·youtube 推荐位 / 豆瓣首页等改为可见 ID 定向 dbGetBulk（保留空集回退）
+- **adult-av 批量写入**：N+1（每项 get+put）改为单 batchGet + 单 batchPut
+
+### 测试
+
+- 新增 8 个测试文件 +87 用例：cache-invalidation / watched-status / pt-dimmer-refresh / mukaku-refresh / mukaku-processing / mukaku-resolve / mukaku-cache / pt-dimmer-cache-memo / nexusphp-rowmap / adult-av-batch / get-watched-ids-characterization（含 5000 记录规模等价性验证）；全量 515 单元测试通过
+
 ## [5.9.0] - 2026-08-05
 
 ### 新增功能
