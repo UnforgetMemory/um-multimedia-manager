@@ -105,3 +105,107 @@ export async function getIdSet(type: string, provider: string, cache?: { movieDo
   }
   return ids
 }
+
+// ─── Batch APIs (S2/S3: collapse the per-card message storm) ────────────
+
+/**
+ * Minimal Store API shape used by the batch cache functions.
+ * Injectable for tests (same pattern as record-cache-core's StoreApi).
+ * ttl_cache values are arbitrary JSON, so `record` is typed unknown here.
+ */
+export interface MukakuStoreApi {
+  dbGetBulk: (storeName: string, keys: string[]) => Promise<Array<{ key: string; record: unknown }>>
+  dbGetWatchedIds: (storeNames: string[]) => Promise<Record<string, string[]>>
+  dbPut: (storeName: string, key: string, value: unknown) => Promise<void>
+}
+
+const DEFAULT_STORE: MukakuStoreApi = {
+  dbGetBulk: (storeName, keys) => Store.dbGetBulk(storeName, keys),
+  dbGetWatchedIds: (storeNames) => Store.dbGetWatchedIds(storeNames),
+  dbPut: (storeName, key, value) =>
+    (Store.dbPut as (s: string, k: string, v: unknown) => Promise<void>)(storeName, key, value),
+}
+
+/** In-memory cache slot for watched ID sets (ts = fill time, 30s TTL). */
+export interface WatchedIdCache {
+  ts: number
+  movieDoubanIds: Set<string>
+  imdbIds: Set<string>
+}
+
+/** Pure: build the ttl_cache key for a probe result. */
+export function probeCacheKey(mvId: string): string {
+  return `${MUKAKU_CONFIG.PROBE_CACHE_KEY}:${mvId}`
+}
+
+/**
+ * Pure: TTL filter for probe cache entries (mirrors probeCacheGet's check).
+ * Returns the entry when fresh, else null.
+ */
+export function filterFreshProbe(raw: unknown, now = Date.now()): ProbeCacheEntry | null {
+  const entry = raw as ProbeCacheEntry
+  if (!entry || typeof entry !== 'object' || typeof entry.ts !== 'number') return null
+  if (now - entry.ts > MUKAKU_CONFIG.PROBE_CACHE_TTL_MS) return null
+  return entry
+}
+
+/**
+ * Batch probe read: ONE dbGetBulk instead of N probeCacheGet messages.
+ * Expired/malformed entries are dropped; the Map is keyed by bare mvId.
+ */
+export async function probeCacheGetBulk(
+  mvIds: string[],
+  storeApi: MukakuStoreApi = DEFAULT_STORE,
+): Promise<Map<string, ProbeCacheEntry>> {
+  if (mvIds.length === 0) return new Map()
+  const entries = await storeApi.dbGetBulk('ttl_cache', mvIds.map(probeCacheKey))
+  const now = Date.now()
+  const map = new Map<string, ProbeCacheEntry>()
+  for (const { key, record } of entries) {
+    const fresh = filterFreshProbe(record, now)
+    if (fresh) map.set(key.slice(MUKAKU_CONFIG.PROBE_CACHE_KEY.length + 1), fresh)
+  }
+  return map
+}
+
+/**
+ * Batch watched-ID read: ONE dbGetWatchedIds over douban_records + imdb_records
+ * instead of two getIdSet calls. Honors a 30s in-memory cache when provided.
+ * Keys are `{type}::{id}`; movie entries (movie:: prefix) are parsed per the
+ * PT dimmer getCachedIdSets pattern. Returns bare ids.
+ */
+export async function getWatchedIdSets(
+  cache?: WatchedIdCache | null,
+  storeApi: MukakuStoreApi = DEFAULT_STORE,
+): Promise<{ movieDoubanIds: Set<string>; imdbIds: Set<string> }> {
+  if (cache && Date.now() - cache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL) {
+    return { movieDoubanIds: cache.movieDoubanIds, imdbIds: cache.imdbIds }
+  }
+
+  const results = await storeApi.dbGetWatchedIds(['douban_records', 'imdb_records'])
+  const movieDoubanIds = new Set<string>()
+  const imdbIds = new Set<string>()
+  for (const key of results.douban_records || []) {
+    if (key.startsWith('movie::')) movieDoubanIds.add(key.slice('movie::'.length))
+  }
+  for (const key of results.imdb_records || []) {
+    if (key.startsWith('movie::')) imdbIds.add(key.slice('movie::'.length))
+  }
+  return { movieDoubanIds, imdbIds }
+}
+
+/**
+ * Batch flush of both sets in EXACTLY 2 writes, preserving the stored shapes:
+ * watched → string[] (setAddItem's shape), unwatched → Record<string, number>
+ * (expMapAdd's shape). Collapses the per-card setAddItem/setDeleteItem/
+ * expMapAdd read-modify-write storm.
+ */
+export async function writeBatchedSets(
+  watched: Set<string> | string[],
+  unwatched: Record<string, number>,
+  storeApi: MukakuStoreApi = DEFAULT_STORE,
+): Promise<void> {
+  const watchedArr = watched instanceof Set ? [...watched] : watched
+  await storeApi.dbPut('ttl_cache', MUKAKU_CONFIG.WATCHED_SET_KEY, watchedArr)
+  await storeApi.dbPut('ttl_cache', MUKAKU_CONFIG.UNWATCHED_TTL_KEY, unwatched)
+}
