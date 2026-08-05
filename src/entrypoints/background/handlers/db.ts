@@ -13,6 +13,7 @@ import { warnLog } from '@/utils/logger'
 import { RecordService } from '@/domain/record/RecordService'
 import { StoreRecord } from '@/domain/record/StoreRecord'
 import type { MessagePayloadMap } from '@/types'
+import { invalidateSchedulerStore } from './cache-invalidation'
 
 /** Allowed store names for generic DB message handlers */
 const ALLOWED_DB_STORES = new Set<string>([
@@ -39,13 +40,10 @@ function isAllowedStore(storeName: string): boolean {
  * makes invalidation uneconomical).
  */
 function invalidateStoreCaches(ctx: DbHandlerContext, storeName: string, key: string): void {
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `get:${storeName}:${key}`)
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `all:${storeName}`)
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `count:${storeName}`)
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `watched:${storeName}`)
-  // bulk: keys embed the requested key-set — a single write can stale any
-  // combination, so clear by store prefix (matches `bulk:{store}:{keys}`).
-  ctx.scheduler.cacheManager?.invalidateByPattern('scheduler', `bulk:${storeName}:`)
+  // Delegates to the shared helper so context-less bulk-write handlers
+  // (IMPORT_DATA, WebDAV, adult-av) invalidate identically. cacheManager is
+  // always created in background.ts main() and passed to DataScheduler.
+  invalidateSchedulerStore(ctx.scheduler.cacheManager!, storeName, [key])
 }
 
 export interface DbHandlerContext {
@@ -201,6 +199,19 @@ export async function handleDbSyncPageRecord(
   )
   invalidateStoreCaches(ctx, syncStoreName, syncKey)
   broadcast('record:updated', { storeName: syncStoreName, key: syncKey })
+  // Linked platforms are written via RecordService.repo.save (direct mediaDB.put
+  // bypassing the scheduler cache), so each linked store needs its own
+  // invalidation + broadcast or consumers (e.g. PT dimmer's watched: reads)
+  // see stale entries for the side-effect record. Guard matches the linked
+  // validation loop above — same isAllowedStore semantics.
+  if (payload.linked && Array.isArray(payload.linked)) {
+    for (const link of payload.linked) {
+      const linkedStoreName = `${link.platform}_records`
+      if (!isAllowedStore(linkedStoreName)) continue
+      invalidateStoreCaches(ctx, linkedStoreName, link.key)
+      broadcast('record:updated', { storeName: linkedStoreName, key: link.key })
+    }
+  }
   return { success: true, result: syncResult }
 }
 

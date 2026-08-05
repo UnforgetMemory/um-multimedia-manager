@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { CacheManager } from '@/features/cache/cache-manager'
 import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
-import { handleDbGetBulk, handleDbPut, type DbHandlerContext } from '@/entrypoints/background/handlers/db'
+import { handleDbGetBulk, handleDbPut, handleDbSyncPageRecord, type DbHandlerContext } from '@/entrypoints/background/handlers/db'
 import type { MediaDatabase } from '@/features/database/models'
+import { RecordService } from '@/domain/record/RecordService'
+import type { IRecordRepository } from '@/domain/record/IRecordRepository'
 import type { StoreRecord } from '@/types'
 
 /**
@@ -90,6 +92,83 @@ test.describe('bulk: cache invalidation on write (T8 regression)', () => {
 })
 
 // ==================== Guard: existing invalidation behavior intact ====================
+
+// ==================== Regression: linked-store invalidation on sync ====================
+
+/** EVENT_BUS message captured from broadcast() via a stubbed chrome.runtime. */
+interface RecordedMessage {
+  type: string
+  event?: string
+  data?: unknown
+}
+
+test.describe('linked-store invalidation + broadcast on DB_SYNC_PAGE_RECORD', () => {
+  const sent: RecordedMessage[] = []
+
+  test.beforeEach(() => {
+    sent.length = 0
+    const stub: { runtime: { sendMessage: (msg: RecordedMessage) => void } } = {
+      runtime: { sendMessage: (msg) => { sent.push(msg) } },
+    }
+    Reflect.set(globalThis, 'chrome', stub)
+  })
+
+  test.afterEach(() => {
+    Reflect.deleteProperty(globalThis, 'chrome')
+  })
+
+  test('sync invalidates linked imdb store cache keys and broadcasts record:updated', async () => {
+    const ctx = createContext()
+    const cm = ctx.scheduler.cacheManager!
+    const savedStores: string[] = []
+    const repo: IRecordRepository = {
+      findByKey: async () => null,
+      save: async (storeName: string) => { savedStores.push(storeName) },
+    }
+    ctx.recordService = new RecordService(repo)
+
+    // Seed the linked store the way the PT dimmer's watched:/bulk: reads would
+    await cm.set('scheduler', 'get:imdb_records:tt0111161', { status: 2 })
+    await cm.set('scheduler', 'all:imdb_records', [{ key: 'tt0111161' }])
+    await cm.set('scheduler', 'count:imdb_records', 1)
+    await cm.set('scheduler', 'watched:imdb_records', ['tt0111161'])
+    await cm.set('scheduler', 'bulk:imdb_records:tt0111161', [{ key: 'tt0111161' }])
+    // ... and the primary store
+    await cm.set('scheduler', 'watched:douban_records', ['movie::1'])
+
+    const result = await handleDbSyncPageRecord({
+      platform: 'douban',
+      key: 'movie::1',
+      record: { status: 2, rating: 8 } as StoreRecord,
+      linked: [{ platform: 'imdb', key: 'tt0111161', url: 'https://www.imdb.com/title/tt0111161/' }],
+    }, ctx)
+
+    expect(result.success).toBe(true)
+    // RecordService side-effect wrote the linked platform record
+    expect(savedStores).toEqual(['douban', 'imdb'])
+
+    // Linked store cache entries must be gone — a stale watched: read would
+    // keep the PT dimmer from dimming the just-created imdb record
+    for (const key of [
+      'get:imdb_records:tt0111161',
+      'all:imdb_records',
+      'count:imdb_records',
+      'watched:imdb_records',
+      'bulk:imdb_records:tt0111161',
+    ]) {
+      expect(cm.has('scheduler', key), `${key} must be invalidated for the linked store`).toBe(false)
+    }
+    // Primary store still invalidated
+    expect(cm.has('scheduler', 'watched:douban_records')).toBe(false)
+
+    // Broadcasts: primary first, then linked store
+    const updates = sent.filter((m) => m.event === 'record:updated')
+    expect(updates).toEqual([
+      { type: 'EVENT_BUS', event: 'record:updated', data: { storeName: 'douban_records', key: 'movie::1' } },
+      { type: 'EVENT_BUS', event: 'record:updated', data: { storeName: 'imdb_records', key: 'tt0111161' } },
+    ])
+  })
+})
 
 test.describe('existing per-store invalidation still applies on write', () => {
   test('get:/all:/count:/watched: keys are cleared by DB_PUT', async () => {

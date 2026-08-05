@@ -31,6 +31,7 @@ import {
   handlePtIdCacheGet, handlePtIdCachePut, handlePtIdCacheGetBulk,
   type DbHandlerContext,
 } from './background/handlers/db'
+import { registerCacheManager } from './background/handlers/cache-invalidation'
 import { handleDownloadFile } from './background/handlers/download'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
@@ -50,6 +51,8 @@ export default defineBackground({
 
     // CacheManager — L1 in-memory LRU (shared across DataScheduler + MediaDatabase)
     const cacheManager = new CacheManager({ maxSize: 500, defaultTtlMs: 30_000 })
+    // Expose to context-less bulk-write handlers (IMPORT_DATA, WebDAV, adult-av)
+    registerCacheManager(cacheManager)
 
     // DataScheduler — request queue, rate limiter, retry, monitoring
     const dataScheduler = new DataScheduler(cacheManager)
