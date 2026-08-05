@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { statusBadgeLabels } from '../../shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { GameCollectData } from './types'
 import UmmPaginator from '@/content/douban/components/UmmPaginator.vue'
@@ -20,10 +21,11 @@ function parseRating(rating: string): number {
 }
 
 const titleLabel = computed(() => {
+  const labels = statusBadgeLabels.game
   switch (props.data.subType) {
-    case 'wish': return '想玩'
-    case 'do': return '在玩'
-    default: return '玩过'
+    case 'wish': return labels.wish
+    case 'do': return labels.doing
+    default: return labels.done
   }
 })
 </script>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // Series overlay: header info, sort options, book list with record badges, paginator
+import { statusBadgeLabels } from '@/content/douban/shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { SeriesPageData, SeriesItem } from './types'
 
@@ -36,10 +37,11 @@ function formatCount(n: number): string {
 
 // Status label helper
 function statusLabel(status: number): string {
+  const labels = statusBadgeLabels.book
   switch (status) {
-    case 2: return '已读'
-    case 1: return '想读'
-    case 3: return '在读'
+    case 2: return labels.done
+    case 1: return labels.wish
+    case 3: return labels.doing
     default: return ''
   }
 }

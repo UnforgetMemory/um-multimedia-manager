@@ -8,32 +8,58 @@ import { t } from '../i18n'
 import { escapeHtml } from '@/utils/escape-html'
 export { escapeHtml }
 
+export interface WaitForElementOptions {
+  /** 内容就绪检查：元素已出现但内容未就绪时继续等待 */
+  contentCheck?: (el: Element) => boolean
+  /** 观察器创建回调（供调用方在清理时 disconnect，避免等待中的观察器泄漏） */
+  onObserverCreated?: (observer: MutationObserver) => void
+}
+
 /**
  * 等待元素出现（Promise 版本）
+ * 唯一权威实现：mukaku / PT dimmer 等模块均从此处导入。
  */
-export function waitForElement(selector: string, timeout = 5000): Promise<Element> {
+export function waitForElement(
+  selector: string,
+  timeout = 5000,
+  options: WaitForElementOptions = {},
+): Promise<Element> {
   return new Promise((resolve, reject) => {
-    const element = document.querySelector(selector)
-    if (element) {
-      resolve(element)
+    const match = (): Element | null => {
+      const element = document.querySelector(selector)
+      if (!element) return null
+      if (options.contentCheck && !options.contentCheck(element)) return null
+      return element
+    }
+
+    const found = match()
+    if (found) {
+      resolve(found)
       return
     }
-    
+
     const observer = new MutationObserver(() => {
-      const element = document.querySelector(selector)
+      const element = match()
       if (element) {
         observer.disconnect()
         resolve(element)
       }
     })
-    
+
+    options.onObserverCreated?.(observer)
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     })
-    
+
     setTimeout(() => {
       observer.disconnect()
+      // 超时前一刻才出现 — 仍视为成功，避免误报超时
+      const element = match()
+      if (element) {
+        resolve(element)
+        return
+      }
       reject(new Error(`Timeout waiting for ${selector}`))
     }, timeout)
   })

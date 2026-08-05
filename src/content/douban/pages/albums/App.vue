@@ -6,36 +6,12 @@ import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
 import { UmmRating } from '@/content/douban/components/UmmRating'
-import { ASPECT_RATIO } from '@/content/douban/shared/constants'
+import { ASPECT_RATIO, MEDIA_FORMATS, FORMAT_LABELS, FORMAT_COLORS } from '@/content/douban/shared/media-formats'
 
 const props = defineProps<{
   data: AlbumsPageData
   recordMap: Map<string, StoreRecord>
 }>()
-
-const MEDIA_FORMATS = new Set([
-  'CD', 'DVD', 'CD/DVD', '磁带', '数字(Digital)',
-  '黑胶', 'LP', 'SACD', 'Blu-ray', 'VCD', 'LD', '流媒体', 'Digital',
-])
-
-const FORMAT_LABELS: Record<string, string> = {
-  '数字(Digital)': '数字',
-  'Digital': '数字',
-}
-
-const FORMAT_COLORS: Record<string, string> = {
-  'CD': 'umm-chip-cd',
-  'DVD': 'umm-chip-dvd',
-  'CD/DVD': 'umm-chip-cd-dvd',
-  '磁带': 'umm-chip-cassette',
-  '数字': 'umm-chip-digital',
-  '黑胶': 'umm-chip-vinyl',
-  'LP': 'umm-chip-lp',
-  'SACD': 'umm-chip-sacd',
-  'Blu-ray': 'umm-chip-bluray',
-  'VCD': 'umm-chip-vcd',
-  '流媒体': 'umm-chip-streaming',
-}
 
 function getRecordStatus(item: AlbumVersionItem): { status: number; rating: number } {
   const rec = props.recordMap.get(String(item.id))

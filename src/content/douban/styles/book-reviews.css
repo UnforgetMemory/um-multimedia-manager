@@ -141,38 +141,5 @@
   transform: scale(0.96);
 }
 
-/* ===== Paginator ===== */
-.umm-reviews-paginator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
-  flex-wrap: wrap;
-}
-.umm-reviews-page {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 6px;
-  font-size: var(--umm-font-xs, 0.75rem);
-  font-weight: 500;
-  color: var(--umm-text-secondary);
-  text-decoration: none;
-  transition: background 0.15s ease;
-}
-.umm-reviews-page:hover {
-  background: var(--umm-bg);
-  color: var(--umm-text-primary);
-}
-.umm-reviews-page--active {
-  background: var(--umm-rev-accent);
-  color: #fff;
-  font-weight: 700;
-}
-
 /* ===== Empty ===== */
 

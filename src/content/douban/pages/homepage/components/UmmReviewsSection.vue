@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
+import { statusBadgeLabels } from '@/content/douban/shared/status-labels'
 import type { StoreRecord } from '@/types'
 
 const props = defineProps<{
@@ -25,12 +26,13 @@ function enhanceReviews(): void {
     const meta = review.querySelector('.review-meta')
     if (!meta) return
 
+    const labels = statusBadgeLabels.movie
     const statusType = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
     const statusText = status === 2
-      ? (userRating > 0 ? `已看 ${userRating}` : '已看')
-      : status === 3 ? '在看'
-      : status === 1 ? '想看'
-      : '未看'
+      ? (userRating > 0 ? `${labels.done} ${userRating}` : labels.done)
+      : status === 3 ? labels.doing
+      : status === 1 ? labels.wish
+      : labels.none
 
     const badge = document.createElement('span')
     badge.className = `umm-status umm-status--small umm-status--${statusType}`

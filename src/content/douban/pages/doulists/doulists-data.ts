@@ -1,3 +1,4 @@
+import { parseDoubanPaginator } from '../../shared/parse-douban-paginator'
 import type { DoulistsPageData, DoulistItem, DoulistCategory, XbarCategory } from './types'
 import { parseCategory } from './types'
 
@@ -220,40 +221,7 @@ export function extractDoulistsData(): DoulistsPageData | null {
   }
 
   // ---- Paginator ----
-  const pageLinks: { label: string; url: string; current: boolean }[] = []
-  let prevPageUrl = ''
-  let nextPageUrl = ''
-  const paginator = document.querySelector('.paginator')
-  if (paginator) {
-    Array.from(paginator.children).forEach((child) => {
-      const tag = child.tagName
-      const cls = (child as HTMLElement).className || ''
-      if (tag === 'SPAN' && cls.includes('prev')) {
-        const a = child.querySelector<HTMLAnchorElement>('a')
-        if (a) prevPageUrl = a.getAttribute('href') ?? a.href
-        return
-      }
-      if (tag === 'SPAN' && cls.includes('next')) {
-        const a = child.querySelector<HTMLAnchorElement>('a')
-        if (a) nextPageUrl = a.getAttribute('href') ?? a.href
-        return
-      }
-      if (tag === 'SPAN' && cls.includes('thispage')) {
-        const text = child.textContent?.trim() ?? ''
-        const num = parseInt(text, 10)
-        if (!isNaN(num)) pageLinks.push({ label: text, url: '', current: true })
-        return
-      }
-      if (tag === 'A') {
-        const a = child as HTMLAnchorElement
-        const text = a.textContent?.trim()
-        const href = a.getAttribute('href') ?? a.href
-        if (!text || !href) return
-        const num = parseInt(text, 10)
-        if (!isNaN(num)) pageLinks.push({ label: text, url: href, current: false })
-      }
-    })
-  }
+  const { pageLinks, prevPageUrl, nextPageUrl } = parseDoubanPaginator(document.querySelector('.paginator'))
 
   return {
     userId, displayName, avatarUrl, navLinks,

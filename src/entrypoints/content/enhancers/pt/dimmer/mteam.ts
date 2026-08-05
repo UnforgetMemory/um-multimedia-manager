@@ -1,6 +1,7 @@
 
 import { throttle } from '@/utils'
 import { getMTeamSets, applyCacheFallback } from './cache'
+import { getMTeamRowOutcome } from './mteam-match'
 import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types'
 import { dimElement } from '../utils'
 
@@ -191,21 +192,20 @@ export class MTeamHandler implements ListPageHandler {
 
       row.setAttribute('data-umm-mteam-signature', signature)
 
-      const { movieDoubanId, musicDoubanId, imdbId } = ids
+      const outcome = getMTeamRowOutcome(ids, movieDoubanIds, musicDoubanIds, imdbIds)
 
-      const hasMovie = movieDoubanId && movieDoubanIds.has(movieDoubanId)
-      const hasMusic = musicDoubanId && musicDoubanIds.has(musicDoubanId)
-      const hasImdb = imdbId && imdbIds.has(imdbId)
-      const matched = hasMovie || hasMusic || hasImdb
-
-      if (matched) {
-        this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify({ movieDoubanId, musicDoubanId, imdbId }))
+      if (outcome.matched) {
+        this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify(ids))
       }
 
-      row.setAttribute('data-umm-mteam-resolved', 'true')
-      row.setAttribute('data-umm-mteam-matched', matched ? 'true' : 'false')
+      // 修复（audit M3）：仅 matched 行标记 resolved。未匹配行保持 unresolved，
+      // 使 process() 的 unresolved 过滤非空 → applyCacheFallback 得以执行并消费 pt_id_cache。
+      if (outcome.resolved) {
+        row.setAttribute('data-umm-mteam-resolved', 'true')
+      }
+      row.setAttribute('data-umm-mteam-matched', outcome.matched ? 'true' : 'false')
 
-      if (matched) {
+      if (outcome.matched) {
         dimElement(row as HTMLElement)
         dimmed++
       } else {

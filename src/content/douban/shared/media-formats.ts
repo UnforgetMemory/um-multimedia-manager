@@ -1,4 +1,9 @@
 /**
+ * Shared media-format + aspect-ratio constants (rehomed from the deleted
+ * shared/constants.ts).
+ */
+
+/**
  * Centralized aspect ratio constants for image containers.
  * Use these constants instead of hardcoded string literals
  * to ensure consistency and prevent typos.
@@ -36,5 +41,6 @@ export const FORMAT_COLORS: Record<string, string> = {
   'SACD': 'umm-chip-sacd',
   'Blu-ray': 'umm-chip-bluray',
   'VCD': 'umm-chip-vcd',
+  'LD': 'umm-chip-ld',
   '流媒体': 'umm-chip-streaming',
 }

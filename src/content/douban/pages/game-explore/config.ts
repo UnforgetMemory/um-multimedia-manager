@@ -8,10 +8,11 @@ export const mountGameExplore = definePageMount({
   importApp: () => import('./App.vue'),
   async beforeMount() {
     const { parseGameExploreData } = await import('./game-explore-data')
-    const [exploreData, recordMap] = await Promise.all([
-      parseGameExploreData(),
-      loadRecordMap('game'),
-    ])
+    const exploreData = await parseGameExploreData()
+    // Thread visible game ids for a targeted batch read (falls back to
+    // full-store scan when parsing produced no items)
+    const ids = exploreData?.items?.filter((i) => i.id).map((i) => String(i.id))
+    const recordMap = await loadRecordMap('game', ids)
     return { exploreData, recordMap }
   },
   createApp: (RootCmp, data) => createApp(RootCmp, data),

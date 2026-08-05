@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { statusBadgeLabels } from '../../shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { BookCollectData } from './types'
 import UmmPaginator from '@/content/douban/components/UmmPaginator.vue'
@@ -18,10 +19,11 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
 )
 /** Human-readable tab label for the current collection sub-type */
 const titleLabel = computed(() => {
+  const labels = statusBadgeLabels.book
   switch (props.data.subType) {
-    case 'wish': return '想读'
-    case 'doing': return '在读'
-    default: return '读过'
+    case 'wish': return labels.wish
+    case 'doing': return labels.doing
+    default: return labels.done
   }
 })
 </script>

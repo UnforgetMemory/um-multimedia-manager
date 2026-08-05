@@ -2,7 +2,7 @@
  * Detail page handler factory.
  *
  * Extracts the common detail page flow (waitForElement -> scan -> dbGet -> merge -> render -> dbPut)
- * into a reusable factory. Three consumers: imdb, tmdb, neodb.
+ * into a reusable factory. Four consumers: imdb, tmdb, neodb, bangumi.
  *
  * The factory does NOT add its own try/catch — callers that need error isolation
  * (e.g. TMDB's waitForElement timeout guard) wrap the result themselves.
@@ -68,8 +68,16 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
   return async function handleDetailPage(identity: UrlIdentity): Promise<void> {
     if (!identity) return
 
-    // Wait for the title element to appear
-    await waitForElement(config.titleSelector, 5000)
+    // Wait for the title element to appear; on timeout (selector mismatch /
+    // slow page) log a warning and skip injection gracefully instead of
+    // bubbling the rejection to the router (which only logs, leaving the
+    // whole detail page silently unhandled).
+    try {
+      await waitForElement(config.titleSelector, 5000)
+    } catch (error: unknown) {
+      console.warn('[UMM] ⚠️ Detail handler: title element not found within 5s, skipping injection:', config.titleSelector, error)
+      return
+    }
 
     // Scan page state (status + rating)
     const pageState = await config.scanFn(identity)

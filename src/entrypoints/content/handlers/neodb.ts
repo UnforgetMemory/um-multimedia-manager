@@ -3,14 +3,20 @@
  * Scans page status/rating and injects status chips and sync buttons.
  */
 
-import type { UrlIdentity, StoreRecord } from '@/types'
+import type { UrlIdentity } from '@/types'
 import { Store } from '@/features/database'
-import { UrlResolverBuilder } from '@/shared/identity'
 import { Utils } from '@/utils'
 import { createStatusChip } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
 import { t } from '../i18n'
 import { createDetailPageHandler } from './create-detail-handler'
+import {
+  buildNeoDBLinkedIds,
+  buildNeoDBSyncRecord,
+  buildNeoDBSyncTargets,
+  platformLabel,
+  shouldSaveNeoDBPrimary,
+} from './neodb-sync'
 
 /**
  * 扫描 NeoDB 页面状态
@@ -46,14 +52,6 @@ export function getNeoDBAnchorElement(): Element | null {
     document.querySelector('#item-title h1') ||
     document.querySelector('.item-title h1')
   )
-}
-
-/**
- * 获取 NeoDB 页面标题
- */
-export function getNeoDBTitle(): string {
-  const anchor = getNeoDBAnchorElement()
-  return anchor?.textContent?.trim() || ''
 }
 
 /**
@@ -134,7 +132,8 @@ function extractMetadataIMDb(): string {
  * 功能：
  * 1. 注入状态标签
  * 2. 提取跨平台关联数据（豆瓣/IMDb/TMDB）并写入 linkedIds
- * 3. 低优先级同步到关联平台的数据库（仅当目标记录不存在或未完成时）
+ * 3. 跨平台同步委托 RecordService（经 DB_SYNC_PAGE_RECORD 消息），
+ *    规则见 src/domain/record/RecordService.ts syncRecord（fork 决策 (b)）。
  */
 export const handleNeoDBDetailPage = createDetailPageHandler({
   platform: 'neodb',
@@ -154,117 +153,48 @@ export const handleNeoDBDetailPage = createDetailPageHandler({
       linkedIdentities.push({ provider: 'imdb', url: metaImdbUrl })
     }
 
-    // 解析每个链接为 identity + 构建 linkedIds
-    const linkedIds: Record<string, string> = linkedIdentities.reduce((acc, linked) => {
-      const targetId = UrlResolverBuilder.fromUrl(linked.url)
-      if (targetId) {
-        acc[targetId.platform] = `${targetId.type}::${targetId.providerId}`
-      }
-      return acc
-    }, {} as Record<string, string>)
+    // 解析每个链接为 linkedIds + 构建主记录（含 comment/状态）
+    const linkedIds = buildNeoDBLinkedIds(linkedIdentities)
+    const record = buildNeoDBSyncRecord({ identity, pageState, localRecord, isPageDone, linkedIds })
 
-    const now = new Date().toISOString()
+    // ===== 保存 NeoDB 本地记录（含 linkedIds + comment，R6 门控） =====
 
-    // ===== 保存 NeoDB 本地记录（含 linkedIds + comment） =====
-
-    if (isPageDone) {
-      // 仅当数据真正变化时保存 + toast
-      const statusChanged = localRecord?.status !== 2
-      const ratingChanged = localRecord?.rating !== pageState.rating
-      const linkedChanged = JSON.stringify(localRecord?.linkedIds || {}) !== JSON.stringify(linkedIds)
-
-      if (statusChanged || ratingChanged || linkedChanged || !localRecord) {
-        await Store.dbPut(storeName, key, {
-          url: identity.url,
-          status: 2,
-          rating: pageState.rating,
-          comment: localRecord?.comment ?? '',
-          updatedAt: now,
-          linkedIds,
-        })
-        FloatingToast.success('UMM', '✅ 已保存 NeoDB 观看状态')
-        console.log('[UMM] ✅ Updated NeoDB local record with linkedIds:', linkedIds)
-      } else {
-        console.log('[UMM] ⏭️ NeoDB record unchanged, skipping save')
-      }
-    } else if (!localRecord || JSON.stringify(localRecord.linkedIds || {}) !== JSON.stringify(linkedIds)) {
-      // 即使页面未标记，也保存 linkedIds 确保关联不丢失
-      await Store.dbPut(storeName, key, {
-        url: identity.url,
-        status: localRecord?.status ?? 0,
-        rating: localRecord?.rating ?? 0,
-        comment: localRecord?.comment ?? '',
-        updatedAt: now,
-        linkedIds,
-      })
-      FloatingToast.success('UMM', '✅ 已更新 NeoDB 数据关联')
-      console.log('[UMM] ✅ Saved NeoDB linkedIds (page not marked):', linkedIds)
+    if (shouldSaveNeoDBPrimary({ isPageDone, localRecord, pageState, linkedIds })) {
+      await Store.dbPut(storeName, key, record)
+      FloatingToast.success('UMM', isPageDone ? t('neodb.saved_state') : t('neodb.updated_link'))
+      console.log('[UMM] ✅ Saved NeoDB record with linkedIds:', linkedIds)
+    } else {
+      console.log('[UMM] ⏭️ NeoDB record unchanged, skipping save')
     }
 
-    // ===== 低优先级同步到关联平台 =====
-    // 规则：仅当目标记录不存在 或 状态不是"已完成"时，才同步状态/评分
-    // 但 linkedIds 始终写入
-
-    for (const linked of linkedIdentities) {
-      const targetId = UrlResolverBuilder.fromUrl(linked.url)
-      if (!targetId) {
-        console.warn('[UMM] ⚠️ Could not parse linked URL:', linked.url)
-        continue
-      }
-
-      const targetStore = `${targetId.platform}_records` as const
-      const targetKey = `${targetId.type}::${targetId.providerId}`
-      const existingTarget = await Store.dbGet(targetStore, targetKey)
-
-      // 构建目标记录的 linkedIds：保留已有 + 确保回到 NeoDB
-      const targetLinkedIds: Record<string, string> = {
-        ...(existingTarget?.linkedIds || {}),
-        neodb: `${identity.type}::${identity.providerId}`,
-      }
-
-      const platformLabel = targetId.platform === 'imdb' ? 'IMDb' : targetId.platform === 'tmdb' ? 'TMDB' : '豆瓣'
-
-      if (!existingTarget) {
-        // 目标不存在 → 创建新记录（使用 NeoDB 的状态/评分）
-        const targetRecord: StoreRecord = {
-          url: UrlResolverBuilder.buildUrl(targetId.type, targetId.platform, targetId.providerId),
-          status: isPageDone ? 2 : 0,
-          rating: pageState.rating,
-          comment: localRecord?.comment ?? '',
-          updatedAt: now,
-          linkedIds: targetLinkedIds,
+    // ===== 跨平台同步（委托 RecordService，经 DB_SYNC_PAGE_RECORD 消息） =====
+    // RecordService.syncRecord 规则：create-if-missing / update-if-not-watched /
+    // skip-if-watched。fork 决策 (b)：已完成的关联目标不再做 links-only 刷新。
+    // 门控（T12 修复）：record.status > 0 → 全量同步（规则 2–4 生效）；
+    // record.status === 0 → 仅恢复 create-stub 分支 —— 目标不存在时创建
+    // status-0 记录 + 回链（旧内联逻辑始终执行，见 decideNeoDBTargetSync R2）。
+    // 已存在的目标一律跳过：RecordService 规则 3 会用 record.status 覆盖目标
+    // 平台既有状态（旧内联逻辑显式保留目标 status），状态为 0 时跳过以避免
+    // 破坏目标平台数据。
+    const targets = buildNeoDBSyncTargets(linkedIdentities)
+    if (targets.length > 0) {
+      let syncTargets = targets
+      if (record.status === 0) {
+        // create-stub：仅同步尚不存在的目标（status-0 目标 + 回链）
+        syncTargets = []
+        for (const target of targets) {
+          const existing = await Store.dbGet(`${target.platform}_records`, target.key)
+          if (!existing) syncTargets.push(target)
         }
-        await Store.dbPut(targetStore, targetKey, targetRecord)
-        console.log(`[UMM] ✅ Created ${targetId.platform} record from NeoDB link:`, targetKey, targetRecord)
-        FloatingToast.success('UMM', `✅ 已同步 ${platformLabel} 数据关联`)
-      } else if (existingTarget.status !== 2) {
-        // 存在但未完成 → 检测变化后再更新
-        const statusChanged = isPageDone && existingTarget.status !== 2
-        const ratingChanged = pageState.rating && existingTarget.rating !== pageState.rating
-        const linkedChanged = JSON.stringify(existingTarget.linkedIds || {}) !== JSON.stringify(targetLinkedIds)
-
-        if (statusChanged || ratingChanged || linkedChanged) {
-          existingTarget.status = isPageDone ? 2 : existingTarget.status
-          existingTarget.rating = existingTarget.rating || pageState.rating
-          existingTarget.comment = localRecord?.comment ?? existingTarget.comment ?? ''
-          existingTarget.updatedAt = now
-          existingTarget.linkedIds = targetLinkedIds
-          await Store.dbPut(targetStore, targetKey, existingTarget)
-          console.log(`[UMM] ✅ Updated ${targetId.platform} record (not done) from NeoDB:`, targetKey)
-          FloatingToast.success('UMM', `✅ ${platformLabel} 状态已同步`)
+      }
+      if (syncTargets.length > 0) {
+        const syncResult = await Store.dbSyncPageRecord(identity.platform, key, record, syncTargets)
+        const syncedPlatforms = syncResult.syncedPlatforms.filter(p => p !== 'neodb')
+        if (syncResult.changed && syncedPlatforms.length > 0) {
+          FloatingToast.success('UMM', t('neodb.synced_targets', { platforms: syncedPlatforms.map(platformLabel).join(' / ') }))
+          console.log('[UMM] ✅ Cross-platform sync via RecordService:', syncedPlatforms)
         } else {
-          console.log(`[UMM] ⏭️ ${targetId.platform} not-done record unchanged, skipping`)
-        }
-      } else {
-        // 存在且已完成 → 仅更新 linkedIds（低优先级，不覆盖状态/评分）
-        const needsLinkUpdate = JSON.stringify(existingTarget.linkedIds || {}) !== JSON.stringify(targetLinkedIds)
-        if (needsLinkUpdate) {
-          existingTarget.linkedIds = targetLinkedIds
-          await Store.dbPut(targetStore, targetKey, existingTarget)
-          console.log(`[UMM] ✅ Updated ${targetId.platform} linkedIds (record done, link only):`, targetKey)
-          FloatingToast.info('UMM', `🔗 ${platformLabel} 关联已更新`)
-        } else {
-          console.log(`[UMM] ⏭️ ${targetId.platform} already synced, no link update needed:`, targetKey)
+          console.log('[UMM] ⏭️ Cross-platform sync: nothing to update')
         }
       }
     }

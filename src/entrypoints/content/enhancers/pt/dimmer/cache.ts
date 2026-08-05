@@ -161,14 +161,3 @@ export async function applyCacheFallback(
     }
   }
 }
-
-/**
- * 使 ID 缓存失效
- */
-export function invalidateIdCache(
-  setCacheNull: () => void,
-  debug: (...args: any[]) => void,
-): void {
-  debug('[Cache] Storage changed — invalidating ID cache')
-  setCacheNull()
-}

@@ -82,7 +82,7 @@ export async function probeCacheGet(mvId: string): Promise<ProbeCacheEntry | nul
 
 /**
  * Get watched IDs (status >= 2) for a given type + provider.
- * Uses handler-level cache with 30s TTL to avoid repeated dbGetAll calls.
+ * Uses handler-level cache with 30s TTL to avoid repeated watched-id queries.
  */
 export async function getIdSet(type: string, provider: string, cache?: { movieDoubanIds: Set<string>; imdbIds: Set<string>; ts: number } | null): Promise<Set<string>> {
   // Use handler-level cache if available and fresh
@@ -95,11 +95,11 @@ export async function getIdSet(type: string, provider: string, cache?: { movieDo
   }
 
   const storeName = `${provider}_records`
-  const entries = await Store.dbGetAll(storeName)
+  const results = await Store.dbGetWatchedIds([storeName])
   const ids = new Set<string>()
   const prefix = `${type}::`
-  for (const { key, record } of entries) {
-    if (key.startsWith(prefix) && record.status >= 2) {
+  for (const key of results[storeName] || []) {
+    if (key.startsWith(prefix)) {
       ids.add(key.slice(prefix.length))
     }
   }

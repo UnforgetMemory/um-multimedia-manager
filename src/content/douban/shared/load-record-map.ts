@@ -1,10 +1,8 @@
 /**
  * Unified Douban record map loader from IndexedDB.
  *
- * Consolidates 3 implementations:
- * - shared/composables/useRecordCache.ts  (reactive composable)
- * - search/search-data.ts → loadRecordMapImpl()
- * - albums/albums-data.ts → loadRecordMapImpl()
+ * Delegates to record-cache-core.ts for the actual DB → Map transformation.
+ * This module preserves the original public API for backward compatibility.
  *
  * Usage:
  *   const map = await loadRecordMap('movie')    // load movie:: records
@@ -12,8 +10,8 @@
  *   const map = await loadRecordMap()           // load all, strip type:: prefix
  */
 
-import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
+import { loadRecordEntries } from './record-cache-core'
 
 /**
  * Load douban_records from IndexedDB into a Map.
@@ -22,33 +20,14 @@ import type { StoreRecord } from '@/types'
  *                 and the prefix is stripped from map keys.
  *                 When omitted, ALL douban_records are loaded and the
  *                 `{type}::` prefix is stripped from each key.
+ * @param ids - Optional subject ids to batch-read. When provided, only
+ *              `{prefix}::` keys for these ids are fetched (targeted
+ *              batch read instead of full-store scan). Without prefix,
+ *              ids are treated as full `{type}::` keys. When omitted,
+ *              falls back to dbGetAll over the whole store.
  */
-export async function loadRecordMap(prefix?: string): Promise<Map<string, StoreRecord>> {
-  const map = new Map<string, StoreRecord>()
-  try {
-    const entries = await Store.dbGetAll('douban_records')
-    if (prefix) {
-      const p = `${prefix}::`
-      for (const { key, record } of entries) {
-        if (key.startsWith(p)) {
-          map.set(key.slice(p.length), record)
-        }
-      }
-    } else {
-      for (const { key, record } of entries) {
-        const id = key.split('::')[1]
-        if (id) {
-          map.set(id, {
-            status: record.status ?? 0,
-            rating: record.rating ?? 0,
-          } as StoreRecord)
-        }
-      }
-    }
-  } catch {
-    // DB errors are non-critical for record loading
-  }
-  return map
+export async function loadRecordMap(prefix?: string, ids?: string[]): Promise<Map<string, StoreRecord>> {
+  return loadRecordEntries(prefix, ids)
 }
 
 export { useRecordCache } from './composables/useRecordCache'

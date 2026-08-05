@@ -2,14 +2,15 @@
 import { MTeamHandler } from './mteam'
 import { NexusPHPHandler } from './nexusphp'
 import { throttle } from '@/utils'
-import { waitForElement } from '../utils'
+import { waitForElement } from '../../../utils/dom'
+import { initEventBus, onEvent } from '@/utils/event-bus'
 import type { HandlerContext, ListPageHandler } from '../types'
 
 export class PTDimmer {
   private debugTag = '[PT Dimmer Debug]'
   private observer: MutationObserver | null = null
   private waitForObserver: MutationObserver | null = null
-  private storageChangeListener: ((changes: any, area: string) => void) | null = null
+  private eventBusUnsubscribers: Array<() => void> = []
   private mteamAutoDetector: MutationObserver | null = null
   private mteamDocObserver: MutationObserver | null = null
 
@@ -50,10 +51,8 @@ export class PTDimmer {
       this.waitForObserver.disconnect()
       this.waitForObserver = null
     }
-    if (this.storageChangeListener) {
-      chrome.storage.onChanged.removeListener(this.storageChangeListener)
-      this.storageChangeListener = null
-    }
+    this.eventBusUnsubscribers.forEach((unsub) => unsub())
+    this.eventBusUnsubscribers = []
     if (this.mteamAutoDetector) {
       this.mteamAutoDetector.disconnect()
       this.mteamAutoDetector = null
@@ -78,14 +77,21 @@ export class PTDimmer {
     this.cleanup()
     PTDimmer.currentInstance = this
 
-    // Listen for record changes → invalidate ID cache
-    this.storageChangeListener = (_changes, area) => {
-      if (area === 'local') {
-        this.debug('[Cache] Storage changed — invalidating ID cache')
+    // Listen for record changes → invalidate ID cache.
+    // Records live in IndexedDB (written by background), so chrome.storage.onChanged never fires.
+    // Background broadcasts EVENT_BUS 'record:updated'/'record:deleted' on every DB write (see
+    // src/entrypoints/background/handlers/db.ts) — subscribe to those instead.
+    initEventBus()
+    this.eventBusUnsubscribers = [
+      onEvent('record:updated', () => {
+        this.debug('[Cache] Record updated — invalidating ID cache')
         this.idCache = null
-      }
-    }
-    chrome.storage.onChanged.addListener(this.storageChangeListener)
+      }),
+      onEvent('record:deleted', () => {
+        this.debug('[Cache] Record deleted — invalidating ID cache')
+        this.idCache = null
+      }),
+    ]
 
     const active = this.selectHandler(url)
     if (!active) {
@@ -96,45 +102,53 @@ export class PTDimmer {
     this.debug('Handler matched — selector:', active.getSelector(), '| contentCheck:', typeof active.contentCheck)
     this.debug('Waiting for element...')
 
-    waitForElement(
-      active.getSelector(),
-      async () => {
-        this.debug('Element found, starting process...')
-        const ctx: HandlerContext = {
-          debug: this.debug.bind(this),
-          idCache: this.idCache,
-          cacheTimestamp: this.cacheTimestamp,
-        }
-        try {
-          await active.process(ctx)
-        } catch (err: unknown) {
-          console.warn('[PT Dimmer] Initial process failed:', err)
-        }
+    try {
+      await waitForElement(
+        active.getSelector(),
+        15000,
+        {
+          contentCheck: active.contentCheck,
+          onObserverCreated: (observer) => {
+            this.waitForObserver = observer
+          },
+        },
+      )
+    } catch {
+      this.debug('Element not found within timeout — skipping:', active.getSelector())
+      return
+    }
 
-        if (typeof active.setup === 'function') {
-          const target =
-            document.querySelector(active.getSelector().split(',')[0].trim()) ||
-            document.body
-          this.debug('Setting up reactive loop on target:', target.tagName, target.id || target.className || '')
-          active.setup(target as HTMLElement, () => active.process(ctx))
-          return
-        }
+    this.debug('Element found, starting process...')
+    const ctx: HandlerContext = {
+      debug: this.debug.bind(this),
+      idCache: this.idCache,
+      cacheTimestamp: this.cacheTimestamp,
+    }
+    try {
+      await active.process(ctx)
+    } catch (err: unknown) {
+      console.warn('[PT Dimmer] Initial process failed:', err)
+    }
 
-        this.observer = new MutationObserver(
-          throttle(() => {
-            this.debug('Mutation observed, re-processing...')
-            return active.process(ctx)
-          }, 260)
-        )
-        this.observer.observe(document.body, {
-          childList: true,
-          subtree: true,
-        })
-      },
-      15000,
-      active.contentCheck,
-      { current: this.waitForObserver },
+    if (typeof active.setup === 'function') {
+      const target =
+        document.querySelector(active.getSelector().split(',')[0].trim()) ||
+        document.body
+      this.debug('Setting up reactive loop on target:', target.tagName, target.id || target.className || '')
+      active.setup(target as HTMLElement, () => active.process(ctx))
+      return
+    }
+
+    this.observer = new MutationObserver(
+      throttle(() => {
+        this.debug('Mutation observed, re-processing...')
+        return active.process(ctx)
+      }, 260)
     )
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
   }
 
   /** MTeam SPA fallback: auto-detect browse page via DOM when URL events don't fire */

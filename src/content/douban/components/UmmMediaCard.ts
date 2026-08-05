@@ -2,7 +2,7 @@ import { defineComponent, h, type PropType } from 'vue'
 import { UmmImageWrapper } from './UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from './UmmStatusBadgeWrapper'
 import { UmmRating } from './UmmRating'
-import { ASPECT_RATIO } from '@/content/douban/shared/constants'
+import { ASPECT_RATIO } from '@/content/douban/shared/media-formats'
 
 export const UmmMediaCard = defineComponent({
   name: 'UmmMediaCard',

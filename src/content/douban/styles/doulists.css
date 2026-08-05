@@ -398,36 +398,3 @@
   white-space: nowrap;
 }
 
-/* ===== Paginator ===== */
-
-.umm-doulist-paginator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: var(--umm-space-md) 0 var(--umm-space-lg);
-  flex-wrap: wrap;
-}
-.umm-doulist-page {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 6px;
-  font-size: var(--umm-font-xs);
-  font-weight: 500;
-  color: var(--umm-text-secondary);
-  text-decoration: none;
-  transition: background 0.15s ease;
-}
-.umm-doulist-page:hover {
-  background: var(--umm-bg);
-  color: var(--umm-text-primary);
-}
-.umm-doulist-page--active {
-  background: var(--dc-accent);
-  color: #fff;
-  font-weight: 700;
-}

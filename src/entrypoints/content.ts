@@ -6,12 +6,9 @@
  * - DB health check with retry
  * - Global style injection
  * - Router dispatch
- * - Theme/rating observers
- * - NeoDB push button injection (via content/neodb-push.ts)
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { UrlResolverBuilder } from '@/shared/identity'
 import { Store } from '@/features/database'
 import { initRouter, hasMatchingRoute } from './content/router'
 import { initI18n, startLocaleSync } from './content/i18n'
@@ -19,14 +16,9 @@ import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
 import { infoLog, errorLog, configureLogging } from '@/utils/logger'
 import { sleep } from '@/utils'
-import type { LogLevel, StoreRecord } from '@/types'
+import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
 import { initEventBus } from '@/utils/event-bus'
-import { injectNeoDBPushButtons } from './content/neodb-push'
-
-let currentIdentity: ReturnType<typeof UrlResolverBuilder.fromUrl> = null
-let currentRecord: StoreRecord | null = null
-let themeChangeListener: ((e: MediaQueryListEvent) => void) | null = null
 
 export default defineContentScript({
   matches: [
@@ -164,7 +156,6 @@ export default defineContentScript({
       }
     })
 
-    currentIdentity = UrlResolverBuilder.fromUrl(window.location.href)
     infoLog('Script loaded on:', window.location.href)
 
     if (!chrome?.runtime?.id) {
@@ -220,21 +211,7 @@ export default defineContentScript({
 
         injectGlobalStyles()
 
-        currentIdentity = UrlResolverBuilder.fromUrl(window.location.href)
-        if (currentIdentity) {
-          await loadCurrentRecord()
-        }
-
         initRouter()
-        observeThemeChanges()
-
-        window.addEventListener('beforeunload', () => {
-          if (themeChangeListener) {
-            const mq = window.matchMedia('(prefers-color-scheme: dark)')
-            if (mq.removeEventListener) mq.removeEventListener('change', themeChangeListener)
-            else if (mq.removeListener) mq.removeListener(themeChangeListener)
-          }
-        })
 
         infoLog('✅ Initialization complete')
       } catch (error: unknown) {
@@ -243,46 +220,6 @@ export default defineContentScript({
     }
   },
 })
-
-async function loadCurrentRecord() {
-  if (!currentIdentity) return
-  try {
-    const key = `${currentIdentity.type}::${currentIdentity.providerId}`
-    const storeName = `${currentIdentity.platform}_records`
-    currentRecord = await Promise.race([
-      Store.dbGet(storeName, key),
-      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
-    ])
-  } catch {
-    currentRecord = null
-  }
-}
-
-function isDoubanDetailPage(): boolean {
-  if (currentIdentity?.platform !== 'douban') return false
-  if (window.location.pathname.includes('/subject/')) return true
-  if (currentIdentity?.type === 'game' && window.location.pathname.startsWith('/game/')) return true
-  return false
-}
-
-function observeThemeChanges() {
-  if (!isDoubanDetailPage()) return
-  const mq = window.matchMedia('(prefers-color-scheme: dark)')
-  themeChangeListener = () => {
-    if (currentIdentity) injectNeoDBPushButtons(currentIdentity, currentRecord)
-  }
-  if (mq.addEventListener) mq.addEventListener('change', themeChangeListener)
-  else if (mq.addListener) mq.addListener(themeChangeListener)
-
-  // Listen for UMM theme changes in chrome.storage (popup, options, other tabs)
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return
-    if (changes['umm:appearance']) {
-      infoLog('Theme changed in storage, re-injecting NeoDB buttons')
-      if (currentIdentity) injectNeoDBPushButtons(currentIdentity, currentRecord)
-    }
-  })
-}
 
 // Handle SHOW_TOAST messages from background
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

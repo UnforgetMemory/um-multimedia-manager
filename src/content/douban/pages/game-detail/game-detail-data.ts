@@ -291,7 +291,14 @@ export async function enrichGameRecItems(recItems: GameRecItem[]): Promise<GameR
   if (recItems.length === 0) return recItems
   try {
     const { Store } = await import('@/features/database')
-    const entries = await Store.dbGetAll('douban_records')
+    const keys = [...new Set(
+      recItems
+        .map((i) => i.subjectId)
+        .filter((id): id is string => Boolean(id))
+        .map((id) => `game::${id}`),
+    )]
+    if (keys.length === 0) return recItems
+    const entries = await Store.dbGetBulk('douban_records', keys)
     const recordMap = new Map<string, { status: number; rating: number }>()
     for (const { key, record } of entries) {
       const id = key.split('::')[1]

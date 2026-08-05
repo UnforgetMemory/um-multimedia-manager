@@ -3,6 +3,8 @@
  * Emits `save` with tab, stars, tags, and comment for the parent to submit.
  */
 import { defineComponent, h, ref } from 'vue'
+import type { MediaType } from '../shared/status-labels'
+import { interestBarLabels } from '../shared/status-labels'
 
 const RATING_LABELS = ['', '很差', '较差', '还行', '推荐', '力荐'] as const
 
@@ -73,13 +75,7 @@ export const UmmInterestBar = defineComponent({
     }
 
     return () => {
-      const L = props.type === 'music'
-        ? { wish: '想听', do: '在听', collect: '已听', mark: '标记' }
-        : props.type === 'book'
-        ? { wish: '想读', do: '在读', collect: '已读', mark: '标记' }
-        : props.type === 'game'
-        ? { wish: '想玩', do: '在玩', collect: '玩过', mark: '标记' }
-        : { wish: '想看', do: '在看', collect: '已看', mark: '标记' }
+      const L = interestBarLabels[(props.type as MediaType) ?? 'movie']
       const btnLabel = props.status === 1 ? L.wish : props.status === 3 ? L.do : props.status === 2 ? L.collect : L.mark
       const showRating = props.rating > 0 && (props.status === 2 || props.status === 3)
       const children: ReturnType<typeof h>[] = []

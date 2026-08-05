@@ -13,10 +13,11 @@ export const mountSearch = definePageMount({
       : location.href.includes('search.douban.com/book')
         ? 'book'
         : 'movie'
-    const [searchData, recordMap] = await Promise.all([
-      parseSearchData(),
-      loadRecordMap(type),
-    ])
+    const searchData = await parseSearchData()
+    // Thread visible item ids for a targeted batch read (falls back to
+    // full-store scan when parsing produced no items)
+    const ids = searchData?.items?.filter((i) => i.id).map((i) => String(i.id))
+    const recordMap = await loadRecordMap(type, ids)
     return { searchData, recordMap, type }
   },
   createApp: (RootCmp, data) => createApp(RootCmp, data),

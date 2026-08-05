@@ -20,12 +20,21 @@ export async function loadRecord(identity: UrlIdentity): Promise<StoreRecord | n
 
 /**
  * Enrich recommendation items with personal status and rating from IndexedDB.
- * Mutates the recItems array in-place and returns it.
+ * Builds targeted batch-read keys (`{type}::{subjectId}`) for the given media
+ * type instead of scanning the whole store. Mutates the recItems array
+ * in-place and returns it.
  */
-export async function enrichRecItems(recItems: RecItem[]): Promise<RecItem[]> {
+export async function enrichRecItems(recItems: RecItem[], type: string): Promise<RecItem[]> {
   if (recItems.length === 0) return recItems
   try {
-    const entries = await Store.dbGetAll('douban_records')
+    const keys = [...new Set(
+      recItems
+        .map((i) => i.subjectId)
+        .filter((id): id is string => Boolean(id))
+        .map((id) => `${type}::${id}`),
+    )]
+    if (keys.length === 0) return recItems
+    const entries = await Store.dbGetBulk('douban_records', keys)
     const recordMap = new Map<string, { status: number; rating: number }>()
     for (const { key, record } of entries) {
       const id = key.split('::')[1]

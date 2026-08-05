@@ -22,7 +22,8 @@ export const mountSeries = definePageMount({
 
     // Enrich items with book record status from IndexedDB
     try {
-      const recordMap = await loadRecordMap('book')
+      const ids = data.items.filter((i) => i.subjectId).map((i) => i.subjectId)
+      const recordMap = await loadRecordMap('book', ids)
       return { data, recordMap }
     } catch {
       return { data, recordMap: undefined as Map<string, import('@/types').StoreRecord> | undefined }

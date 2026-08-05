@@ -710,20 +710,3 @@ export function injectGlobalStyles(): void {
   
   console.log('[UMM] Global styles injected successfully')
 }
-
-/**
- * 动态添加样式规则
- */
-export function addStyleRule(selector: string, rules: string): void {
-  const styleElement = document.getElementById('umm-global-styles') as HTMLStyleElement
-  if (!styleElement || !styleElement.sheet) {
-    console.warn('[UMM] Global styles not found, cannot add rule')
-    return
-  }
-  
-  try {
-    styleElement.sheet.insertRule(`${selector} { ${rules} }`, styleElement.sheet.cssRules.length)
-  } catch (error: unknown) {
-    console.error('[UMM] Failed to add style rule:', error)
-  }
-}

@@ -64,7 +64,7 @@ export async function extractDetailData(): Promise<DetailData | null> {
   const awardItems = extractAwards()
   const { rankNo, rankText, rankHref } = extractRank()
   const { photoItems, photoCount, trailerCount } = extractPhotos()
-  const recItems = await enrichRecItems(extractRecItemsDom())
+  const recItems = await enrichRecItems(extractRecItemsDom(), identity.type)
   const shortComments = extractShortComments()
   const authorBioHtml = extractAuthorBio()
   const tocItems = extractTOC()

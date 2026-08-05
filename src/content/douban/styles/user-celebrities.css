@@ -141,38 +141,5 @@
   white-space: nowrap;
 }
 
-/* ===== Paginator ===== */
-.umm-celebrities-paginator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: var(--umm-space-md, 16px) 0 var(--umm-space-lg, 24px);
-  flex-wrap: wrap;
-}
-.umm-celebrities-page {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 6px;
-  font-size: var(--umm-font-xs, 0.75rem);
-  font-weight: 500;
-  color: var(--umm-text-secondary);
-  text-decoration: none;
-  transition: background 0.15s ease;
-}
-.umm-celebrities-page:hover {
-  background: var(--umm-bg);
-  color: var(--umm-text-primary);
-}
-.umm-celebrities-page--active {
-  background: var(--umm-cel-accent);
-  color: #fff;
-  font-weight: 700;
-}
-
 /* ===== Empty ===== */
 

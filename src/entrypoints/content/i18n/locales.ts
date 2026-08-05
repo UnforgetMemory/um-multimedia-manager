@@ -81,6 +81,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.unknown_error': 'Unknown error',
     'neodb.watched_text': 'Watched',
     'neodb.listened_text': 'Listened',
+    'neodb.read_text': 'Read',
     // Douban sync notifications
     'sync.douban_auto': '✅ Auto-synced watched status',
     'sync.douban_auto_music': '✅ Auto-synced listened status',
@@ -109,6 +110,7 @@ const locales: Record<Locale, Record<string, string>> = {
     // NeoDB toasts
     'neodb.saved_state': '✅ NeoDB watch status saved',
     'neodb.updated_link': '✅ NeoDB data link updated',
+    'neodb.synced_targets': '✅ {{platforms}} data links synced',
     // Platform labels (content script context)
     'platform.douban': 'Douban',
     'platform.imdb': 'IMDb',
@@ -209,6 +211,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'neodb.unknown_error': '未知错误',
     'neodb.watched_text': '看过',
     'neodb.listened_text': '听过',
+    'neodb.read_text': '读过',
     // Douban sync notifications
     'sync.douban_auto': '✅ 已自动同步看过状态',
     'sync.douban_auto_music': '✅ 已自动同步听过状态',
@@ -237,6 +240,7 @@ const locales: Record<Locale, Record<string, string>> = {
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 观看状态',
     'neodb.updated_link': '✅ 已更新 NeoDB 数据关联',
+    'neodb.synced_targets': '✅ 已同步 {{platforms}} 数据关联',
     // Platform labels (content script context)
     'platform.douban': '豆瓣',
     'platform.imdb': 'IMDb',
@@ -366,6 +370,7 @@ const locales: Record<Locale, Record<string, string>> = {
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 觀看狀態',
     'neodb.updated_link': '✅ 已更新 NeoDB 數據關聯',
+    'neodb.synced_targets': '✅ 已同步 {{platforms}} 數據關聯',
     // Platform labels (content script context)
     'platform.douban': '豆瓣',
     'platform.imdb': 'IMDb',
@@ -495,6 +500,7 @@ const locales: Record<Locale, Record<string, string>> = {
     // NeoDB toasts
     'neodb.saved_state': '✅ 已保存 NeoDB 觀看狀態',
     'neodb.updated_link': '✅ 已更新 NeoDB 數據關聯',
+    'neodb.synced_targets': '✅ 已同步 {{platforms}} 數據關聯',
     // Platform labels (content script context)
     'platform.douban': '豆瓣',
     'platform.imdb': 'IMDb',

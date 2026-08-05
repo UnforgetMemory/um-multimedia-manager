@@ -9,34 +9,7 @@ import { computed } from 'vue'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
 import { UmmRating } from '@/content/douban/components/UmmRating'
-import { ASPECT_RATIO } from '@/content/douban/shared/constants'
-
-/** Known media format keywords in Douban music metadata */
-const MEDIA_FORMATS = new Set([
-  'CD', 'DVD', 'CD/DVD', '磁带', '数字(Digital)',
-  '黑胶', 'LP', 'SACD', 'Blu-ray', 'VCD', 'LD', '流媒体', 'Digital',
-])
-
-/** Map media format to a short display label */
-const FORMAT_LABELS: Record<string, string> = {
-  '数字(Digital)': '数字',
-  'Digital': '数字',
-}
-
-/** Map display label → CSS color variant class */
-const FORMAT_COLORS: Record<string, string> = {
-  'CD': 'umm-chip-cd',
-  'DVD': 'umm-chip-dvd',
-  'CD/DVD': 'umm-chip-cd-dvd',
-  '磁带': 'umm-chip-cassette',
-  '数字': 'umm-chip-digital',
-  '黑胶': 'umm-chip-vinyl',
-  'LP': 'umm-chip-lp',
-  'SACD': 'umm-chip-sacd',
-  'Blu-ray': 'umm-chip-bluray',
-  'VCD': 'umm-chip-vcd',
-  '流媒体': 'umm-chip-streaming',
-}
+import { ASPECT_RATIO, MEDIA_FORMATS, FORMAT_LABELS, FORMAT_COLORS } from '@/content/douban/shared/media-formats'
 
 /** 规范化 IMDb ID → 小写 tt-xxx；非法值返回 null */
 function normalizeImdbId(id: string | undefined | null): string | null {

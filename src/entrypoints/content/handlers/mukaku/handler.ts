@@ -2,7 +2,7 @@
 
 import { RequestQueue } from '@/utils/requestQueue'
 import { FloatingToast } from '../../utils/toast'
-import { createStatusChip } from '../../utils/dom'
+import { createStatusChip, waitForElement } from '../../utils/dom'
 import { t } from '../../i18n'
 import { Store } from '@/features/database'
 import { MUKAKU_CONFIG, NETWORK_CONFIG } from './config'
@@ -157,34 +157,9 @@ class MukakuHandler {
     const mvId = extractMvId(location.href)
     if (!mvId) return
 
-    // 等待详情区域出现
-    const waitForElement = (selector: string, timeout = 12000): Promise<HTMLElement> => {
-      return new Promise((resolve, reject) => {
-        const element = document.querySelector(selector) as HTMLElement
-        if (element) {
-          resolve(element)
-          return
-        }
-
-        const observer = new MutationObserver(() => {
-          const element = document.querySelector(selector) as HTMLElement
-          if (element) {
-            observer.disconnect()
-            resolve(element)
-          }
-        })
-
-        observer.observe(document.body, { childList: true, subtree: true })
-
-        setTimeout(() => {
-          observer.disconnect()
-          reject(new Error(`Timeout waiting for ${selector}`))
-        }, timeout)
-      })
-    }
-
+    // 等待详情区域出现（统一实现见 utils/dom）
     try {
-      const infoRoot = await waitForElement('.media-details-area .info')
+      const infoRoot = (await waitForElement('.media-details-area .info', 12000)) as HTMLElement
       await this.renderDetailState(infoRoot, mvId)
     } catch (error: unknown) {
       console.error('[Mukaku] Detail page rendering failed:', error)

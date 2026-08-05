@@ -20,8 +20,15 @@ export const mountPersonage = definePageMount({
 
     // Enrich works with record status from IndexedDB
     try {
-      const recordMap = await loadRecordMap()
-      for (const work of [...data.recentWorks, ...data.popularWorks]) {
+      const works = [...data.recentWorks, ...data.popularWorks]
+      const ids = works
+        .map((work) => work.url.match(/\/subject\/(\d+)/)?.[1])
+        .filter((id): id is string => Boolean(id))
+      // Douban film/TV records are always stored under `movie::` (no douban
+      // tv:: keys exist), so a targeted batch read with the 'movie' prefix
+      // preserves the old id-matching behavior without a full-store scan.
+      const recordMap = await loadRecordMap('movie', ids)
+      for (const work of works) {
         const subjectId = work.url.match(/\/subject\/(\d+)/)?.[1]
         if (!subjectId) continue
         const rec = recordMap.get(subjectId)

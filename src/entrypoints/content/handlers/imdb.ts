@@ -53,14 +53,6 @@ export function getIMDbAnchorElement(): Element | null {
 }
 
 /**
- * 获取 IMDb 页面标题
- */
-export function getIMDbTitle(): string {
-  const anchor = getIMDbAnchorElement()
-  return anchor?.textContent?.trim() || ''
-}
-
-/**
  * 渲染 IMDb 状态标签
  */
 export async function renderIMDbStatusChip(

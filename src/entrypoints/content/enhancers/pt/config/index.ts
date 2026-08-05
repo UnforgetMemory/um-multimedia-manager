@@ -103,21 +103,3 @@ function extractDomain(url: string): string {
   }
 }
 
-/** 根据 URL 获取站点配置（列表页或详情页） */
-export function getSiteConfig(url: string): SiteScannerConfig | null {
-  return SITE_CONFIGS.find((config) =>
-    config.isListPage(url) || config.isDetailPage(url)
-  ) ?? getListPageConfig(url)
-}
-
-/** 检查 URL 是否为支持的详情页 */
-export function isSupportedDetailPage(url: string): boolean {
-  return SITE_CONFIGS.some((config) => config.isDetailPage(url))
-}
-
-/** 获取所有启用后台扫描的站点域名 */
-export function getScannableDomains(): string[] {
-  return SITE_CONFIGS
-    .filter((config) => config.enableBackgroundScan)
-    .map((config) => config.domain)
-}

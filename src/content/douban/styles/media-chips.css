@@ -21,4 +21,5 @@
 :host(.umm-theme--dark) .umm-chip-sacd     { background: #5d4037; }
 :host(.umm-theme--dark) .umm-chip-bluray   { background: #1565c0; }
 :host(.umm-theme--dark) .umm-chip-vcd      { background: #546e7a; }
+:host(.umm-theme--dark) .umm-chip-ld       { background: #00838f; }
 :host(.umm-theme--dark) .umm-chip-streaming{ background: #2e7d32; }

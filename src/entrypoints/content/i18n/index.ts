@@ -32,20 +32,6 @@ export async function initI18n(): Promise<void> {
   currentLocale = await detectLocale()
 }
 
-export async function setLocale(locale: Locale): Promise<void> {
-  currentLocale = locale
-  localStorage.setItem(STORAGE_KEY, locale)
-  try {
-    await chrome.storage.local.set({ [EXT_LANGUAGE_KEY]: locale })
-  } catch {
-    // chrome.storage not available
-  }
-}
-
-export function getLocale(): Locale {
-  return currentLocale
-}
-
 /**
  * Start listening for locale changes from other contexts (options/popup tabs).
  * Call this once after initI18n() to keep the content script's locale in sync.

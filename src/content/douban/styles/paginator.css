@@ -1,7 +1,16 @@
-/* ===== Shared Paginator — Shadow DOM safety copy of UmmPaginator.vue scoped CSS ===== */
+/* ===== Shared Paginator — Shadow DOM safety copy of UmmPaginator.vue scoped CSS =====
+ * Aliases: .umm-reviews-paginator (book-reviews / user-reviews),
+ *          .umm-doulist-paginator (doulists), .umm-celebrities-paginator (user-celebrities),
+ *          .umm-umedia-paginator (user-media).
+ * NOTE: doulist-detail and series use a different bordered paginator (kept in page files).
+ */
 
 /* Container */
-.umm-paginator {
+.umm-paginator,
+.umm-reviews-paginator,
+.umm-doulist-paginator,
+.umm-celebrities-paginator,
+.umm-umedia-paginator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,7 +19,11 @@
   flex-wrap: wrap;
 }
 /* Page button (default state) */
-.umm-paginator-btn {
+.umm-paginator-btn,
+.umm-reviews-page,
+.umm-doulist-page,
+.umm-celebrities-page,
+.umm-umedia-page {
   font-family: inherit;
   font-size: var(--umm-font-xs, 0.75rem);
   line-height: 1;
@@ -27,10 +40,19 @@
   border-radius: 6px;
   font-weight: 500;
   color: var(--umm-text-secondary);
+  text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.umm-paginator-btn:hover:not(:disabled) {
+.umm-paginator-btn:hover:not(:disabled),
+.umm-reviews-page:hover,
+.umm-doulist-page:hover,
+.umm-celebrities-page:hover {
   background: var(--umm-bg, #fff);
+  color: var(--umm-text-primary);
+}
+/* user-media hover uses --umm-bg-secondary */
+.umm-umedia-page:hover {
+  background: var(--umm-bg-secondary);
   color: var(--umm-text-primary);
 }
 .umm-paginator-btn:disabled {
@@ -46,6 +68,31 @@
 .umm-paginator-btn--active:hover {
   background: var(--umm-text-primary, #333);
   color: var(--umm-bg, #fff);
+}
+/* Page-specific active states (accent tokens set per-page) */
+.umm-reviews-page--active {
+  background: var(--umm-rev-accent);
+  color: #fff;
+  font-weight: 700;
+}
+.umm-celebrities-page--active {
+  background: var(--umm-cel-accent);
+  color: #fff;
+  font-weight: 700;
+}
+.umm-doulist-page--active {
+  background: var(--dc-accent);
+  color: #fff;
+  font-weight: 700;
+}
+.umm-umedia-page--active {
+  background: var(--umm-umedia-accent);
+  color: #fff;
+  font-weight: 700;
+}
+.umm-umedia-page--active:hover {
+  background: var(--umm-umedia-accent);
+  color: #fff;
 }
 /* Ellipsis separator between page ranges */
 .umm-paginator-ellipsis {

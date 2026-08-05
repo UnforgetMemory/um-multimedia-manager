@@ -9,6 +9,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
+import { storeKey } from '@/entrypoints/content/ui/video-overlay-pure'
 
 export default defineContentScript({
   matches: ['*://www.bilibili.com/*', '*://search.bilibili.com/*'],
@@ -147,7 +148,7 @@ export default defineContentScript({
       if (batch.length === 0) return
 
       for (const { el, bvid } of batch) {
-        const key = 'video::' + bvid
+        const key = storeKey(bvid) // decision-3: canonical 'movie::' key (v13 migration)
         chrome.runtime.sendMessage(
           { type: 'DB_GET', payload: { storeName: STORE, key } },
           (resp) => {

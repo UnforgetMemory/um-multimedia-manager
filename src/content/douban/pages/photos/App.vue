@@ -2,7 +2,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
-import { ASPECT_RATIO } from '@/content/douban/shared/constants'
+import { ASPECT_RATIO } from '@/content/douban/shared/media-formats'
 import type { PhotosPageData, PhotoItem } from './photos-data'
 
 const props = defineProps<{ data: PhotosPageData }>()

@@ -9,11 +9,12 @@ export const mountAlbums = definePageMount({
   importApp: () => import('./App.vue'),
   async beforeMount() {
     const { extractAlbumsData } = await import('./albums-data')
-    const [data, recordMap] = await Promise.all([
-      extractAlbumsData(),
-      loadRecordMap(),
-    ])
+    const data = extractAlbumsData()
     if (!data) throw new Error('[UMM] Could not extract albums data')
+    // music.douban.com/albums — all versions are music subjects; thread their
+    // ids for a targeted batch read instead of a full-store scan
+    const ids = data.versions.filter((v) => v.id).map((v) => String(v.id))
+    const recordMap = await loadRecordMap('music', ids)
     hideNavForPage({ type: 'albums' })
     return { data, recordMap }
   },

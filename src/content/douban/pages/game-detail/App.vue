@@ -4,9 +4,10 @@ import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmInterestBar } from '@/content/douban/components/UmmInterestBar'
 import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
-import { ASPECT_RATIO } from '@/content/douban/shared/constants'
+import { ASPECT_RATIO } from '@/content/douban/shared/media-formats'
+import { metaToChips, ratingBarWidth, starClass as starClassFn, openLink, handleInterestSave } from '@/content/douban/shared/detail-ui'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
-import { onCrossPlatformSave, syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
+import { syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
 import { Store } from '@/features/database'
 import type { GameDetailData } from './game-detail-data'
 
@@ -27,13 +28,14 @@ function updateRecord(newRecord: { status: number; rating: number } | null) {
 }
 
 async function onInterestSave(interest: 'wish' | 'do' | 'collect', stars: number, tags: string, comment: string) {
-  const ok = await interested.submitInterest(interest, stars || undefined, tags || undefined, comment || undefined)
-  if (!ok) return
-  const newStatus = interest === 'collect' ? 2 : interest === 'do' ? 3 : 1
-  const newRating = stars * 2
-  record.value = { status: newStatus, rating: newRating }
-  const identity = { platform: 'douban' as const, type: 'game', providerId: d.identity.providerId, url: window.location.href }
-  await onCrossPlatformSave({ identity, interest, stars, comment, newStatus, newRating })
+  await handleInterestSave(
+    {
+      interested,
+      identity: { platform: 'douban', type: 'game', providerId: d.identity.providerId, url: window.location.href },
+      setRecord: (r) => { record.value = r },
+    },
+    interest, stars, tags, comment,
+  )
 }
 
 onMounted(() => {
@@ -60,58 +62,11 @@ onMounted(() => {
   })
 })
 
-const starClass = computed(() => d.bigstarNum ? `bigstar bigstar${d.bigstarNum}` : '')
-
-function ratingBarWidth(pct: string): string {
-  return `${parseFloat(pct.replace('%', '')) || 0}%`
-}
-
-function metaToChips(html: string): string {
-  const leading = html.match(/^(<[^>]+>)+/)
-  const trailing = html.match(/(<\/[^>]+>)+$/)
-  const prefix = leading?.[0] ?? ''
-  const suffix = trailing?.[0] ?? ''
-  let core = html
-  if (prefix) core = core.slice(prefix.length)
-  if (suffix && core.endsWith(suffix)) core = core.slice(0, -suffix.length)
-
-  let result = ''
-  let inTag = false
-  let i = 0
-  while (i < core.length) {
-    const ch = core[i]
-    if (ch === '<') { inTag = true; result += ch; i++; continue }
-    if (inTag) { result += ch; if (ch === '>') inTag = false; i++; continue }
-    if (ch === '/' && i > 0 && i < core.length - 1 && /\s/.test(core[i - 1]) && /\s/.test(core[i + 1])) {
-      result = result.replace(/\s+$/, '')
-      let j = i + 2
-      while (j < core.length && /\s/.test(core[j])) j++
-      while (j < core.length && core[j] === '<') {
-        const closeEnd = core.indexOf('>', j)
-        if (closeEnd === -1) break
-        const tag = core.slice(j, closeEnd + 1)
-        if (tag.startsWith('</')) {
-          result += tag
-          j = closeEnd + 1
-          while (j < core.length && /\s/.test(core[j])) j++
-        } else { break }
-      }
-      result += '</span><span class="umm-meta-chip">'
-      i = j
-      continue
-    }
-    result += ch
-    i++
-  }
-  result = result.replace(/<a(?=\s)(?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer"')
-  return prefix + '<span class="umm-meta-chip">' + result + '</span>' + suffix
-}
+const starClass = computed(() => starClassFn(d.bigstarNum))
 
 defineExpose({ updateRecord })
 
-function openLink(url: string): void {
-  window.open(url, '_blank')
-}
+
 </script>
 
 <template>

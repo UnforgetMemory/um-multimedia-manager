@@ -8,6 +8,7 @@
  */
 
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
+import { statusBadgeLabels } from '@/content/douban/shared/status-labels'
 import type { DoulistDetailPageData, DoulistDetailItem } from './types'
 
 const props = defineProps<{
@@ -44,6 +45,14 @@ function formatCount(n: number): string {
   if (n >= 10000) return (n / 10000).toFixed(1) + '万'
   if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
   return n.toString()
+}
+
+// Status label helper for doulist items
+function statusBadgeText(status: number, rating: number): string {
+  const labels = statusBadgeLabels.movie
+  if (status === 2) return rating > 0 ? `${labels.done} ${rating}` : labels.done
+  if (status === 1) return labels.wish
+  return ''
 }
 </script>
 
@@ -118,11 +127,11 @@ function formatCount(n: number): string {
                     <span
                       v-if="getItemRecord(item)!.status === 2"
                       class="umm-status umm-status--inline umm-status--done"
-                    >{{ getItemRecord(item)!.rating && getItemRecord(item)!.rating > 0 ? `已看 ${getItemRecord(item)!.rating}` : '已看' }}</span>
+                    >{{ statusBadgeText(getItemRecord(item)!.status, getItemRecord(item)!.rating) }}</span>
                     <span
                       v-else-if="getItemRecord(item)!.status === 1"
                       class="umm-status umm-status--inline umm-status--wish"
-                    >想看</span>
+                    >{{ statusBadgeText(getItemRecord(item)!.status, 0) }}</span>
                   </template>
 
                   <a

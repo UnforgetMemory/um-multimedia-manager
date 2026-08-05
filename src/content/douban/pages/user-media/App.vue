@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { statusBadgeLabels } from '../../shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmRating } from '@/content/douban/components/UmmRating'
 import type { UserMediaPageData } from './types'
@@ -18,10 +19,11 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.nextPageUrl,
 )
 const titleLabel = computed(() => {
+  const labels = statusBadgeLabels.movie
   switch (props.data.subType) {
-    case 'wish': return '想看'
-    case 'doing': return '在看'
-    default: return '看过'
+    case 'wish': return labels.wish
+    case 'doing': return labels.doing
+    default: return labels.done
   }
 })
 </script>

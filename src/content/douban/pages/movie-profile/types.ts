@@ -23,14 +23,6 @@ export interface MovieProfileDoulist {
   followers: number
 }
 
-export interface MovieProfileReview {
-  title: string
-  url: string
-  subjectTitle: string
-  subjectUrl: string
-  summary: string
-}
-
 export interface MovieProfileData {
   userId: string
   displayName: string
