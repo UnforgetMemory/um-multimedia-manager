@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { collapseInputSpaces, normalizeSearchQuery } from '@/utils/search-normalizer'
+import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/utils/search-normalizer'
 
 test.describe('normalizeSearchQuery', () => {
   test.describe('season/episode markers', () => {
@@ -285,5 +285,42 @@ test.describe('normalizeSearchQuery', () => {
 
     test('trigger-time trim still strips trailing space (doSearch path)', () => {
       expect(normalizeSearchQuery('Mean Streets ')).toBe('Mean Streets')
+    })
+  })
+
+  test.describe('normalizeSearchQueryLive (debounced real-time normalization)', () => {
+    test('full normalization applies while typing (dots → spaces)', () => {
+      expect(normalizeSearchQueryLive('Mean.Streets.1973.CC')).toBe('Mean Streets 1973')
+    })
+
+    test('single trailing space preserved (the f80913b regression guard)', () => {
+      expect(normalizeSearchQueryLive('Mean Streets ')).toBe('Mean Streets ')
+    })
+
+    test('two+ trailing spaces fold to one', () => {
+      expect(normalizeSearchQueryLive('Mean Streets  ')).toBe('Mean Streets ')
+    })
+
+    test('trailing space survives full normalization of dotted input', () => {
+      expect(normalizeSearchQueryLive('Mean.Streets.1973.CC ')).toBe('Mean Streets 1973 ')
+    })
+
+    test('CJK phrase with trailing space keeps both the phrase and the space', () => {
+      expect(normalizeSearchQueryLive('CC字幕 ')).toBe('CC字幕 ')
+    })
+
+    test('idempotent: normalizing an already-normalized live query is a no-op', () => {
+      const once = normalizeSearchQueryLive('Mean Streets 1973 ')
+      expect(normalizeSearchQueryLive(once)).toBe(once)
+    })
+
+    test('empty and whitespace-only inputs stay empty', () => {
+      expect(normalizeSearchQueryLive('')).toBe('')
+      expect(normalizeSearchQueryLive(' ')).toBe('')
+      expect(normalizeSearchQueryLive('   ')).toBe('')
+    })
+
+    test('leading spaces trimmed, one trailing space kept', () => {
+      expect(normalizeSearchQueryLive('  Mean.Streets ')).toBe('Mean Streets ')
     })
   })

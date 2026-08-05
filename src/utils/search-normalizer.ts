@@ -106,10 +106,32 @@ export function normalizeSearchQuery(raw: string): string {
  * Live-typing helper for the search input: collapse runs of 2+ ASCII spaces
  * into a single space so at most ONE trailing space survives while typing.
  *
- * Deliberately does NOT trim — left/right trimming happens on search trigger
- * via {@link normalizeSearchQuery}. This lets the user end their query with a
- * single space (e.g. "Mean Streets ") without it being stripped mid-typing.
+ * Deliberately does NOT trim — L/R trimming happens on search trigger
+ * (normalizeSearchQuery) and in the live path (normalizeSearchQueryLive,
+ * which preserves a single trailing space).
  */
 export function collapseInputSpaces(raw: string): string {
   return raw.replace(/ {2,}/g, ' ')
+}
+
+/**
+ * Live-typing variant of {@link normalizeSearchQuery} for debounced
+ * real-time normalization in the search input.
+ *
+ * Runs the FULL normalization (dots/brackets/symbols → spaces, season
+ * markers, release-marker stripping) but preserves at most ONE trailing
+ * space: the user can end their query with a single space while typing
+ * ("Mean Streets " survives) without the space being stripped mid-typing —
+ * the exact regression fixed by commit f80913b for collapseInputSpaces
+ * must not return via the live path. 2+ trailing spaces fold to one.
+ *
+ * Idempotent (normalizeSearchQuery is idempotent), so repeated debounced
+ * runs on an already-normalized query are no-ops — no cursor churn.
+ */
+export function normalizeSearchQueryLive(raw: string): string {
+  const hasTrailingSpace = / $/.test(raw)
+  const normalized = normalizeSearchQuery(raw.trimEnd())
+  // Anti-lone-space invariant: a trailing space is only re-appended to a
+  // NON-EMPTY result — whitespace-only input must collapse to '' (not ' ').
+  return normalized && hasTrailingSpace ? `${normalized} ` : normalized
 }

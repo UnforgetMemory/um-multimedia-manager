@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
-import { collapseInputSpaces, normalizeSearchQuery } from '@/utils/search-normalizer'
+import { ref, nextTick, onUnmounted } from 'vue'
+import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/utils/search-normalizer'
 
 /**
  * Unified search & navigation bar for all Douban pages.
@@ -25,8 +25,23 @@ const props = withDefaults(defineProps<{
 })
 
 const searchQuery = ref(props.initialQuery)
+const searchInputEl = ref<HTMLInputElement | null>(null)
 const isSearching = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Debounced real-time normalization timer (see handleInput/applyLiveNormalization).
+ */
+let normalizeTimer: ReturnType<typeof setTimeout> | null = null
+/** Cursor position captured at the last input event, restored after live normalization. */
+let pendingCursor = -1
+/**
+ * True while an IME composition is active. Rewriting the input value or moving
+ * the caret mid-composition aborts/desyncs the IME candidate session (a real
+ * hazard on a Chinese-language product), so the debounced normalization is
+ * suspended while composing and re-armed once composition ends.
+ */
+let composing: boolean = false
 
 const catMap: Record<string, string> = { movie: '1002', music: '1003', book: '1001', game: '3114' }
 const labelMap: Record<string, string> = { movie: '电影', music: '音乐', book: '图书', game: '游戏' }
@@ -40,21 +55,83 @@ function open(url: string): void {
 }
 
 /**
- * Live-typing handler: collapse runs of 2+ spaces into a single space so at
- * most ONE trailing space survives while typing ("Mean Streets " stays put,
- * "Mean Streets  " becomes "Mean Streets "). L/R trimming is deliberately
- * deferred to search trigger — {@link doSearch} runs normalizeSearchQuery,
- * which ends in .trim().
+ * Live-typing handler (fired on every keystroke):
+ * 1. Collapse runs of 2+ spaces immediately so at most ONE trailing space
+ *    survives while typing ("Mean Streets " stays put, "Mean Streets  "
+ *    becomes "Mean Streets ") — instant, no debounce.
+ * 2. Schedule the FULL debounced normalization (~400ms after typing stops).
+ * L/R trimming is deliberately NOT done here — it happens on search trigger
+ * (doSearch → normalizeSearchQuery) and in the live path via
+ * normalizeSearchQueryLive, which preserves a single trailing space.
  */
 function handleInput(): void {
   const collapsed = collapseInputSpaces(searchQuery.value)
   if (collapsed !== searchQuery.value) {
     searchQuery.value = collapsed
   }
+  // Skip the debounced full normalization while an IME composition is active
+  // (rewriting value mid-composition aborts the candidate session).
+  if (composing) return
+  // remember caret for cursor restoration after the debounced rewrite.
+  // Note: read from the DOM BEFORE Vue flushes the instant collapse above, so
+  // the index may reference the pre-collapse text; the clamp in restoreCursor
+  // keeps end-of-input (the typing case) exact.
+  pendingCursor = searchInputEl.value?.selectionStart ?? -1
+  if (normalizeTimer) clearTimeout(normalizeTimer)
+  normalizeTimer = setTimeout(applyLiveNormalization, 400)
+}
+
+/** Composition started — suspend the debounced normalization (see composing). */
+function onCompositionStart(): void {
+  composing = true
+}
+
+/** Composition ended — the final value deserves one debounced normalization. */
+function onCompositionEnd(): void {
+  composing = false
+  pendingCursor = searchInputEl.value?.selectionStart ?? -1
+  if (normalizeTimer) clearTimeout(normalizeTimer)
+  normalizeTimer = setTimeout(applyLiveNormalization, 400)
+}
+
+/**
+ * Debounced full normalization: dots/symbols/release-markers are collapsed
+ * live ("Mean.Streets.1973.CC" → "Mean Streets 1973") while a single
+ * trailing space survives. No-op on already-normalized input (idempotent),
+ * so repeated runs do not churn the caret.
+ */
+async function applyLiveNormalization(): Promise<void> {
+  normalizeTimer = null
+  const raw = searchQuery.value
+  const normalized = normalizeSearchQueryLive(raw)
+  if (normalized !== raw) {
+    searchQuery.value = normalized
+    await nextTick() // let Vue flush the input value before restoring the caret
+    restoreCursor()
+  }
+}
+
+/** Restore the caret after a programmatic value rewrite (clamped for mid-edit). */
+function restoreCursor(): void {
+  const el = searchInputEl.value
+  if (!el) return
+  const pos = pendingCursor >= 0 ? Math.min(pendingCursor, el.value.length) : el.value.length
+  el.setSelectionRange(pos, pos)
 }
 
 function doSearch(): void {
+  // A submit while the previous search is still loading (800ms window) is a
+  // no-op; note the pending debounce timer is left to fire harmlessly later
+  // (no navigation happens on this path).
   if (isSearching.value) return
+  // Flush any pending debounced normalization so the search uses the freshest
+  // normalized value and the timer cannot fire mid-navigation.
+  if (normalizeTimer) {
+    clearTimeout(normalizeTimer)
+    normalizeTimer = null
+    const live = normalizeSearchQueryLive(searchQuery.value)
+    if (live !== searchQuery.value) searchQuery.value = live
+  }
   const normalized = normalizeSearchQuery(searchQuery.value)
 
   // Game search: always navigates, even with empty query (shows all games)
@@ -82,6 +159,7 @@ function handleSearch(e: Event): void {
 
 onUnmounted(() => {
   if (searchTimeout) clearTimeout(searchTimeout)
+  if (normalizeTimer) clearTimeout(normalizeTimer)
 })
 </script>
 
@@ -155,6 +233,7 @@ onUnmounted(() => {
     <div class="umm-island-divider"></div>
     <div class="umm-island-search">
       <input
+        ref="searchInputEl"
         :value="searchQuery"
         name="search_text"
         type="search"
@@ -162,6 +241,8 @@ onUnmounted(() => {
         :placeholder="type === 'game' ? '搜索游戏' : type === 'music' ? '搜索音乐、歌手、专辑' : type === 'book' ? '搜索图书、作者、出版社' : '搜索电影、电视剧、影人'"
         autocomplete="off"
         :aria-label="'搜索豆瓣' + labelMap[type]"
+        @compositionstart="onCompositionStart()"
+        @compositionend="onCompositionEnd()"
         @input="searchQuery = ($event.target as HTMLInputElement).value; handleInput()"
       />
       <button
