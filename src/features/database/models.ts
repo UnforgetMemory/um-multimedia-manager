@@ -61,6 +61,26 @@ export function storeNameForPlatform(platform: string): string {
 }
 
 /**
+ * Public semantic contract for the watched-status gate (status === 2 or legacy 'done').
+ *
+ * Referenced by tests/unit/watched-status.spec.ts; not called by getWatchedIds (which
+ * queries the `status` index directly) — keep in sync with that index query.
+ *
+ * Returns true ONLY for status=2 (done/watched). Doing (3) and wishlist (1)
+ * are excluded: in-progress records must not trigger PT dimming or watched
+ * badges. Accepts legacy string statuses from earlier code ("done"→2,
+ * "wish"→1) and treats any other value (missing, null, unknown string) as
+ * status 0 (none).
+ */
+export function isWatchedStatus(rawStatus: unknown): boolean {
+  const status = typeof rawStatus === 'number' ? rawStatus
+    : rawStatus === 'done' ? 2
+    : rawStatus === 'wish' ? 1
+    : 0
+  return status === 2
+}
+
+/**
  * Normalize a legacy video record key to the canonical movie format (decision-3).
  *
  * Bilibili/youtube content scripts historically keyed records as 'video::X' or
@@ -665,13 +685,18 @@ export class MediaDatabase {
   /**
    * Get all keys with status == 2 (watched/done only).
    *
-   * Uses a store cursor + JS status check instead of the status index because:
+   * Uses the `status` index with two key-range cursors (numeric 2 and legacy
+   * string "done") instead of a full-store cursor scan:
    * - Old records may have string status ("done", "wish") saved from earlier code
-   * - IndexedDB key ranges are type-sensitive (numeric lowerBound won't match string keys)
-   * - JS comparison handles both numeric (0, 1, 2) and string ("done", "wish") formats
+   * - IndexedDB key ranges are type-sensitive (numeric 2 and string 'done' are
+   *   DIFFERENT index keys), so both keys are queried explicitly
+   * - isWatchedStatus accepts only numeric 2 and string 'done' as watched, so
+   *   the union of these two index cursors is exactly the watched set — no
+   *   value reads (no structured clone of every record) are needed
    *
-   * NOTE: Only status=2 (watched) is returned — wishlist (status=1) records are
-   * excluded because they should NOT trigger PT site dimming or UI "watched" badges.
+   * NOTE: Only status=2 (watched) is returned — wishlist (status=1) and doing (status=3)
+   * records are excluded because they should NOT trigger PT site dimming or UI
+   * "watched" badges.
    *
    * Returns a Set of record primary keys (e.g., "movie::37332784").
    */
@@ -680,31 +705,45 @@ export class MediaDatabase {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(storeName, 'readonly')
       const store = tx.objectStore(storeName)
-      const request = store.openCursor()
+      const index = store.index('status')
       const ids = new Set<string>()
       let count = 0
+      let pending = 2
 
-      request.onsuccess = () => {
-        const cursor = request.result
-        if (cursor) {
-          const record = cursor.value
-          const rawStatus = record?.status
-          const status = typeof rawStatus === 'number' ? rawStatus
-            : rawStatus === 'done' ? 2
-            : rawStatus === 'wish' ? 1
-            : 0
-          if (status >= 2) {
-            ids.add(cursor.primaryKey as string)
-          }
-          count++
-          cursor.continue()
-        } else {
+      const finish = () => {
+        pending--
+        if (pending === 0) {
           console.log(`[DB] getWatchedIds(${storeName}): scanned ${count} records, found ${ids.size} watched`)
           resolve(ids)
         }
       }
-      request.onerror = () => reject(request.error)
-      tx.onerror = () => reject(tx.error)
+
+      const walk = (request: IDBRequest<IDBCursorWithValue | null>): void => {
+        request.onsuccess = () => {
+          const cursor = request.result
+          if (cursor) {
+            count++
+            ids.add(cursor.primaryKey as string)
+            cursor.continue()
+          } else {
+            finish()
+          }
+        }
+        request.onerror = () => {
+          console.error(`[DB] getWatchedIds(${storeName}) status-index cursor failed:`, request.error)
+          reject(request.error)
+        }
+      }
+
+      // Cursor 1: numeric status 2 (watched). Cursor 2: legacy string 'done'.
+      // A record cannot have both statuses, so the union is the exact watched set.
+      walk(index.openCursor(IDBKeyRange.only(2)))
+      walk(index.openCursor(IDBKeyRange.only('done')))
+
+      tx.onerror = () => {
+        console.error(`[DB] Transaction error on ${storeName}:`, tx.error)
+        reject(tx.error)
+      }
     })
   }
 
