@@ -9,7 +9,7 @@
 <h1 align="center">UMM — 多媒体管理器</h1>
 
 <p align="center">
-  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.7.0-blue?logo=git" alt="Version"></a>
+  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.9.0-blue?logo=git" alt="Version"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen?logo=googlechrome" alt="Chrome"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest_V3-orange?logo=googlechrome" alt="MV3"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-green?logo=apache" alt="License"></a>
@@ -30,26 +30,26 @@
 
 | | |
 |---|---|
-| 🎯 **跨平台标记** | 在豆瓣、IMDb、NeoDB、TMDB、Bangumi 页面一键标记状态和评分 |
+| 🎯 **跨平台标记** | 在豆瓣、IMDb、NeoDB、TMDB、Bangumi、Bilibili、YouTube 页面一键标记状态和评分 |
 | 🔗 **ID 关联** | 自动建立多平台 ID 映射，一份记录关联所有平台 |
 | 🌙 **PT 自动淡化** | 已看种子在支持的 PT 站点自动置灰 |
 | 📦 **WebDAV 备份** | 自动备份到任意 WebDAV 服务器，支持 ZIP 导出/导入 |
 | 🧩 **NeoDB 集成** | 从 NeoDB 拉取评分元数据，支持推送评分 |
 | 🎨 **主题切换** | 亮色、暗色、跟随系统三种主题 |
 | 📊 **统计看板** | 弹窗概览 + 完整选项页（热力图、分布图、评分管理） |
-| 🔞 **成人内容支持** | 统一管理 JavDB、Sehuatang 的观看记录 |
+| 🔞 **成人内容支持** | 统一管理 JavDB、Sehuatang 的观看记录，Mukaku 辅助扫描 |
 | 🌐 **国际化** | 中英文双语支持 |
 
 ## 支持的站点
 
 | 类型 | 站点 |
 |------|------|
-| 影视 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` `bgm.tv` |
+| 影视 | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` `bgm.tv` `bangumi.tv` `chii.in` `bilibili.com` `youtube.com` |
 | 音乐 | `music.douban.com` `neodb.social/album` |
 | 书籍 | `book.douban.com` |
 | 游戏 | `game.douban.com` |
 | PT 站点 | M-Team、Audiences、HDHome、HDArea、OurBits、PTerClub 等 |
-| 成人 | JavDB、Sehuatang |
+| 成人 | JavDB、Sehuatang、Mukaku（辅助扫描） |
 
 ## 快速开始
 
@@ -87,9 +87,11 @@ npm run build
 ```bash
 npm run dev          # 开发模式（热更新）
 npm run build        # 生产构建
-npm run type-check   # TypeScript 类型检查
-npm test             # 运行 Playwright 测试
-npm run zip          # 构建并打包
+npm run type-check    # TypeScript 类型检查
+npm test              # 运行 Playwright 测试
+npm run zip           # 构建并打包
+npm run i18n:check    # 检查 i18n 键完整性
+npm run package:patch # 版本号递增 + 构建 + 打包
 ```
 
 ## 贡献

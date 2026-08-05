@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.9.0] - 2026-08-05
+
+### 新增功能
+
+- **Bangumi 平台接入评分/关联管理**（options）：平台下拉新增 Bangumi；bgm.tv / bangumi.tv / chii.in subject URL 自动检测（autoDetectPlatform）+ 解析/查询/保存；纯数字 ID 规范键统一为 `tv::<id>`（与 Identity.fromUrl / 内容脚本一致，防同 subject 双键）；status=3（在看）标签 + 颜色映射
+
+### 修复与优化
+
+- **豆瓣搜索实时规范化恢复 + 防抖强化**：输入停顿 400ms 后应用完整规范化（"Mean.Streets.1973.CC" → "Mean Streets 1973"），新增 `normalizeSearchQueryLive`（完整规范化 + **尾部单空格保护**，不重蹈 f80913b 覆辙）；UmmDynamicIsland 防抖接线 + 光标恢复（nextTick + selectionStart）+ 搜索触发 flush 防抖（无竞态）+ 卸载清理
+- **video-overlay 纯函数单一来源**：双副本 6 纯函数 + 3 组状态常量收敛到 video-overlay-pure.ts（import 别名 + re-export 保持导出面）；删除无引用死文件 video-overlay-styles.ts / video-overlay-tracker.ts
+- **normalizeStoreRecordKey 去重**：webdav.ts 本地函数 + data.ts 内联三元收敛到 models.ts 单一导出
+- **LD 格式 chip 颜色缺口**：media-formats 契约测试（新增 7 用例）抓到 FORMAT_COLORS 缺 LD 键 + media-chips.css 缺亮/暗色 .umm-chip-ld
+- **UmmStatusBadge 双 union 冗余**：删除本地 UmmBadgeType，统一共享 MediaType
+
+### 安全加固
+
+- **CWE-532 凭据泄漏**：WebDAV 超时错误消息剥离 URL 内嵌 user:pass@（stripUrlCredentials）
+- **CWE-409 压缩炸弹**：unpackageDataset 增加 50MiB blob + 100k 记录硬上限
+- **CWE-915 注入属性保留 + 数组放行**：normalizeStoreRecord 边界硬化（非对象/数组拒绝 INVALID_RECORD、8 字段白名单剥离未知键、status/rating 越界回退中性值、linkedIds 非对象丢弃）
+
+### 测试
+
+- 新增 3 个测试文件 +32 用例：auto-detect（Bangumi URL 检测 + 全平台回归）/ media-formats（格式契约）/ normalize-record（导入边界安全契约）；全量 415 单元测试通过
+
+### 文档
+
+- ADR-009 补记：Decision-1（game done 统一 '玩过'）、collect 页标签统一（读过→已读 等）、FAMILY 1/2 提取函数保留决策（T14 测试锁定）
+
+## [5.8.0] - 2026-08-04
+
+### 新增平台
+
+- **Bangumi 平台支持**（ADR-010）：详情页 umm-status 注入（复用 createDetailPageHandler + resolveIdentity 钩子）、列表页已看标记、Platform.KNOWN / Identity.fromUrl / STORE_NAMES.BANGUMI / DB_VERSION 12 全链路注册，零新增消息类型
+
+### 架构优化（全面优化执行，ADR-009 后续）
+
+- **DB v13 迁移**：bilibili/youtube store key 统一为 `movie::`（normalizeVideoKey，`video::`/裸键自动迁移）+ v8→v9 jav_ids 数据补拷贝（existing wins 防御）
+- **DB_GET_BULK 批量读取消息**：三处契约同步，detail 推荐区从全库扫描 ~1MB → 仅 ~10 key 定向读取（~99% 消息体缩减）；mukaku 改 dbGetWatchedIds
+- **batchPut 单事务多 key 版本化写入**：WebDAV 下载/同步/导入从逐条事务 → 每 store 1 事务；导入/同步任务 60s 超时（原 8s 误杀大库）
+- **video-overlay 共享模块**（bilibili 837→167L / youtube 875→321L）：VideoProgressTracker/主题/模态/推荐位装饰参数化共享，写读改走类型化 Store 消息层
+- **Douban 共享模块**：parse-douban-paginator / status-labels（game done 统一 '玩过'）/ detail-ui / record-cache-core / douban-extract（extractUserProfileInfo）/ media-formats
+- **neodb sync 委托 RecordService**：128 行内联双实现收敛（fork (b) + status>0 门控防降级）
+- **CSS 共享波**：5 页 paginator 变体并入共享文件 + accent token；修复 css-map.ts 缺失 paginator preset
+- **死代码清理第二轮**（净删 ~1,900 行）：~40 符号 + types/messages.ts + shared barrel + skeleton-loader 组件 + dormant BILIBILI_* 消息链路
+- **平台 SSOT 补齐**：storePlatformMap / Statistics / usePlatformMeta 补 bangumi + mukaku
+
+### 备份与版本管理（ADR-011）
+
+- **BACKUP_STORES 白名单**：jav_ids（javdb/sehuatang 成人记录）纳入 WebDAV 三路径备份（原仅 ZIP 导出包含）
+- **数据集版本语义**：CURRENT_DATASET_VERSION + validateDatasetVersion（too old/too new 校验），ZIP 打包写真实版本
+- **导入/恢复自动迁移**：handleImportData + WebDAV 下载/同步对每条记录跑 normalizeStoreRecord 逐级迁移 + normalizeVideoKey 键归一化
+
+### Bug Fixes
+
+- **P0：v13 迁移在 onupgradeneeded 内裸调 db.transaction() 抛 InvalidStateError**（W3C 规范）→ 升级事务 AbortError → DB 打不开 → 全面数据加载失败；改用 request.transaction（升级事务本体）+ 全部请求 onerror 补 preventDefault + try/catch 防砖库（fake-indexeddb 实证）
+- **bilibili 首页/搜索徽章全灭**：bilibili-homepage 仍读 `video::` 键 → 改 storeKey()
+- **DB_GET_BULK 缓存写后不失效**（5s 陈旧状态）：invalidateStoreCaches 补 `bulk:` 前缀精确失效
+- **batchGet 读路径缺 normalizeStoreRecord**（与 get/getAll 对齐）
+- **loadRecord 2s 兜底竞态**：晚到 DB 响应触发重绘，不再卡 '未看'；catch 补日志
+- **neodb.read_text 键缺失**（en-US/zh-CN）：书籍页 done 检测失效 → 补全 4 语言块
+- **waitForElement 超时整页静默失败**：工厂内 try/catch 优雅跳过注入
+- **T12 门控收紧**：neodb 无本地记录时恢复 stub/关联目标创建，done-target skip 保留
+
+### 统计
+
+- popup 移除 bangumi 独立平台计数卡；bangumi 记录按类型（movie/tv/music/book/game）划分统计，与 douban 同机制
+
+### Testing
+
+- 新增 11 个测试文件：db-migration（fake-indexeddb）/ bulk-invalidation / backup-stores / dataset-version / video-overlay / parse-douban-paginator / migration-keys / status-labels / neodb-sync / detail-ui / record-cache / data-scheduler / pt-mteam（375+ 单元测试）
+
 ## [5.6.0] - 2026-08-02
 
 ### Architecture & Maintainability

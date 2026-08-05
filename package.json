@@ -1,7 +1,7 @@
 {
   "name": "um-multimedia-manager",
   "private": true,
-  "version": "5.7.0",
+  "version": "5.9.0",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -55,6 +55,7 @@
     "@wxt-dev/module-vue": "^1.0.3",
     "adm-zip": "^0.6.0",
     "archiver": "^8.0.0",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
     "playwright": "^1.62.1",
     "rimraf": "^6.1.3",
