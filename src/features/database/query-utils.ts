@@ -5,7 +5,7 @@
  * a transaction is open.  No dependency on MediaDatabase.
  */
 
-import type { StoreRecord } from '@/types'
+import { normalizeStoreRecord, MigrationError } from '@/features/migration/models'
 
 // ==================== Pagination ====================
 
@@ -116,7 +116,23 @@ export async function batchGet<T>(
       return new Promise<void>((resolve, reject) => {
         const req = store.get(key)
         req.onsuccess = () => {
-          if (req.result !== undefined) results.set(key, req.result as T)
+          if (req.result !== undefined) {
+            try {
+              // Normalize on read so batchGet returns the same migrated shape
+              // as get/getAll/query.
+              const { record } = normalizeStoreRecord(req.result)
+              results.set(key, record as T)
+            } catch (err: unknown) {
+              if (err instanceof MigrationError) {
+                // Keep the raw value — matches getAll's MigrationError fallback.
+                console.error(`[DB] Migration failed for batchGet key ${String(key)}:`, err.message)
+                results.set(key, req.result as T)
+              } else {
+                reject(err)
+                return
+              }
+            }
+          }
           resolve()
         }
         req.onerror = () => reject(req.error)
@@ -131,14 +147,6 @@ export async function batchGet<T>(
  * Put (insert or update) multiple records in a single transaction.
  * Stamps schema version on each record.
  */
-export async function batchPut(
-  store: IDBObjectStore,
-  entries: Array<{ key: IDBValidKey; value: StoreRecord }>,
-): Promise<void> {
-  for (const { key, value } of entries) {
-    store.put(value, key)
-  }
-}
 
 // ==================== Helpers ====================
 

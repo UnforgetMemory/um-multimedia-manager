@@ -23,8 +23,10 @@ export function useStats(
       else if (r.type === 'book') book++
       else if (r.type === 'game') game++
       if (r.provider === 'bilibili') bilibili++
-    if (r.provider === 'youtube') youtube++
+      if (r.provider === 'youtube') youtube++
     }
+    // Bangumi records are counted by media type (movie/tv/book/music/game) via
+    // their key prefix — no separate platform counter, mirroring douban.
     return { total: records.length + items.length, movie, tv, music, book, game, jav: items.length, bilibili, youtube }
   })
 

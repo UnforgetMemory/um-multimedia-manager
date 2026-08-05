@@ -6,9 +6,14 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { AppSettings, ExportData, Statistics } from '@/types'
-import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
-import { validateExportVersion, getMigrationInfo, MigrationError } from '@/features/migration/models'
+import type { AppSettings, ExportData, Statistics, StoreRecord } from '@/types'
+import { mediaDB, RECORD_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
+import {
+  validateExportVersion,
+  getMigrationInfo,
+  MigrationError,
+  normalizeStoreRecord,
+} from '@/features/migration/models'
 import { settingsCache } from '@/features/settings/cache'
 import { infoLog, warnLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
@@ -49,6 +54,7 @@ const storePlatformMap: Record<string, string> = {
   [STORE_NAMES.TMDB]: 'tmdb',
   [STORE_NAMES.BILIBILI]: 'bilibili',
   [STORE_NAMES.YOUTUBE]: 'youtube',
+  [STORE_NAMES.BANGUMI]: 'bangumi',
 }
 
 /** GET_SETTINGS — return cached settings */
@@ -117,20 +123,36 @@ export async function handleImportData(
   // Clear all stores first
   await mediaDB.clearAll()
 
-  // Import each store — put() auto-stamps schemaVersion + recordVersion
+  // Import each store — batchPut() auto-stamps schemaVersion + recordVersion
+  // (one readwrite transaction per store instead of one per record)
   let totalImported = 0
   for (const [storeName, records] of Object.entries(payload.stores)) {
     if (!RECORD_STORES.includes(storeName) && storeName !== STORE_NAMES.JAV_IDS) continue
+    const batch: Array<{ key: string; record: StoreRecord }> = []
     for (const [key, record] of Object.entries(records)) {
-      // Normalize: ensure required fields exist (imported JSON may omit them)
-      record.linkedIds ??= {}
-      record.url ??= ''
-      record.status ??= 0
-      record.rating ??= 0
-      record.updatedAt ??= new Date().toISOString()
-      await mediaDB.put(storeName, key, record)
+      // Normalize: apply full iterative schema migration (0→1→2) instead of
+      // manual field defaults — imported JSON may be from older export
+      // versions missing fields (e.g. comment for v1-schema records)
+      let migrated: StoreRecord
+      try {
+        migrated = normalizeStoreRecord(record).record
+      } catch (err: unknown) {
+        if (err instanceof MigrationError) {
+          warnLog(`Skipping record ${key} in ${storeName}: ${err.message}`)
+          continue
+        }
+        throw err
+      }
+      // Bilibili/youtube: rewrite legacy 'video::X' / bare 'X' keys to the
+      // canonical 'movie::X' form (decision-3), mirroring the v13 DB
+      // migration — a pre-v13 backup would otherwise land under 'video::'
+      // keys that movie::-reading code never finds. Duplicate canonical
+      // keys within one batch: last write wins (batchPut puts sequentially).
+      const normalizedKey = normalizeStoreRecordKey(storeName, key)
+      batch.push({ key: normalizedKey, record: migrated })
       totalImported++
     }
+    if (batch.length > 0) await mediaDB.batchPut(storeName, batch)
   }
 
   // Import settings if present (whitelist allowed keys only — excludes credentials)
@@ -158,6 +180,7 @@ export async function handleGetStatistics(sendResponse: SendResponse) {
     douban: 0, imdb: 0, neodb: 0, tmdb: 0,
     bilibili: 0,
     youtube: 0,
+    bangumi: 0,
   }
 
   for (const storeName of RECORD_STORES) {

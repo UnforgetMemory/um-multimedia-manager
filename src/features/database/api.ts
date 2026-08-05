@@ -60,6 +60,14 @@ export async function dbGetAll(
   return res?.entries || []
 }
 
+export async function dbGetBulk(
+  storeName: string,
+  keys: string[]
+): Promise<Array<{ key: string; record: StoreRecord }>> {
+  const res = await send('DB_GET_BULK', { storeName, keys })
+  return res?.entries || []
+}
+
 export async function dbQuery(
   storeName: string,
   indexName: string,
@@ -144,7 +152,7 @@ export async function getStatistics(): Promise<Statistics> {
   const res = await send('GET_STATISTICS', undefined)
   return res?.stats || {
     total: 0, movie: 0, tv: 0, music: 0, book: 0,
-    douban: 0, imdb: 0, neodb: 0, tmdb: 0, bilibili: 0, youtube: 0,
+    douban: 0, imdb: 0, neodb: 0, tmdb: 0, bilibili: 0, youtube: 0, bangumi: 0,
   }
 }
 

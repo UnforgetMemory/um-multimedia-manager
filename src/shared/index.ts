@@ -1,2 +1,0 @@
-// Shared module — unique content only (no re-export indirection).
-export { UrlResolverBuilder, UrlResolverBuilder as Identity, PT_HOSTS, MTEAM_HOSTS, isPTSite, isPTDetailPage, isPTListPage } from './identity'

@@ -21,6 +21,14 @@ import { RateLimiter } from './rate-limiter'
 import { RetryPolicy } from './retry-policy'
 import { SchedulerMonitor } from './scheduler-monitor'
 import { CacheManager } from '@/features/cache/cache-manager'
+import { sleep } from '@/utils'
+
+/**
+ * Backoff after a rate-limit acquire timeout before retrying the loop.
+ * Matches RateLimiter's acquire window (10s) so we don't busy-spin while
+ * the limiter is still saturated.
+ */
+const RATE_LIMIT_RETRY_BACKOFF_MS = 10_000
 
 export class DataScheduler {
   readonly queue = new PriorityQueue()
@@ -32,9 +40,11 @@ export class DataScheduler {
 
   private processing = false
   private taskCounter = 0
+  private readonly rateLimitBackoffMs: number
 
-  constructor(cacheManager?: CacheManager) {
+  constructor(cacheManager?: CacheManager, rateLimitBackoffMs: number = RATE_LIMIT_RETRY_BACKOFF_MS) {
     this.cacheManager = cacheManager
+    this.rateLimitBackoffMs = rateLimitBackoffMs
   }
 
   // ==================== Public API ====================
@@ -146,8 +156,10 @@ export class DataScheduler {
         try {
           await this.rateLimiter.acquire()
         } catch {
-          // Rate-limit timeout — skip this tick, retry later
-          break
+          // Rate-limit timeout — back off for the limiter's acquire window,
+          // then keep the loop alive so queued tasks still run.
+          await sleep(this.rateLimitBackoffMs)
+          continue
         }
 
         const task = this.queue.dequeue() as QueuedTask | null
@@ -164,13 +176,19 @@ export class DataScheduler {
   private async executeTask(task: QueuedTask): Promise<void> {
     const startTime = Date.now()
 
-    try {
-      // Apply per-task timeout
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Task ${task.id} timed out after ${task.timeout}ms`)), task.timeout),
+    // Per-task timeout — keep the handle so it can be cleared once the race
+    // settles; a leaked timer would keep the Service Worker alive.
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(
+        () => reject(new Error(`Task ${task.id} timed out after ${task.timeout}ms`)),
+        task.timeout,
       )
+    })
 
+    try {
       const result = await Promise.race([task.operation(), timeoutPromise])
+      clearTimeout(timeoutHandle)
 
       this.monitor.recordEvent({
         type: 'task:completed',
@@ -181,6 +199,8 @@ export class DataScheduler {
 
       task.resolve(result)
     } catch (error: unknown) {
+      clearTimeout(timeoutHandle)
+
       this.monitor.recordEvent({
         type: 'task:failed',
         taskId: task.id,

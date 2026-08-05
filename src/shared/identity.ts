@@ -42,29 +42,6 @@ export const PT_HOSTS = [
 /** M-Team subdomains */
 export const MTEAM_HOSTS = ['kp.m-team.cc', 'next.m-team.cc', 'www.m-team.cc'] as const;
 
-/**
- * Check whether a URL belongs to any PT site.
- */
-export function isPTSite(url: string): boolean {
-  return PT_HOSTS.some(h => url.includes(h)) || MTEAM_HOSTS.some(h => url.includes(h));
-}
-
-/**
- * Check whether a URL is a PT detail page.
- */
-export function isPTDetailPage(url: string): boolean {
-  if (url.includes('m-team.cc/detail') && !url.includes('/browse')) return true;
-  return PT_HOSTS.some(h => url.includes(h)) && url.includes('details.php');
-}
-
-/**
- * Check whether a URL is a PT torrent listing page.
- */
-export function isPTListPage(url: string): boolean {
-  if (url.includes('m-team.cc') && (url.includes('/browse') || url.includes('#/browse'))) return true;
-  return PT_HOSTS.some(h => url.includes(`/${h}/torrents.php`) || url.includes(`/${h}/videos.php`));
-}
-
 // ==================== Identity Object (UrlIdentity DTO adapter) ====================
 
 export const UrlResolverBuilder = {

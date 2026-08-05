@@ -26,7 +26,7 @@ export interface PausableInterval {
  */
 export function intervalWhenVisible(fn: () => void, delay: number): PausableInterval {
   let paused = document.hidden
-  let timer = setInterval(tick, delay)
+  let timer: ReturnType<typeof setInterval> | null = setInterval(tick, delay)
 
   function tick(): void {
     if (document.hidden || paused) return
@@ -48,28 +48,11 @@ export function intervalWhenVisible(fn: () => void, delay: number): PausableInte
       paused = true
     },
     destroy() {
-      clearInterval(timer)
-      timer = -1 as unknown as ReturnType<typeof setInterval>
+      if (timer !== null) {
+        clearInterval(timer)
+        timer = null
+      }
       document.removeEventListener('visibilitychange', onVisibilityChange)
     },
   }
-}
-
-/**
- * Pause an existing setInterval when the document is hidden.
- * A lighter alternative to intervalWhenVisible — use when you already
- * have a setInterval handle and just want to gate execution.
- *
- * @returns cleanup function
- */
-export function pauseWhenHidden(
-  intervalHandle: ReturnType<typeof setInterval>,
-): () => void {
-  function check() {
-    if (document.hidden) {
-      clearInterval(intervalHandle)
-    }
-  }
-  document.addEventListener('visibilitychange', check)
-  return () => document.removeEventListener('visibilitychange', check)
 }

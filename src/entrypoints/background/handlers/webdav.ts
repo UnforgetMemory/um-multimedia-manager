@@ -5,8 +5,9 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap } from '@/types'
-import { mediaDB, RECORD_STORES, STORE_NAMES } from '@/features/database/models'
+import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord } from '@/types'
+import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
+import { normalizeStoreRecord } from '@/features/migration/models'
 import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 import { calculateStoreHash } from '@/utils/hash-utils'
@@ -28,6 +29,14 @@ async function getWebDAVSettings() {
     webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
   }
 }
+
+/**
+ * Normalize a record key for bilibili/youtube stores: legacy 'video::X' / bare
+ * 'X' keys from a pre-v13 backup must land as canonical 'movie::X'
+ * (decision-3), mirroring the v13 DB migration — otherwise restored records
+ * stay under 'video::' keys that movie::-reading code never finds. Duplicate
+ * canonical keys within one batch: last write wins (batchPut puts sequentially).
+ */
 
 /** Build local meta for all record stores */
 async function buildLocalMeta(): Promise<RemoteMeta> {
@@ -123,7 +132,8 @@ export async function handleWebDAVUpload(sendResponse: SendResponse) {
     let totalUploaded = 0
     const datasetMetas: DatasetMeta[] = []
 
-    for (const storeName of RECORD_STORES) {
+    // Backup all record stores plus jav_ids so adult viewing history is included too.
+    for (const storeName of BACKUP_STORES) {
       const entries = await mediaDB.getAll(storeName)
       if (entries.length === 0) {
         datasetMetas.push({
@@ -181,21 +191,31 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
     let totalDownloaded = 0
     for (const ds of remoteMeta.datasets) {
       if (ds.recordCount === 0) continue
-      // Security: only accept datasets whose store name is a known record store.
-      // remoteMeta comes from an external WebDAV server and is attacker-influenceable;
-      // an arbitrary store name would let a malicious server write into any store.
-      if (!RECORD_STORES.includes(ds.key as RecordStoreName)) {
-        errorLog(`WebDAV download skipped '${ds.key}': not a known record store`)
+      // Security: only accept datasets whose store name is a known backup store
+      // (record stores + jav_ids). remoteMeta comes from an external WebDAV server
+      // and is attacker-influenceable; an arbitrary store name would let a malicious
+      // server write into any store.
+      if (!BACKUP_STORES.includes(ds.key as RecordStoreName)) {
+        errorLog(`WebDAV download skipped '${ds.key}': not a known backup store`)
         continue
       }
       try {
         const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, ds.key)
         const { data } = await unpackageDataset(blob)
+        const batch: Array<{ key: string; record: StoreRecord }> = []
         for (const [key, record] of Object.entries(data)) {
           // Validate record shape before writing (external data is untrusted).
           if (typeof record !== 'object' || record === null || typeof key !== 'string') continue
-          await mediaDB.put(ds.key as RecordStoreName, key, record)
+          try {
+            // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
+            // A too-new record throws MigrationError — skip just that record.
+            const { record: migrated } = normalizeStoreRecord(record)
+            batch.push({ key: normalizeStoreRecordKey(ds.key, key), record: migrated })
+          } catch (err: unknown) {
+            errorLog(`WebDAV download skipped record '${key}' in '${ds.key}': ${errorMessage(err)}`)
+          }
         }
+        if (batch.length > 0) await mediaDB.batchPut(ds.key as RecordStoreName, batch)
         totalDownloaded += Object.keys(data).length
       } catch (dsErr: unknown) {
         errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
@@ -243,12 +263,12 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
       const local = localMap.get(key)
       const remote = remoteMap.get(key)
 
-      // Security: mirror the download-path guard — only sync known record stores.
-      // remoteMeta.datasets[].key is attacker-influenceable on a malicious/compromised
-      // WebDAV endpoint; writing into non-record stores (pt_id_cache / jav_ids / ttl_cache)
-      // would poison them (wrong PT dimming, adult-content marked viewed, stale cache).
-      if (!RECORD_STORES.includes(key as RecordStoreName)) {
-        errorLog(`WebDAV sync skipped dataset '${key}': not a known record store`)
+      // Security: mirror the download-path guard — only sync known backup stores
+      // (record stores + jav_ids). remoteMeta.datasets[].key is attacker-influenceable
+      // on a malicious/compromised WebDAV endpoint; writing into non-backup stores
+      // (pt_id_cache / ttl_cache) would poison them (wrong PT dimming, stale cache).
+      if (!BACKUP_STORES.includes(key as RecordStoreName)) {
+        errorLog(`WebDAV sync skipped dataset '${key}': not a known backup store`)
         resultingMetas.push(local || remote || {
           key,
           hash: 'empty',
@@ -287,10 +307,19 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
         if (!local || local.recordCount === 0) {
           const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
           const { data } = await unpackageDataset(blob)
+          const batch: Array<{ key: string; record: StoreRecord }> = []
           for (const [recordKey, record] of Object.entries(data)) {
             if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
-            await mediaDB.put(key as RecordStoreName, recordKey, record)
+            try {
+              // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
+              // A too-new record throws MigrationError — skip just that record.
+              const { record: migrated } = normalizeStoreRecord(record)
+              batch.push({ key: normalizeStoreRecordKey(key, recordKey), record: migrated })
+            } catch (err: unknown) {
+              errorLog(`WebDAV sync skipped record '${recordKey}' in '${key}': ${errorMessage(err)}`)
+            }
           }
+          if (batch.length > 0) await mediaDB.batchPut(key as RecordStoreName, batch)
           resultingMetas.push(remote)
           downloaded += Object.keys(data).length
           continue
@@ -313,10 +342,19 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
         } else {
           const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
           const { data } = await unpackageDataset(blob)
+          const batch: Array<{ key: string; record: StoreRecord }> = []
           for (const [recordKey, record] of Object.entries(data)) {
             if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
-            await mediaDB.put(key as RecordStoreName, recordKey, record)
+            try {
+              // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
+              // A too-new record throws MigrationError — skip just that record.
+            const { record: migrated } = normalizeStoreRecord(record)
+            batch.push({ key: normalizeStoreRecordKey(key, recordKey), record: migrated })
+          } catch (err: unknown) {
+            errorLog(`WebDAV sync skipped record '${recordKey}' in '${key}': ${errorMessage(err)}`)
+            }
           }
+          if (batch.length > 0) await mediaDB.batchPut(key as RecordStoreName, batch)
           resultingMetas.push(remote)
           downloaded += Object.keys(data).length
         }

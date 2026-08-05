@@ -122,14 +122,6 @@ export interface SchedulerEvent {
 
 export type EventListener = (event: SchedulerEvent) => void
 
-// ==================== Cache ====================
-
-export interface CacheEntry<T = unknown> {
-  data: T
-  timestamp: number
-  ttl: number
-}
-
 // ==================== Constants ====================
 
 export const MAX_QUEUE_SIZE = 1000

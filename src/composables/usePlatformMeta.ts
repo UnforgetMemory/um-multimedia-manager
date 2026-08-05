@@ -3,6 +3,8 @@ export const PLATFORM_LABELS: Record<string, string> = {
   javdb: 'JavDB', sehuatang: '色花堂', local: '本地',
   bilibili: 'B站',
   youtube: 'YouTube',
+  bangumi: 'Bangumi',
+  mukaku: 'Mukaku',
 }
 
 export const PLATFORM_HUES: Record<string, number> = {
@@ -10,6 +12,8 @@ export const PLATFORM_HUES: Record<string, number> = {
   javdb: 0, sehuatang: 25, local: 200,
   bilibili: 340,
   youtube: 10,
+  bangumi: 355,
+  mukaku: 300,
 }
 
 export function usePlatformColor(hue: number) {

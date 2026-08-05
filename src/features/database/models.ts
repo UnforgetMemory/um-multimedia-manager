@@ -5,7 +5,7 @@
  * - Each platform gets its own object store: douban_records, imdb_records, neodb_records, tmdb_records
  * - Record key format: "type::providerId" (e.g. "movie::37332784")
  * - Cross-platform links stored in `linkedIds` map on each record
- * - TTL cache and sync logs stores maintained for supporting functionality
+ * - TTL cache store maintained for supporting functionality
  * - PT ID cache stores PT→platform ID mappings from detail pages
  *
  * Record-level schema migration:
@@ -26,7 +26,7 @@ import type { PageQueryOptions, PageResult } from './query-utils'
 import type { WriteResult } from '@/features/optimistic-lock/types'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 12
+export const DB_VERSION = 13
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
@@ -37,7 +37,6 @@ export const STORE_NAMES = {
   YOUTUBE: 'youtube_records',
   BANGUMI: 'bangumi_records',
   TTL_CACHE: 'ttl_cache',
-  SYNC_LOGS: 'sync_logs',
   PT_ID_CACHE: 'pt_id_cache',
   JAV_IDS: 'jav_ids',
 } as const
@@ -53,9 +52,40 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.BANGUMI,
 ]
 
+/** All per-platform record stores PLUS jav_ids (adult records) for backup/export */
+export const BACKUP_STORES: readonly string[] = [...RECORD_STORES, STORE_NAMES.JAV_IDS]
+
 /** Helper: get the store name for a platform */
 export function storeNameForPlatform(platform: string): string {
   return `${platform}_records`
+}
+
+/**
+ * Normalize a legacy video record key to the canonical movie format (decision-3).
+ *
+ * Bilibili/youtube content scripts historically keyed records as 'video::X' or
+ * bare 'X'; the canonical key format is 'type::providerId' where video content
+ * belongs under 'movie::X' (v13 migration rewrites stored keys accordingly).
+ *
+ * Rules:
+ * - 'video::X'  → 'movie::X'  (legacy video prefix)
+ * - bare 'X'    → 'movie::X'  (legacy un-prefixed key)
+ * - 'movie::X'  → unchanged
+ * - any other prefixed key ('tv::X', 'music::X', …) → unchanged (callers may report)
+ */
+export function normalizeVideoKey(oldKey: string): string {
+  if (oldKey.startsWith('video::')) return `movie::${oldKey.slice('video::'.length)}`
+  if (!oldKey.includes('::')) return `movie::${oldKey}`
+  return oldKey
+}
+
+/**
+ * Normalize a record key for a specific store (video platforms only).
+ * Single source of truth for WebDAV download/sync and import paths.
+ */
+export function normalizeStoreRecordKey(storeName: string, recordKey: string): string {
+  if (storeName !== STORE_NAMES.BILIBILI && storeName !== STORE_NAMES.YOUTUBE) return recordKey
+  return normalizeVideoKey(recordKey)
 }
 
 export class MediaDatabase {
@@ -97,7 +127,10 @@ export class MediaDatabase {
           const ttlCache = db.createObjectStore(STORE_NAMES.TTL_CACHE)
           ttlCache.createIndex('expiry', 'expiry', { unique: false })
 
-          db.createObjectStore(STORE_NAMES.SYNC_LOGS, { autoIncrement: true })
+          // L8: sync_logs was a dead store (never written by any code path) and
+          // is no longer created for fresh installs. Existing databases keep a
+          // harmless empty sync_logs store — deliberately NO version bump to
+          // avoid forcing a migration on every existing user.
 
           console.log(`[DB] Created v6 schema from scratch`)
         }
@@ -156,6 +189,128 @@ export class MediaDatabase {
             bangumiStore.createIndex('status', 'status', { unique: false })
             bangumiStore.createIndex('updatedAt', 'updatedAt', { unique: false })
             console.log('[DB] Added bangumi_records store')
+          }
+        }
+
+        // v12→v13: jav_ids data copy (M4) + bilibili/youtube key normalization (decision-3)
+        if (oldVersion < 13) {
+          // Runs on the LIVE versionchange upgrade transaction (request.transaction).
+          // Calling db.transaction() inside onupgradeneeded throws InvalidStateError
+          // per spec — the upgrade transaction is still active — which aborts the
+          // upgrade (AbortError) and bricks the DB open. The cursor chains below
+          // keep the versionchange transaction alive until they finish, and every
+          // request error is preventDefault()ed so a mid-migration failure only
+          // logs a warning and does NOT abort the upgrade (the store schema itself
+          // is already in place from the createObjectStore blocks above).
+          const upgradeTx = request.transaction
+          if (!upgradeTx) {
+            console.warn('[DB] v13: no upgrade transaction available, skipping data migration')
+          } else {
+            try {
+              // M4: The v8→v9 block only created jav_ids without copying data from
+              // the legacy sehuatang_avids store (the comment claimed "migrate data"
+              // but no copy was performed). sehuatang_avids was never deleted, so for
+              // databases that upgraded through v8 both stores now exist. Copy every
+              // entry from sehuatang_avids into jav_ids on the upgrade tx.
+              // Defensive: existing jav_ids entries win — a key already present in
+              // jav_ids (added after the v9 upgrade) is NOT overwritten by the stale
+              // sehuatang_avids copy.
+              if (
+                db.objectStoreNames.contains('sehuatang_avids') &&
+                db.objectStoreNames.contains(STORE_NAMES.JAV_IDS)
+              ) {
+                const srcStore = upgradeTx.objectStore('sehuatang_avids')
+                const dstStore = upgradeTx.objectStore(STORE_NAMES.JAV_IDS)
+                const cursorReq = srcStore.openCursor()
+                let copied = 0
+                cursorReq.onsuccess = () => {
+                  const cursor = cursorReq.result
+                  if (!cursor) {
+                    console.log(`[DB] v13: copied ${copied} entries from sehuatang_avids to jav_ids`)
+                    return
+                  }
+                  const existingReq = dstStore.get(cursor.key)
+                  existingReq.onsuccess = () => {
+                    if (existingReq.result === undefined) {
+                      dstStore.put(cursor.value, cursor.key)
+                      copied++
+                    }
+                    cursor.continue()
+                  }
+                  existingReq.onerror = (ev) => {
+                    // preventDefault keeps the upgrade transaction alive —
+                    // an unhandled failed request would abort it.
+                    ev.preventDefault()
+                    console.warn('[DB] v13: sehuatang_avids → jav_ids read failed, skipping key:', cursor.key)
+                    cursor.continue()
+                  }
+                }
+                cursorReq.onerror = (ev) => {
+                  ev.preventDefault()
+                  console.warn('[DB] v13: sehuatang_avids → jav_ids copy partial/failed:', cursorReq.error)
+                }
+              }
+
+              // decision-3: rewrite legacy video keys in bilibili_records and
+              // youtube_records from 'video::X' / bare 'X' to the canonical
+              // 'movie::X' format. Runs on the same upgrade transaction.
+              const normalizeStoreKeys = (storeName: string): void => {
+                const store = upgradeTx.objectStore(storeName)
+                const cursorReq = store.openCursor()
+                let moved = 0
+                cursorReq.onsuccess = () => {
+                  const cursor = cursorReq.result
+                  if (!cursor) {
+                    console.log(`[DB] v13: normalized ${moved} keys in ${storeName}`)
+                    return
+                  }
+                  const oldKey = cursor.key
+                  if (typeof oldKey !== 'string') {
+                    cursor.continue()
+                    return
+                  }
+                  const newKey = normalizeVideoKey(oldKey)
+                  if (newKey === oldKey) {
+                    // 'movie::…' is already canonical; any other prefixed key
+                    // ('tv::…', 'music::…', …) is untouched — report it so the
+                    // unexpected-format key is visible in the logs.
+                    if (!oldKey.startsWith('movie::')) {
+                      console.log(`[DB] v13: key with unrecognized prefix left as-is in ${storeName}: ${oldKey}`)
+                    }
+                    cursor.continue()
+                    return
+                  }
+                  const collisionReq = store.get(newKey)
+                  collisionReq.onsuccess = () => {
+                    if (collisionReq.result === undefined) {
+                      // No collision: move the value to the canonical key.
+                      store.put(cursor.value, newKey)
+                    }
+                    // Collision: keep the existing newKey entry, drop the legacy key.
+                    store.delete(oldKey)
+                    moved++
+                    cursor.continue()
+                  }
+                  collisionReq.onerror = (ev) => {
+                    ev.preventDefault()
+                    console.warn(`[DB] v13: collision check failed in ${storeName}, keeping legacy key ${oldKey}:`, collisionReq.error)
+                    cursor.continue()
+                  }
+                }
+                cursorReq.onerror = (ev) => {
+                  ev.preventDefault()
+                  console.warn(`[DB] v13: key normalization partial/failed for ${storeName}:`, cursorReq.error)
+                }
+              }
+              if (db.objectStoreNames.contains(STORE_NAMES.BILIBILI)) normalizeStoreKeys(STORE_NAMES.BILIBILI)
+              if (db.objectStoreNames.contains(STORE_NAMES.YOUTUBE)) normalizeStoreKeys(STORE_NAMES.YOUTUBE)
+            } catch (err: unknown) {
+              // Failure-safe: a mid-migration error must NOT abort the upgrade.
+              // The store schema is already correct from the createObjectStore
+              // blocks above, so the DB stays usable even if the data copy / key
+              // rewrite is skipped.
+              console.warn('[DB] v13 migration partial/failed:', err)
+            }
           }
         }
 
@@ -247,7 +402,7 @@ export class MediaDatabase {
     try {
       const { record, migrated } = normalizeStoreRecord(result)
       if (migrated) {
-        this.put(storeName, key, record).catch(err => {
+        this.batchPut(storeName, [{ key, record }]).catch(err => {
           console.warn(`[DB] Failed to write back migrated record ${key}:`, err)
         })
       }
@@ -284,6 +439,45 @@ export class MediaDatabase {
         // Fallback: write without version check
         record.recordVersion = 1
         store.put(stampRecordVersion(record), key)
+      }
+
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+
+    this.invalidateStoreCache(storeName)
+  }
+
+  /**
+   * Put multiple records in a single readwrite transaction.
+   * Each record is versioned exactly like put(): reads the current
+   * recordVersion inside the same transaction and increments it (missing
+   * keys start at 1). The store cache is invalidated once after commit.
+   */
+  async batchPut(storeName: string, records: Array<{ key: string; record: StoreRecord }>): Promise<void> {
+    if (records.length === 0) return
+
+    const db = await this.ensureDB()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite')
+      const store = tx.objectStore(storeName)
+
+      for (const { key, record } of records) {
+        record.updatedAt = record.updatedAt || new Date().toISOString()
+
+        const getReq = store.get(key)
+        getReq.onsuccess = () => {
+          const current = (getReq.result as StoreRecord | null) ?? null
+          const nextVersion = (current?.recordVersion ?? 0) + 1
+          record.recordVersion = nextVersion
+          store.put(stampRecordVersion(record), key)
+        }
+        getReq.onerror = () => {
+          // Fallback: write without version check
+          record.recordVersion = 1
+          store.put(stampRecordVersion(record), key)
+        }
       }
 
       tx.oncomplete = () => resolve()
@@ -344,6 +538,10 @@ export class MediaDatabase {
       const store = tx.objectStore(storeName)
       const request = store.openCursor()
       const results: Array<{ key: string; record: StoreRecord }> = []
+      // L7: collect migrated records during the cursor pass and write them
+      // back in a single batchPut after the readonly tx completes, instead of
+      // fire-and-forget put() per record (storm on first read after upgrade).
+      const migratedRecords: Array<{ key: string; record: StoreRecord }> = []
 
       request.onsuccess = () => {
         const cursor = request.result
@@ -352,9 +550,7 @@ export class MediaDatabase {
             const { record, migrated } = normalizeStoreRecord(cursor.value)
             results.push({ key: cursor.key as string, record })
             if (migrated) {
-              this.put(storeName, cursor.key as string, record).catch(err => {
-                console.warn(`[DB] Failed to write back migrated record ${cursor.key}:`, err)
-              })
+              migratedRecords.push({ key: cursor.key as string, record })
             }
           } catch (err: unknown) {
             if (err instanceof MigrationError) {
@@ -367,6 +563,11 @@ export class MediaDatabase {
           cursor.continue()
         } else {
           this.readCache.set(listCacheKey, results, 5_000)
+          if (migratedRecords.length > 0) {
+            this.batchPut(storeName, migratedRecords).catch(err => {
+              console.warn(`[DB] Failed to write back ${migratedRecords.length} migrated records in ${storeName}:`, err)
+            })
+          }
           resolve(results)
         }
       }
@@ -388,6 +589,9 @@ export class MediaDatabase {
       const index = store.index(indexName)
       const request = index.openCursor(value)
       const results: Array<{ key: string; record: StoreRecord }> = []
+      // L7: collect migrated records during the cursor pass and write them
+      // back in a single batchPut after the readonly tx completes.
+      const migratedRecords: Array<{ key: string; record: StoreRecord }> = []
 
       request.onsuccess = () => {
         const cursor = request.result
@@ -396,9 +600,7 @@ export class MediaDatabase {
             const { record, migrated } = normalizeStoreRecord(cursor.value)
             results.push({ key: cursor.primaryKey as string, record })
             if (migrated) {
-              this.put(storeName, cursor.primaryKey as string, record).catch(err => {
-                console.warn(`[DB] Failed to write back migrated record ${cursor.primaryKey}:`, err)
-              })
+              migratedRecords.push({ key: cursor.primaryKey as string, record })
             }
           } catch (err: unknown) {
             if (err instanceof MigrationError) {
@@ -410,6 +612,11 @@ export class MediaDatabase {
           }
           cursor.continue()
         } else {
+          if (migratedRecords.length > 0) {
+            this.batchPut(storeName, migratedRecords).catch(err => {
+              console.warn(`[DB] Failed to write back ${migratedRecords.length} migrated records in ${storeName}:`, err)
+            })
+          }
           resolve(results)
         }
       }

@@ -41,13 +41,6 @@ export function configureLogging(options: { enabled?: boolean; level?: LogLevel 
   if (options.level !== undefined) config.level = options.level
 }
 
-/**
- * Read current logger configuration (for UI display).
- */
-export function getLogConfig(): Readonly<LogConfig> {
-  return { ...config }
-}
-
 // ==================== Log Functions ====================
 
 /** Debug — verbose, development only */

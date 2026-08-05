@@ -113,6 +113,7 @@ export type MessageType =
   | 'DB_PUT'
   | 'DB_DELETE'
   | 'DB_GET_ALL'
+  | 'DB_GET_BULK'
   | 'DB_QUERY'
   | 'DB_COUNT'
   | 'DB_GET_WATCHED_IDS'
@@ -134,8 +135,6 @@ export type MessageType =
   | 'ADULT_AV_BATCH_ADD'
   | 'ADULT_AV_GET_ALL'
   | 'DOWNLOAD_FILE'
-  | 'BILIBILI_INJECT'
-  | 'BILIBILI_SAVE'
   | 'WEBDAV_TEST'
   | 'WEBDAV_UPLOAD'
   | 'WEBDAV_DOWNLOAD'
@@ -148,6 +147,7 @@ export interface MessagePayloadMap {
   DB_PUT: { storeName: string; key: string; record: StoreRecord }
   DB_DELETE: { storeName: string; key: string }
   DB_GET_ALL: { storeName: string }
+  DB_GET_BULK: { storeName: string; keys: string[] }
   DB_QUERY: { storeName: string; indexName: string; value: IDBValidKey }
   DB_COUNT: { storeName: string }
   DB_GET_WATCHED_IDS: { storeNames: string[] }
@@ -169,8 +169,6 @@ export interface MessagePayloadMap {
   ADULT_AV_BATCH_ADD: { source: string; items: AdultAvIdInput[] }
   ADULT_AV_GET_ALL: { source?: string }
   DOWNLOAD_FILE: { url: string; filename: string }
-  BILIBILI_INJECT: { tabId?: number }
-  BILIBILI_SAVE: { bvid?: string; status?: number; rating?: number }
   WEBDAV_TEST: { webdavUrl?: string; webdavUsername?: string; webdavPassword?: string }
   WEBDAV_UPLOAD: void
   WEBDAV_DOWNLOAD: void
@@ -178,28 +176,9 @@ export interface MessagePayloadMap {
   NEODB_PUSH_RATING: { record: { providerId: string; type: 'movie' | 'tv' | 'music' | 'book' | 'game'; provider: Provider; status?: number; rating?: number; comment?: string } }
 }
 
-export interface MessagePayload<T extends MessageType = MessageType> {
-  type: T
-  payload?: MessagePayloadMap[T]
-}
-
 // ==================== Toast ====================
 
 export type ToastType = 'loading' | 'success' | 'error' | 'info'
-
-export interface ToastOptions {
-  title: string
-  body?: string
-  type?: ToastType
-  hideMs?: number
-}
-
-// ==================== Cache ====================
-
-export interface CacheItem<T = unknown> {
-  value: T
-  expiry: number
-}
 
 // ==================== Migration Status ====================
 
@@ -230,9 +209,6 @@ export interface RemoteMeta {
   datasets: DatasetMeta[]
 }
 
-/** Per-dataset sync decision */
-export type SyncDecision = 'skip' | 'upload' | 'download' | 'conflict'
-
 // ==================== Statistics ====================
 
 export interface Statistics {
@@ -247,4 +223,5 @@ export interface Statistics {
   tmdb: number
   bilibili: number
   youtube: number
+  bangumi: number
 }

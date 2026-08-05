@@ -26,6 +26,28 @@ function isAllowedStore(storeName: string): boolean {
   return ALLOWED_DB_STORES.has(storeName)
 }
 
+/**
+ * Invalidate scheduler caches affected by a write to a record store.
+ *
+ * L5: writes used to invalidate only get:/all: keys, leaving count: and
+ * watched: stale until their TTL (~5-10s). T8: bulk: entries (keyed by
+ * key-set, `bulk:{store}:{key1,key2,...}`) were never invalidated — a write
+ * could leave them stale for the full 5s TTL, so a just-marked status didn't
+ * show on list pages. Since a write can affect any subset of keys, the whole
+ * `bulk:{store}:` prefix is cleared via pattern invalidation. ptcache-bulk
+ * deliberately stays TTL-capped (short-lived PT lookups, batch key churn
+ * makes invalidation uneconomical).
+ */
+function invalidateStoreCaches(ctx: DbHandlerContext, storeName: string, key: string): void {
+  ctx.scheduler.cacheManager?.invalidate('scheduler', `get:${storeName}:${key}`)
+  ctx.scheduler.cacheManager?.invalidate('scheduler', `all:${storeName}`)
+  ctx.scheduler.cacheManager?.invalidate('scheduler', `count:${storeName}`)
+  ctx.scheduler.cacheManager?.invalidate('scheduler', `watched:${storeName}`)
+  // bulk: keys embed the requested key-set — a single write can stale any
+  // combination, so clear by store prefix (matches `bulk:{store}:{keys}`).
+  ctx.scheduler.cacheManager?.invalidateByPattern('scheduler', `bulk:${storeName}:`)
+}
+
 export interface DbHandlerContext {
   db: MediaDatabase
   scheduler: DataScheduler
@@ -57,8 +79,7 @@ export async function handleDbPut(
     () => ctx.db.put(putStore, putKey, payload.record),
     { priority: 'HIGH', storeName: putStore, cacheKey: `put:${putStore}:${putKey}`, invalidateCache: true },
   )
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `get:${putStore}:${putKey}`)
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `all:${putStore}`)
+  invalidateStoreCaches(ctx, putStore, putKey)
   broadcast('record:updated', { storeName: putStore, key: putKey })
   return { success: true }
 }
@@ -74,8 +95,7 @@ export async function handleDbDelete(
     () => ctx.db.delete(delStore, delKey),
     { priority: 'HIGH', storeName: delStore, cacheKey: `delete:${delStore}:${delKey}`, invalidateCache: true },
   )
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `get:${delStore}:${delKey}`)
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `all:${delStore}`)
+  invalidateStoreCaches(ctx, delStore, delKey)
   broadcast('record:deleted', { storeName: delStore, key: delKey })
   return { success: true }
 }
@@ -89,6 +109,22 @@ export async function handleDbGetAll(
     () => ctx.db.getAll(payload.storeName),
     { priority: 'MEDIUM', storeName: payload.storeName, cacheKey: `all:${payload.storeName}`, cacheTTL: 5000 },
   )
+  return { success: true, entries }
+}
+
+export async function handleDbGetBulk(
+  payload: MessagePayloadMap['DB_GET_BULK'],
+  ctx: DbHandlerContext,
+) {
+  if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
+  const { storeName, keys } = payload
+  if (keys.length === 0) return { success: true, entries: [] }
+  const recordMap = await ctx.scheduler.schedule(
+    () => ctx.db.batchGet(storeName, keys),
+    { priority: 'MEDIUM', storeName, cacheKey: `bulk:${storeName}:${keys.join(',')}`, cacheTTL: 5000 },
+  )
+  // Missing keys are omitted — batchGet only returns found records.
+  const entries = Array.from(recordMap, ([key, record]) => ({ key: String(key), record }))
   return { success: true, entries }
 }
 
@@ -163,8 +199,7 @@ export async function handleDbSyncPageRecord(
     ),
     { priority: 'HIGH', storeName: syncStoreName, cacheKey: `sync:${syncPlatform}:${syncKey}`, invalidateCache: true },
   )
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `get:${syncStoreName}:${syncKey}`)
-  ctx.scheduler.cacheManager?.invalidate('scheduler', `all:${syncStoreName}`)
+  invalidateStoreCaches(ctx, syncStoreName, syncKey)
   broadcast('record:updated', { storeName: syncStoreName, key: syncKey })
   return { success: true, result: syncResult }
 }

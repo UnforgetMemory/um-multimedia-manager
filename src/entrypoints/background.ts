@@ -26,12 +26,11 @@ import { handleGetSettings, handleUpdateSettings, handleExportData, handleImport
 import { handleShowToast } from './background/handlers/toast'
 import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll } from './background/handlers/adult-av'
 import {
-  handleDbGet, handleDbPut, handleDbDelete, handleDbGetAll, handleDbQuery,
+  handleDbGet, handleDbPut, handleDbDelete, handleDbGetAll, handleDbGetBulk, handleDbQuery,
   handleDbCount, handleDbGetWatchedIds, handleDbSyncPageRecord,
   handlePtIdCacheGet, handlePtIdCachePut, handlePtIdCacheGetBulk,
   type DbHandlerContext,
 } from './background/handlers/db'
-import { handleBilibiliInject, handleBilibiliSave } from './background/handlers/bilibili'
 import { handleDownloadFile } from './background/handlers/download'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
@@ -64,6 +63,7 @@ export default defineBackground({
       message: any
       sender: chrome.runtime.MessageSender
       sendResponse: (response?: unknown) => void
+      timer: ReturnType<typeof setTimeout>
     }> = []
 
     function flushPendingMessages() {
@@ -71,7 +71,8 @@ export default defineBackground({
       infoLog(`📤 Flushing ${pendingMessages.length} pending messages...`)
       const queue = [...pendingMessages]
       pendingMessages.length = 0
-      for (const { message, sender, sendResponse } of queue) {
+      for (const { message, sender, sendResponse, timer } of queue) {
+        clearTimeout(timer)
         handleMessage(message, sender, sendResponse).catch(err => {
           errorLog('❌ handleMessage (flushed) failed:', err)
           sendResponse({ success: false, error: String(err) })
@@ -250,14 +251,14 @@ export default defineBackground({
             return
           }
         }
-        pendingMessages.push({ message, sender: _sender, sendResponse })
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           const idx = pendingMessages.findIndex(m => m.sendResponse === sendResponse)
           if (idx !== -1) {
             pendingMessages.splice(idx, 1)
             sendResponse({ success: false, error: 'DB_INIT_TIMEOUT' })
           }
         }, 15000)
+        pendingMessages.push({ message, sender: _sender, sendResponse, timer })
         return
       }
 
@@ -287,6 +288,9 @@ export default defineBackground({
             break
           case 'DB_GET_ALL':
             sendResponse(await handleDbGetAll(message.payload, dbCtx))
+            break
+          case 'DB_GET_BULK':
+            sendResponse(await handleDbGetBulk(message.payload, dbCtx))
             break
           case 'DB_QUERY':
             sendResponse(await handleDbQuery(message.payload, dbCtx))
@@ -320,20 +324,20 @@ export default defineBackground({
 
           // ==================== Export / Import ====================
           case 'EXPORT_DATA':
-            await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM', cacheKey: 'export' })
+            await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM' })
             break
           case 'IMPORT_DATA':
-            await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', cacheKey: 'import' })
+            await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', timeout: 60_000 })
             break
 
           // ==================== Statistics ====================
           case 'GET_STATISTICS':
-            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM', cacheKey: 'statistics' })
+            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM' })
             break
 
           // ==================== Popup Data ====================
           case 'GET_ALL_RECORDS':
-            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM', cacheKey: 'all-records' })
+            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM' })
             break
 
           // ==================== Utility ====================
@@ -346,16 +350,16 @@ export default defineBackground({
 
           // ==================== WebDAV Sync ====================
           case 'WEBDAV_TEST':
-            await dataScheduler.schedule(() => handleWebDAVTest(message.payload, sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-test' })
+            await dataScheduler.schedule(() => handleWebDAVTest(message.payload, sendResponse), { priority: 'MEDIUM' })
             break
           case 'WEBDAV_UPLOAD':
-            await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-upload' })
+            await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
           case 'WEBDAV_DOWNLOAD':
-            await dataScheduler.schedule(() => handleWebDAVDownload(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-download' })
+            await dataScheduler.schedule(() => handleWebDAVDownload(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
           case 'WEBDAV_SYNC':
-            await dataScheduler.schedule(() => handleWebDAVSync(sendResponse), { priority: 'MEDIUM', cacheKey: 'webdav-sync' })
+            await dataScheduler.schedule(() => handleWebDAVSync(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
 
           // ==================== NeoDB Push ====================
@@ -365,27 +369,19 @@ export default defineBackground({
 
           // ==================== Adult AV ID Operations ====================
           case 'ADULT_AV_CHECK':
-            await dataScheduler.schedule(() => handleAdultAvCheck(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-check' })
+            await dataScheduler.schedule(() => handleAdultAvCheck(message.payload, sendResponse), { priority: 'LOW' })
             break
           case 'ADULT_AV_CHECK_BATCH':
-            await dataScheduler.schedule(() => handleAdultAvCheckBatch(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-check-batch' })
+            await dataScheduler.schedule(() => handleAdultAvCheckBatch(message.payload, sendResponse), { priority: 'LOW' })
             break
           case 'ADULT_AV_ADD':
-            await dataScheduler.schedule(() => handleAdultAvAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-add' })
+            await dataScheduler.schedule(() => handleAdultAvAdd(message.payload, sendResponse), { priority: 'LOW' })
             break
           case 'ADULT_AV_BATCH_ADD':
-            await dataScheduler.schedule(() => handleAdultAvBatchAdd(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-batch-add' })
+            await dataScheduler.schedule(() => handleAdultAvBatchAdd(message.payload, sendResponse), { priority: 'LOW' })
             break
           case 'ADULT_AV_GET_ALL':
-            await dataScheduler.schedule(() => handleAdultAvGetAll(message.payload, sendResponse), { priority: 'LOW', cacheKey: 'av-get-all' })
-            break
-
-          // ==================== Bilibili ====================
-          case 'BILIBILI_INJECT':
-            sendResponse(await handleBilibiliInject(message.payload, _sender))
-            break
-          case 'BILIBILI_SAVE':
-            sendResponse(await handleBilibiliSave(message.payload, { db: mediaDB, scheduler: dataScheduler }))
+            await dataScheduler.schedule(() => handleAdultAvGetAll(message.payload, sendResponse), { priority: 'LOW' })
             break
 
           // ==================== File Download (MAIN world) ====================
