@@ -101,8 +101,8 @@ coverage/
 # Temporary review files
 review_diff*.txt
 
-# Generated plan documents
-docs/
+# Generated plan documents (docs/adr, docs/audit, DESIGN_GUIDE are tracked project docs)
+docs/*-plan.md
 
 # AI-generated documentation
 .cortexkit/
