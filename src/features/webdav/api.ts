@@ -50,9 +50,23 @@ async function fetchWithTimeout(
   } catch (err: unknown) {
     clearTimeout(timer)
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error(`WebDAV timeout after ${timeout}ms: ${url}`)
+      // Never surface userinfo (user:pass@) embedded in the URL to logs (CWE-532).
+      throw new Error(`WebDAV timeout after ${timeout}ms: ${stripUrlCredentials(url)}`)
     }
     throw err
+  }
+}
+
+/** Remove embedded `user:pass@` credentials from a URL for safe logging. */
+function stripUrlCredentials(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl)
+    u.username = ''
+    u.password = ''
+    return u.toString()
+  } catch {
+    // Unparseable URL — strip the common `scheme://user:pass@` prefix defensively.
+    return rawUrl.replace(/^(\w+:\/\/)[^@/]+@/, '$1')
   }
 }
 

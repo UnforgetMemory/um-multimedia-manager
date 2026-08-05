@@ -36,25 +36,33 @@ export const MIN_SUPPORTED_EXPORT_VERSION = 1
 /** Current export data version */
 export const CURRENT_EXPORT_VERSION = 2
 
+/** Minimum supported dataset (backup ZIP) version */
+export const MIN_SUPPORTED_DATASET_VERSION = 1
+
+/** Current dataset (backup ZIP) version */
+export const CURRENT_DATASET_VERSION = 1
+
 // ==================== Error Types ====================
 
 export class MigrationError extends Error {
-  readonly code:
-    | 'VERSION_TOO_OLD'
-    | 'VERSION_TOO_NEW'
-    | 'NO_MIGRATION_PATH'
-    | 'MIGRATION_FAILED'
-    | 'IMPORT_INCOMPATIBLE'
+        readonly code:
+          | 'VERSION_TOO_OLD'
+          | 'VERSION_TOO_NEW'
+          | 'NO_MIGRATION_PATH'
+          | 'MIGRATION_FAILED'
+          | 'IMPORT_INCOMPATIBLE'
+          | 'INVALID_RECORD'
   readonly details?: Record<string, unknown>
 
   constructor(
     message: string,
-    code:
-      | 'VERSION_TOO_OLD'
-      | 'VERSION_TOO_NEW'
-      | 'NO_MIGRATION_PATH'
-      | 'MIGRATION_FAILED'
-      | 'IMPORT_INCOMPATIBLE',
+          code:
+            | 'VERSION_TOO_OLD'
+            | 'VERSION_TOO_NEW'
+            | 'NO_MIGRATION_PATH'
+            | 'MIGRATION_FAILED'
+            | 'IMPORT_INCOMPATIBLE'
+            | 'INVALID_RECORD',
     details?: Record<string, unknown>
   ) {
     super(message)
@@ -218,13 +226,42 @@ export function migrateRecord(
   return { record: result, migrated: true, steps: appliedSteps }
 }
 
+/** Snapshot fields accepted from untrusted import data (see normalizeStoreRecord). */
+const RECORD_FIELD_WHITELIST = ['url', 'status', 'rating', 'comment', 'updatedAt', 'linkedIds', 'schemaVersion', 'recordVersion'] as const
+
 /**
  * Normalize a StoreRecord on read.
  * Applies iterative migrations if the record's schemaVersion is behind.
  * Returns the migrated record (caller should write it back if migrated).
+ *
+ * Boundary hardening for untrusted imported data (WebDAV download/sync, ZIP
+ * import): rejects non-object/array payloads, strips unknown fields (CWE-915
+ * mass-assignment), and drops out-of-range status/rating values.
  */
 export function normalizeStoreRecord(raw: any): MigrationResult<StoreRecord> {
-  return migrateRecord(raw, recordMigrations, CURRENT_RECORD_VERSION, MIN_SUPPORTED_RECORD_VERSION) as MigrationResult<StoreRecord>
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new MigrationError('Invalid record: expected a record object', 'INVALID_RECORD', {})
+  }
+
+  // Whitelist snapshot fields only — unknown keys from a malicious dataset are dropped.
+  const sanitized: Record<string, unknown> = {}
+  for (const key of RECORD_FIELD_WHITELIST) {
+    if (key in raw) sanitized[key] = raw[key]
+  }
+
+  // Numeric sanity: status ∈ [0,3], rating ∈ [0,10]; invalid values are dropped
+  // so downstream defaults (status 0 / rating 0) apply instead of poisoning state.
+  if (typeof sanitized.status !== 'number' || !Number.isInteger(sanitized.status) || sanitized.status < 0 || sanitized.status > 3) {
+    delete sanitized.status
+  }
+  if (typeof sanitized.rating !== 'number' || !Number.isFinite(sanitized.rating) || sanitized.rating < 0 || sanitized.rating > 10) {
+    delete sanitized.rating
+  }
+  if (sanitized.linkedIds !== undefined && (typeof sanitized.linkedIds !== 'object' || sanitized.linkedIds === null || Array.isArray(sanitized.linkedIds))) {
+    delete sanitized.linkedIds
+  }
+
+  return migrateRecord(sanitized, recordMigrations, CURRENT_RECORD_VERSION, MIN_SUPPORTED_RECORD_VERSION) as MigrationResult<StoreRecord>
 }
 
 /**
@@ -268,6 +305,30 @@ export function validateExportVersion(exportVersion: number): boolean {
         `Please update before importing.`,
       'IMPORT_INCOMPATIBLE',
       { exportVersion, currentVersion: CURRENT_EXPORT_VERSION }
+    )
+  }
+  return true
+}
+
+/**
+ * Validate dataset (backup ZIP) version compatibility.
+ * Returns true if importable, throws MigrationError if not.
+ */
+export function validateDatasetVersion(datasetVersion: number): boolean {
+  if (datasetVersion < MIN_SUPPORTED_DATASET_VERSION) {
+    throw new MigrationError(
+      `Dataset version ${datasetVersion} is too old to import (minimum supported: ${MIN_SUPPORTED_DATASET_VERSION}). ` +
+        `Please export from a newer version of the extension first.`,
+      'IMPORT_INCOMPATIBLE',
+      { datasetVersion, minSupported: MIN_SUPPORTED_DATASET_VERSION }
+    )
+  }
+  if (datasetVersion > CURRENT_DATASET_VERSION) {
+    throw new MigrationError(
+      `Dataset version ${datasetVersion} was created by a newer version of the extension. ` +
+        `Please update before importing.`,
+      'VERSION_TOO_NEW',
+      { datasetVersion, currentVersion: CURRENT_DATASET_VERSION }
     )
   }
   return true

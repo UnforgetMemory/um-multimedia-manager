@@ -16,11 +16,17 @@
 import JSZip from 'jszip'
 import type { StoreRecord, DatasetMeta } from '../types'
 import { calculateStoreHash } from './hash-utils'
+import { CURRENT_DATASET_VERSION, validateDatasetVersion } from '@/features/migration/models'
 
 export interface PackedDataset {
   blob: Blob
   meta: DatasetMeta
 }
+
+/** Reject dataset blobs larger than 50 MiB before parsing (compression-bomb defence). */
+const MAX_DATASET_BYTES = 50 * 1024 * 1024
+/** Reject datasets with more than 100k records (memory-exhaustion defence). */
+const MAX_DATASET_RECORDS = 100_000
 
 /**
  * Package store entries into a standard ZIP blob.
@@ -44,7 +50,7 @@ export async function packageDataset(
     hash,
     updatedAt: latestTs || new Date().toISOString(),
     recordCount: entries.length,
-    dataVersion: 1,
+    dataVersion: CURRENT_DATASET_VERSION,
   }
 
   // JSON.stringify → UTF-8 bytes → stored in ZIP entry as-is
@@ -63,10 +69,18 @@ export async function packageDataset(
 /**
  * Unpackage a ZIP blob into its data records and metadata.
  * Entry names and content decoded as UTF-8.
+ *
+ * Hard size caps guard against malicious/oversized datasets (compression-bomb
+ * and memory-exhaustion defence): reject the blob before parsing when larger
+ * than MAX_DATASET_BYTES, and reject absurd record counts after JSON.parse.
  */
 export async function unpackageDataset(
   blob: Blob
 ): Promise<{ data: Record<string, StoreRecord>; meta: DatasetMeta }> {
+  if (blob.size > MAX_DATASET_BYTES) {
+    throw new Error(`Invalid dataset ZIP: size ${blob.size} exceeds ${MAX_DATASET_BYTES} bytes limit`)
+  }
+
   const zip = await JSZip.loadAsync(blob)
 
   const dataFile = zip.file('data.json')
@@ -82,6 +96,14 @@ export async function unpackageDataset(
 
   const data: Record<string, StoreRecord> = JSON.parse(dataStr)
   const meta: DatasetMeta = JSON.parse(metaStr)
+
+  const recordCount = Object.keys(data).length
+  if (recordCount > MAX_DATASET_RECORDS) {
+    throw new Error(`Invalid dataset ZIP: ${recordCount} records exceeds ${MAX_DATASET_RECORDS} limit`)
+  }
+
+  // Reject datasets from incompatible versions — MigrationError propagates to caller
+  validateDatasetVersion(meta.dataVersion)
 
   return { data, meta }
 }
