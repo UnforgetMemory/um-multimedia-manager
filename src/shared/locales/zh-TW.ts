@@ -28,6 +28,7 @@ export default {
   'common.watched': '已看',
   'common.unwatched': '未看',
   'common.wish': '想看',
+  'common.doing': '在看',
   'common.listened': '已聽',
   'common.unlistened': '未聽',
   'common.importData': '導入資料',
@@ -98,6 +99,7 @@ export default {
   'platform.youtube': 'YouTube',
   'platform.jav': '成人影片',
   'platform.javdb': 'JavDB',
+  'platform.mukaku': 'Mukaku',
   'platform.sehuatang': '色花堂',
   'platform.local': '本地',
 
@@ -107,6 +109,7 @@ export default {
   'validation.doubanFormat': '豆瓣ID必須是純數字',
   'validation.neodbFormat': 'NeoDB ID格式無效',
   'validation.tmdbFormat': 'TMDB ID必須是純數字',
+  'validation.bangumiFormat': 'Bangumi ID必須是純數字',
   'validation.javFormat': '成人影片ID格式無效 (例: FC2-PPV-1234567, ABP-123)',
   'validation.unknownPlatform': '未知平台',
   'validation.httpsRequired': 'URL 必須使用 HTTPS',

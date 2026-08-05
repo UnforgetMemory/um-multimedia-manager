@@ -51,7 +51,12 @@ export function autoDetectPlatform(
     callbacks.setDomain?.('video')
     return true
   }
-  
+  if ((input.includes('bgm.tv') || input.includes('bangumi.tv') || input.includes('chii.in')) && input.includes('/subject/')) {
+    callbacks.setPlatform('bangumi')
+    callbacks.setDomain?.('tv')
+    return true
+  }
+
   // jav_id format detection — only if current platform is already jav_ids
   if (currentPlatform === 'jav_ids' && JAV_ID_REGEX.test(input)) {
     callbacks.setPlatform('jav_ids')

@@ -73,6 +73,10 @@ function validateAndNormalizeProviderId(provider: Provider | 'jav_ids', _type: D
     if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return { valid: true, normalizedId: trimmed }
     return { valid: false, normalizedId: '', error: t('validation.imdbFormat') }
   }
+  if (provider === 'bangumi') {
+    if (/^\d+$/.test(trimmed)) return { valid: true, normalizedId: trimmed }
+    return { valid: false, normalizedId: '', error: t('validation.bangumiFormat') }
+  }
   return { valid: false, normalizedId: '', error: t('validation.unknownPlatform') }
 }
 
@@ -80,7 +84,7 @@ function parseRatingInput() {
   const input = ratingInput.value.trim()
   if (!input) return null
   const provider = selectedPlatform.value as Provider | 'jav_ids'
-  const type = selectedDomain.value
+  let type = selectedDomain.value
 
   // URL-based parsing
   const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/)
@@ -101,6 +105,8 @@ function parseRatingInput() {
   if (bilibiliMatch) { const id = bilibiliMatch[1]; return { type: 'video', provider: 'bilibili' as Provider, providerId: id, url: `https://www.bilibili.com/video/${id}/`, valid: true } }
   const youtubeMatch = input.match(/(?:youtube\.com|youtu\.be)\/watch\?v=([a-zA-Z0-9_-]{11})/i)
   if (youtubeMatch) { const id = youtubeMatch[1]; return { type: 'video', provider: 'youtube' as Provider, providerId: id, url: `https://www.youtube.com/watch?v=${id}/`, valid: true } }
+  const bangumiMatch = input.match(/(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)/i)
+  if (bangumiMatch) { const id = bangumiMatch[1]; return { type: 'tv', provider: 'bangumi' as Provider, providerId: id, url: `https://bgm.tv/subject/${id}/`, valid: true } }
 
   // Auto-detect jav_id format — only if platform is jav_ids
   if (provider === 'jav_ids' && JAV_ID_REGEX.test(input)) {
@@ -121,7 +127,13 @@ function parseRatingInput() {
 
   const nId = validation.normalizedId
   let url = ''
-  if (provider === 'douban') url = type === 'music' ? `https://music.douban.com/subject/${nId}/` : type === 'book' ? `https://book.douban.com/subject/${nId}/` : type === 'game' ? `https://www.douban.com/game/${nId}/` : `https://movie.douban.com/subject/${nId}/`
+  if (provider === 'bangumi') {
+    // Bangumi subject URLs never encode media type; canonical type is always 'tv'
+    // (matches Identity.fromUrl + LinkedTab) so saves land on `tv::<id>` keys.
+    type = 'tv'
+    url = `https://bgm.tv/subject/${nId}/`
+  }
+  else if (provider === 'douban') url = type === 'music' ? `https://music.douban.com/subject/${nId}/` : type === 'book' ? `https://book.douban.com/subject/${nId}/` : type === 'game' ? `https://www.douban.com/game/${nId}/` : `https://movie.douban.com/subject/${nId}/`
   else if (provider === 'imdb') url = `https://www.imdb.com/title/${nId}/`
   else if (provider === 'neodb') { const p = type === 'tv' ? 'tv' : type === 'music' ? 'album' : 'movie'; url = `https://neodb.social/${p}/${nId}/` }
   else if (provider === 'tmdb') url = type === 'tv' ? `https://www.themoviedb.org/tv/${nId}/` : `https://www.themoviedb.org/movie/${nId}/`
@@ -132,10 +144,10 @@ function parseRatingInput() {
 
 function getStatusLabel(status: number, type: string): string {
   if (type === 'music') {
-    const labels: Record<number, string> = { 0: t('common.unlistened'), 1: t('common.rating'), 2: t('common.listened') }
+    const labels: Record<number, string> = { 0: t('common.unlistened'), 1: t('common.rating'), 2: t('common.listened'), 3: t('common.doing') }
     return labels[status] || ''
   }
-  const labels: Record<number, string> = { 0: t('common.unwatched'), 1: t('common.rating'), 2: t('common.watched') }
+  const labels: Record<number, string> = { 0: t('common.unwatched'), 1: t('common.rating'), 2: t('common.watched'), 3: t('common.doing') }
   return labels[status] || ''
 }
 

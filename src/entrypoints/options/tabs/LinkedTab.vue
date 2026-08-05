@@ -50,6 +50,8 @@ function parseLinkedInput() {
   if (bilibiliMatch) { const id = bilibiliMatch[1]; return { type: 'video', provider: 'bilibili' as Provider, providerId: id, url: `https://www.bilibili.com/video/${id}/`, valid: true } }
   const youtubeMatch = input.match(/(?:youtube\.com|youtu\.be)\/watch\?v=([a-zA-Z0-9_-]{11})/i)
   if (youtubeMatch) { const id = youtubeMatch[1]; return { type: 'video', provider: 'youtube' as Provider, providerId: id, url: `https://www.youtube.com/watch?v=${id}/`, valid: true } }
+  const bangumiMatch = input.match(/(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)/i)
+  if (bangumiMatch) { const id = bangumiMatch[1]; return { type: 'tv', provider: 'bangumi' as Provider, providerId: id, url: `https://bgm.tv/subject/${id}/`, valid: true } }
 
   // Auto-detect jav_id format — only if platform is jav_ids
   if (provider === 'jav_ids' && /^[A-Za-z0-9]+-[\w-]+(-[UCuc]{1,2})?$/i.test(input)) {
@@ -61,6 +63,9 @@ function parseLinkedInput() {
   if (provider === 'jav_ids') {
     return { type, provider, providerId: input, url: '', valid: false, error: t('validation.javFormat') }
   }
+
+  // Bangumi numeric subject ID — dispatch before the douban numeric branch below
+  if (provider === 'bangumi' && /^\d+$/.test(input)) return { type: 'tv', provider: 'bangumi' as Provider, providerId: input, url: `https://bgm.tv/subject/${input}/`, valid: true }
 
   if (/^tt\d+$/i.test(input)) return { type: 'movie', provider: 'imdb' as Provider, providerId: input.toLowerCase(), url: `https://www.imdb.com/title/${input.toLowerCase()}/`, valid: true }
   if (/^BV[a-zA-Z0-9]+$/.test(input)) return { type: 'video', provider: 'bilibili' as Provider, providerId: input, url: `https://www.bilibili.com/video/${input}/`, valid: true }
@@ -129,6 +134,7 @@ function getPlatformLabel(p: string): string {
   const labels: Record<string, string> = {
     douban: t('platform.douban'), imdb: t('platform.imdb'), neodb: t('platform.neodb'),
     tmdb: t('platform.tmdb'), bilibili: t('platform.bilibili'), youtube: t('platform.youtube'),
+    bangumi: t('platform.bangumi'),
     local: t('platform.local'), jav_ids: t('platform.jav'),
   }
   return labels[p] || p
@@ -140,6 +146,7 @@ function getStatusText(s: number, type: string): string {
     0: isMusic ? t('common.unlistened') : t('common.unwatched'),
     1: t('common.rating'),
     2: isMusic ? t('common.listened') : t('common.watched'),
+    3: t('common.doing'),
   }
   return labels[s] || ''
 }
@@ -149,6 +156,7 @@ function getStatusColor(s: number): string {
     0: 'var(--umm-color-status-unwatched)',
     1: 'var(--umm-color-status-watched)',
     2: 'var(--umm-color-status-done)',
+    3: 'var(--umm-color-status-watched)',
   }
   return map[s] || map[0]
 }

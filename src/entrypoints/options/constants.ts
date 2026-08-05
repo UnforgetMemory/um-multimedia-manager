@@ -10,6 +10,7 @@ export const PLATFORM_OPTIONS = [
   { value: 'tmdb', labelKey: 'platform.tmdb' as const },
   { value: 'bilibili', labelKey: 'platform.bilibili' as const },
   { value: 'youtube', labelKey: 'platform.youtube' as const },
+  { value: 'bangumi', labelKey: 'platform.bangumi' as const },
   { value: 'jav_ids', labelKey: 'platform.jav' as const },
 ] as const
 

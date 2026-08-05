@@ -28,6 +28,7 @@ export default {
   'common.watched': 'Watched',
   'common.unwatched': 'Unwatched',
   'common.wish': 'Wish',
+  'common.doing': 'Watching',
   'common.listened': 'Listened',
   'common.unlistened': 'Unlistened',
   'common.importData': 'Import Data',
@@ -98,6 +99,7 @@ export default {
   'platform.youtube': 'YouTube',
   'platform.jav': 'Adult Videos',
   'platform.javdb': 'JavDB',
+  'platform.mukaku': 'Mukaku',
   'platform.sehuatang': 'Sehuatang',
   'platform.local': 'Local',
 
@@ -107,6 +109,7 @@ export default {
   'validation.doubanFormat': 'Douban ID must be numeric',
   'validation.neodbFormat': 'NeoDB ID format invalid',
   'validation.tmdbFormat': 'TMDB ID must be numeric',
+  'validation.bangumiFormat': 'Bangumi ID must be numeric',
   'validation.javFormat': 'Invalid adult video ID format (e.g. FC2-PPV-1234567, ABP-123)',
   'validation.unknownPlatform': 'Unknown platform',
   'validation.httpsRequired': 'URL must use HTTPS',
