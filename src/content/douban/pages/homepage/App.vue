@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRecordCache } from '../../shared/composables/useRecordCache'
+import { candidateRecordKeys } from '../../shared/subject-keys'
 import { useDoubanSection } from './composables/useDoubanSection'
 import { useHomepageObserver } from './composables/useHomepageObserver'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
@@ -12,16 +13,35 @@ import {
   parseScreeningItems,
   parseBillboardItems,
   parseHotSection,
+  parseReviewItems,
 } from './extractors'
 
-const { records, load } = useRecordCache()
+// Only keys for currently-visible subjects are fetched (dbGetBulk), never a
+// full-store scan. Grows as late-parsed items appear; see collectKeys().
+const visibleKeys = ref<string[]>([])
+const { records, load, unsubscribe } = useRecordCache(undefined, visibleKeys)
 
 const { items: screeningItems, refresh: refreshScreening } = useDoubanSection(parseScreeningItems, records)
 const { items: billboardItems, refresh: refreshBillboard } = useDoubanSection(parseBillboardItems, records)
 const { items: hotMovies, refresh: refreshHotMovies } = useDoubanSection(() => parseHotSection('.recent-hot-movie'), records)
 const { items: hotTv, refresh: refreshHotTv } = useDoubanSection(() => parseHotSection('.recent-hot-tv'), records)
 
+function collectKeys() {
+  const keys = new Set<string>()
+  const add = (subjectId: string | undefined, href?: string) => {
+    if (!subjectId) return
+    for (const key of candidateRecordKeys(subjectId, href)) keys.add(key)
+  }
+  for (const item of screeningItems.value) add(item.subjectId, item.href)
+  for (const item of billboardItems.value) add(item.subjectId, item.href)
+  for (const item of hotMovies.value) add(item.subjectId, item.href)
+  for (const item of hotTv.value) add(item.subjectId, item.href)
+  for (const item of parseReviewItems()) add(item.subjectId, item.href)
+  visibleKeys.value = Array.from(keys)
+}
+
 function refreshFromDom() {
+  collectKeys()
   refreshScreening()
   refreshBillboard()
   refreshHotMovies()
@@ -30,7 +50,11 @@ function refreshFromDom() {
 
 const { start } = useHomepageObserver(refreshFromDom, { containerSelectors: '#screening, .recent-hot, #billboard, #reviews, .review' })
 
+// Late-parsed items grow visibleKeys → reload so their badges appear.
+watch(visibleKeys, () => void load())
+
 onMounted(async () => {
+  collectKeys()
   await load()
   start()
   // Staggered re-parses: content injected by Douban's JS may not be
@@ -40,6 +64,8 @@ onMounted(async () => {
   setTimeout(refreshFromDom, 2500)
   setTimeout(refreshFromDom, 6000)
 })
+
+onUnmounted(unsubscribe)
 </script>
 
 <template>

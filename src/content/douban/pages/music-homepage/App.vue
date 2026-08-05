@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRecordCache } from '../../shared/composables/useRecordCache'
 import { useDoubanSection } from '../homepage/composables/useDoubanSection'
 import { usePageObserver } from '../homepage/composables/useHomepageObserver'
@@ -10,13 +10,25 @@ import { extractNewAlbums, extractGenreTags, extractPopularArtists } from './ext
 import { sleep } from '@/utils'
 import type { GenreTag, PopularArtistItem } from './types'
 
-const { records, load } = useRecordCache()
+// Only ids of currently-visible albums are fetched (dbGetBulk), never a
+// full-store scan. Grows as late-parsed albums appear; see collectIds().
+const visibleIds = ref<string[]>([])
+const { records, load, unsubscribe } = useRecordCache('music', visibleIds)
 
 const { items: newAlbums, refresh: refreshNewAlbums } = useDoubanSection(extractNewAlbums, records)
 const genreTags = ref<GenreTag[]>([])
 const popularArtists = ref<PopularArtistItem[]>([])
 
+function collectIds() {
+  const ids = new Set<string>()
+  for (const item of newAlbums.value) {
+    if (item.subjectId) ids.add(item.subjectId)
+  }
+  visibleIds.value = Array.from(ids)
+}
+
 function refreshFromDom() {
+  collectIds()
   refreshNewAlbums()
   const artists = extractPopularArtists()
   if (artists.length > 0) popularArtists.value = artists
@@ -24,7 +36,11 @@ function refreshFromDom() {
 
 const { start } = usePageObserver(refreshFromDom, { containerSelectors: '.popular-artists, .new-albums, [data-react-component="NewAlbums"], .album-content' })
 
+// Late-parsed albums grow visibleIds → reload so their badges appear.
+watch(visibleIds, () => void load())
+
 onMounted(async () => {
+  collectIds()
   await load()
   genreTags.value = extractGenreTags()
   popularArtists.value = extractPopularArtists()
@@ -43,6 +59,8 @@ onMounted(async () => {
     }
   })()
 })
+
+onUnmounted(unsubscribe)
 
 function recordFor(item: { subjectId: string }) {
   const rec = records.value.get(item.subjectId)

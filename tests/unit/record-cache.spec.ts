@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test'
 import { loadRecordEntries, type StoreApi } from '@/content/douban/shared/record-cache-core'
 import { loadRecordMap } from '@/content/douban/shared/load-record-map'
 import { useRecordCache } from '@/content/douban/shared/composables/useRecordCache'
+import {
+  subjectTypeFromHref,
+  candidateRecordKeys,
+  matchesVisibleId,
+} from '@/content/douban/shared/subject-keys'
 import type { StoreRecord } from '@/types'
 
 // ==================== Fixture ====================
@@ -104,6 +109,103 @@ test.describe('useRecordCache', () => {
     const { records, clear } = useRecordCache('movie')
     clear()
     expect(records.value.size).toBe(0)
+  })
+})
+
+// ==================== subject-keys (pure helpers) ====================
+
+test.describe('subjectTypeFromHref', () => {
+  test('classifies music/book/movie/www hosts', () => {
+    expect(subjectTypeFromHref('https://music.douban.com/subject/10086/')).toBe('music')
+    expect(subjectTypeFromHref('https://book.douban.com/subject/2001/')).toBe('book')
+    expect(subjectTypeFromHref('https://movie.douban.com/subject/5/')).toBe('movie-tv')
+    expect(subjectTypeFromHref('https://www.douban.com/subject/5/')).toBe('movie-tv')
+  })
+
+  test('returns null for empty, invalid, or foreign urls', () => {
+    expect(subjectTypeFromHref('')).toBeNull()
+    expect(subjectTypeFromHref('not-a-url')).toBeNull()
+    expect(subjectTypeFromHref('https://imdb.com/title/tt1234567/')).toBeNull()
+  })
+})
+
+test.describe('candidateRecordKeys', () => {
+  test('movie/tv-ambiguous subject → both movie:: and tv:: keys', () => {
+    expect(candidateRecordKeys('5', 'https://movie.douban.com/subject/5/')).toEqual(['movie::5', 'tv::5'])
+    expect(candidateRecordKeys('5', 'https://www.douban.com/subject/5/')).toEqual(['movie::5', 'tv::5'])
+  })
+
+  test('no href → falls back to movie/tv keys', () => {
+    expect(candidateRecordKeys('5')).toEqual(['movie::5', 'tv::5'])
+  })
+
+  test('music href → only music:: key', () => {
+    expect(candidateRecordKeys('10086', 'https://music.douban.com/subject/10086/')).toEqual(['music::10086'])
+  })
+
+  test('book href → only book:: key', () => {
+    expect(candidateRecordKeys('2001', 'https://book.douban.com/subject/2001/')).toEqual(['book::2001'])
+  })
+})
+
+test.describe('matchesVisibleId', () => {
+  const visible = ['movie::5', 'tv::6']
+
+  test('exact full-key event → true', () => {
+    expect(matchesVisibleId(visible, 'movie::5')).toBe(true)
+    expect(matchesVisibleId(visible, 'tv::6')).toBe(true)
+  })
+
+  test('full-key event matches a bare visible id via pop() → true', () => {
+    // music/book pages pass bare ids; background broadcasts full `{type}::{id}` keys
+    expect(matchesVisibleId(['10086'], 'music::10086')).toBe(true)
+  })
+
+  test('bare event key does not match full visible keys', () => {
+    expect(matchesVisibleId(visible, '5')).toBe(false)
+  })
+
+  test('unrelated key → false', () => {
+    expect(matchesVisibleId(visible, '7')).toBe(false)
+    expect(matchesVisibleId(visible, 'movie::7')).toBe(false)
+  })
+
+  test("bulk wildcard '*' → true for any visible set", () => {
+    expect(matchesVisibleId(visible, '*')).toBe(true)
+    expect(matchesVisibleId([], '*')).toBe(true)
+  })
+})
+
+// ==================== useRecordCache (targeted ids) ====================
+
+test.describe('useRecordCache (targeted ids)', () => {
+  test('empty visible ids → no DB_GET_ALL full scan and no bulk read', async () => {
+    const sent: string[] = []
+    const chromeStub = {
+      runtime: {
+        id: 'test-extension',
+        sendMessage: (msg: { type: string }, cb?: (res: unknown) => void) => {
+          sent.push(msg.type)
+          cb?.({ success: true })
+        },
+        onMessage: { addListener: () => {} },
+      },
+    }
+    const prevChrome = (globalThis as { chrome?: unknown }).chrome
+    ;(globalThis as { chrome?: unknown }).chrome = chromeStub
+    try {
+      const { records, loading, load } = useRecordCache('movie', [])
+      await load()
+      expect(records.value.size).toBe(0)
+      expect(loading.value).toBe(false)
+      expect(sent).toEqual([])
+    } finally {
+      if (prevChrome === undefined) {
+        delete (globalThis as { chrome?: unknown }).chrome
+      } else {
+        ;(globalThis as { chrome?: unknown }).chrome = prevChrome
+      }
+    }
   })
 })
 

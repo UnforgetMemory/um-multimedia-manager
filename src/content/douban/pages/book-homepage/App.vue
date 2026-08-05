@@ -9,7 +9,7 @@
  * Reuses UmmMediaRow/UmmStatusBadge/UmmPageLayout components from movie/music
  * homepage, with type="book" to select correct badge labels and aspect ratio.
  */
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRecordCache } from '../../shared/composables/useRecordCache'
 import { useDoubanSection } from '../homepage/composables/useDoubanSection'
 import { usePageObserver } from '../homepage/composables/useHomepageObserver'
@@ -23,13 +23,28 @@ import {
 } from './extractors'
 import type { BookActivityItem, PopularBookItem } from './types'
 
-const { records, load } = useRecordCache()
+// Only ids of currently-visible books are fetched (dbGetBulk), never a
+// full-store scan. Grows as late-parsed books appear; see collectIds().
+const visibleIds = ref<string[]>([])
+const { records, load, unsubscribe } = useRecordCache('book', visibleIds)
 
 const { items: expressBooks, refresh: refreshExpress } = useDoubanSection(parseBookExpress, records)
 const { items: popularBooks, refresh: refreshPopular } = useDoubanSection(parsePopularBooks, records)
 const activities = ref<BookActivityItem[]>([])
 
+function collectIds() {
+  const ids = new Set<string>()
+  for (const item of expressBooks.value) {
+    if (item.subjectId) ids.add(item.subjectId)
+  }
+  for (const item of popularBooks.value) {
+    if (item.subjectId) ids.add(item.subjectId)
+  }
+  visibleIds.value = Array.from(ids)
+}
+
 function refreshFromDom() {
+  collectIds()
   refreshExpress()
   refreshPopular()
   const acts = parseBookActivities()
@@ -40,7 +55,11 @@ const { start } = usePageObserver(refreshFromDom, {
   containerSelectors: '.books-express, .popular-books, .books-activities',
 })
 
+// Late-parsed books grow visibleIds → reload so their badges appear.
+watch(visibleIds, () => void load())
+
 onMounted(async () => {
+  collectIds()
   await load()
   activities.value = parseBookActivities()
   start()
@@ -48,6 +67,8 @@ onMounted(async () => {
   setTimeout(refreshFromDom, 2500)
   setTimeout(refreshFromDom, 6000)
 })
+
+onUnmounted(unsubscribe)
 
 function recordFor(item: { subjectId: string }) {
   const rec = records.value.get(item.subjectId)

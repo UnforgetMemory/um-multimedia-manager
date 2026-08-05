@@ -2,6 +2,7 @@ import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { loadRecordMap } from '../../shared/load-record-map'
+import { candidateRecordKeys } from '../../shared/subject-keys'
 
 export const mountDoulistDetail = definePageMount({
   cssPreset: 'doulist-detail',
@@ -13,9 +14,13 @@ export const mountDoulistDetail = definePageMount({
     if (!data) throw new Error('[UMM] Could not extract doulist detail data')
     hideNavForPage({ type: 'doulist-detail' })
 
-    // Enrich items with record status from IndexedDB
+    // Enrich items with record status from IndexedDB — targeted bulk read of
+    // only the visible subjects' keys instead of a full-store scan.
     try {
-      const recordMap = await loadRecordMap()
+      const keys = data.items.flatMap((item) =>
+        item.subjectId ? candidateRecordKeys(item.subjectId, item.subjectUrl) : [],
+      )
+      const recordMap = await loadRecordMap('', keys)
       return { data, recordMap }
     } catch {
       return { data, recordMap: undefined as (Map<string, import('@/types').StoreRecord> | undefined) }
