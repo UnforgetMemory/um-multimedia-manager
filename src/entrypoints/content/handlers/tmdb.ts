@@ -40,14 +40,30 @@ function extractTMDBIdFromCard(card: Element): { id: string; mediaType: string }
   return { id: idMatch[2], mediaType: idMatch[1] }
 }
 
-/** Fetch all tmdb_records into a Map<storeKey, StoreRecord> for O(1) lookup. */
-async function buildRecordMap(): Promise<Map<string, StoreRecord>> {
-  const entries = await Store.dbGetAll('tmdb_records')
+/**
+ * Fetch tmdb_records for the given store keys into a Map<storeKey, StoreRecord>.
+ * Empty key set (no cards rendered yet) falls back to the full-store scan so
+ * badges never silently disappear before the first card batch appears.
+ */
+async function buildRecordMap(keys: string[]): Promise<Map<string, StoreRecord>> {
+  const entries = keys.length > 0
+    ? await Store.dbGetBulk('tmdb_records', keys)
+    : await Store.dbGetAll('tmdb_records')
   const map = new Map<string, StoreRecord>()
   for (const { key, record } of entries) {
     map.set(key, record)
   }
   return map
+}
+
+/** Collect the store keys ({mediaType}::{id}) of all currently rendered cards. */
+function collectTMDBKeys(): string[] {
+  return [...document.querySelectorAll<HTMLElement>(TMDB_CARD_SELECTOR)]
+    .map((card) => {
+      const extracted = extractTMDBIdFromCard(card)
+      return extracted ? `${extracted.mediaType}::${extracted.id}` : null
+    })
+    .filter((key): key is string => key !== null)
 }
 
 /** Create a homepage badge DOM element with status label + optional rating. */
@@ -118,8 +134,22 @@ async function renderCardBadge(
 function observeTMDBGrids(
   recordMap: Map<string, StoreRecord>
 ): () => void {
+  // Keys already fetched — new cards trigger a bulk fetch of only the missing ones.
+  const seen = new Set<string>(recordMap.keys())
+  let initialScanDone = false
+
   const scanAllCards = throttle(async () => {
     const cards = document.querySelectorAll<HTMLElement>(TMDB_CARD_SELECTOR)
+    const keys = collectTMDBKeys()
+    const missing = keys.filter((key) => !seen.has(key))
+    for (const key of missing) seen.add(key)
+    // First scan with no cards yet (lazy-loading) → full-store fallback;
+    // once real keys exist, bulk-fetch only the newly appeared cards.
+    if (missing.length > 0 || (!initialScanDone && keys.length === 0)) {
+      initialScanDone = true
+      const fetched = await buildRecordMap(missing)
+      for (const [key, record] of fetched) recordMap.set(key, record)
+    }
     const pendings: Promise<void>[] = []
     for (const card of cards) {
       if (!card.querySelector(TMDB_POSTER_LINK_SELECTOR)) continue
@@ -143,7 +173,8 @@ function observeTMDBGrids(
 
 /** Entry point: homepage card badge injection. */
 export async function handleTMDBHomepage(): Promise<void> {
-  const recordMap = await buildRecordMap()
+  // The first throttled scan (leading edge) performs the initial keyed fetch.
+  const recordMap = new Map<string, StoreRecord>()
   const cleanup = observeTMDBGrids(recordMap)
 
   window.addEventListener('beforeunload', cleanup, { once: true })

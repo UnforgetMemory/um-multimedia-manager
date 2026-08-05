@@ -39,6 +39,29 @@ export function extractProviderIdFromKey(key: string): string | null {
 }
 
 /**
+ * 将浏览列表页类型映射为 bangumi store key 的类型前缀。
+ * 记录键格式为 "{type}::{providerId}"，类型与详情页 identity.type 一致
+ * （见 BangumiMediaType / resolveBangumiIdentity）：动画以 'tv' 前缀存储
+ * （bgm 无 anime 类型），book/music/game 使用同名前缀。
+ * 未知/空类型返回 null（调用方回退全表扫描）。
+ * 纯函数：无 DOM、无 imports，可在 Playwright 单元测试中独立运行。
+ */
+export function bangumiTypePrefix(mediaType: string | null | undefined): string | null {
+  switch (mediaType) {
+    case 'anime':
+      return 'tv'
+    case 'book':
+      return 'book'
+    case 'music':
+      return 'music'
+    case 'game':
+      return 'game'
+    default:
+      return null
+  }
+}
+
+/**
  * 计算状态标记规格：status → i18n labelKey + 语义化 data-status 属性值。
  * 0=未看(none) 1=想看(wish) 2=已看(done) 3=在看(doing)；
  * 其余任意值（含 NaN、负数、越界）回退为 none。

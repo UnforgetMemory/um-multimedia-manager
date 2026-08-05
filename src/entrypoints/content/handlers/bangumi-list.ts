@@ -15,7 +15,7 @@
  */
 
 import { STORE_NAMES } from '@/features/database/models'
-import { dbGetAll } from '@/features/database/api'
+import { dbGetAll, dbGetBulk } from '@/features/database/api'
 import { t, initI18n } from '../i18n'
 import { waitForElement } from '../utils/dom'
 import {
@@ -24,6 +24,7 @@ import {
   extractProviderIdFromKey,
   bangumiListMarkerSpec,
   bangumiListRatingText,
+  bangumiTypePrefix,
 } from './bangumi-list-extract'
 
 const LIST_SELECTOR = 'ul.browserFull.browser-list'
@@ -91,8 +92,23 @@ export async function handleBangumiListPage(): Promise<void> {
   // 浏览列表类型（anime/book/music/game）：music 列表的状态标记用“听”语义文案
   const mediaType = extractBrowserPathType(window.location.pathname)
 
-  // 一次性拉取全部 bangumi 本地记录 → Map<providerId, { status, rating }>
-  const entries = await dbGetAll(STORE_NAMES.BANGUMI)
+  // 只读可见条目的 store keys（{type}::{subjectId}），而非全表扫描；
+  // 空 key 集（无卡片 / 未知类型）回退全表拉取，保证标记永不静默消失。
+  const items = document.querySelectorAll<HTMLElement>(`${LIST_SELECTOR} li.item`)
+  const prefix = bangumiTypePrefix(mediaType)
+  const keys = prefix === null
+    ? []
+    : [...items]
+        .map((li) => {
+          const subjectId = extractListItemId(li.id)
+          return subjectId !== null ? `${prefix}::${subjectId}` : null
+        })
+        .filter((key): key is string => key !== null)
+
+  // 定向读取可见条目记录 → Map<providerId, { status, rating }>
+  const entries = keys.length > 0
+    ? await dbGetBulk(STORE_NAMES.BANGUMI, keys)
+    : await dbGetAll(STORE_NAMES.BANGUMI)
   const statusMap = new Map<string, { status: number; rating: number }>()
   for (const { key, record } of entries) {
     const providerId = extractProviderIdFromKey(key)
@@ -101,7 +117,6 @@ export async function handleBangumiListPage(): Promise<void> {
     }
   }
 
-  const items = document.querySelectorAll<HTMLElement>(`${LIST_SELECTOR} li.item`)
   let marked = 0
   for (const li of items) {
     const subjectId = extractListItemId(li.id)

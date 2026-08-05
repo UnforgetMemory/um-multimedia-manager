@@ -5,6 +5,7 @@ import {
   extractProviderIdFromKey,
   bangumiListMarkerSpec,
   bangumiListRatingText,
+  bangumiTypePrefix,
 } from '@/entrypoints/content/handlers/bangumi-list-extract'
 
 /**
@@ -215,6 +216,31 @@ test.describe('bangumiListMarkerSpec (mediaType 参数)', () => {
     expect(bangumiListMarkerSpec(2, undefined)).toEqual({ labelKey: 'status.done', statusAttr: 'done' })
     expect(bangumiListMarkerSpec(1, 'xyz')).toEqual({ labelKey: 'status.wish', statusAttr: 'wish' })
     expect(bangumiListMarkerSpec(3, '')).toEqual({ labelKey: 'status.doing', statusAttr: 'doing' })
+  })
+})
+
+test.describe('bangumiTypePrefix', () => {
+  test('anime → tv（bgm 动画记录以 tv 前缀存储）', () => {
+    expect(bangumiTypePrefix('anime')).toBe('tv')
+  })
+
+  test('book → book', () => {
+    expect(bangumiTypePrefix('book')).toBe('book')
+  })
+
+  test('music → music', () => {
+    expect(bangumiTypePrefix('music')).toBe('music')
+  })
+
+  test('game → game', () => {
+    expect(bangumiTypePrefix('game')).toBe('game')
+  })
+
+  test('未知 / 空类型 → null（触发全表扫描回退）', () => {
+    expect(bangumiTypePrefix(null)).toBeNull()
+    expect(bangumiTypePrefix(undefined)).toBeNull()
+    expect(bangumiTypePrefix('xyz')).toBeNull()
+    expect(bangumiTypePrefix('')).toBeNull()
   })
 })
 

@@ -784,7 +784,22 @@ class VideoOverlayImpl implements VideoOverlay {
 
   refreshRecommendations(): Promise<void> {
     if (!this.id) return Promise.resolve()
-    return Store.dbGetAll(this.config.storeName)
+    // Read only the visible recommendation cards' store keys instead of
+    // materializing the whole store. Empty key set (no cards yet) falls back
+    // to the full-store scan so badges never silently disappear.
+    const rec = this.config.recommendation
+    const keys = [...document.querySelectorAll<HTMLElement>(rec.cardSelector)]
+      .map((item) => {
+        const link = item.querySelector<HTMLAnchorElement>(rec.linkSelector)
+        if (!link) return null
+        const vid = rec.idFromLink(link)
+        return vid ? storeKey(vid) : null
+      })
+      .filter((key): key is string => key !== null)
+    const request = keys.length > 0
+      ? Store.dbGetBulk(this.config.storeName, keys)
+      : Store.dbGetAll(this.config.storeName)
+    return request
       .then((entries) => {
         const recordMap = new Map<string, { status: number; rating: number }>()
         for (const entry of entries) {
