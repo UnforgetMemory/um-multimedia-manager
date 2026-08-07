@@ -5,9 +5,6 @@ export const MUKAKU_CONFIG = {
   LIST_API_PATH: '/prod/api/v1/getVideoList',
   APP_ID: '83768d9ad4',
   IDENTITY: '23734adac0301bccdcb107c4aa21f96c',
-  WATCHED_SET_KEY: 'umm:cache:mukaku:watched',
-  UNWATCHED_TTL_KEY: 'umm:cache:mukaku:unwatched',
-  UNWATCHED_TTL_MS: 60 * 60 * 1000, // 1小时
   PROBE_CACHE_KEY: 'umm:cache:mukaku:probe',
   PROBE_CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7天
   // 内存缓存限制

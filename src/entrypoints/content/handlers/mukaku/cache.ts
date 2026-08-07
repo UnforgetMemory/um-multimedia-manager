@@ -21,45 +21,6 @@ async function ttlCachePut<T>(key: string, value: T): Promise<void> {
   await (Store.dbPut as (storeName: string, key: string, value: unknown) => Promise<void>)(TTL, key, value)
 }
 
-/** Store an array of strings as a set. */
-export async function setAddItem(setKey: string, id: string): Promise<void> {
-  const raw = await ttlCacheGet<string[]>(setKey)
-  const arr: string[] = Array.isArray(raw) ? raw : []
-  if (!arr.includes(id)) arr.push(id)
-  await ttlCachePut(setKey, arr)
-}
-
-/** Check if a set contains an id. */
-export async function setHasItem(setKey: string, id: string): Promise<boolean> {
-  const raw = await ttlCacheGet<string[]>(setKey)
-  return Array.isArray(raw) && raw.includes(id)
-}
-
-/** Delete an item from a set. */
-export async function setDeleteItem(setKey: string, id: string): Promise<void> {
-  const raw = await ttlCacheGet<string[]>(setKey)
-  const arr: string[] = Array.isArray(raw) ? raw : []
-  const idx = arr.indexOf(id)
-  if (idx !== -1) arr.splice(idx, 1)
-  await ttlCachePut(setKey, arr)
-}
-
-/** Add an expiring id (stored as map of id → expiry timestamp). */
-export async function expMapAdd(mapKey: string, id: string, ttlMs: number): Promise<void> {
-  const raw = await ttlCacheGet<Record<string, number>>(mapKey)
-  const map: Record<string, number> = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
-  map[id] = Date.now() + ttlMs
-  await ttlCachePut(mapKey, map)
-}
-
-/** Check if an id exists in expiring map and hasn't expired. */
-export async function expMapHas(mapKey: string, id: string): Promise<boolean> {
-  const raw = await ttlCacheGet<Record<string, number>>(mapKey)
-  const map: Record<string, number> = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
-  const expiry = map[id]
-  return expiry !== undefined && Date.now() < expiry
-}
-
 /** Probe cache entry structure. */
 export interface ProbeCacheEntry {
   doubanId: string | null
@@ -72,38 +33,18 @@ export async function probeCacheSet(mvId: string, entry: ProbeCacheEntry): Promi
   await ttlCachePut(`${MUKAKU_CONFIG.PROBE_CACHE_KEY}:${mvId}`, entry)
 }
 
-/** Get probe result from IndexedDB persistent cache (returns null if expired or missing). */
+/**
+ * Get probe result from IndexedDB persistent cache (returns null if expired or missing).
+ * A fresh entry with BOTH ids null is also a miss — null-null entries from the
+ * past 7d window are never trusted (cards get re-probed; "confirmed no
+ * association" now lives only in the handler's session cooldown set).
+ */
 export async function probeCacheGet(mvId: string): Promise<ProbeCacheEntry | null> {
   const raw = await ttlCacheGet<ProbeCacheEntry>(`${MUKAKU_CONFIG.PROBE_CACHE_KEY}:${mvId}`)
   if (!raw || typeof raw !== 'object' || typeof raw.ts !== 'number') return null
   if (Date.now() - raw.ts > MUKAKU_CONFIG.PROBE_CACHE_TTL_MS) return null
+  if (raw.doubanId === null && raw.imdbId === null) return null
   return raw as ProbeCacheEntry
-}
-
-/**
- * Get watched IDs (status >= 2) for a given type + provider.
- * Uses handler-level cache with 30s TTL to avoid repeated watched-id queries.
- */
-export async function getIdSet(type: string, provider: string, cache?: { movieDoubanIds: Set<string>; imdbIds: Set<string>; ts: number } | null): Promise<Set<string>> {
-  // Use handler-level cache if available and fresh
-  if (cache) {
-    const now = Date.now()
-    if (now - cache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL) {
-      if (provider === 'douban') return cache.movieDoubanIds
-      if (provider === 'imdb') return cache.imdbIds
-    }
-  }
-
-  const storeName = `${provider}_records`
-  const results = await Store.dbGetWatchedIds([storeName])
-  const ids = new Set<string>()
-  const prefix = `${type}::`
-  for (const key of results[storeName] || []) {
-    if (key.startsWith(prefix)) {
-      ids.add(key.slice(prefix.length))
-    }
-  }
-  return ids
 }
 
 // ─── Batch APIs (S2/S3: collapse the per-card message storm) ────────────
@@ -117,6 +58,7 @@ export interface MukakuStoreApi {
   dbGetBulk: (storeName: string, keys: string[]) => Promise<Array<{ key: string; record: unknown }>>
   dbGetWatchedIds: (storeNames: string[]) => Promise<Record<string, string[]>>
   dbPut: (storeName: string, key: string, value: unknown) => Promise<void>
+  dbDelete: (storeName: string, key: string) => Promise<void>
 }
 
 const DEFAULT_STORE: MukakuStoreApi = {
@@ -124,6 +66,7 @@ const DEFAULT_STORE: MukakuStoreApi = {
   dbGetWatchedIds: (storeNames) => Store.dbGetWatchedIds(storeNames),
   dbPut: (storeName, key, value) =>
     (Store.dbPut as (s: string, k: string, v: unknown) => Promise<void>)(storeName, key, value),
+  dbDelete: (storeName, key) => Store.dbDelete(storeName, key),
 }
 
 /** In-memory cache slot for watched ID sets (ts = fill time, 30s TTL). */
@@ -140,18 +83,21 @@ export function probeCacheKey(mvId: string): string {
 
 /**
  * Pure: TTL filter for probe cache entries (mirrors probeCacheGet's check).
- * Returns the entry when fresh, else null.
+ * Returns the entry when fresh, else null. A fresh entry with BOTH ids null
+ * is also rejected — null-null is never trusted as "confirmed no
+ * association", so the card gets re-probed.
  */
 export function filterFreshProbe(raw: unknown, now = Date.now()): ProbeCacheEntry | null {
   const entry = raw as ProbeCacheEntry
   if (!entry || typeof entry !== 'object' || typeof entry.ts !== 'number') return null
   if (now - entry.ts > MUKAKU_CONFIG.PROBE_CACHE_TTL_MS) return null
+  if (entry.doubanId === null && entry.imdbId === null) return null
   return entry
 }
 
 /**
  * Batch probe read: ONE dbGetBulk instead of N probeCacheGet messages.
- * Expired/malformed entries are dropped; the Map is keyed by bare mvId.
+ * Expired/malformed/null-null entries are dropped; the Map is keyed by bare mvId.
  */
 export async function probeCacheGetBulk(
   mvIds: string[],
@@ -170,7 +116,7 @@ export async function probeCacheGetBulk(
 
 /**
  * Batch watched-ID read: ONE dbGetWatchedIds over douban_records + imdb_records
- * instead of two getIdSet calls. Honors a 30s in-memory cache when provided.
+ * instead of two per-provider lookups. Honors a 30s in-memory cache when provided.
  * Keys are `{type}::{id}`; movie entries (movie:: prefix) are parsed per the
  * PT dimmer getCachedIdSets pattern. Returns bare ids.
  */
@@ -194,18 +140,8 @@ export async function getWatchedIdSets(
   return { movieDoubanIds, imdbIds }
 }
 
-/**
- * Batch flush of both sets in EXACTLY 2 writes, preserving the stored shapes:
- * watched → string[] (setAddItem's shape), unwatched → Record<string, number>
- * (expMapAdd's shape). Collapses the per-card setAddItem/setDeleteItem/
- * expMapAdd read-modify-write storm.
- */
-export async function writeBatchedSets(
-  watched: Set<string> | string[],
-  unwatched: Record<string, number>,
-  storeApi: MukakuStoreApi = DEFAULT_STORE,
-): Promise<void> {
-  const watchedArr = watched instanceof Set ? [...watched] : watched
-  await storeApi.dbPut('ttl_cache', MUKAKU_CONFIG.WATCHED_SET_KEY, watchedArr)
-  await storeApi.dbPut('ttl_cache', MUKAKU_CONFIG.UNWATCHED_TTL_KEY, unwatched)
+/** Best-effort deletion of the two legacy judgment-cache keys (no TTL on those entries, so they'd persist forever). Idempotent. */
+export async function cleanupLegacyMukakuCaches(storeApi: MukakuStoreApi = DEFAULT_STORE): Promise<void> {
+  await storeApi.dbDelete('ttl_cache', 'umm:cache:mukaku:watched')
+  await storeApi.dbDelete('ttl_cache', 'umm:cache:mukaku:unwatched')
 }

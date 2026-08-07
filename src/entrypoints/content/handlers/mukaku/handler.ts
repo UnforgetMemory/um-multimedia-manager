@@ -5,16 +5,24 @@ import { initEventBus, onEvent } from '@/utils/event-bus'
 import { FloatingToast } from '../../utils/toast'
 import { createStatusChip, waitForElement } from '../../utils/dom'
 import { t } from '../../i18n'
-import { Store } from '@/features/database'
-import { warnLog } from '@/utils/logger'
+import { warnLog, infoLog, errorLog, debugLog } from '@/utils/logger'
 import { MUKAKU_CONFIG, NETWORK_CONFIG } from './config'
 import { MukakuToastController } from './toast'
-import { extractMvId, extractLinkedIdsFromDOM } from './dom'
-import { getApiUrl, extractLinkedIdsFromPayload } from './api'
-import { setAddItem, setDeleteItem, expMapAdd, expMapHas, setHasItem, probeCacheSet, probeCacheGet, getIdSet, probeCacheGetBulk, getWatchedIdSets, writeBatchedSets } from './cache'
+import { extractMvId, extractLinkedIdsFromDOM, imageFileName } from './dom'
+import { getApiUrl, extractLinkedIdsFromPayload, shouldPersistProbe, extractListEntries, getListApiUrl } from './api'
+import { probeCacheSet, probeCacheGet, probeCacheGetBulk, getWatchedIdSets, cleanupLegacyMukakuCaches } from './cache'
 import { clearProcessedMarkers, createDebouncedScheduler, isDetailContextStale, shouldRefreshForEvent } from './refresh'
 import { createSerialRunner } from './processing'
 import { resolveCardState, type CardAction } from './resolve'
+
+/** List-API fail cooldown: no retry for 30s after a failed fetch (prevents scan-storm request floods). */
+const LIST_API_FAIL_COOLDOWN_MS = 30_000
+/** Probe-failure retry cooldown: a card whose probe failed is retried only after 30s (and its processed marker is cleared so it is re-collected). */
+const PROBE_FAIL_COOLDOWN_MS = 30_000
+/** Per-scan card cap (hostile pages must not drive unbounded probes/state growth). */
+const MAX_CARDS_PER_SCAN = 500
+/** Session-cooldown set cap (beyond this, new no-association entries are dropped). */
+const MAX_SESSION_NO_ASSOCIATION = 2000
 
 class MukakuHandler {
   private queue: RequestQueue | null = null
@@ -22,10 +30,16 @@ class MukakuHandler {
   private probeCache = new Map<string, { doubanId: string | null; imdbId: string | null }>()
   /** Handler-level watched ID cache: provider → { movieDoubanIds, imdbIds, ts }. 30s TTL reduces dbGetAll calls. */
   private watchedIdCache: { movieDoubanIds: Set<string>; imdbIds: Set<string>; ts: number } | null = null
-  /** Batch-read watched set data, populated at start of processVisibleCards. */
-  private batchWatchedSet: Set<string> | null = null
-  /** Batch-read unwatched map data, populated at start of processVisibleCards. */
-  private batchUnwatchedMap: Record<string, number> | null = null
+  /** Session-scoped cooldown: mvIds confirmed to have no douban/imdb association this page session. Cleared on resetForPage/cleanup. */
+  private sessionNoAssociation = new Set<string>()
+  /** Per-card probe-failure cooldown: mvId → ts; failed probes are retried only after the cooldown expires (and the processed marker is cleared so the card is re-collected). */
+  private probeFailCooldown = new Map<string, number>()
+  /** Generation counter for the watched-id cache: bumped by onRecordChange/resetForPage so an in-flight scan never resurrects an invalidated cache (R3). */
+  private watchedCacheEpoch = 0
+  /** List-API mapping cache: image filename → linked ids (keyed by sb:page, page-session scoped; failed fetches cool down 30s to prevent request storms). */
+  private listMappingCache: { sb: string; map: Map<string, { doubanId: string; imdbId: string | null }> } | null = null
+  /** Per-key (sb:page) list-API fail timestamps — one term's failure must not block another (O3). */
+  private listMappingFailTs: Record<string, number> = {}
   private listObserver: MutationObserver | null = null
   /** IntersectionObserver for lazy-loaded cards after initial batch. */
   private listIntersectionObserver: IntersectionObserver | null = null
@@ -85,7 +99,14 @@ class MukakuHandler {
   }
 
   /**
-   * 探测关联 ID（带缓存）
+   * Probe linked IDs (cached).
+   *
+   * Failure semantics (GOAL 1): network error / timeout / non-200 / invalid
+   * payload all THROW — no memory write, no IDB write, no session cooldown;
+   * the card is re-probed on the next scan.
+   * Persistence semantics (GOAL 2): persist only on a successful fetch with
+   * >=1 valid id (gated by shouldPersistProbe). Confirmed no association
+   * (both ids null) enters the session cooldown set only — never persisted.
    */
   private async probeLinkedIds(
     mvId: string
@@ -94,27 +115,41 @@ class MukakuHandler {
       return { doubanId: null, imdbId: null }
     }
 
-    // 1. 检查内存缓存（最快）
+    // 1. Session cooldown: confirmed no association this page session — skip network
+    if (this.sessionNoAssociation.has(mvId)) {
+      debugLog('[Mukaku] probe cooldown hit:', mvId)
+      return { doubanId: null, imdbId: null }
+    }
+
+    // 1a. Failure cooldown: a recent failed probe is not retried within the window
+    const failTs = this.probeFailCooldown.get(mvId)
+    if (failTs !== undefined && Date.now() - failTs < PROBE_FAIL_COOLDOWN_MS) {
+      return { doubanId: null, imdbId: null }
+    }
+
+    // 2. In-memory cache (fastest)
     if (this.probeCache.has(mvId)) {
+      debugLog('[Mukaku] probe memory hit:', mvId)
       return this.probeCache.get(mvId)!
     }
 
-    // 2. 检查 IndexedDB 持久化缓存
+    // 3. Persistent IDB cache (null-null entries are filtered as miss at the cache layer)
     const cached = await probeCacheGet(mvId)
     if (cached) {
+      debugLog('[Mukaku] probe IDB hit:', mvId)
       const result = { doubanId: cached.doubanId, imdbId: cached.imdbId }
       this.probeCache.set(mvId, result)
       return result
     }
 
-    // 写入前检查 probeCache 大小，超出上限则淘汰最早条目
+    // LRU eviction before write: drop the oldest entry when at capacity
     if (this.probeCache.size >= MUKAKU_CONFIG.PROBE_CACHE_MAX) {
       const oldestKey = this.probeCache.keys().next().value
       if (oldestKey !== undefined) this.probeCache.delete(oldestKey)
     }
 
-    // 3. 通过队列执行请求
-    const linkedIds = await this.ensureQueue().enqueue(mvId, async () => {
+    // 4. Queue the network request
+    const extraction = await this.ensureQueue().enqueue(mvId, async () => {
       const response = await fetch(getApiUrl(mvId), {
         method: 'GET',
         signal: AbortSignal.timeout(NETWORK_CONFIG.TIMEOUT_MS),
@@ -128,49 +163,71 @@ class MukakuHandler {
       return extractLinkedIdsFromPayload(payload)
     })
 
-    // 4. 缓存结果到内存和 IndexedDB
-    this.probeCache.set(mvId, linkedIds)
-    await probeCacheSet(mvId, { ...linkedIds, ts: Date.now() })
-    return linkedIds
+    // 5. Dispatch by result semantics
+    if (extraction.status === 'invalid') {
+      // Unusable response = failure: no memory/IDB/cooldown write — re-probed next scan
+      throw new Error('invalid payload')
+    }
+    if (shouldPersistProbe(extraction)) {
+      this.probeCache.set(mvId, { doubanId: extraction.doubanId, imdbId: extraction.imdbId })
+      await probeCacheSet(mvId, {
+        doubanId: extraction.doubanId,
+        imdbId: extraction.imdbId,
+        ts: Date.now(),
+      })
+    } else {
+      // Confirmed no association: session cooldown only (cleared on navigation/cleanup), never persisted
+      if (this.sessionNoAssociation.size < MAX_SESSION_NO_ASSOCIATION) {
+        this.sessionNoAssociation.add(mvId)
+      }
+    }
+    // A successful probe clears any failure cooldown for this card
+    this.probeFailCooldown.delete(mvId)
+    return { doubanId: extraction.doubanId, imdbId: extraction.imdbId }
   }
 
   /**
-   * 标记为已看
+   * List-API mapping (image-match fallback for linkless cards).
+   *
+   * Fetches getVideoList?sb=xxx → data.data[] (image/doub_id/IMDB_number) →
+   * image-filename → linked-ids map. Cached per sb:page session; failed
+   * fetches cool down for 30s; returns null when the page has no sb param.
    */
-  private async markWatched(mvId: string): Promise<void> {
-    if (!mvId) return
-    await setAddItem(MUKAKU_CONFIG.WATCHED_SET_KEY, mvId)
-    await setDeleteItem(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId)
-    // Detail page just marked watched → invalidate list-path caches so the list reflects it immediately
-    this.watchedIdCache = null
-    this.batchWatchedSet = null
-    this.batchUnwatchedMap = null
-  }
+  private async getListMapping(): Promise<Map<string, { doubanId: string; imdbId: string | null }> | null> {
+    const params = new URLSearchParams(location.search)
+    const sb = params.get('sb')
+    if (!sb) return null
+    const page = params.get('page') || '1'
+    const cacheKey = `${sb}:${page}`
 
-  /**
-   * 标记为未看（带 TTL）
-   */
-  private async markUnwatched(mvId: string): Promise<void> {
-    if (!mvId) return
-    await expMapAdd(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId, MUKAKU_CONFIG.UNWATCHED_TTL_MS)
-    // Detail page just marked unwatched → invalidate list-path caches so the list reflects it immediately
-    this.watchedIdCache = null
-    this.batchWatchedSet = null
-    this.batchUnwatchedMap = null
-  }
+    if (this.listMappingCache?.sb === cacheKey) return this.listMappingCache.map
+    const failTs = this.listMappingFailTs[cacheKey]
+    if (failTs !== undefined && Date.now() - failTs < LIST_API_FAIL_COOLDOWN_MS) return null
 
-  /**
-   * 检查是否在已看缓存中
-   */
-  private async isCachedWatched(mvId: string): Promise<boolean> {
-    return setHasItem(MUKAKU_CONFIG.WATCHED_SET_KEY, mvId)
-  }
-
-  /**
-   * 检查是否在未看缓存中
-   */
-  private async isCachedUnwatched(mvId: string): Promise<boolean> {
-    return expMapHas(MUKAKU_CONFIG.UNWATCHED_TTL_KEY, mvId)
+    try {
+      const entries = await this.ensureQueue().enqueue(`list:${cacheKey}`, async () => {
+        const response = await fetch(getListApiUrl(sb, page), {
+          signal: AbortSignal.timeout(NETWORK_CONFIG.TIMEOUT_MS),
+        })
+        if (!response.ok) {
+          throw new Error(t('mukaku.probe_failed', { status: response.status }))
+        }
+        const payload = await response.json()
+        return extractListEntries(payload)
+      })
+      const map = new Map<string, { doubanId: string; imdbId: string | null }>()
+      for (const entry of entries) {
+        const key = imageFileName(entry.image)
+        if (key) map.set(key, { doubanId: entry.doubanId, imdbId: entry.imdbId })
+      }
+      this.listMappingCache = { sb: cacheKey, map }
+      infoLog('[Mukaku] list mapping:', map.size, 'entries for', sb)
+      return map
+    } catch (error: unknown) {
+      this.listMappingFailTs[cacheKey] = Date.now()
+      warnLog('[Mukaku] list API failed:', error)
+      return null
+    }
   }
 
   /**
@@ -186,19 +243,25 @@ class MukakuHandler {
       onEvent('record:updated', (data) => this.onRecordChange(data)),
       onEvent('record:deleted', (data) => this.onRecordChange(data)),
     ]
+    // Best-effort one-shot cleanup of the legacy judgment-cache keys (idempotent, fire-and-forget)
+    void cleanupLegacyMukakuCaches().catch(() => {})
   }
 
   /**
    * record event callback: clear processed markers first (otherwise handled cards are
-   * skipped forever and a re-run is a no-op), then invalidate watchedIdCache / batch
-   * sets, and finally re-run the scan after a 300ms debounce.
+   * skipped forever and a re-run is a no-op), then invalidate watchedIdCache, and
+   * finally re-run the scan after a 300ms debounce.
    */
   private onRecordChange(data: unknown): void {
     if (!shouldRefreshForEvent(data)) return
     clearProcessedMarkers(document)
+    // Bump the epoch so any in-flight scan does not resurrect the cache we are about
+    // to invalidate (R3); the field itself is also nulled for immediate reads.
+    this.watchedCacheEpoch++
     this.watchedIdCache = null
-    this.batchWatchedSet = null
-    this.batchUnwatchedMap = null
+    // NOTE: sessionNoAssociation is intentionally NOT cleared here — a record event
+    // (e.g. user added a douban record for a card previously confirmed no-association)
+    // must not re-trigger probing; the cooldown only expires on page navigation.
     this.refreshScheduler.schedule(() => this.runRefresh())
   }
 
@@ -208,7 +271,7 @@ class MukakuHandler {
   }
 
   /**
-   * 处理详情页
+   * Handle the detail page.
    */
   public async handleDetailPage(): Promise<void> {
     this.resetForPage()
@@ -216,7 +279,7 @@ class MukakuHandler {
     const mvId = extractMvId(location.href)
     if (!mvId) return
 
-    // 等待详情区域出现（统一实现见 utils/dom）
+    // Wait for the detail info area (shared impl in utils/dom)
     try {
       const infoRoot = (await waitForElement('.media-details-area .info', 12000)) as HTMLElement
       // SPA navigation race: the route changed while waiting (mvId stale) or the old
@@ -235,13 +298,13 @@ class MukakuHandler {
   }
 
   /**
-   * 渲染详情页状态
+   * Render the detail-page status chip (realtime, read-only — never writes caches).
    */
   private async renderDetailState(
     infoRoot: HTMLElement,
     mvId: string
   ): Promise<void> {
-    // 查找或创建状态槽位
+    // Find or create the status slot
     let slot = infoRoot.querySelector('.umm-mukaku-status')
     if (!slot) {
       slot = document.createElement('div')
@@ -249,26 +312,10 @@ class MukakuHandler {
       infoRoot.prepend(slot)
     }
 
-    // 检查已看缓存
-    if (await this.isCachedWatched(mvId)) {
-      slot.innerHTML = ''
-      const chip = createStatusChip('movie', 2, 0, t('mukaku.cache_hit'))
-      slot.appendChild(chip)
-      return
-    }
-
-    // 检查未看缓存
-    if (await this.isCachedUnwatched(mvId)) {
-      slot.innerHTML = ''
-      const chip = createStatusChip('movie', 0, 0, t('mukaku.cache_miss'))
-      slot.appendChild(chip)
-      return
-    }
-
-    // 从 DOM 提取关联 ID
+    // Extract linked ids from the DOM
     let linkedIds = extractLinkedIdsFromDOM(document)
 
-    // 如果 DOM 中没有，调用 API 探测
+    // Fall back to the API probe when the DOM carries no ids
     if (!linkedIds.doubanId && !linkedIds.imdbId) {
       try {
         linkedIds = await this.probeLinkedIds(mvId)
@@ -283,28 +330,44 @@ class MukakuHandler {
       }
     }
 
-    // 根据关联 ID 匹配本地记录
-    if (linkedIds.doubanId || linkedIds.imdbId) {
-      const movieDoubanIds = await getIdSet('movie', 'douban', this.watchedIdCache)
-      const imdbIds = await getIdSet('movie', 'imdb', this.watchedIdCache)
+    // Realtime watched-id sets (getWatchedIdSets owns the 30s TTL; ts refresh matches
+    // processVisibleCards). Epoch-guarded write-back (R3) + graceful failure (F1):
+    // a DB error degrades to empty sets without failing the detail render.
+    const epoch = this.watchedCacheEpoch
+    const prevWatchedCache = this.watchedIdCache
+    let watchedSets: { movieDoubanIds: Set<string>; imdbIds: Set<string> }
+    try {
+      watchedSets = await getWatchedIdSets(prevWatchedCache)
+    } catch (error: unknown) {
+      errorLog('[Mukaku] watchedIds query failed on detail — empty sets:', error)
+      watchedSets = { movieDoubanIds: new Set<string>(), imdbIds: new Set<string>() }
+    }
+    const now = Date.now()
+    if (this.watchedCacheEpoch === epoch) {
+      const watchedCacheFresh =
+        prevWatchedCache !== null && now - prevWatchedCache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL
+      this.watchedIdCache = {
+        ...watchedSets,
+        ts: watchedCacheFresh ? prevWatchedCache.ts : now,
+      }
+    }
+    const { movieDoubanIds, imdbIds } = watchedSets
 
+    // Match against local records (read-only decision — this method writes no cache)
+    if (linkedIds.doubanId || linkedIds.imdbId) {
       const matched =
         (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
         (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
 
+      slot.innerHTML = ''
       if (matched) {
-        await this.markWatched(mvId)
-        slot.innerHTML = ''
         const chip = createStatusChip('movie', 2, 0, t('mukaku.match_found'))
         slot.appendChild(chip)
       } else {
-        await this.markUnwatched(mvId)
-        slot.innerHTML = ''
         const chip = createStatusChip('movie', 0, 0, t('mukaku.no_match'))
         slot.appendChild(chip)
       }
     } else {
-      await this.markUnwatched(mvId)
       slot.innerHTML = ''
       const chip = createStatusChip('movie', 0, 0, t('mukaku.no_id'))
       slot.appendChild(chip)
@@ -337,8 +400,11 @@ class MukakuHandler {
       this.processDebounceTimer = null
     }
     this.watchedIdCache = null
-    this.batchWatchedSet = null
-    this.batchUnwatchedMap = null
+    this.sessionNoAssociation.clear()
+    this.probeFailCooldown.clear()
+    this.watchedCacheEpoch++
+    this.listMappingCache = null
+    this.listMappingFailTs = {}
     this.probeCache.clear()
     this.refreshScheduler.cancel()
   }
@@ -399,63 +465,103 @@ class MukakuHandler {
 
     const cards = document.querySelectorAll('.video-card')
 
-    // 收集未处理的卡片
+    // Collect unprocessed cards; linkless cards (search-page div.video-card, mvId
+    // lives only in Vue state) are parked in noIdCards for the list-API fallback.
     const unprocessed: Array<{ cardEl: HTMLElement; mvId: string }> = []
+    const noIdCards: HTMLElement[] = []
     for (const card of Array.from(cards)) {
+      // Per-scan cap: hostile pages must not drive unbounded probes/state growth (S2)
+      if (unprocessed.length + noIdCards.length >= MAX_CARDS_PER_SCAN) break
       const cardEl = card as HTMLElement
       if (cardEl.getAttribute('data-umm-mukaku-processed') === 'true') continue
       const mvId = extractMvId(cardEl)
-      if (!mvId) continue
+      if (!mvId) {
+        noIdCards.push(cardEl)
+        continue
+      }
       cardEl.setAttribute('data-umm-mukaku-processed', 'true')
       unprocessed.push({ cardEl, mvId })
     }
 
+    // List-API image matching: one getVideoList request yields the linked ids for
+    // the whole page (data.data[] carries image/doub_id/IMDB_number, verified 2026-08-07).
+    if (noIdCards.length > 0) {
+      const mapping = await this.getListMapping()
+      if (mapping) {
+        for (const cardEl of noIdCards) {
+          const imgEl = cardEl.querySelector('img')
+          const imgSrc = imgEl?.getAttribute('src') || imgEl?.getAttribute('data-src') || ''
+          const key = imageFileName(imgSrc)
+          const entry = key ? mapping.get(key) : undefined
+          if (!entry) continue
+          cardEl.setAttribute('data-umm-mukaku-processed', 'true')
+          const mvId = entry.doubanId
+          unprocessed.push({ cardEl, mvId })
+          // Mapping known (successful list-API data) → fill memory; persist only when not already held (O1)
+          if (!this.probeCache.has(mvId)) {
+            this.probeCache.set(mvId, { doubanId: entry.doubanId, imdbId: entry.imdbId })
+            void probeCacheSet(mvId, {
+              doubanId: entry.doubanId,
+              imdbId: entry.imdbId,
+              ts: Date.now(),
+            }).catch(() => {})
+          }
+        }
+      }
+    }
+
+    debugLog('[Mukaku] scan: found', cards.length, 'cards,', unprocessed.length, 'unprocessed,', noIdCards.length, 'linkless')
     if (unprocessed.length === 0) return
 
-    // Capture local references (before the first await): addToBatch* in the loop and the
-    // cycle-end flush both depend on these refs — if onRecordChange/resetForPage null
-    // the fields mid-flight, the flush writes the accumulated state (never an empty
-    // set), so the DB watched set is never wiped to empty.
-    const batchWatchedSet: Set<string> = this.batchWatchedSet ?? new Set()
-    const batchUnwatchedMap: Record<string, number> = this.batchUnwatchedMap ?? {}
-    const watchedRaw = await Store.dbGet('ttl_cache', MUKAKU_CONFIG.WATCHED_SET_KEY)
-    // WATCHED_SET_KEY is stored as string[] (setAddItem shape) → convert to a Set for resolveCardState
-    this.batchWatchedSet = batchWatchedSet // keep in sync with the captured local ref (same object; field-nulling still points at accumulated state)
-    for (const id of Array.isArray(watchedRaw) ? watchedRaw : []) batchWatchedSet.add(id)
-    const unwatchedRaw = await Store.dbGet('ttl_cache', MUKAKU_CONFIG.UNWATCHED_TTL_KEY)
-    this.batchUnwatchedMap = batchUnwatchedMap
-    if (unwatchedRaw && typeof unwatchedRaw === 'object' && !Array.isArray(unwatchedRaw)) {
-      Object.assign(batchUnwatchedMap, unwatchedRaw)
-    }
     const now = Date.now()
 
     // Batch-fetch watched IDs: getWatchedIdSets has its own 30s TTL (cache hit → 0 DB
     // calls). On hit keep the original ts (TTL continues); on refill refresh ts.
+    // R2: a failed fetch must NOT be cached — the cache stays untouched so the next
+    // scan retries; the scan itself degrades to empty sets (no dimming this round).
+    // R3: the write-back is epoch-guarded — if a record event invalidated the cache
+    // while we awaited, we skip the write-back so the stale cache is not resurrected.
+    const epoch = this.watchedCacheEpoch
     const prevWatchedCache = this.watchedIdCache
-    const watchedSets = await getWatchedIdSets(prevWatchedCache)
-    const watchedCacheFresh =
-      prevWatchedCache !== null && now - prevWatchedCache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL
-    this.watchedIdCache = {
-      ...watchedSets,
-      ts: watchedCacheFresh ? prevWatchedCache.ts : now,
+    let watchedSets: { movieDoubanIds: Set<string>; imdbIds: Set<string> }
+    try {
+      watchedSets = await getWatchedIdSets(prevWatchedCache)
+    } catch (error: unknown) {
+      errorLog('[Mukaku] watchedIds query failed — degrade to empty sets, cache not written:', error)
+      watchedSets = { movieDoubanIds: new Set<string>(), imdbIds: new Set<string>() }
     }
-    const { movieDoubanIds, imdbIds } = this.watchedIdCache
+    if (this.watchedCacheEpoch === epoch) {
+      const watchedCacheFresh =
+        prevWatchedCache !== null && now - prevWatchedCache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL
+      this.watchedIdCache = {
+        ...watchedSets,
+        ts: watchedCacheFresh ? prevWatchedCache.ts : now,
+      }
+    }
+    const { movieDoubanIds, imdbIds } = watchedSets
+    debugLog('[Mukaku] watched ids: douban=', movieDoubanIds.size, 'imdb=', imdbIds.size)
 
     // Batch-prefill probe cache: one dbGetBulk for cards that would reach 'needs-probe',
     // replacing the per-card probeCacheGet in the loop (S2: N serial DB messages → 1).
     // Filter conditions match resolveCardState's needs-probe decision.
     const needsProbeIds: string[] = []
     for (const { mvId } of unprocessed) {
-      if (batchWatchedSet.has(mvId)) continue
-      const expiry = batchUnwatchedMap[mvId]
-      if (expiry !== undefined && now < expiry) continue
+      // Skip cards in session cooldown or failure cooldown; skip cards already in the in-memory probeCache
+      if (this.sessionNoAssociation.has(mvId)) continue
+      const failTs = this.probeFailCooldown.get(mvId)
+      if (failTs !== undefined && Date.now() - failTs < PROBE_FAIL_COOLDOWN_MS) continue
       if (this.probeCache.has(mvId)) continue
       needsProbeIds.push(mvId)
     }
-    const bulkProbes = await probeCacheGetBulk(needsProbeIds)
+    const bulkProbes = await probeCacheGetBulk(needsProbeIds).catch((error: unknown) => {
+      // DB bulk read failure must not abort the scan — cards fall through to network probes.
+      errorLog('[Mukaku] probe prefill failed — fall through to network:', error)
+      return new Map<string, { doubanId: string | null; imdbId: string | null; ts: number }>()
+    })
     for (const [mvId, entry] of bulkProbes) {
       this.probeCache.set(mvId, { doubanId: entry.doubanId, imdbId: entry.imdbId })
     }
+    debugLog('[Mukaku] probe prefill:', bulkProbes.size, 'hits of', needsProbeIds.length)
 
     // Phase 1 — resolve every card; fire all network probes CONCURRENTLY.
     // The RequestQueue enforces maxConcurrent=10 + random delay; awaiting each
@@ -464,14 +570,13 @@ class MukakuHandler {
     const actions = new Map<string, CardAction>()
     const probePromises = new Map<string, Promise<{ doubanId: string | null; imdbId: string | null } | null>>()
     for (const { mvId } of unprocessed) {
-      const action = resolveCardState(mvId, {
-        watched: batchWatchedSet,
-        unwatchedExpiry: batchUnwatchedMap,
-        now,
+      const action = resolveCardState({
         probe: this.probeCache.get(mvId) ?? null,
+        noAssociation: this.sessionNoAssociation.has(mvId),
         watchedDouban: movieDoubanIds,
         watchedImdb: imdbIds,
       })
+      debugLog('[Mukaku] resolve', mvId, '→', action)
       actions.set(mvId, action)
       if (action === 'needs-probe') {
         // Fire now, settle later — probeLinkedIds has internal caching
@@ -486,66 +591,37 @@ class MukakuHandler {
       switch (action) {
         case 'dim':
           cardEl.classList.add('umm-dimmed')
-          this.addToBatchWatched(mvId)
           break
-        case 'skip-unwatched': {
-          // Mirrors old behavior: unwatchedExpiry hit → nothing to write; probe miss → persist to DB.
-          const expiry = batchUnwatchedMap[mvId]
-          if (expiry === undefined || !(now < expiry)) {
-            this.addToBatchUnwatched(mvId)
-          }
+        case 'skip':
+          // No association / no match: nothing to write
           break
-        }
         case 'needs-probe': {
           const linkedIds = await probePromises.get(mvId)!
           if (linkedIds === null) {
-            // Probe failed (network/timeout) — skip silently, re-probed next scan.
-            // Do NOT mark as unwatched: a transient error must not suppress dimming for 1h.
+            // Probe failed (network/timeout/invalid payload) — no cache write, no
+            // session cooldown. R4: clear the processed marker + set a short failure
+            // cooldown so the card is RE-COLLECTED and re-probed after the window
+            // (GOAL 1: failures are re-probed, never permanently skipped).
             warnLog('[Mukaku] Probe failed for card', mvId)
+            this.probeFailCooldown.set(mvId, Date.now())
+            if (this.probeFailCooldown.size > 1000) this.probeFailCooldown.clear()
+            cardEl.removeAttribute('data-umm-mukaku-processed')
             break
           }
+          debugLog('[Mukaku] probe', mvId, '→ douban:', linkedIds.doubanId, 'imdb:', linkedIds.imdbId)
           if (linkedIds.doubanId || linkedIds.imdbId) {
             const matched =
               (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
               (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
             if (matched) {
-              this.addToBatchWatched(mvId)
               cardEl.classList.add('umm-dimmed')
-            } else {
-              this.addToBatchUnwatched(mvId)
             }
-          } else {
-            this.addToBatchUnwatched(mvId)
+            // not matched → nothing (no write)
           }
+          // both ids null → nothing (cooldown was registered inside probeLinkedIds)
           break
         }
       }
-    }
-
-    // Cycle-end persistence: the loop's accumulated markers land in just 2 dbPuts
-    // (replacing per-card setAddItem/setDeleteItem/expMapAdd read-modify-write).
-    // Note: a crash between accumulation and flush loses that round's markers
-    // (pre-existing risk pattern; events re-trigger a scan and probeCache memory hits
-    // self-heal). Flush failure does not block the scan.
-    try {
-      await writeBatchedSets(batchWatchedSet, batchUnwatchedMap)
-    } catch (error: unknown) {
-      warnLog('[Mukaku] batch flush failed:', error)
-    }
-  }
-
-  private addToBatchWatched(mvId: string): void {
-    if (this.batchWatchedSet) {
-      this.batchWatchedSet.add(mvId)
-      // Mirrors old setDeleteItem semantics: watched cards keep no unwatched TTL entry (accumulated in memory, flushed with the cycle)
-      delete this.batchUnwatchedMap?.[mvId]
-    }
-  }
-
-  private addToBatchUnwatched(mvId: string): void {
-    if (this.batchUnwatchedMap) {
-      // Always write a fresh expiry (mirrors expMapAdd behavior), persisted once at cycle-end flush
-      this.batchUnwatchedMap[mvId] = Date.now() + MUKAKU_CONFIG.UNWATCHED_TTL_MS
     }
   }
 
@@ -573,8 +649,10 @@ class MukakuHandler {
     MukakuToastController.close()
     this.probeCache.clear()
     this.watchedIdCache = null
-    this.batchWatchedSet = null
-    this.batchUnwatchedMap = null
+    this.sessionNoAssociation.clear()
+    this.probeFailCooldown.clear()
+    this.listMappingCache = null
+    this.listMappingFailTs = {}
   }
 }
 

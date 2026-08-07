@@ -4,7 +4,7 @@ import {
   filterFreshProbe,
   probeCacheGetBulk,
   getWatchedIdSets,
-  writeBatchedSets,
+  cleanupLegacyMukakuCaches,
   type MukakuStoreApi,
   type WatchedIdCache,
 } from '@/entrypoints/content/handlers/mukaku/cache'
@@ -13,15 +13,18 @@ import { MUKAKU_CONFIG } from '@/entrypoints/content/handlers/mukaku/config'
 /**
  * S2/S3 — mukaku dimmer batch cache APIs.
  *
- * The per-card loop currently issues one IndexedDB message per card
- * (setAddItem/setDeleteItem/expMapAdd read-modify-write, probeCacheGet,
- * getIdSet). These tests lock the new batch surface:
+ * The judgment caches (watched/unwatched sets) were removed project-wide; the
+ * remaining surface is the probe mapping cache + realtime watched-id reads:
  *  - probeCacheKey / filterFreshProbe are the pure building blocks;
  *  - probeCacheGetBulk collapses N probeCacheGet messages into ONE dbGetBulk;
- *  - getWatchedIdSets collapses the two getIdSet calls into ONE
+ *  - getWatchedIdSets collapses the two per-provider lookups into ONE
  *    dbGetWatchedIds message with a 30s in-memory cache;
- *  - writeBatchedSets flushes both sets in EXACTLY 2 writes with the same
- *    stored shapes setAddItem/expMapAdd produce (string[] / Record<string,number>).
+ *  - cleanupLegacyMukakuCaches deletes the two legacy judgment-cache keys
+ *    (umm:cache:mukaku:watched / unwatched) exactly once each.
+ *
+ * The judgment caches are gone: a probe entry with BOTH ids null is never
+ * trusted — it is a cache miss at read time (re-probe), both via
+ * filterFreshProbe and probeCacheGetBulk.
  *
  * The store is injected via the MukakuStoreApi seam (same pattern as
  * record-cache-core's StoreApi) so every test observes exact message counts.
@@ -31,6 +34,7 @@ interface FakeCalls {
   dbGetBulk: Array<[storeName: string, keys: string[]]>
   dbGetWatchedIds: Array<[storeNames: string[]]>
   dbPut: Array<[storeName: string, key: string, value: unknown]>
+  dbDelete: Array<[storeName: string, key: string]>
 }
 
 function createFakeStore(
@@ -43,6 +47,7 @@ function createFakeStore(
     dbGetBulk: [],
     dbGetWatchedIds: [],
     dbPut: [],
+    dbDelete: [],
   }
   const store: MukakuStoreApi = {
     dbGetBulk: async (storeName, keys) => {
@@ -55,6 +60,9 @@ function createFakeStore(
     },
     dbPut: async (storeName, key, value) => {
       calls.dbPut.push([storeName, key, value])
+    },
+    dbDelete: async (storeName, key) => {
+      calls.dbDelete.push([storeName, key])
     },
   }
   return { store, calls }
@@ -75,8 +83,14 @@ test.describe('filterFreshProbe', () => {
 
   test('entry exactly TTL old is still fresh (expiry is strictly greater)', () => {
     const now = 1_000_000_000
-    const boundary = { doubanId: null, imdbId: null, ts: now - MUKAKU_CONFIG.PROBE_CACHE_TTL_MS }
+    const boundary = { doubanId: 'd1', imdbId: 'tt1', ts: now - MUKAKU_CONFIG.PROBE_CACHE_TTL_MS }
     expect(filterFreshProbe(boundary, now)).toEqual(boundary)
+  })
+
+  test('returns null for a fresh entry with both ids null (null-null is never trusted as a hit)', () => {
+    const now = 1_000_000_000
+    const nullNull = { doubanId: null, imdbId: null, ts: now - 1000 }
+    expect(filterFreshProbe(nullNull, now)).toBeNull()
   })
 
   test('returns null for an expired entry', () => {
@@ -123,6 +137,22 @@ test.describe('probeCacheGetBulk', () => {
     expect([...map.keys()]).toEqual(['111', '222'])
     expect(map.get('111')).toEqual({ doubanId: 'd1', imdbId: 'tt1', ts: now - 1000 })
     expect(map.get('222')).toEqual({ doubanId: 'd2', imdbId: null, ts: now - 1000 })
+  })
+
+  test('drops a fresh {doubanId:null, imdbId:null} entry from the result Map (null-null is a cache miss)', async () => {
+    const now = Date.now()
+    const entries = [
+      { key: `${MUKAKU_CONFIG.PROBE_CACHE_KEY}:111`, record: { doubanId: 'd1', imdbId: null, ts: now - 1000 } },
+      { key: `${MUKAKU_CONFIG.PROBE_CACHE_KEY}:222`, record: { doubanId: null, imdbId: null, ts: now - 1000 } },
+    ]
+    const { store } = createFakeStore({
+      dbGetBulk: (_storeName, keys) => entries.filter((e) => keys.includes(e.key)),
+    })
+
+    const map = await probeCacheGetBulk(['111', '222'], store)
+
+    expect([...map.keys()]).toEqual(['111'])
+    expect(map.has('222')).toBe(false)
   })
 
   test('empty input returns an empty Map without any DB call', async () => {
@@ -201,36 +231,14 @@ test.describe('getWatchedIdSets', () => {
   })
 })
 
-test.describe('writeBatchedSets', () => {
-  test('flushes watched Set and unwatched map in exactly 2 writes with the stored shapes', async () => {
-    const { store, calls } = createFakeStore()
-    const watched = new Set(['mv1', 'mv2'])
-    const unwatched = { mv3: 1_234_567_890 }
-
-    await writeBatchedSets(watched, unwatched, store)
-
-    expect(calls.dbPut).toHaveLength(2)
-    // watched must be a string[] (the shape setAddItem persists), not a Set
-    expect(calls.dbPut[0]).toEqual([
-      'ttl_cache',
-      MUKAKU_CONFIG.WATCHED_SET_KEY,
-      ['mv1', 'mv2'],
-    ])
-    // unwatched must be the Record<string, number> shape expMapAdd persists
-    expect(calls.dbPut[1]).toEqual([
-      'ttl_cache',
-      MUKAKU_CONFIG.UNWATCHED_TTL_KEY,
-      { mv3: 1_234_567_890 },
-    ])
-  })
-
-  test('accepts a plain array and preserves order', async () => {
+test.describe('cleanupLegacyMukakuCaches', () => {
+  test('deletes exactly the two legacy judgment-cache keys from ttl_cache', async () => {
     const { store, calls } = createFakeStore()
 
-    await writeBatchedSets(['mv2', 'mv1'], {}, store)
+    await cleanupLegacyMukakuCaches(store)
 
-    expect(calls.dbPut).toHaveLength(2)
-    expect(calls.dbPut[0]).toEqual(['ttl_cache', MUKAKU_CONFIG.WATCHED_SET_KEY, ['mv2', 'mv1']])
-    expect(calls.dbPut[1]).toEqual(['ttl_cache', MUKAKU_CONFIG.UNWATCHED_TTL_KEY, {}])
+    expect(calls.dbDelete).toHaveLength(2)
+    expect(calls.dbDelete[0]).toEqual(['ttl_cache', 'umm:cache:mukaku:watched'])
+    expect(calls.dbDelete[1]).toEqual(['ttl_cache', 'umm:cache:mukaku:unwatched'])
   })
 })
