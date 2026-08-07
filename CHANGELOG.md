@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.0] - 2026-08-07
+
+### 新增功能
+
+- **mukaku 缓存策略重构（失败永不缓存 + 实时判定）**：探测失败（网络错误/超时/非 200/响应不可用）一律不写内存、IDB、会话冷却，卡片 30s 失败冷却后自动重试；映射缓存（mvId → douban/imdb id）仅在成功获取且 ≥1 个有效 id 时持久化（shouldPersistProbe 门控），确认无关联仅存页面会话冷却（导航即失效）；dimmer 判定改为「映射 → 实时查询本地 douban/imdb 已看记录」，移除 mvId 级已看/未看判定缓存（历史键启动时自动清理）——用户标记/取消记录后 ~1s 内淡入淡出
+- **mukaku 搜索页淡化支持**：站点搜索卡片为无链接 div（mvId 仅存在于 Vue 组件状态），新增 getVideoList 列表 API 按图片文件名匹配整页关联映射（一次请求免逐卡探测）；卡片提取增强支持 `to` 属性与后代链接（首页/分类页 `<a to>` 形态）
+
+### 修复与优化
+
+- **watchedIdCache 写回竞态修复**：epoch 代数守卫——记录事件失效缓存后，进行中的扫描不再复活旧缓存（列表页 + 详情页双处），新记录即时反映
+- **DB 读取失败不再污染 30s 缓存**：降级空集继续扫描，但不写入缓存，下次扫描自动重查
+- **探测失败重试语义（GOAL 1）**：失败卡片清除 processed 标记 + 30s per-card 冷却，可重新收集探测（此前失败卡片被标记永久跳过）
+- **列表 API 失败冷却 per-key**（搜索词 A 失败不阻塞 B）；图片匹配 key 归一化（忽略 query/hash 后缀）；列表映射重复写守卫
+- **日志分级规范**：debug 链路细节 / info 低频关键事件 / warn 可恢复失败 / error 异常降级
+
+### 安全加固
+
+- **解析层防御**：`IMDB_number`/`doub_id` 空串与纯空白 → null（杜绝 `'tt'` 伪映射持久化 7 天）；getVideoList 数组 2000 条上限；每扫描卡片 500 上限；会话冷却集合 2000 上限（敌意 API 响应 / 页面注入防护，安全审计 S1-S3）
+- **失败路径审计确认**：所有探测失败路径（网络/超时/非 200/invalid payload）不触碰任何缓存（Code Review R1-R4 修复落地）
+
+### 测试
+
+- 新增 mukaku-api / mukaku-dom 测试文件：真实响应结构契约（错误信封→invalid、payload 不作数据源、空串→null、falsy 防御、列表解析、2000 条 cap、图片匹配 key 归一化）；全量 560 单元测试通过
+
 ## [5.10.0] - 2026-08-05
 
 ### 新增功能
