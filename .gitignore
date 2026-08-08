@@ -57,6 +57,8 @@ playwright/.cache/
 # ----- Editor directories and files -----
 .vscode/*
 !.vscode/extensions.json
+*.code-workspace
+.history/
 .idea/
 .DS_Store*
 Thumbs.db
@@ -124,6 +126,12 @@ Desktop.ini
 !.yarn/patches
 .yarnrc.yml
 .pnp.*
+
+# ----- Other package manager lockfiles (npm lockfile is tracked) -----
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
+bun.lock
 
 # ----- Platform build artifacts -----
 .vercel/
