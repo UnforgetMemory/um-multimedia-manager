@@ -126,30 +126,6 @@ export async function handleDbGetBulk(
   return { success: true, entries }
 }
 
-export async function handleDbQuery(
-  payload: MessagePayloadMap['DB_QUERY'],
-  ctx: DbHandlerContext,
-) {
-  if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
-  const entries = await ctx.scheduler.schedule(
-    () => ctx.db.query(payload.storeName, payload.indexName, payload.value),
-    { priority: 'MEDIUM', storeName: payload.storeName },
-  )
-  return { success: true, entries }
-}
-
-export async function handleDbCount(
-  payload: MessagePayloadMap['DB_COUNT'],
-  ctx: DbHandlerContext,
-) {
-  if (!isAllowedStore(payload.storeName)) return { success: false, error: 'Invalid store name' }
-  const count = await ctx.scheduler.schedule(
-    () => ctx.db.count(payload.storeName),
-    { priority: 'LOW', storeName: payload.storeName, cacheKey: `count:${payload.storeName}`, cacheTTL: 5000 },
-  )
-  return { success: true, count }
-}
-
 export async function handleDbGetWatchedIds(
   payload: MessagePayloadMap['DB_GET_WATCHED_IDS'],
   ctx: DbHandlerContext,

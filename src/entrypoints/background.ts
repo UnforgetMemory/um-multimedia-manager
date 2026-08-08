@@ -26,8 +26,8 @@ import { handleGetSettings, handleUpdateSettings, handleExportData, handleImport
 import { handleShowToast } from './background/handlers/toast'
 import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll } from './background/handlers/adult-av'
 import {
-  handleDbGet, handleDbPut, handleDbDelete, handleDbGetAll, handleDbGetBulk, handleDbQuery,
-  handleDbCount, handleDbGetWatchedIds, handleDbSyncPageRecord,
+  handleDbGet, handleDbPut, handleDbDelete, handleDbGetAll, handleDbGetBulk,
+  handleDbGetWatchedIds, handleDbSyncPageRecord,
   handlePtIdCacheGet, handlePtIdCachePut, handlePtIdCacheGetBulk,
   type DbHandlerContext,
 } from './background/handlers/db'
@@ -294,12 +294,6 @@ export default defineBackground({
             break
           case 'DB_GET_BULK':
             sendResponse(await handleDbGetBulk(message.payload, dbCtx))
-            break
-          case 'DB_QUERY':
-            sendResponse(await handleDbQuery(message.payload, dbCtx))
-            break
-          case 'DB_COUNT':
-            sendResponse(await handleDbCount(message.payload, dbCtx))
             break
           case 'DB_GET_WATCHED_IDS':
             sendResponse(await handleDbGetWatchedIds(message.payload, dbCtx))

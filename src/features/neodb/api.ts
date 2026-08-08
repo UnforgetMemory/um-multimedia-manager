@@ -8,7 +8,7 @@
  * - 用户认证
  */
 
-import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
+import { debugLog, infoLog, warnLog } from '@/utils/logger'
 import { sleep } from '@/utils'
 
 // ==================== 错误类型 ====================
@@ -32,33 +32,6 @@ export class NeoDBError extends Error {
 }
 
 // ==================== 类型定义 ====================
-
-interface NeoDBSearchResult {
-  id: string
-  title: string
-  original_title?: string
-  year?: number
-  rating?: number
-  cover_image_url?: string
-  type: 'movie' | 'tv' | 'music' | 'book' | 'game'
-}
-
-interface NeoDBDetail {
-  id: string
-  title: string
-  original_title?: string
-  summary?: string
-  year?: number
-  rating?: number
-  rating_count?: number
-  cover_image_url?: string
-  genres?: string[]
-  directors?: Array<{ name: string }>
-  actors?: Array<{ name: string }>
-  duration?: number
-  release_date?: string
-  type: 'movie' | 'tv' | 'music' | 'book' | 'game'
-}
 
 // ✅ 新增：书架项响应接口
 export interface ShelfItemResponse {
@@ -132,132 +105,7 @@ function buildHeaders(token?: string): HeadersInit {
   return headers
 }
 
-/**
- * 发送 GET 请求
- */
-async function getRequest<T>(url: string, token?: string): Promise<T> {
-  const response = await fetchWithRetry(url, {
-    method: 'GET',
-    headers: buildHeaders(token),
-  })
-
-  if (!response.ok) {
-    throw new Error(`NeoDB API error: ${response.status} ${response.statusText}`)
-  }
-
-  return response.json() as Promise<T>
-}
-
 // ==================== 核心功能 ====================
-
-/**
- * 搜索作品
- */
-export async function searchWorks(
-  query: string,
-  type?: 'movie' | 'tv' | 'music',
-  token?: string
-): Promise<NeoDBSearchResult[]> {
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      page: '1',
-      page_size: '10',
-    })
-
-    if (type) {
-      params.append('category', type)
-    }
-
-    const url = `${NEOBASE_URL}/catalog/search/?${params.toString()}`
-    const data = await getRequest<any>(url, token)
-
-    // 解析搜索结果
-    return (data.items || []).map((item: any) => ({
-      id: item.id || '',
-      title: item.title || '',
-      original_title: item.original_title,
-      year: item.year,
-      rating: item.rating,
-      cover_image_url: item.cover_image_url,
-      type: item.category || 'movie',
-    }))
-  } catch (error: unknown) {
-    errorLog('Search failed:', error)
-    return []
-  }
-}
-
-/**
- * 获取作品详情
- */
-export async function getWorkDetail(
-  workId: string,
-  token?: string
-): Promise<NeoDBDetail | null> {
-  try {
-    const url = `${NEOBASE_URL}/catalog/item/${workId}/`
-    const data = await getRequest<any>(url, token)
-
-    return {
-      id: data.id || '',
-      title: data.title || '',
-      original_title: data.original_title,
-      summary: data.brief,
-      year: data.year,
-      rating: data.rating,
-      rating_count: data.rating_count,
-      cover_image_url: data.cover_image_url,
-      genres: data.genres,
-      directors: data.directors,
-      actors: data.actors,
-      duration: data.duration,
-      release_date: data.release_date,
-      type: data.category || 'movie',
-    }
-  } catch (error: unknown) {
-    errorLog('Get detail failed:', error)
-    return null
-  }
-}
-
-/**
- * 根据 URL 获取作品信息
- */
-export async function getWorkByUrl(
-  url: string,
-  token?: string
-): Promise<NeoDBDetail | null> {
-  try {
-    // 从 URL 提取 ID
-    const match = url.match(/neodb\.social\/(?:movie|tv|music|book|game)\/([^/]+)/)
-    if (!match) {
-      return null
-    }
-
-    const workId = match[1]
-    return await getWorkDetail(workId, token)
-  } catch (error: unknown) {
-    errorLog('Get work by URL failed:', error)
-    return null
-  }
-}
-
-// NOTE: enrichMetadata / enrichBatchMetadata removed — dead code, awaiting storage architecture adaptation
-
-/**
- * 验证 Token
- */
-export async function validateToken(token: string): Promise<boolean> {
-  try {
-    const url = `${NEOBASE_URL}/me/`
-    await getRequest<any>(url, token)
-    return true
-  } catch (error: unknown) {
-    errorLog('Token validation failed:', error)
-    return false
-  }
-}
 
 /**
  * 通过 URL 抓取 NeoDB 作品信息
@@ -357,102 +205,10 @@ export async function markItem(
 }
 
 /**
- * 更新作品标记信息（评分、状态等）
- */
-export async function updateShelfItem(
-  shelfItemUuid: string,
-  updates: {
-    rating?: number
-    shelf_type?: 'complete' | 'progress' | 'wishlist'
-    comment_text?: string
-  },
-  token?: string
-): Promise<ShelfItemResponse | null> {
-  try {
-    const url = `${NEOBASE_URL}/me/shelf/item/${shelfItemUuid}/`
-    
-    // ✅ 正确：评分字段是 rating_grade，不是 rating
-    const payload: any = {}
-    if (updates.rating !== undefined && updates.rating > 0) {
-      payload.rating_grade = updates.rating
-    }
-    if (updates.shelf_type) {
-      payload.shelf_type = updates.shelf_type
-    }
-    if (updates.comment_text) {
-      payload.comment_text = updates.comment_text
-    }
-    
-    const response = await fetchWithRetry(url, {
-      method: 'PATCH',
-      headers: buildHeaders(token),
-      body: JSON.stringify(payload),
-    })
-
-    if (!response.ok) {
-      throw new Error(`NeoDB API error: ${response.status} ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return {
-      uuid: data.uuid,
-      item: data.item,
-      shelf_type: data.shelf_type,
-      rating: data.rating,
-      created_time: data.created_time,
-      updated_time: data.updated_time,
-    }
-  } catch (error: unknown) {
-    errorLog('Update shelf item failed:', error)
-    return null
-  }
-}
-
-/**
  * 获取用户的书架项 UUID（用于更新）
  */
-export async function getShelfItemUuid(
-  itemUuid: string,
-  token?: string
-): Promise<string | null> {
-  // ✅ P0: 检查缓存
-  const cached = shelfCache.get(itemUuid)
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    infoLog(`Using cached shelf item uuid for ${itemUuid}`)
-    return cached.uuid
-  }
-  
-  try {
-    // 尝试直接查询单个作品（如果 API 支持）
-    const directUrl = `${NEOBASE_URL}/me/shelf/item/?item=${itemUuid}`
-    const directData = await getRequest<any>(directUrl, token)
-    
-    if (directData.results?.length > 0) {
-      const uuid = directData.results[0].uuid
-      // 更新缓存
-      shelfCache.set(itemUuid, { uuid, timestamp: Date.now() })
-      return uuid
-    }
-    
-    // 降级方案：获取完整书架并搜索
-    warnLog('Direct query failed, falling back to full shelf scan')
-    const url = `${NEOBASE_URL}/me/shelf/complete/?page=1&page_size=100`
-    const data = await getRequest<any>(url, token)
-    
-    // 在 results 中查找匹配的作品
-    const shelfItem = data.results?.find((item: any) => item.item === itemUuid)
-    const result = shelfItem?.uuid || null
-    
-    if (result) {
-      shelfCache.set(itemUuid, { uuid: result, timestamp: Date.now() })
-    }
-    
-    return result
-  } catch (error: unknown) {
-    errorLog('Get shelf item uuid failed:', error)
-    return null
-  }
-}
+
+// ==================== 工具函数 ====================
 
 // ==================== 工具函数 ====================
 
@@ -470,34 +226,4 @@ export function cleanupShelfCache() {
       shelfCache.delete(key)
     }
   }
-}
-
-/**
- * 格式化评分
- */
-export function formatRating(rating?: number): string {
-  if (!rating) return '-'
-  return `${rating.toFixed(1)}/10`
-}
-
-/**
- * 格式化年份
- */
-export function formatYear(year?: number): string {
-  if (!year) return '-'
-  return String(year)
-}
-
-/**
- * 格式化类型
- */
-export function formatType(type: string): string {
-  const types: Record<string, string> = {
-    movie: '电影',
-    tv: '剧集',
-    music: '音乐',
-    book: '图书',
-    game: '游戏',
-  }
-  return types[type] || type
 }

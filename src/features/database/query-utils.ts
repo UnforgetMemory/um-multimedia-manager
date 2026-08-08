@@ -143,11 +143,6 @@ export async function batchGet<T>(
   return results
 }
 
-/**
- * Put (insert or update) multiple records in a single transaction.
- * Stamps schema version on each record.
- */
-
 // ==================== Helpers ====================
 
 async function countStore(store: IDBObjectStore): Promise<number> {

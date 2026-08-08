@@ -114,8 +114,6 @@ export type MessageType =
   | 'DB_DELETE'
   | 'DB_GET_ALL'
   | 'DB_GET_BULK'
-  | 'DB_QUERY'
-  | 'DB_COUNT'
   | 'DB_GET_WATCHED_IDS'
   | 'DB_SYNC_PAGE_RECORD'
   | 'PT_ID_CACHE_GET'
@@ -148,8 +146,6 @@ export interface MessagePayloadMap {
   DB_DELETE: { storeName: string; key: string }
   DB_GET_ALL: { storeName: string }
   DB_GET_BULK: { storeName: string; keys: string[] }
-  DB_QUERY: { storeName: string; indexName: string; value: IDBValidKey }
-  DB_COUNT: { storeName: string }
   DB_GET_WATCHED_IDS: { storeNames: string[] }
   DB_SYNC_PAGE_RECORD: { platform: Provider; key: string; record: StoreRecord; linked?: Array<{ platform: Provider; key: string; url: string }> }
   PT_ID_CACHE_GET: { ptUrl: string }

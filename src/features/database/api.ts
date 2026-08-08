@@ -8,7 +8,7 @@
  */
 
 import type { Provider } from '@/config'
-import type { MessageType, MessagePayloadMap, StoreRecord, AppSettings, ExportData, Statistics, PtIdCacheEntry, MigrationStatus } from '@/types'
+import type { MessageType, MessagePayloadMap, StoreRecord, AppSettings, PtIdCacheEntry } from '@/types'
 
 /**
  * Send a typed runtime message with timeout.
@@ -68,24 +68,6 @@ export async function dbGetBulk(
   return res?.entries || []
 }
 
-export async function dbQuery(
-  storeName: string,
-  indexName: string,
-  value: IDBValidKey
-): Promise<Array<{ key: string; record: StoreRecord }>> {
-  const res = await send('DB_QUERY', { storeName, indexName, value })
-  return res?.entries || []
-}
-
-export async function dbCount(storeName: string): Promise<number> {
-  const res = await send('DB_COUNT', { storeName })
-  return res?.count ?? 0
-}
-
-/**
- * Batch query: get watched IDs (status == 2) from multiple stores in a single message.
- * Returns { storeName: string[] } map.
- */
 export async function dbGetWatchedIds(
   storeNames: string[]
 ): Promise<Record<string, string[]>> {
@@ -135,27 +117,6 @@ export async function updateSettings(partial: Partial<AppSettings>): Promise<App
   return res?.settings || ({} as AppSettings)
 }
 
-// ==================== Export / Import ====================
-
-export async function exportData(): Promise<ExportData> {
-  const res = await send('EXPORT_DATA', undefined)
-  return res?.data || ({} as ExportData)
-}
-
-export async function importData(data: ExportData): Promise<void> {
-  await send('IMPORT_DATA', data)
-}
-
-// ==================== Statistics ====================
-
-export async function getStatistics(): Promise<Statistics> {
-  const res = await send('GET_STATISTICS', undefined)
-  return res?.stats || {
-    total: 0, movie: 0, tv: 0, music: 0, book: 0,
-    douban: 0, imdb: 0, neodb: 0, tmdb: 0, bilibili: 0, youtube: 0, bangumi: 0,
-  }
-}
-
 // ==================== Utility ====================
 
 export async function healthCheck(): Promise<boolean> {
@@ -164,20 +125,5 @@ export async function healthCheck(): Promise<boolean> {
     return true
   } catch {
     return false
-  }
-}
-
-// ==================== Migration ====================
-
-export async function getMigrationStatus(): Promise<MigrationStatus> {
-  const res = await send('GET_MIGRATION_STATUS', undefined)
-  return res?.migration || {
-    currentRecordVersion: 0,
-    currentCacheVersion: 0,
-    currentExportVersion: 0,
-    minSupportedRecordVersion: 0,
-    minSupportedExportVersion: 0,
-    recordMigrationSteps: 0,
-    cacheMigrationSteps: 0,
   }
 }
