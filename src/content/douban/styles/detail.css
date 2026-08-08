@@ -148,12 +148,7 @@
 .umm-comment-item:first-child { padding-top: 0; }
 .umm-comment-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .umm-comment-user { font-size: var(--umm-font-sm, 0.8125rem); font-weight: 600; color: var(--umm-link); text-decoration: none; }
-.umm-comment-user--self { color: var(--umm-text-primary); }
 .umm-comment-user:hover { text-decoration: underline; }
-.umm-comment-status { font-size: var(--umm-font-xs, 0.75rem); font-weight: 600; padding: 1px 8px; border-radius: 999px; }
-.umm-comment-status--done { background: rgba(17,111,70,0.1); color: var(--umm-color-status-done); }
-.umm-comment-status--wish { background: rgba(217,119,6,0.1); color: #b45309; }
-:host(.umm-theme--dark) .umm-comment-status--wish { color: #f59e0b; background: rgba(245,158,11,0.12); }
 :host(.umm-theme--dark) .umm-rating-better { background: rgba(224,144,26,0.1); }
 :host(.umm-theme--dark) .umm-better-chip { background: rgba(224,144,26,0.18); }
 .umm-comment-star { color: var(--umm-card-border); font-size: var(--umm-font-sm, 0.8125rem); }
@@ -197,12 +192,10 @@
 .umm-rec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--umm-space-md, 12px); }
 @media (min-width: 480px) { .umm-rec-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 768px) { .umm-rec-grid { grid-template-columns: repeat(4, 1fr); } }
-.umm-rec-cell { display: flex; flex-direction: column; gap: 0; }
 .umm-rec-item { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; border-radius: var(--umm-card-radius, 8px); overflow: hidden; transition: transform 0.15s ease; }
 .umm-rec-item:hover { transform: translateY(-2px); }
 .umm-rec-cover { position: relative; overflow: hidden; border-radius: var(--umm-card-radius, 8px); }
 .umm-rec-title { font-size: var(--umm-font-sm, 0.8125rem); font-weight: 500; color: var(--umm-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
-.umm-rec-rating { font-size: var(--umm-font-xs, 0.75rem); color: var(--umm-rating-score); font-weight: 600; padding: 0 2px; }
 
 /* --- TOC card (books) --- */
 .umm-toc-card { background: var(--umm-card-bg); border: 1px solid var(--umm-card-border); border-radius: 14px; padding: var(--umm-space-md, 16px); }
@@ -247,8 +240,6 @@
 .umm-actions .collect_btn[name*="collect"] { background: var(--umm-success-bg); color: var(--umm-success); }
 .umm-actions .collect_btn[name*="collect"]:hover { opacity: 0.8; }
 
-.umm-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--umm-text-primary); }
-.umm-spinner { width: 40px; height: 40px; border: 3px solid var(--umm-card-border); border-top-color: var(--umm-text-primary); border-radius: 50%; animation: umm-spin 0.8s linear infinite; box-sizing: border-box; }
 /* @keyframes umm-spin is defined in common.css */
 
 @media (max-width: 768px) {

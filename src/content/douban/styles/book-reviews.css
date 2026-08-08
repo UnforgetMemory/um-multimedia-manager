@@ -1,10 +1,7 @@
 /* ===== UMM Douban Book Reviews — Shadow DOM styles ===== */
 
 :host {
-  --umm-rev-accent: #4f6ef7;
-}
-:host(.umm-theme--dark) {
-  --umm-rev-accent: #6e8aff;
+  --umm-rev-accent: var(--umm-brand-accent);
 }
 
 .umm-reviews-root {

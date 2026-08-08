@@ -100,23 +100,6 @@
   background: linear-gradient(to left, var(--umm-mask-from), transparent);
 }
 
-/* ---- Item reset helpers ---- */
-.umm-item-reset {
-  display: block;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  flex-shrink: 0;
-}
-
-.umm-item-inner {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 /* ---- Media card ---- */
 .umm-card {
   box-sizing: border-box;
@@ -360,11 +343,6 @@
   max-width: 220px;
 }
 
-/* ---- Hot card wrapper ---- */
-.umm-hot-card {
-  flex-shrink: 0;
-}
-
 /* ---- Episodes badge ---- */
 .umm-episodes {
   position: absolute;
@@ -440,13 +418,6 @@
   white-space: nowrap;
   padding: 0 2px;
   margin-top: -2px;
-}
-
-.umm-rec-rating {
-  font-size: var(--umm-font-xs, 0.75rem);
-  color: var(--umm-rating-score);
-  font-weight: 600;
-  padding: 0 2px;
 }
 
 .umm-grid-track .umm-rec-item {

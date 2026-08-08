@@ -22,57 +22,6 @@
   padding: var(--umm-space-lg) clamp(16px, 4vw, 64px) var(--umm-space-2xl);
 }
 
-/* ===== User Bar ===== */
-
-.umm-doulists-userbar {
-  display: flex;
-  align-items: center;
-  gap: var(--umm-space-sm);
-  margin-bottom: var(--umm-space-md);
-  padding-bottom: var(--umm-space-sm);
-  border-bottom: 1px solid var(--dc-card-border);
-}
-.umm-doulists-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  background-color: var(--umm-bg-secondary);
-  flex-shrink: 0;
-}
-.umm-doulists-userinfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.umm-doulists-username {
-  font-size: var(--umm-font-sm);
-  font-weight: 600;
-  color: var(--umm-text-primary);
-  text-decoration: none;
-}
-.umm-doulists-username:hover { color: var(--umm-link); }
-.umm-doulists-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 6px;
-}
-.umm-doulists-navlink {
-  font-size: var(--umm-font-xs);
-  color: var(--umm-text-muted);
-  text-decoration: none;
-  white-space: nowrap;
-  padding: 1px 4px;
-  border-radius: 4px;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.umm-doulists-navlink:hover {
-  color: var(--dc-accent);
-  background: var(--dc-accent-bg);
-}
-
 /* ===== Xbar Category Tabs ===== */
 
 .umm-doulist-xbar {
@@ -126,7 +75,7 @@
 
 /* ===== Tabs ===== */
 
-.umm-doulist-tabs {
+.umm-doulists-tabs {
   display: flex;
   align-items: center;
   gap: var(--umm-space-xs);

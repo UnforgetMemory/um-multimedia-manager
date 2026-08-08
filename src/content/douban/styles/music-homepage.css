@@ -98,13 +98,6 @@
   padding: 0 2px;
 }
 
-.umm-rec-rating {
-  font-size: var(--umm-font-xs, 0.75rem);
-  color: var(--umm-rating-score);
-  font-weight: 600;
-  padding: 0 2px;
-}
-
 /* ---- Artist grid (popular artists) ---- */
 .umm-artist-grid {
   display: grid;
@@ -185,16 +178,6 @@
 .umm-genre-tag:hover {
   background: var(--umm-accent);
   color: #fff;
-}
-
-.umm-album-artist {
-  font-size: var(--umm-font-xs);
-  color: var(--umm-text-muted);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 /* ---- Hide native elements ---- */

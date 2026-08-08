@@ -3,10 +3,7 @@
    the movie detail page — see detail.css for the base styles */
 
 :host {
-  --umm-gd-accent: #4f6ef7;
-}
-:host(.umm-theme--dark) {
-  --umm-gd-accent: #6e8aff;
+  --umm-gd-accent: var(--umm-brand-accent);
 }
 
 /* ===== Game comment platform badge ===== */

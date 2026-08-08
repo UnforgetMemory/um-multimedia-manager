@@ -1,10 +1,7 @@
 /* ===== UMM Douban Book Authors — Shadow DOM styles ===== */
 
 :host {
-  --umm-authors-accent: #4f6ef7;
-}
-:host(.umm-theme--dark) {
-  --umm-authors-accent: #6e8aff;
+  --umm-authors-accent: var(--umm-brand-accent);
 }
 
 .umm-authors-root {

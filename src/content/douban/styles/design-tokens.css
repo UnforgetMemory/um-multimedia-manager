@@ -5,19 +5,19 @@
 
 /* ---- Light theme ---- */
 :host {
+  /* === Brand accent (single source — audit H5 2026-08-08) === */
+  --umm-brand-accent: #4f6ef7;
+  --umm-brand-accent-soft: #e0e7ff;
+
   /* === Surface colors === */
   --umm-color-surface: hsl(0 0% 100%);
   --umm-color-surface-secondary: hsl(240 5% 96%);
-  --umm-color-surface-elevated: hsl(0 0% 100%);
   --umm-card-bg: hsl(0 0% 100%);
   --umm-card-border: hsl(220 13% 91%);
-  --umm-content-gap: 16px;
 
   /* === Text colors === */
   --umm-color-text-primary: hsl(240 10% 3.9%);
   --umm-color-text-secondary: hsl(240 3.8% 46.1%);
-  --umm-color-text-tertiary: hsl(240 3.8% 46.1% / 0.6);
-  --umm-color-text-disabled: hsl(240 3.8% 46.1% / 0.38);
   --umm-color-text-muted: hsl(0 0% 67%);
 
   /* === Border colors === */
@@ -30,8 +30,6 @@
   /* === Status colors === */
   --umm-color-status-done: hsl(160 84% 39%);
   --umm-color-status-watched: hsl(217 91% 60%);
-  --umm-color-status-unknown: hsl(220 9% 46%);
-  --umm-color-status-unwatched: hsl(215 16% 47%);
   --umm-color-error: hsl(6 78% 57%);
 
   /* === Dynamic Island (fluent top bar) === */
@@ -65,7 +63,6 @@
 
   /* === Aspect ratio tokens === */
   --umm-aspect-poster: 2/3;
-  --umm-aspect-square: 1;
   --umm-aspect-wide: 16/9;
 
   /* === Spacing scale (rem, aligned with style.css) === */
@@ -75,38 +72,19 @@
   --umm-space-1-5: 0.375rem;
   --umm-space-2: 0.5rem;
   --umm-space-2-5: 0.625rem;
-  --umm-space-3: 0.75rem;
-  --umm-space-4: 1rem;
-  --umm-space-5: 1.25rem;
-  --umm-space-6: 1.5rem;
-  --umm-space-8: 2rem;
-  --umm-space-10: 2.5rem;
-  --umm-space-12: 3rem;
-  --umm-space-16: 4rem;
-  --umm-space-20: 5rem;
 
   /* === Radius tokens === */
   --umm-radius-sm: 4px;
   --umm-radius-md: 8px;
   --umm-radius-lg: 12px;
-  --umm-radius-xl: 16px;
-  --umm-radius-full: 999px;
-
-  /* === Shadow tokens === */
-  --umm-shadow-sm: 0 1px 2px hsl(220 13% 0% / 0.05);
-  --umm-shadow-md: 0 4px 6px hsl(220 13% 0% / 0.07);
-  --umm-shadow-lg: 0 10px 15px hsl(220 13% 0% / 0.1);
-  --umm-shadow-xl: 0 20px 25px hsl(220 13% 0% / 0.1);
 
   /* === Z-index scale === */
   --umm-z-backdrop: 10;
   --umm-z-sticky: 50;
   --umm-z-floating: 100;
   --umm-z-tooltip: 150;
-  --umm-z-overlay-host: 200;
   --umm-z-overlay: 300;
   --umm-z-dialog: 400;
-  --umm-z-toast: 500;
 
   /* Host defaults */
   background: var(--umm-color-surface);
@@ -116,19 +94,19 @@
 
 /* ---- Dark theme ---- */
 :host(.umm-theme--dark) {
+  /* === Brand accent (dark) === */
+  --umm-brand-accent: #6e8aff;
+  --umm-brand-accent-soft: #312e81;
+
   /* Surface */
   --umm-color-surface: hsl(240 5% 15%);
   --umm-color-surface-secondary: hsl(240 4% 20%);
-  --umm-color-surface-elevated: hsl(240 5% 18%);
   --umm-card-bg: hsl(240 4% 20%);
   --umm-card-border: hsl(240 4% 25%);
-  --umm-content-gap: 16px;
 
   /* Text */
   --umm-color-text-primary: hsl(0 0% 98%);
   --umm-color-text-secondary: hsl(240 5% 60%);
-  --umm-color-text-tertiary: hsl(240 5% 60% / 0.6);
-  --umm-color-text-disabled: hsl(240 5% 60% / 0.38);
   --umm-color-text-muted: hsl(240 5% 40%);
 
   /* Border */
@@ -141,8 +119,6 @@
   /* Status */
   --umm-color-status-done: hsl(160 84% 49%);
   --umm-color-status-watched: hsl(217 91% 70%);
-  --umm-color-status-unknown: hsl(220 9% 56%);
-  --umm-color-status-unwatched: hsl(215 16% 57%);
   --umm-color-error: hsl(0 91% 71%);
 
   /* Dynamic Island */
@@ -161,10 +137,4 @@
   --umm-rating-gold-low: hsl(41 63% 55%);
   --umm-rating-gold-mid: hsl(44 76% 50%);
   --umm-rating-gold-high: hsl(45 80% 55%);
-
-  /* Shadow (dark theme — lighter, more subtle) */
-  --umm-shadow-sm: 0 1px 2px hsl(0 0% 100% / 0.03);
-  --umm-shadow-md: 0 4px 6px hsl(0 0% 100% / 0.05);
-  --umm-shadow-lg: 0 10px 15px hsl(0 0% 100% / 0.08);
-  --umm-shadow-xl: 0 20px 25px hsl(0 0% 100% / 0.08);
 }

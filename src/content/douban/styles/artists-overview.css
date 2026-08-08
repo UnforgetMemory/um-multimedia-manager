@@ -121,53 +121,6 @@
 }
 
 /* Video list */
-.umm-video-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--umm-space-md, 12px);
-  padding: 0 var(--umm-space-xl, 24px);
-}
-
-@media (min-width: 640px) { .umm-video-list { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1024px) { .umm-video-list { grid-template-columns: repeat(4, 1fr); } }
-
-.umm-video-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-decoration: none;
-  color: inherit;
-  border-radius: var(--umm-radius-md, 8px);
-  overflow: hidden;
-  cursor: pointer;
-  padding: var(--umm-space-xs, 4px);
-  transition: background 0.15s;
-}
-
-.umm-video-card:hover {
-  background: var(--umm-bg-secondary);
-}
-
-.umm-video-cover {
-  width: 100%;
-  aspect-ratio: var(--umm-aspect-wide, 16/9);
-  border-radius: var(--umm-radius-sm, 6px);
-  overflow: hidden;
-  background: var(--umm-bg-secondary);
-}
-
-.umm-video-title {
-  font-size: var(--umm-font-xs, 0.75rem);
-  color: var(--umm-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.umm-video-artist {
-  font-size: var(--umm-font-xs, 0.75rem);
-  color: var(--umm-text-muted);
-}
 
 /* Genre nav */
 .umm-genre-section {

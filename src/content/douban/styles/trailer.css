@@ -220,17 +220,6 @@
   margin: 0;
 }
 
-.umm-detail-back {
-  display: inline-block;
-  font-size: var(--umm-font-sm, 0.8125rem);
-  color: var(--umm-link);
-  text-decoration: none;
-  margin-top: var(--umm-space-sm, 8px);
-}
-.umm-detail-back:hover {
-  text-decoration: underline;
-}
-
 /* Detail page navigation buttons */
 .umm-detail-btns {
   display: flex;

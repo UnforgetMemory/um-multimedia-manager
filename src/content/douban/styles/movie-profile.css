@@ -48,55 +48,6 @@
   line-height: 1.3;
 }
 
-/* ===== Stat Bar (pills) ===== */
-.umm-statbar {
-  margin-bottom: var(--umm-space-xl, 32px);
-}
-
-/* Vue component Shadow DOM overrides */
-.umm-statbar-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--umm-space-md, 14px);
-}
-
-.umm-statbar-items {
-  display: flex;
-  gap: var(--umm-space-xs, 6px);
-  flex-wrap: wrap;
-}
-.umm-statbar-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border-radius: 999px;
-  background: var(--umm-bg-secondary);
-  border: 1px solid var(--umm-border);
-  text-decoration: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-  flex: 0 0 auto;
-}
-.umm-statbar-item:hover {
-  background: linear-gradient(135deg, var(--umm-mp-accent), #818cf8);
-  border-color: var(--umm-mp-accent);
-}
-.umm-statbar-item:hover .umm-statbar-val,
-.umm-statbar-item:hover .umm-statbar-lbl {
-  color: #fff;
-}
-.umm-statbar-val {
-  font-size: var(--umm-font-sm, 0.875rem);
-  font-weight: 700;
-  color: var(--umm-mp-accent);
-  transition: color 0.15s;
-}
-.umm-statbar-lbl {
-  font-size: var(--umm-font-xs, 0.7rem);
-  color: var(--umm-text-muted);
-  transition: color 0.15s;
-}
-
 /* ===== Dashboard Sections ===== */
 .umm-dash-section {
   margin-bottom: var(--umm-space-xl, 32px);
@@ -167,14 +118,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0 2px;
-}
-
-/* ===== Extras Row ===== */
-.umm-movie-profile-extras {
-  display: flex;
-  gap: var(--umm-space-xs, 6px);
-  flex-wrap: wrap;
-  margin-bottom: var(--umm-space-xl, 32px);
 }
 
 /* ===== Doulists ===== */

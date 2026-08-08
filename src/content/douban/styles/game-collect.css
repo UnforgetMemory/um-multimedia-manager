@@ -1,8 +1,5 @@
 :host {
-  --umm-gc-accent: #4f6ef7;
-}
-:host(.umm-theme--dark) {
-  --umm-gc-accent: #6e8aff;
+  --umm-gc-accent: var(--umm-brand-accent);
 }
 
 .umm-gc-root {

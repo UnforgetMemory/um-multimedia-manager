@@ -1,16 +1,12 @@
 /* ===== Shared Paginator — Shadow DOM safety copy of UmmPaginator.vue scoped CSS =====
- * Aliases: .umm-reviews-paginator (book-reviews / user-reviews),
- *          .umm-doulist-paginator (doulists), .umm-celebrities-paginator (user-celebrities),
- *          .umm-umedia-paginator (user-media).
+ * Aliases: .umm-reviews-paginator (book-reviews / user-reviews).
  * NOTE: doulist-detail and series use a different bordered paginator (kept in page files).
+ * NOTE: doulists/user-celebrities/user-media migrated to UmmPaginator (dead aliases removed 2026-08-08).
  */
 
 /* Container */
 .umm-paginator,
-.umm-reviews-paginator,
-.umm-doulist-paginator,
-.umm-celebrities-paginator,
-.umm-umedia-paginator {
+.umm-reviews-paginator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,10 +16,7 @@
 }
 /* Page button (default state) */
 .umm-paginator-btn,
-.umm-reviews-page,
-.umm-doulist-page,
-.umm-celebrities-page,
-.umm-umedia-page {
+.umm-reviews-page {
   font-family: inherit;
   font-size: var(--umm-font-xs, 0.75rem);
   line-height: 1;
@@ -44,15 +37,8 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 .umm-paginator-btn:hover:not(:disabled),
-.umm-reviews-page:hover,
-.umm-doulist-page:hover,
-.umm-celebrities-page:hover {
+.umm-reviews-page:hover {
   background: var(--umm-bg, #fff);
-  color: var(--umm-text-primary);
-}
-/* user-media hover uses --umm-bg-secondary */
-.umm-umedia-page:hover {
-  background: var(--umm-bg-secondary);
   color: var(--umm-text-primary);
 }
 .umm-paginator-btn:disabled {
@@ -74,25 +60,6 @@
   background: var(--umm-rev-accent);
   color: #fff;
   font-weight: 700;
-}
-.umm-celebrities-page--active {
-  background: var(--umm-cel-accent);
-  color: #fff;
-  font-weight: 700;
-}
-.umm-doulist-page--active {
-  background: var(--dc-accent);
-  color: #fff;
-  font-weight: 700;
-}
-.umm-umedia-page--active {
-  background: var(--umm-umedia-accent);
-  color: #fff;
-  font-weight: 700;
-}
-.umm-umedia-page--active:hover {
-  background: var(--umm-umedia-accent);
-  color: #fff;
 }
 /* Ellipsis separator between page ranges */
 .umm-paginator-ellipsis {

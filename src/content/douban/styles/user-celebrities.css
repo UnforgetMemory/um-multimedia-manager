@@ -14,56 +14,6 @@
   animation: umm-fade-in 0.35s ease;
 }
 
-/* ===== User Bar ===== */
-.umm-celebrities-userbar {
-  display: flex;
-  align-items: center;
-  gap: var(--umm-space-sm, 12px);
-  margin-bottom: var(--umm-space-md, 16px);
-  padding-bottom: var(--umm-space-sm, 10px);
-  border-bottom: 1px solid var(--umm-border);
-}
-.umm-celebrities-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  background-color: var(--umm-bg-secondary);
-  flex-shrink: 0;
-}
-.umm-celebrities-userinfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.umm-celebrities-username {
-  font-size: var(--umm-font-sm, 0.85rem);
-  font-weight: 600;
-  color: var(--umm-text-primary);
-  text-decoration: none;
-}
-.umm-celebrities-username:hover { color: var(--umm-link); }
-.umm-celebrities-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 6px;
-}
-.umm-celebrities-navlink {
-  font-size: var(--umm-font-xs, 0.65rem);
-  color: var(--umm-text-muted);
-  text-decoration: none;
-  white-space: nowrap;
-  padding: 1px 4px;
-  border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
-}
-.umm-celebrities-navlink:hover {
-  color: var(--umm-cel-accent);
-  background: color-mix(in srgb, var(--umm-cel-accent) 10%, transparent);
-}
-
 /* ===== Title ===== */
 
 

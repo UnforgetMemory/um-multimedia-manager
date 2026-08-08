@@ -18,9 +18,7 @@
   color: var(--umm-text-muted, #9ca3af);
   text-align: center;
 }
-.umm-umedia-empty-icon,
-.umm-bc-empty-icon,
-.umm-gc-empty-icon {
+.umm-umedia-empty-icon {
   display: block;
   margin: 0 auto var(--umm-space-sm, 8px);
   font-size: var(--umm-font-xl, 1.375rem);

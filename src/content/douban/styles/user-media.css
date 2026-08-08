@@ -18,64 +18,6 @@
   animation: umm-fade-in 0.35s ease;
 }
 
-/* ===== User Bar ===== */
-.umm-umedia-userbar {
-  display: flex;
-  align-items: center;
-  gap: var(--umm-space-sm, 12px);
-  margin-bottom: var(--umm-space-lg, 24px);
-  padding-bottom: var(--umm-space-sm, 10px);
-  border-bottom: 1px solid var(--umm-border);
-}
-.umm-umedia-userbar-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  background-color: var(--umm-bg-secondary);
-  flex-shrink: 0;
-  border: 2px solid var(--umm-umedia-accent);
-  transition: transform 0.2s ease;
-}
-.umm-umedia-userbar-avatar:hover {
-  transform: scale(1.05);
-}
-.umm-umedia-userbar-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.umm-umedia-userbar-name {
-  font-size: var(--umm-font-sm, 0.85rem);
-  font-weight: 700;
-  color: var(--umm-text-primary);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-.umm-umedia-userbar-name:hover {
-  color: var(--umm-umedia-accent);
-}
-.umm-umedia-userbar-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-}
-.umm-umedia-userbar-link {
-  font-size: var(--umm-font-xs, 0.65rem);
-  color: var(--umm-text-muted);
-  text-decoration: none;
-  white-space: nowrap;
-  padding: 1px 4px;
-  border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
-}
-.umm-umedia-userbar-link:hover {
-  color: var(--umm-umedia-accent);
-  background: var(--umm-umedia-accent-soft);
-}
-
 
 
 /* ===== Opt Bar ===== */

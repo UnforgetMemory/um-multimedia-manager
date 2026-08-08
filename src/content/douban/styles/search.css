@@ -310,11 +310,6 @@
   font-weight: 600;
 }
 
-.umm-page-ellipsis {
-  color: var(--umm-text-muted);
-  padding: 0 4px;
-}
-
 .umm-page-jump {
   display: inline-flex;
   align-items: center;

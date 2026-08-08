@@ -400,17 +400,3 @@ onMounted(async () => { await appStore.loadData() })
     </Teleport>
   </div>
 </template>
-
-<style scoped>
-.heatmap-cell {
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.heatmap-cell:hover {
-  transform: scale(1.4);
-  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.2);
-  z-index: 10;
-}
-</style>

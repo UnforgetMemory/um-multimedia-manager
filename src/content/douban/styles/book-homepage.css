@@ -56,21 +56,6 @@
   margin: 0;
 }
 
-/* ---- Book Express Grid (新书速递) ---- */
-.umm-book-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--umm-space-md);
-  padding: 0 var(--umm-space-lg);
-}
-
-@media (min-width: 480px) { .umm-book-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 640px) { .umm-book-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 768px) { .umm-book-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 1024px) { .umm-book-grid { grid-template-columns: repeat(6, 1fr); } }
-@media (min-width: 1440px) { .umm-book-grid { grid-template-columns: repeat(7, 1fr); } }
-@media (min-width: 1920px) { .umm-book-grid { grid-template-columns: repeat(8, 1fr); } }
-
 /* ---- Activities Grid (读书活动) ---- */
 .umm-activity-grid {
   display: grid;

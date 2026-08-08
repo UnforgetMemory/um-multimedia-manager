@@ -1,10 +1,7 @@
 /* ===== UMM Douban Book Collection (wish/collect/do) — Shadow DOM styles ===== */
 
 :host {
-  --umm-bc-accent: #4f6ef7;
-}
-:host(.umm-theme--dark) {
-  --umm-bc-accent: #6e8aff;
+  --umm-bc-accent: var(--umm-brand-accent);
 }
 
 .umm-bc-root {
