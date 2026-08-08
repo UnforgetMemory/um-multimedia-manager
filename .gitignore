@@ -1,5 +1,12 @@
-# Logs
-logs
+# ============================================
+# UM Multimedia Manager — .gitignore
+# ============================================
+
+# ----- Dependencies -----
+node_modules/
+
+# ----- Logs -----
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,33 +14,50 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Environment variables
+# ----- Environment variables -----
 .env
 .env.local
 .env.*.local
 .env.development
+.env.development.local
 .env.production
 .env.staging
 .env.test
+.env.test.local
 .envrc
 .direnv/
 .flox/
+.npmrc
+.yarnrc
 
-# WXT build artifacts
+# ----- Build output -----
+dist/
+dist-ssr/
+build/
+extension/
+releases/
+*.local
+
+# ----- WXT build artifacts -----
 .wxt/
 
-# Vite cache
+# ----- Vite cache -----
 .vite/
 
-# Editor directories and files
+# ----- TypeScript build info -----
+*.tsbuildinfo
+
+# ----- Test artifacts (tests/ source files ARE tracked) -----
+/playwright-report/
+/test-results/
+/coverage/
+/.playwright/
+playwright/.cache/
+
+# ----- Editor directories and files -----
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store*
 Thumbs.db
 Desktop.ini
@@ -50,18 +74,22 @@ Desktop.ini
 *.temp
 *.sublime-project
 *.sublime-workspace
+*.iml
+*.ipr
+*.iws
+.fleet/
+.eclipse/
 
-# ESLint cache
+# ----- Linting / formatting caches -----
 .eslintcache
+.stylelintcache
+.prettiercache
+.prettierd/
+.dprint/
+.biome/
 
-# Build output
-build
-extension
-releases/
-
+# ----- AI Assistant directories -----
 .agents/
-
-# AI Assistant directories
 .claude/
 .cursor/
 .windsurf/
@@ -71,7 +99,6 @@ releases/
 .codex/
 .lingma/
 .continue/
-.zed/
 .aider/
 .codeium/
 .tabnine/
@@ -79,211 +106,117 @@ releases/
 .github/copilot-instructions.md
 .copilot*
 
-# MCP server configs
-.mcp*.json
-.mcp/
-
-# Sisyphus / OpenCode agent sessions
+# ----- AI Agent sessions / configs -----
 .sisyphus/
 .omo/
 .opencode/
 .codegraph
-
-# Test artifacts (source files under tests/ ARE tracked)
-playwright-report/
-test-results/
-coverage/
-
-# Platform build artifacts
-.vercel/
-.netlify/
-
-# Temporary review files
-review_diff*.txt
-
-# Generated plan documents (docs/adr, docs/audit, DESIGN_GUIDE are tracked project docs)
-docs/*-plan.md
-
-# AI-generated documentation
 .cortexkit/
 
-# Data export/import temporary directories
-data-exports/
-data-imports/
+# ----- MCP server configs -----
+.mcp*.json
+.mcp/
 
-# Archived/decommissioned scripts (not active source)
-scripts/archived/
-
-# Editor local history
-.history/
-
-# Package manager configs (may contain auth tokens)
-.npmrc
-.yarnrc
+# ----- Package manager (Yarn Berry / PnP) -----
+.yarn/
+!.yarn/releases
+!.yarn/plugins
+!.yarn/patches
 .yarnrc.yml
-pnpm-workspace.yaml
+.pnp.*
 
-# Archive and extension build outputs
+# ----- Platform build artifacts -----
+.vercel/
+.netlify/
+.wrangler/
+
+# ----- Build tool caches -----
+.turbo/
+.parcel-cache/
+.webpack/
+.output/
+.rollup.cache/
+.esbuild/
+.cache/
+.sass-cache/
+*.css.map
+
+# ----- Archives and extension packages -----
 *.tgz
 *.zip
 *.crx
 *.xpi
 
-# Build tool caches (defensive)
-.turbo/
-.parcel-cache/
-.webpack/
-.output/
-*.tsbuildinfo
+# ----- Dev/test temp directories -----
 
-# Misplaced node_modules
+# ----- Local reference data (offline page snapshots for extractor dev; 8.6M, never tracked) -----
 .localref/
 localref/
+data-exports/
+data-imports/
+scratch/
+tmp/
+downloads/
+fixtures/generated/
+extracted/
+storybook-static/
+review_diff*.txt
+docs/*-plan.md
 
-# Stale empty directories from refactors (ghost directories)
-**/__pycache__/
-*.egg-info/
+# ----- Script runtime artifacts -----
+scripts/*.log
+scripts/tmp/
+scripts/archived/
 
-# Secret and certificate files (defense-in-depth)
+# ----- Puppeteer / Cypress / WebdriverIO -----
+puppeteer/
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+.wdio/
+
+# ----- Code coverage -----
+.nyc_output/
+
+# ----- Visual regression test screenshots -----
+backstop_data/bitmaps_test/
+backstop_data/html_report/
+
+# ----- Playwright browser binaries -----
+ms-playwright/
+playwright-*.json
+chrome-user-data/
+
+# ----- Test snapshot diffs -----
+tests/__snapshots__/__diff_output__/
+tests/__snapshots__/__new_output__/
+
+# ----- Secrets / certificates -----
 *.key
 *.pem
 *.crt
 *.cert
 *.p12
 *.pfx
+.sentryclirc
 
-# Generic cache directory (defense-in-depth)
-.cache/
-
-# IDE and editor configs (defense-in-depth)
-.fleet/
-.idea/
-*.iml
-*.ipr
-*.iws
-.history/
-.zed/
-.eclipse/
-
-# Docker
+# ----- Docker -----
 .docker/
 docker-compose.override.yml
 Dockerfile.*.local
-
-# Dev container
 .devcontainer/
 
-# Sass/SCSS compile cache
-.sass-cache/
-*.css.map
-
-# Rollup / ESBuild cache
-.rollup.cache/
-.esbuild/
-
-# Sentry
-.sentryclirc
-
-# Environment override files (defense-in-depth)
-.env.staging
-.env.production
-.env.test.local
-.env.development.local
-
-# Playwright trace/viewer cache
-playwright/.cache/
-
-# Storybook build
-storybook-static/
-
-# TypeScript project build info (more specific)
-tsconfig.tsbuildinfo
-*.tsbuildinfo
-
-# dprint / biome / prettier cache
-.dprint/
-.biome/
-.prettierd/
-
-# ESLint and Prettier (comprehensive)
-.eslintcache
-.prettiercache
-
-# Stylelint
-.stylelintcache
-
-# Puppeteer
-puppeteer/
-
-# Cypress
-cypress/videos/
-cypress/screenshots/
-cypress/downloads/
-
-# WebdriverIO
-.wdio/
-
-# Istanbul code coverage
-.nyc_output/
-
-# Visual regression test screenshots
-backstop_data/bitmaps_test/
-backstop_data/html_report/
-
-# Yarn 2+ PnP (comprehensive)
-.yarn/
-!.yarn/releases
-!.yarn/plugins
-.pnp.*
-.yarnrc.yml
-
-# Script runtime artifacts
-scripts/*.log
-scripts/tmp/
-
-# /tests/ directory: source files ARE tracked, but generated artifacts are NOT
-tests/__snapshots__/__diff_output__/
-tests/__snapshots__/__new_output__/
-
-# Extension unpack output (from npm run unpack / npm run clean)
-extracted/
-
-# Wrangler/Cloudflare state
-.wrangler/
-
-# Scratch/temp test directories
-scratch/
-tmp/
-
-# Runtime / daemon output
+# ----- Runtime / daemon output -----
 nohup.out
 *.pid
 *.pid.lock
 
-# OS-level mount metadata
+# ----- OS metadata -----
 .Trashes
 .fseventsd
 .VolumeIcon.icns
-
-# Playwright browser binaries (downloaded on demand)
-ms-playwright/
-playwright-*.json
-
-# Chromium/Chrome user data directories
-chrome-user-data/
-
-# Test fixture downloads (generated)
-downloads/
-fixtures/generated/
-
-# MacOS resource fork files
 ._*
 
-# Yarn Berry (PnP) — if used
-.yarn/
-.yarnrc.yml
-.pnp.*
-.yarn/
-!.yarn/releases
-!.yarn/plugins
-!.yarn/patches
+# ----- Stale directories from refactors -----
+**/__pycache__/
+*.egg-info/

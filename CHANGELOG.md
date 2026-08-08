@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.1] - 2026-08-08
+
+### 修复与优化
+
+- **挂载链重复读取消除**：豆瓣详情页 onMounted 同 key `DB_GET` 4 次→1 次（auto-save / linkedIds 对账 / NeoDB 注入共用单次读取 + 写后同步内存值），省 2 次消息往返
+- **i18n 状态文案统一**：legacy 内容脚本 '✅ 已玩' → '玩过'（与 shared/status-labels.ts Decision-1 对齐），zh-CN/HK/TW 6 处
+- **v13 迁移写路径防护**：jav_ids 拷贝与 video 键规范化的 `put/delete` 补 onerror+preventDefault（与读路径对称）；键迁移先写新键成功再删旧键，写失败保留旧键防数据丢失
+- **DB_QUERY/DB_COUNT 死链路删除**：消息类型/switch/handler/客户端包装/MediaDatabase.query() 整链无发送方，全部移除
+- **create-overlay 空哨兵修复**：`null as unknown as HTMLElement` 守卫删除（document_start 保证 documentElement 存在）
+- **doulist-tabs 笔误修复**：CSS 定义 `.umm-doulist-tabs`（单 s）与模板 `.umm-doulists-tabs`（多 s）不一致导致容器样式永不生效——统一为多 s 命名，tabs 容器样式恢复
+- **繁体块简体字修复**：zh-HK/zh-TW locale 块的 game 状态文案 '玩过' → '玩過'（繁体），简体块保留；i18n 完整性检查通过
+- **调试日志清理**：doulist-api.ts 移除 3 处 API 响应原文 console.log（含豆列名称个人数据）；仅保留失败路径 warn 日志
+- **迁移死 store 守卫**：migrate v8 块加 `oldVersion >= 6 && oldVersion < 8`——全新安装不再创建 legacy sehuatang_avids 死 store（对齐 L8 sync_logs 决策）
+
+### 架构重构
+
+- **models.ts 拆分（921L→638L）**：v6→v13 全部迁移逻辑抽至 `features/database/migrate.ts`（283L），`migrateSchema(db, oldVersion, request, deps)` 经依赖注入破 import 环；init() 缩为薄壳；db-migration 特征测试锁定
+- **collect 家族提取收敛**：book/music/user-media 三页消费者迁移到既有 `extractCollectPageShell`（-376 行内联重复），user-media 的 `|` 过滤在调用处保留
+- **statusLabelKey 单一权威**：`utils/dom.ts` 与 `bangumi-list-extract.ts` 同构闭包合并为共享纯函数
+- **video-overlay 拆分（861L→574L）**：样式模板 → video-overlay-styles.ts（128L）、进度追踪 → video-progress-tracker.ts（175L）
+- **doulist-replace 拆分（702L→455L）**：API 客户端 → doulist-api.ts、主题令牌 → doulist-theme.ts
+- **mukaku 去重**：watched-id 刷新逻辑（epoch 守卫 + 30s TTL）抽 `refreshWatchedIdSets()`，消除详情页/列表页逐字重复
+- **RecordService 活规则直接测试**：删除死影子 `decideNeoDBTargetSync`/`mergeTargetLinkedIds`（340L 特征测试锁死实现），新增 record-service-sync.spec（11 用例）直接锁定 create/update/keep-rating/skip 规则
+- **分页解析富契约**：`parseDoubanPaginatorDetail`（currentPage/totalPages/data-total-page + 排序 + thispage 插入）在薄版之上扩展，doulist-detail/series/game-collect 三处手写解析迁移（-125 行）；薄版 5 消费者契约零破坏
+- **UmmPageLinks 链接型分页组件**：book-reviews/user-reviews（逐字节重复对）+ doulist-detail/series 四页模板替换（-30 行）；外层 v-if 差异保留各页
+- **collectTitleLabel 共享纯函数**：user-media/book/music/game-collect 四页 titleLabel computed 收敛（game 页 `'do'` key 参数化，-32 行）
+- **CSS 死选择器删除（-654 行）**：userbar 四副本（doulists/user-reviews/user-celebrities/user-media，190L）、statbar 三副本（book-profile 逐字节副本 + user-profile 旧手写 + movie-profile 冲突版，187L）、paginator 死别名 28L、detail/homepage/artists-overview/following 等 15 处；`umm-rec-title` 等 3 处审计误报经核实保留
+- **review-detail 合并（-160 行）**：book-review-detail.css 174L→14L（仅 accent 覆盖），preset 复用 review-detail chunk（shared→page 注入顺序核实）
+- **设计令牌收敛（-77 行）**：22 个 design-tokens 死变量 + 5 个 :host 死变量删除（z-index 存活变量实测保留）；`--umm-brand-accent` 单一来源（7 文件 accent 收口 + game-explore 10 兜底）
+
+### 清理
+
+- 删除 19 个全库 0 引用死符号（database/api ×7、neodb/api ×9 含连锁 getWorkDetail、overlay theme ×2、extractBannerItems、storeNameForPlatform）+ 死类型 + getRequest 助手
+- shared/theme-sync.ts 整文件（0 导入者 compat 壳）删除
+- .gitignore 去重（289→180 行）+ `.localref/` 忽略恢复 + `.playwright/` 补齐；test-results 产物清洁
+
+### 安全
+
+- 变更面安全审计（STRIDE/信任边界/XSS/注入/SSRF）：**0 EXPLOITABLE**；migrate 三路径（0→13/7→13/8→13）推演无数据丢失；npm audit 2 项（dompurify moderate/nanoid high）均不可达
+
+### 测试
+
+- 新增 Identity.spec（30 用例）：400L 跨平台 URL 解析器首个特征锁定（fromUrl 全平台/canonicalizeUrl/buildCanonicalUrl/storeKey/equals）；**锁定 YouTube fromUrl 已知限制**（canonicalizeUrl 剥 query 破坏 ?v= 参数）；发现 `Identity.isLinkedTo` 生产 0 调用者（死方法候选）
+- 新增 parse-douban-paginator-detail.spec（7 用例）、collect-title-label.spec（7 用例）、status-label-key.spec（10 用例）
+- 全量 612 单元测试通过
+
 ## [5.11.0] - 2026-08-07
 
 ### 新增功能
