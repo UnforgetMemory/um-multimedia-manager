@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.2] - 2026-08-08
+
+### 文档与描述修正
+
+- **README 支持站点描述修正（中/英）**：Mukaku 更正为 BT 站点（原误标为成人辅助扫描）——独立 BT 站点行、移出成人分类、功能表 PT/BT 淡化合并描述；PT 站点列表补全全部 17 站（原以「等」省略）；英文版影视行补 bilibili.com/youtube.com 漏项
+- **简洁英文注释补充（12 处/9 文件）**：Identity YouTube fromUrl 已知限制（canonicalizeUrl 剥离 query 致 v= 分支不可达）与 personage→movie 映射；url-detector 判型顺序契约（子页须先于 detail）；PT dimmer movie:: 前缀剥离/slice(7)/类型无关缓存匹配/query-param 兜底；sehuatang AVID_REGEX 语法；db.ts ALLOWED_DB_STORES 安全边界；webdav 孤儿 JSDoc 归位；RecordService recordVersion 乐观锁语义
+
+### 清理
+
+- **.gitignore 补全**：pnpm-lock.yaml/yarn.lock/bun.lock(b) 锁文件、*.code-workspace、.history/（目录级优先）；验证 0 未忽略未跟踪文件
+- **测试产物清洁**：test-results 遗留报告清除（724K，可再生产物）
+- **过时测试审计**：48 个既有 spec 逐项验证 import 与符号——全部有效，无过时测试
+
+### 安全
+
+- **npm audit 修复 2 项 → 0 vulnerabilities**：dompurify 3.4.12→3.4.13（IN_PLACE hook 移除致脱离子树可执行，GHSA-55q2-fjhq-7xh7）；nanoid 3.3.16→3.3.18（自定义生成器 size=0 无限循环，GHSA-2v37-7h3g-55p8，postcss 传递依赖）
+- **全库五轴代码审查**（正确性/可读性/架构/安全/性能）：27 条发现分级——2 Critical（download.ts 下载 URL 无 origin 校验、mukaku 故障冷却表超限全量清除）待决策修复；13 Important / 12 Suggestion 已记录
+
+### 测试
+
+- 新增 **url-detector.spec（45 用例）**：33 页面类型判型 + 子页优先顺序契约 + mediaType 推断（此前 0 覆盖）
+- 新增 **adult-av-models.spec（14 用例）**：normalizeAvId/extractBaseId 键规范化（javdb/sehuatang/background 三处复用，此前仅 1 条间接断言）
+- 新增 **data-scheduler-semantics.spec（5 用例）**：缓存命中短路/执行后写缓存/invalidateCache 强制重跑/HIGH 优先/队列满拒绝
+- 全量 **676 单元测试通过**（+64）
+
 ## [5.11.1] - 2026-08-08
 
 ### 修复与优化
