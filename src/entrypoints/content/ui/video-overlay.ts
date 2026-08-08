@@ -4,13 +4,15 @@
  * Extracted from the ~90% identical src/entrypoints/bilibili.content/index.ts and
  * src/entrypoints/youtube-homepage.content/index.ts. `createVideoOverlay(siteConfig)`
  * hosts everything the two sites share:
- *   - VideoProgressTracker (parameterized player/video selectors + poll cadence)
  *   - theme system (themeVars / detectDark / startThemeWatch)
- *   - 14 style helpers (sBtnFloat/sBadge/sOverlay/…)
  *   - modal (createButton/applyBtnStyle/showModal/closeModal/applyModalTheme)
  *   - recommendation decoration (decorateRecommendations)
  *   - typed DB access via Store.dbGet/dbPut/dbGetAll — replaces the hand-rolled
  *     chrome.runtime.sendMessage(…, (resp: any) => …) calls in the legacy files
+ *
+ * The video progress tracker and the style builders were split out (P2):
+ *   - video-progress-tracker.ts — VideoProgressTracker class
+ *   - video-overlay-styles.ts — sBtnFloat/sBadge/sOverlay/… style helpers
  *
  * Store keys follow decision-3: 'movie::' + id (the v13 migration normalized
  * legacy 'video::X' keys; content scripts must read/write the canonical form).
@@ -30,7 +32,6 @@ import {
   STATUS_LABELS as LABELS,
   STATUS_DISPLAY_ORDER as DISPLAY,
   storeKey,
-  calcThreshold,
 } from './video-overlay-pure'
 
 export {
@@ -44,21 +45,11 @@ export {
   parseBilibiliBvidFromHref,
 } from './video-overlay-pure'
 
-/** Theme color set. The legacy `muted` field was never read — dropped. */
-export interface ThemeVars {
-  card: string
-  fg: string
-  border: string
-  overlay: string
-  bbg: string
-  mutedFg: string
-  ratingBtnBg: string
-  ratingBtnFg: string
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// Pure functions — imported from video-overlay-pure.ts (single source of truth)
-// ════════════════════════════════════════════════════════════════════════
+// ── Split modules (P2: video-overlay.ts was 861L) ─────────────────────────
+// Style builders + theme vars live in video-overlay-styles.ts;
+// the video progress tracker lives in video-progress-tracker.ts.
+import { ThemeVars, sActionRow, sBadge, sBtnFloat, sCancelBtn, sCard, sOverlay, sRatingBtn, sRatingGrid, sRatingLabel, sRatingSection, sSaveBtn, sSectionRow, sStatusBtn, sTitle } from './video-overlay-styles';
+import { VideoProgressTracker } from './video-progress-tracker'
 
 // ════════════════════════════════════════════════════════════════════════
 // Site configuration
@@ -137,282 +128,6 @@ export interface VideoOverlay {
   cleanup(): void
   /** cleanup() + stop theme watch (final teardown). */
   destroy(): void
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// Progress tracker
-// ════════════════════════════════════════════════════════════════════════
-
-interface TrackerDeps {
-  playerSelector: string
-  initialVideoSelector: string
-  pollVideoSelector: string
-  requirePlayerTarget: boolean
-  pollInterval: number
-  pollStopAfter?: number
-  skipClosest?: string
-  /** Current media id guard — stale trackers must not fire after SPA nav. */
-  currentId: () => string | null
-  onThresholdReached: () => void
-}
-
-class VideoProgressTracker {
-  readonly id: string
-  private deps: TrackerDeps
-  private video: HTMLVideoElement | null = null
-  private observer: MutationObserver | null = null
-  private pollTimer: ReturnType<typeof setInterval> | null = null
-  private fallbackTimer: ReturnType<typeof setInterval> | null = null
-  private thresholdPassed = false
-  private _active = false
-  private _attachedEvents = false
-  private _handleTimeupdate: (() => void) | null = null
-  private _handleEnded: (() => void) | null = null
-
-  constructor(id: string, deps: TrackerDeps) {
-    this.id = id
-    this.deps = deps
-  }
-
-  get active(): boolean { return this._active }
-
-  activate(): void {
-    if (this._active) return
-    this._active = true
-    this.thresholdPassed = false
-    this.startScanning()
-  }
-
-  deactivate(): void {
-    if (!this._active) return
-    this._active = false
-    this.detachVideoEvents()
-    this.clearTimers()
-  }
-
-  destroy(): void {
-    this.deactivate()
-    this.video = null
-  }
-
-  private clearPolling(): void {
-    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null }
-    if (this.fallbackTimer) { clearInterval(this.fallbackTimer); this.fallbackTimer = null }
-  }
-
-  private clearTimers(): void {
-    this.clearPolling()
-    if (this.observer) { this.observer.disconnect(); this.observer = null }
-  }
-
-  private detachVideoEvents(): void {
-    if (this.video && this._attachedEvents) {
-      if (this._handleTimeupdate) this.video.removeEventListener('timeupdate', this._handleTimeupdate)
-      if (this._handleEnded) this.video.removeEventListener('ended', this._handleEnded)
-      this._attachedEvents = false
-    }
-  }
-
-  private reattachIfNew(video: HTMLVideoElement): void {
-    if (video === this.video) return
-    this.attachEvents(video)
-  }
-
-  private ensureObserver(): void {
-    if (this.observer) return
-    const target = document.querySelector(this.deps.playerSelector)
-    if (!target) return
-    this.observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (m.type === 'childList') {
-          for (const node of m.addedNodes) {
-            if (node instanceof HTMLVideoElement) {
-              if (!this.deps.skipClosest || !node.closest(this.deps.skipClosest)) this.reattachIfNew(node)
-              return
-            }
-            if (node instanceof Element) {
-              const v = node.querySelector<HTMLVideoElement>('video')
-              if (v && (!this.deps.skipClosest || !v.closest(this.deps.skipClosest))) { this.reattachIfNew(v); return }
-            }
-          }
-        }
-      }
-    })
-    this.observer.observe(target, { childList: true, subtree: true })
-  }
-
-  private startScanning(): void {
-    if (this.video) { this.attachEvents(this.video); return }
-
-    const existing = document.querySelector<HTMLVideoElement>(this.deps.initialVideoSelector)
-    if (existing) { this.attachEvents(existing); return }
-
-    if (this.deps.requirePlayerTarget) {
-      const target = document.querySelector(this.deps.playerSelector)
-      if (!target) {
-        this.pollTimer = setInterval(() => {
-          if (document.querySelector(this.deps.playerSelector)) {
-            if (this.pollTimer) clearInterval(this.pollTimer)
-            this.startScanning()
-          }
-        }, 2000)
-        return
-      }
-      this.ensureObserver()
-    }
-
-    let count = 0
-    this.fallbackTimer = setInterval(() => {
-      count++
-      const v = document.querySelector<HTMLVideoElement>(this.deps.pollVideoSelector)
-      if (v) {
-        if (this.fallbackTimer) clearInterval(this.fallbackTimer)
-        this.attachEvents(v)
-      } else if (this.deps.pollStopAfter !== undefined && count > this.deps.pollStopAfter) {
-        if (this.fallbackTimer) clearInterval(this.fallbackTimer)
-      }
-    }, this.deps.pollInterval)
-  }
-
-  private attachEvents(video: HTMLVideoElement): void {
-    if (this.video === video && this._attachedEvents) return
-    if (this.deps.skipClosest && video.closest(this.deps.skipClosest)) { return }
-    this.detachVideoEvents()
-    this.video = video
-    this.clearPolling()
-    this.ensureObserver()
-
-    this._handleTimeupdate = () => {
-      if (!this._active || !this.video || !this.video.duration || this.video.duration === Infinity) return
-      if (this.id !== this.deps.currentId()) return
-      const pct = (this.video.currentTime / this.video.duration) * 100
-      const threshold = calcThreshold(this.video.duration)
-      if (!this.thresholdPassed && pct >= threshold) {
-        this.thresholdPassed = true
-        this.deps.onThresholdReached()
-      }
-    }
-
-    this._handleEnded = () => {
-      if (!this._active || !this.video) return
-      if (this.id !== this.deps.currentId()) return
-      if (!this.thresholdPassed) {
-        this.thresholdPassed = true
-        this.deps.onThresholdReached()
-      }
-    }
-
-    video.addEventListener('timeupdate', this._handleTimeupdate)
-    video.addEventListener('ended', this._handleEnded)
-    this._attachedEvents = true
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// Style templates (parameterized by theme + site colors/font)
-// ════════════════════════════════════════════════════════════════════════
-
-function css(parts: string[]): string { return parts.join(';') + ';' }
-
-function sBtnFloat(_t: ThemeVars, s: number, fontFamily: string): string {
-  return css([
-    'position:fixed', 'left:16px', 'top:50%', 'transform:translateY(-50%)',
-    'z-index:2147483647', 'width:48px', 'height:48px', 'border-radius:14px',
-    'background:' + COLORS[s], 'color:#fff',
-    'display:flex', 'flex-direction:column', 'align-items:center', 'justify-content:center',
-    'cursor:pointer', 'font-size:11px', 'font-weight:' + (s === 2 ? '800' : '700'),
-    'font-family:' + fontFamily,
-    'box-shadow:' + (s > 0 ? '0 4px 16px ' + COLORS[s] + '66,0 2px 6px rgba(0,0,0,0.2)' : '0 3px 14px rgba(0,0,0,0.25)'),
-    'transition:background 0.25s,transform 0.2s,box-shadow 0.25s',
-    'user-select:none', 'line-height:1.2',
-  ])
-}
-
-function sBadge(t: ThemeVars, s: number, isDark: boolean): string {
-  return css([
-    'position:absolute', 'top:-7px', 'right:-7px',
-    'background:' + t.card, 'color:' + COLORS[s],
-    'border-radius:9px', 'padding:0 5px',
-    'font-size:10px', 'font-weight:' + (isDark ? '700' : '800'),
-    'line-height:18px', 'box-shadow:0 1px 4px rgba(0,0,0,0.2)',
-    'border:1.5px solid ' + COLORS[s],
-  ])
-}
-
-function sOverlay(t: ThemeVars, fontFamily: string): string {
-  return css([
-    'position:fixed', 'inset:0', 'z-index:2147483647',
-    'background:' + t.overlay,
-    'display:flex', 'align-items:center', 'justify-content:center',
-    'font-family:' + fontFamily,
-  ])
-}
-
-function sCard(t: ThemeVars): string {
-  return css([
-    'background:' + t.card, 'border-radius:16px', 'padding:24px',
-    'width:300px', 'max-width:90vw',
-    'box-shadow:0 8px 32px rgba(0,0,0,0.25)', 'color:' + t.fg,
-  ])
-}
-
-function sTitle(): string {
-  return 'font-size:16px;font-weight:700;margin-bottom:16px;'
-}
-
-function sStatusBtn(idx: number, cur: number): string {
-  const active = cur === idx
-  return css([
-    'flex:1', 'min-width:' + (LABELS[idx].length > 2 ? '60px' : '44px'),
-    'padding:8px 0', 'border:2px solid ' + COLORS[idx],
-    'border-radius:8px', 'cursor:pointer', 'font-size:13px', 'font-weight:700',
-    'font-family:inherit', 'transition:all 0.15s',
-    'background:' + (active ? COLORS[idx] : 'transparent'),
-    'color:' + (active ? '#fff' : COLORS[idx]),
-    'opacity:' + (active ? '1' : '0.85'),
-  ])
-}
-
-function sSectionRow(): string { return 'display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;' }
-
-function sRatingLabel(t: ThemeVars): string {
-  return 'font-size:13px;color:' + t.mutedFg + ';margin-bottom:6px;font-weight:600;'
-}
-
-function sRatingBtn(t: ThemeVars, v: number, cur: number): string {
-  const active = v === cur
-  return css([
-    'width:40px', 'height:32px', 'border:none',
-    'border-radius:6px', 'cursor:pointer',
-    'font-size:12px', 'font-weight:700', 'font-family:inherit',
-    'background:' + (active ? COLORS[2] : t.ratingBtnBg),
-    'color:' + (active ? '#fff' : t.ratingBtnFg),
-    'transition:all 0.1s', 'opacity:' + (active ? '1' : '0.85'),
-  ])
-}
-
-function sActionRow(): string { return 'display:flex;gap:8px;' }
-
-function sCancelBtn(t: ThemeVars): string {
-  return css([
-    'flex:1', 'padding:10px 0', 'border:1px solid ' + t.border,
-    'border-radius:8px', 'cursor:pointer', 'font-size:14px', 'font-weight:600',
-    'font-family:inherit', 'background:' + t.bbg, 'color:' + t.fg,
-  ])
-}
-
-function sSaveBtn(s: number): string {
-  return css([
-    'flex:1', 'padding:10px 0', 'border:none',
-    'border-radius:8px', 'cursor:pointer', 'font-size:14px', 'font-weight:600',
-    'font-family:inherit', 'color:#fff', 'background:' + COLORS[s],
-  ])
-}
-
-function sRatingGrid(): string { return 'display:flex;flex-wrap:wrap;gap:4px;' }
-
-function sRatingSection(show: boolean): string {
-  return 'display:' + (show ? 'block' : 'none') + ';margin-bottom:16px;'
 }
 
 // ════════════════════════════════════════════════════════════════════════

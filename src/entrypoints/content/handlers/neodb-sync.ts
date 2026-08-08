@@ -5,11 +5,10 @@
  *  - 构建器（buildNeoDBLinkedIds / buildNeoDBSyncTargets / buildNeoDBSyncRecord /
  *    shouldSaveNeoDBPrimary / platformLabel）现被 neodb.ts onSave 直接使用，
  *    作为委托 RecordService 前的输入构建器。
- *  - 旧内联目标决策（decideNeoDBTargetSync / mergeTargetLinkedIds）编码的是
- *    **旧内联规则**（create-if-missing / update-if-not-watched /
- *    link-only-if-watched / never-overwrite-linked-rating），已被
- *    RecordService.syncRecord（经 DB_SYNC_PAGE_RECORD 消息）取代；
- *    保留导出仅为特征测试锁定 + 双实现漂移的对照文档（fork 决策 (b)，见任务报告）。
+ *  - 旧内联目标决策（decideNeoDBTargetSync / mergeTargetLinkedIds）已删除：
+ *    被 RecordService.syncRecord（经 DB_SYNC_PAGE_RECORD 消息）取代后即为死代码
+ *    （2026-08-07 C1 清理），其行为规则现由 tests/unit/record-service-sync.spec.ts
+ *    直接锁定（create-if-missing / update-if-not-watched / skip-if-watched）。
  */
 
 import { UrlResolverBuilder } from '@/shared/identity'
@@ -102,100 +101,7 @@ export function shouldSaveNeoDBPrimary(params: {
   return !localRecord || JSON.stringify(localRecord.linkedIds || {}) !== JSON.stringify(linkedIds)
 }
 
-/**
- * 旧内联规则：目标记录的 linkedIds = 保留已有 + 确保回到 NeoDB。
- */
-export function mergeTargetLinkedIds(
-  existingLinkedIds: Readonly<Record<string, string>> | undefined,
-  neodbKey: string,
-): Record<string, string> {
-  return { ...(existingLinkedIds || {}), neodb: neodbKey }
-}
-
-/** 旧内联规则中目标平台的展示名（toast 用）。 */
+/** Platform display name for toast messages (douban → 豆瓣, imdb → IMDb, tmdb → TMDB). */
 export function platformLabel(platform: string): string {
   return platform === 'imdb' ? 'IMDb' : platform === 'tmdb' ? 'TMDB' : '豆瓣'
-}
-
-/** decideNeoDBTargetSync 中 'update' 动作要写回目标记录的字段。 */
-export interface NeoDBTargetUpdate {
-  status: number
-  rating: number
-  comment: string
-  updatedAt: string
-  linkedIds: Record<string, string>
-}
-
-/**
- * 旧内联规则对单个关联目标的决策结果。
- *  - create：目标不存在 → 用 NeoDB 状态/评分创建
- *  - update：目标存在且未完成 → 同步状态/评分（空评分才填充），保留其他
- *  - links-only：目标存在且已完成 → 仅更新 linkedIds（不覆盖状态/评分）
- *  - skip：无变化
- */
-export type NeoDBTargetSyncDecision =
-  | { action: 'create'; record: StoreRecord }
-  | { action: 'update'; updates: NeoDBTargetUpdate }
-  | { action: 'links-only'; linkedIds: Record<string, string> }
-  | { action: 'skip' }
-
-export interface NeoDBTargetSyncParams {
-  isPageDone: boolean
-  /** 目标平台的既有记录；null 表示目标不存在。 */
-  existing: Pick<StoreRecord, 'status' | 'rating' | 'comment' | 'linkedIds'> | null
-  pageRating: number
-  comment: string | undefined
-  targetUrl: string
-  neodbKey: string
-  now: string
-}
-
-/**
- * 旧内联规则：对单个关联目标决定 create / update / links-only / skip。
- * 逐字对应 neodb.ts onSave 中的目标循环决策（create-if-missing /
- * update-if-not-watched / link-only-if-watched / never-overwrite-linked-rating）。
- */
-export function decideNeoDBTargetSync(params: NeoDBTargetSyncParams): NeoDBTargetSyncDecision {
-  const { isPageDone, existing, pageRating, comment, targetUrl, neodbKey, now } = params
-  const targetLinkedIds = mergeTargetLinkedIds(existing?.linkedIds, neodbKey)
-
-  if (!existing) {
-    // 目标不存在 → 创建新记录（使用 NeoDB 的状态/评分）
-    return {
-      action: 'create',
-      record: {
-        url: targetUrl,
-        status: isPageDone ? 2 : 0,
-        rating: pageRating,
-        comment: comment ?? '',
-        updatedAt: now,
-        linkedIds: targetLinkedIds,
-      },
-    }
-  }
-
-  if (existing.status !== 2) {
-    // 存在但未完成 → 检测变化后再更新
-    const statusChanged = isPageDone && existing.status !== 2
-    const ratingChanged = Boolean(pageRating) && existing.rating !== pageRating
-    const linkedChanged = JSON.stringify(existing.linkedIds || {}) !== JSON.stringify(targetLinkedIds)
-
-    if (statusChanged || ratingChanged || linkedChanged) {
-      return {
-        action: 'update',
-        updates: {
-          status: isPageDone ? 2 : existing.status,
-          rating: existing.rating || pageRating,
-          comment: comment ?? existing.comment ?? '',
-          updatedAt: now,
-          linkedIds: targetLinkedIds,
-        },
-      }
-    }
-    return { action: 'skip' }
-  }
-
-  // 存在且已完成 → 仅更新 linkedIds（低优先级，不覆盖状态/评分）
-  const needsLinkUpdate = JSON.stringify(existing.linkedIds || {}) !== JSON.stringify(targetLinkedIds)
-  return needsLinkUpdate ? { action: 'links-only', linkedIds: targetLinkedIds } : { action: 'skip' }
 }

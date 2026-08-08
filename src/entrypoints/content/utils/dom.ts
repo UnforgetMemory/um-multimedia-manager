@@ -4,6 +4,7 @@
 
 import { Utils } from '@/utils'
 import { t } from '../i18n'
+import { statusLabelKey } from './status-label-key';
 
 import { escapeHtml } from '@/utils/escape-html'
 export { escapeHtml }
@@ -79,14 +80,8 @@ export function createStatusChip(
   chip.dataset.status = status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none'
   
   // 按媒体类型选择状态文案键：music→听（_music）、book→读（_book）、game→玩（_game），其余（movie/tv）→基础键
-  const k = (suffix: string, base: string): string =>
-    type === 'music'
-      ? `status.${suffix}_music`
-      : type === 'book'
-        ? `status.${suffix}_book`
-        : type === 'game'
-          ? `status.${suffix}_game`
-          : base
+  // （共享实现见 utils/status-label-key.ts）
+  const k = (suffix: string, base: string): string => statusLabelKey(type, suffix, base)
 
   const label = status === 2
     ? (note 

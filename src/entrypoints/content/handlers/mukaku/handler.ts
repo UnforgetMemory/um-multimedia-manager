@@ -298,6 +298,39 @@ class MukakuHandler {
   }
 
   /**
+   * Batch-fetch watched-id sets with epoch-guarded write-back (shared by
+   * renderDetailState + processVisibleCards — extracted 2026-08-07 D2 to
+   * eliminate the byte-identical duplicate).
+   *
+   * R2: a failed fetch must NOT be cached — the cache stays untouched so the
+   * next scan retries; the caller degrades to empty sets.
+   * R3: the write-back is epoch-guarded — if a record event invalidated the
+   * cache while we awaited, we skip the write-back so the stale cache is not
+   * resurrected.
+   */
+  private async refreshWatchedIdSets(): Promise<{ movieDoubanIds: Set<string>; imdbIds: Set<string> }> {
+    const epoch = this.watchedCacheEpoch
+    const prevWatchedCache = this.watchedIdCache
+    let watchedSets: { movieDoubanIds: Set<string>; imdbIds: Set<string> }
+    try {
+      watchedSets = await getWatchedIdSets(prevWatchedCache)
+    } catch (error: unknown) {
+      errorLog('[Mukaku] watchedIds query failed — degrade to empty sets, cache not written:', error)
+      watchedSets = { movieDoubanIds: new Set<string>(), imdbIds: new Set<string>() }
+    }
+    const now = Date.now()
+    if (this.watchedCacheEpoch === epoch) {
+      const watchedCacheFresh =
+        prevWatchedCache !== null && now - prevWatchedCache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL
+      this.watchedIdCache = {
+        ...watchedSets,
+        ts: watchedCacheFresh ? prevWatchedCache.ts : now,
+      }
+    }
+    return watchedSets
+  }
+
+  /**
    * Render the detail-page status chip (realtime, read-only — never writes caches).
    */
   private async renderDetailState(
@@ -333,25 +366,7 @@ class MukakuHandler {
     // Realtime watched-id sets (getWatchedIdSets owns the 30s TTL; ts refresh matches
     // processVisibleCards). Epoch-guarded write-back (R3) + graceful failure (F1):
     // a DB error degrades to empty sets without failing the detail render.
-    const epoch = this.watchedCacheEpoch
-    const prevWatchedCache = this.watchedIdCache
-    let watchedSets: { movieDoubanIds: Set<string>; imdbIds: Set<string> }
-    try {
-      watchedSets = await getWatchedIdSets(prevWatchedCache)
-    } catch (error: unknown) {
-      errorLog('[Mukaku] watchedIds query failed on detail — empty sets:', error)
-      watchedSets = { movieDoubanIds: new Set<string>(), imdbIds: new Set<string>() }
-    }
-    const now = Date.now()
-    if (this.watchedCacheEpoch === epoch) {
-      const watchedCacheFresh =
-        prevWatchedCache !== null && now - prevWatchedCache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL
-      this.watchedIdCache = {
-        ...watchedSets,
-        ts: watchedCacheFresh ? prevWatchedCache.ts : now,
-      }
-    }
-    const { movieDoubanIds, imdbIds } = watchedSets
+    const { movieDoubanIds, imdbIds } = await this.refreshWatchedIdSets()
 
     // Match against local records (read-only decision — this method writes no cache)
     if (linkedIds.doubanId || linkedIds.imdbId) {
@@ -513,32 +528,10 @@ class MukakuHandler {
     debugLog('[Mukaku] scan: found', cards.length, 'cards,', unprocessed.length, 'unprocessed,', noIdCards.length, 'linkless')
     if (unprocessed.length === 0) return
 
-    const now = Date.now()
-
     // Batch-fetch watched IDs: getWatchedIdSets has its own 30s TTL (cache hit → 0 DB
     // calls). On hit keep the original ts (TTL continues); on refill refresh ts.
-    // R2: a failed fetch must NOT be cached — the cache stays untouched so the next
-    // scan retries; the scan itself degrades to empty sets (no dimming this round).
-    // R3: the write-back is epoch-guarded — if a record event invalidated the cache
-    // while we awaited, we skip the write-back so the stale cache is not resurrected.
-    const epoch = this.watchedCacheEpoch
-    const prevWatchedCache = this.watchedIdCache
-    let watchedSets: { movieDoubanIds: Set<string>; imdbIds: Set<string> }
-    try {
-      watchedSets = await getWatchedIdSets(prevWatchedCache)
-    } catch (error: unknown) {
-      errorLog('[Mukaku] watchedIds query failed — degrade to empty sets, cache not written:', error)
-      watchedSets = { movieDoubanIds: new Set<string>(), imdbIds: new Set<string>() }
-    }
-    if (this.watchedCacheEpoch === epoch) {
-      const watchedCacheFresh =
-        prevWatchedCache !== null && now - prevWatchedCache.ts < MUKAKU_CONFIG.WATCHED_ID_CACHE_TTL
-      this.watchedIdCache = {
-        ...watchedSets,
-        ts: watchedCacheFresh ? prevWatchedCache.ts : now,
-      }
-    }
-    const { movieDoubanIds, imdbIds } = watchedSets
+    // R2/R3 semantics live in refreshWatchedIdSets (shared with renderDetailState).
+    const { movieDoubanIds, imdbIds } = await this.refreshWatchedIdSets()
     debugLog('[Mukaku] watched ids: douban=', movieDoubanIds.size, 'imdb=', imdbIds.size)
 
     // Batch-prefill probe cache: one dbGetBulk for cards that would reach 'needs-probe',

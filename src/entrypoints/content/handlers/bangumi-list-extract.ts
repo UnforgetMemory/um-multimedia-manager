@@ -1,3 +1,5 @@
+import { statusLabelKey } from '../utils/status-label-key';
+
 /**
  * Bangumi 浏览列表页纯提取函数。
  *
@@ -68,25 +70,18 @@ export function bangumiTypePrefix(mediaType: string | null | undefined): string 
  * mediaType 决定状态文案语义（回退同样跟随对应变体）：
  * 'music' → 听：0=未听(none_music) 1=想听(wish_music) 2=已听(done_music) 3=在听(doing_music)；
  * 'book'  → 读：0=未读(none_book) 1=想读(wish_book) 2=已读(done_book) 3=在读(doing_book)；
- * 'game'  → 玩：0=未玩(none_game) 1=想玩(wish_game) 2=已玩(done_game) 3=在玩(doing_game)；
+ * 'game'  → 玩：0=未玩(none_game) 1=想玩(wish_game) 2=玩过(done_game) 3=在玩(doing_game)；
  * 其余 mediaType（anime/undefined/其他）保持基础文案（看）。
  * data-status 语义值不随 mediaType 变化（驱动全局语义色）。
  * 语义值与全局样式系统（src/entrypoints/content/styles/global.ts 的
  * .umm-list-status[data-status=...] 选择器）对齐，暗色主题由 _DARK token 自动适配。
- * 纯函数：无 DOM、无 imports，可在 Playwright 单元测试中独立运行。
+ * 纯函数：无 DOM、仅依赖同纯函数模块 status-label-key，可在 Playwright 单元测试中独立运行。
  */
 export function bangumiListMarkerSpec(
   status: number,
   mediaType?: string,
 ): { labelKey: string; statusAttr: string } {
-  const labelKey = (suffix: string, base: string): string =>
-    mediaType === 'music'
-      ? `status.${suffix}_music`
-      : mediaType === 'book'
-        ? `status.${suffix}_book`
-        : mediaType === 'game'
-          ? `status.${suffix}_game`
-          : base
+  const labelKey = (suffix: string, base: string): string => statusLabelKey(mediaType ?? '', suffix, base)
   switch (status) {
     case 1:
       return { labelKey: labelKey('wish', 'status.wish'), statusAttr: 'wish' }

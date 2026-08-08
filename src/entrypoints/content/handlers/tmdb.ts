@@ -182,11 +182,6 @@ export async function handleTMDBHomepage(): Promise<void> {
 
 // ---- Detail Page — Status Chip Injection ----
 
-/** Locate the title anchor element on a TMDB detail page. */
-export function getTMDBAnchorElement(): Element | null {
-  return document.querySelector('.title a[href*="/movie/"], .title a[href*="/tv/"]')
-}
-
 /** Render or replace the status chip above the title. */
 export async function renderTMDBStatusChip(
   identity: UrlIdentity,

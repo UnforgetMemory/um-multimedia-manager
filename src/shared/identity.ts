@@ -39,9 +39,6 @@ export const PT_HOSTS = [
   'piggo.me',
 ] as const;
 
-/** M-Team subdomains */
-export const MTEAM_HOSTS = ['kp.m-team.cc', 'next.m-team.cc', 'www.m-team.cc'] as const;
-
 // ==================== Identity Object (UrlIdentity DTO adapter) ====================
 
 export const UrlResolverBuilder = {
