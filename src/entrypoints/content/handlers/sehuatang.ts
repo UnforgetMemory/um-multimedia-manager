@@ -8,6 +8,9 @@ import { t, initI18n } from '../i18n'
 import { showManualAddPanel } from '../ui/manual-add-panel'
 import { showCheckViewedPanel } from '../ui/check-viewed-panel'
 
+// Matches AV IDs like ABC-123 / ABC123 (2-6 letters, optional dash/space, 2-5 digits).
+// Used to tag cards with a canonical ID for AdultAvStore lookups; looser than the
+// JavDB regex because Sehuatang titles mix spaced and dashed forms.
 const AVID_REGEX = /[a-zA-Z]{2,6}[-\s]?\d{2,5}/gi
 
 interface ThreadInfo {

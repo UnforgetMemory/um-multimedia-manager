@@ -143,7 +143,7 @@ export class Identity {
         return Identity.create('douban', 'game', doubanGame[1]);
       }
 
-      // Douban personage
+      // Douban personage (celebrity page) — mapped to 'movie' so the person links to related movie records
       const doubanPersonage = pathname.match(/^\/personage\/(\d+)\/$/i);
       if (host === 'www.douban.com' && doubanPersonage) {
         return Identity.create('douban', 'movie', doubanPersonage[1]);
@@ -156,6 +156,9 @@ export class Identity {
       }
 
       // YouTube video
+      // KNOWN LIMITATION: canonicalizeUrl() above strips all query params, so the v= check
+      // below never fires for watch URLs — Identity.fromUrl() returns null for YouTube pages.
+      // This branch is kept as a documented dead path (see Identity.spec.ts).
       if (host === 'www.youtube.com' || host === 'youtube.com' || host === 'm.youtube.com') {
         const videoId = parsed.searchParams.get('v')
         if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {

@@ -31,12 +31,10 @@ async function getWebDAVSettings() {
   }
 }
 
-/**
- * Normalize a record key for bilibili/youtube stores: legacy 'video::X' / bare
- * 'X' keys from a pre-v13 backup must land as canonical 'movie::X'
- * (decision-3), mirroring the v13 DB migration — otherwise restored records
- * stay under 'video::' keys that movie::-reading code never finds. Duplicate
- * canonical keys within one batch: last write wins (batchPut puts sequentially).
+/*
+ * Restored bilibili/youtube keys are normalized to canonical movie:: form at write time
+ * (normalizeStoreRecordKey, models.ts) — legacy 'video::X' / bare 'X' keys from a pre-v13
+ * backup land as 'movie::X', mirroring the v13 DB migration. See decision-3.
  */
 
 /**

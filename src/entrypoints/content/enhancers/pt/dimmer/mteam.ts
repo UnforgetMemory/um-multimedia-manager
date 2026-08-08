@@ -86,6 +86,9 @@ export class MTeamHandler implements ListPageHandler {
         // ignore
       }
 
+      // Direct href match first — the broad douban.com/subject regex also catches
+      // music.douban.com links (subdomain not excluded); the music check below then
+      // re-classifies the same ID when the link is music-specific.
       if (!result.movieDoubanId) {
         const match = href.match(/douban\.com\/subject\/(\d+)/)
         if (match) result.movieDoubanId = match[1]
@@ -104,6 +107,9 @@ export class MTeamHandler implements ListPageHandler {
         }
       }
 
+      // Query-param fallback: M-Team wraps douban/imdb links as ?douban= / ?imdb=
+      // redirect params on some rows (e.g. movie detail pages), so also scan the URL
+      // query when no ID was found in plain hrefs.
       if (!result.movieDoubanId || !result.musicDoubanId || !result.imdbId) {
         try {
           const parsed = new URL(href, location.origin)

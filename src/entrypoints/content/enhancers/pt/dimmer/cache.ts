@@ -40,6 +40,8 @@ export async function getCachedIdSets(
   if (doubanKeys.length === 0) debug('[DB] ⚠️ douban_records returned ZERO watched keys - status may be missing/non-numeric')
   if (imdbKeys.length === 0) debug('[DB] ⚠️ imdb_records returned ZERO watched keys - status may be missing/non-numeric')
 
+  // Record keys are stored as `{type}::{id}` (e.g. movie::12345); slice(7) drops the
+  // 7-char 'movie::'/'music::' prefix so sets hold bare IDs for direct Set.has() probes.
   for (const key of doubanKeys) {
     if (key.startsWith('movie::')) movieDoubanIds.add(key.slice(7))
     else if (key.startsWith('music::')) musicDoubanIds.add(key.slice(7))
@@ -163,6 +165,8 @@ export async function applyCacheFallback(
     const cachedDouban = entry.doubanId
     const cachedImdb = entry.imdbId
 
+    // Cached doubanId carries no media type (pt_id_cache is type-agnostic), so a hit in
+    // either the movie or music watched set counts as matched — unlike direct row extraction.
     const matched =
       (cachedDouban && (movieDoubanIds.has(cachedDouban) || musicDoubanIds.has(cachedDouban))) ||
       (cachedImdb && imdbIds.has(cachedImdb))

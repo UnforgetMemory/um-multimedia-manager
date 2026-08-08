@@ -15,7 +15,12 @@ import { StoreRecord } from '@/domain/record/StoreRecord'
 import type { MessagePayloadMap } from '@/types'
 import { invalidateSchedulerStore } from './cache-invalidation'
 
-/** Allowed store names for generic DB message handlers */
+/**
+ * Store names the generic DB_* message handlers may read/write. Record stores plus the
+ * three auxiliary stores content scripts legitimately touch (TTL cache for rate-limit
+ * state, pt_id_cache for the PT dimmer, jav_ids for adult-av dedup). Any other store
+ * name is rejected at the message boundary (defense-in-depth for future stores).
+ */
 const ALLOWED_DB_STORES = new Set<string>([
   ...RECORD_STORES,
   STORE_NAMES.TTL_CACHE,

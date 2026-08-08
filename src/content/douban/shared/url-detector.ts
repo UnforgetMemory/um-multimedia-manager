@@ -198,8 +198,13 @@ export function getUserMediaSubType(url: string): 'collect' | 'wish' | 'doing' {
 
 /**
  * Returns a structured PageType for the current URL, or null if unrecognized.
+ *
+ * ORDER MATTERS: sub-page patterns (photos/trailer/video/celebrities/albums) must be
+ * checked before isDetailPage — /subject/{id}/photos also matches the detail regex, so
+ * a reorder would misclassify those pages as plain details.
  */
 export function detectPageType(url: string = location.href): PageType | null {
+  // Sub-pages first: these overlap with the /subject/ detail pattern.
   if (isPhotosPage(url))     return { type: 'photos' }
   if (isTrailerPage(url))    return { type: 'trailer' }
   if (isVideoPage(url))      return { type: 'video' }

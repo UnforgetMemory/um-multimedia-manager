@@ -77,7 +77,9 @@ export class RecordService {
         || existingPrimary.comment !== record.comment;
 
       if (primaryChanged) {
-        // Merge: incoming status/rating replace existing, linkedIds union
+        // Merge: incoming status/rating replace existing, linkedIds union.
+        // recordVersion is kept from the existing record (not bumped) so cross-platform
+        // sync merges never look like local edits (optimistic-lock semantics).
         const updated = new StoreRecord({
           ...existingPrimary.toSnapshot(),
           status: record.status,

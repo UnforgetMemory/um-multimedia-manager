@@ -112,6 +112,8 @@ export class NexusPHPHandler implements ListPageHandler {
       for (const { row, url } of toResolve) {
         const cached = cacheMap[url]
         if (cached) {
+          // pt_id_cache stores keys with a 'movie::' type prefix (pt-detail.ts); strip it
+          // so bare IDs match the watched-id sets below (which are prefix-free).
           const cachedDouban = cached.doubanId?.replace('movie::', '')
           const cachedImdb = cached.imdbId?.replace('movie::', '')
           const matched =
@@ -152,6 +154,7 @@ export class NexusPHPHandler implements ListPageHandler {
       scanner.scanBatch(scanTasks, (result) => {
         if (!result.success || !result.entry.doubanId && !result.entry.imdbId) return
 
+        // Same 'movie::' prefix strip as the cache-hit path above — pt_id_cache keys are type-prefixed
         const cachedDouban = result.entry.doubanId?.replace('movie::', '')
         const cachedImdb = result.entry.imdbId?.replace('movie::', '')
         const { movieDoubanIds: mIds, imdbIds: iIds } = context.idCache ?? { movieDoubanIds: new Set<string>(), imdbIds: new Set<string>() }
