@@ -5,6 +5,7 @@
  * and paginator from the native page DOM.
  */
 
+import { parseDoubanPaginatorDetail } from '@/content/douban/shared/parse-douban-paginator'
 import type { DoulistDetailPageData, DoulistDetailItem, DoulistFilter, DoulistPaginator } from './types'
 
 /**
@@ -147,62 +148,11 @@ function extractFilters(): DoulistFilter[] {
 }
 
 /**
- * Extract paginator from .paginator.
- * Collects all page numbers as a sorted list with correct current-page marking.
+ * Paginator from .paginator (H3 2026-08-08: delegated to the shared rich
+ * parseDoubanPaginatorDetail — same contract as the former hand-written impl).
  */
 function extractPaginator(): DoulistPaginator {
-  const paginator: DoulistPaginator = {
-    currentPage: 1,
-    totalPages: 1,
-    prevUrl: '',
-    nextUrl: '',
-    pages: [],
-  }
-
-  const pagEl = document.querySelector('.paginator')
-  if (!pagEl) return paginator
-
-  // thispage label (the current page, rendered as a <span>, not an <a>)
-  const thisPage = pagEl.querySelector<HTMLElement>('.thispage')
-  const thisPageLabel = thisPage?.textContent?.trim() ?? ''
-  if (thisPage) {
-    paginator.currentPage = parseInt(thisPageLabel, 10) || 1
-    const totalAttr = thisPage.getAttribute('data-total-page')
-    if (totalAttr) paginator.totalPages = parseInt(totalAttr, 10) || 1
-  }
-
-  // Prev/next
-  const prevLink = pagEl.querySelector<HTMLAnchorElement>('.prev a')
-  const nextLink = pagEl.querySelector<HTMLAnchorElement>('.next a')
-  if (prevLink) paginator.prevUrl = prevLink.getAttribute('href') ?? prevLink.href
-  if (nextLink) paginator.nextUrl = nextLink.getAttribute('href') ?? nextLink.href
-
-  // Collect all numbered page <a> links (skip prev/next parents)
-  const pageEntries: { label: string; url: string; current: boolean }[] = []
-  pagEl.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
-    if (a.closest('.prev') || a.closest('.next')) return
-    const label = a.textContent?.trim() ?? ''
-    const href = a.getAttribute('href') ?? a.href
-    if (!href) return
-    const num = parseInt(label, 10)
-    if (isNaN(num)) return
-    pageEntries.push({
-      label,
-      url: href,
-      current: label === thisPageLabel,
-    })
-  })
-
-  // If thispage has a label not yet in the list, insert at sorted position
-  if (thisPageLabel && !pageEntries.some(p => p.label === thisPageLabel)) {
-    pageEntries.push({ label: thisPageLabel, url: '', current: true })
-  }
-
-  // Sort by page number
-  pageEntries.sort((a, b) => parseInt(a.label, 10) - parseInt(b.label, 10))
-  paginator.pages = pageEntries
-
-  return paginator
+  return parseDoubanPaginatorDetail(document.querySelector('.paginator'))
 }
 
 /**

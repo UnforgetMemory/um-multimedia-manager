@@ -35,8 +35,8 @@ export interface OverlayOptions {
  */
 export function createOverlay(options: OverlayOptions): HTMLElement {
   const { overlayId, subtitle, exposeDismiss = false } = options
+  // document_start guarantee: documentElement exists before any script runs.
   const doc = document.documentElement
-  if (!doc) return null as unknown as HTMLElement
 
   // 1. Inject page-level body lock CSS
   const pageStyle = document.createElement('style')

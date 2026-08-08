@@ -12,36 +12,6 @@ import { debounce } from '@/utils'
 export const THEME_KEY = 'umm:appearance'
 
 /**
- * Read the theme preference from chrome.storage.local.
- * Falls back to 'auto' on any error.
- */
-export function getThemeFromStorage(): Promise<string> {
-  return new Promise((resolve) => {
-    try {
-      chrome.storage.local.get([THEME_KEY], (result) => {
-        if (chrome.runtime.lastError) {
-          resolve('auto')
-          return
-        }
-        resolve((result[THEME_KEY] as Record<string, unknown> | undefined)?.theme as string ?? 'auto')
-      })
-    } catch {
-      resolve('auto')
-    }
-  })
-}
-
-/**
- * Resolve a theme mode string ('dark', 'light', or 'auto') into a concrete
- * 'dark' | 'light'.  'auto' reads the OS preference via prefers-color-scheme.
- */
-export function resolveTheme(raw: string | undefined): 'dark' | 'light' {
-  if (raw === 'dark') return 'dark'
-  if (raw === 'light') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-/**
  * Apply the stored theme to an overlay host element.
  * Reads chrome.storage.local, sets data-theme + class on host, and syncs
  * the html background color.

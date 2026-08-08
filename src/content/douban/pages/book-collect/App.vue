@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { collectTitleLabel } from '../../shared/collect-title-label';
 import { statusBadgeLabels } from '../../shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { BookCollectData } from './types'
@@ -18,14 +19,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.nextPageUrl,
 )
 /** Human-readable tab label for the current collection sub-type */
-const titleLabel = computed(() => {
-  const labels = statusBadgeLabels.book
-  switch (props.data.subType) {
-    case 'wish': return labels.wish
-    case 'doing': return labels.doing
-    default: return labels.done
-  }
-})
+const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.book, props.data.subType, 'doing'))
 </script>
 
 <template>

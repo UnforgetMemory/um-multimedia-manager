@@ -1,4 +1,4 @@
-import type { NewAlbumItem, BannerItem, PopularArtistItem, GenreTag } from './types'
+import type { GenreTag, NewAlbumItem, PopularArtistItem } from './types';
 import { extractSubjectId } from '@/content/douban/shared/extract-subject-id'
 
 /**
@@ -33,21 +33,6 @@ export function extractPopularArtists(tab: 'artists' | 'new-artists' = 'artists'
     }
   })
 
-  return items
-}
-
-/**
- * Extract banner items from the top carousel.
- */
-export function extractBannerItems(): BannerItem[] {
-  const items: BannerItem[] = []
-  document.querySelectorAll('.top-banner .slick-slide img').forEach(img => {
-    const src = img.getAttribute('src') || ''
-    const alt = img.getAttribute('alt') || ''
-    const link = img.closest('a')
-    const href = link?.href || ''
-    if (src) items.push({ imageUrl: src, href, alt })
-  })
   return items
 }
 

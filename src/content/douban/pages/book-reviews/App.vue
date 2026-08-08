@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UmmPageLinks from '@/content/douban/components/UmmPageLinks.vue';
 import { ref } from 'vue'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { BookReviewsData } from './types'
@@ -84,15 +85,14 @@ function starHtml(rating: number): string {
       <div v-else class="umm-empty">暂无书评</div>
 
       <!-- Paginator -->
-      <div v-if="data.pageLinks.length > 0" class="umm-reviews-paginator">
-        <a v-if="data.prevPageUrl" :href="data.prevPageUrl" class="umm-reviews-page">‹</a>
-        <a
-          v-for="pl in data.pageLinks" :key="pl.label"
-          :href="pl.url || undefined"
-          :class="['umm-reviews-page', pl.current ? 'umm-reviews-page--active' : '']"
-        >{{ pl.label }}</a>
-        <a v-if="data.nextPageUrl" :href="data.nextPageUrl" class="umm-reviews-page">›</a>
-      </div>
+      <UmmPageLinks
+        v-if="data.pageLinks.length > 0"
+        :pages="data.pageLinks"
+        :prev-url="data.prevPageUrl"
+        :next-url="data.nextPageUrl"
+        container-class="umm-reviews-paginator"
+        page-class="umm-reviews-page"
+      />
     </div>
   </UmmPageLayout>
 </template>

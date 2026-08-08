@@ -71,34 +71,48 @@ const interested = useInterest(() => d.identity.providerId, initialStatus, initi
 
 onMounted(() => {
   interested.fetchInterest().then(async () => {
+    const apiStatus = interested.interestStatus.value
+    const key = `${d.identity.type}::${d.identity.providerId}`
+    const identity = { platform: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
+
+    // Single DB read for the whole mount chain (was 3x same-key dbGet).
+    // put() stamps recordVersion/updatedAt on the passed object in place, so
+    // keeping the in-memory object in sync after each write is equivalent to
+    // re-reading — no data is missed and no stale value is used.
+    let currentRecord: StoreRecord | null = null
+    try {
+      currentRecord = await Store.dbGet('douban_records', key)
+    } catch (e: unknown) {
+      console.warn('[UMM] DB read on mount failed:', e)
+    }
+
     // Auto-save to DB when the Douban API confirms a status. Handles both:
     // 1. NEW records (no local record yet) — create it.
     // 2. EXISTING watched records whose rating changed on the page — update it.
     // (Previously gated on !d.record, which dropped rating updates for already-watched items.)
-    const apiStatus = interested.interestStatus.value
     if (apiStatus) {
       const newStatus = apiStatus === 'collect' ? 2 : apiStatus === 'do' ? 3 : 1
       const newRating = doubanStarsToRating10(interested.currentRating.value)
-      const key = `${d.identity.type}::${d.identity.providerId}`
       try {
-        const existing = await Store.dbGet('douban_records', key)
         if (shouldWriteRecord({
-          hasLocal: !!existing,
-          localStatus: existing?.status,
-          localRating: existing?.rating,
+          hasLocal: !!currentRecord,
+          localStatus: currentRecord?.status,
+          localRating: currentRecord?.rating,
           newStatus,
           newRating10: newRating,
         })) {
-          await Store.dbPut('douban_records', key, {
+          const nextRecord = {
             url: window.location.href,
             status: newStatus,
             // Keep the existing rating when the page reports none (0),
             // so an already-watched record is never wiped to unrated.
-            rating: newRating || existing?.rating || 0,
-            comment: interested.currentComment.value || existing?.comment || '',
+            rating: newRating || currentRecord?.rating || 0,
+            comment: interested.currentComment.value || currentRecord?.comment || '',
             updatedAt: new Date().toISOString(),
-            linkedIds: existing?.linkedIds ?? {},
-          } as StoreRecord)
+            linkedIds: currentRecord?.linkedIds ?? {},
+          } as StoreRecord
+          await Store.dbPut('douban_records', key, nextRecord)
+          currentRecord = nextRecord
         }
       } catch (e: unknown) {
         console.warn('[UMM] Auto-save on mount failed:', e)
@@ -109,10 +123,7 @@ onMounted(() => {
     // current DOM and merge any new ones into the DB record. Handles cases
     // where a Douban page is updated with new IMDb/TMDB associations after
     // the initial save.
-    const identity = { platform: 'douban' as const, type: d.identity.type, providerId: d.identity.providerId, url: window.location.href }
-    const linkKey = `${d.identity.type}::${d.identity.providerId}`
     try {
-      const currentRecord = await Store.dbGet('douban_records', linkKey)
       if (currentRecord && currentRecord.status >= 2) {
         const oldLinkedIds = currentRecord.linkedIds ?? {}
         const domLinkedIds = extractCrossPlatformLinks(identity, oldLinkedIds)
@@ -126,7 +137,7 @@ onMounted(() => {
 
           currentRecord.linkedIds = domLinkedIds
           currentRecord.updatedAt = new Date().toISOString()
-          await Store.dbPut('douban_records', linkKey, currentRecord)
+          await Store.dbPut('douban_records', key, currentRecord)
 
           // Create/update cross-platform records for imdb/tmdb, matching
           // the pattern in onCrossPlatformSave.
@@ -147,7 +158,7 @@ onMounted(() => {
                 rating: currentRecord.rating,
                 comment: currentRecord.comment || '',
                 updatedAt: new Date().toISOString(),
-                linkedIds: { ...(existingTarget?.linkedIds || {}), douban: linkKey },
+                linkedIds: { ...(existingTarget?.linkedIds || {}), douban: key },
               } as StoreRecord)
             }
           }
@@ -160,12 +171,10 @@ onMounted(() => {
     // Trigger NeoDB injection once Vue app is mounted and interest is fetched
     if (apiStatus === 'collect') {
       import('@/entrypoints/content/neodb-push').then(({ injectNeoDBPushButtons: inject }) => {
-        Store.dbGet('douban_records', `${d.identity.type}::${d.identity.providerId}`).then(rec => {
-          inject(
-            { platform: 'douban', type: d.identity.type, providerId: d.identity.providerId, url: window.location.href },
-            rec,
-          )
-        })
+        inject(
+          identity,
+          currentRecord,
+        )
       })
     }
     // Companion NeoDB sync check for existing watched records

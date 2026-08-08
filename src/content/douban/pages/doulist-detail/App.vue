@@ -8,6 +8,7 @@
  */
 
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
+import UmmPageLinks from '@/content/douban/components/UmmPageLinks.vue';
 import { statusBadgeLabels } from '@/content/douban/shared/status-labels'
 import type { DoulistDetailPageData, DoulistDetailItem } from './types'
 
@@ -166,24 +167,13 @@ function statusBadgeText(status: number, rating: number): string {
 
           <!-- Bottom: paginator -->
           <div v-if="data.paginator.pages.length > 1" class="umm-dlist-info-bot">
-            <div class="umm-dlist-paginator">
-              <a
-                v-if="data.paginator.prevUrl"
-                :href="data.paginator.prevUrl"
-                class="umm-dlist-page-btn"
-              >‹</a>
-              <a
-                v-for="p in data.paginator.pages"
-                :key="p.label"
-                :href="p.url || undefined"
-                :class="['umm-dlist-page-btn', p.current ? 'umm-dlist-page-btn--active' : '']"
-              >{{ p.label }}</a>
-              <a
-                v-if="data.paginator.nextUrl"
-                :href="data.paginator.nextUrl"
-                class="umm-dlist-page-btn"
-              >›</a>
-            </div>
+            <UmmPageLinks
+              :pages="data.paginator.pages"
+              :prev-url="data.paginator.prevUrl"
+              :next-url="data.paginator.nextUrl"
+              container-class="umm-dlist-paginator"
+              page-class="umm-dlist-page-btn"
+            />
           </div>
         </div>
       </div>

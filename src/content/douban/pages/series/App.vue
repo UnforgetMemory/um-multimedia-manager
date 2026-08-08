@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // Series overlay: header info, sort options, book list with record badges, paginator
+import UmmPageLinks from '@/content/douban/components/UmmPageLinks.vue';
 import { statusBadgeLabels } from '@/content/douban/shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { SeriesPageData, SeriesItem } from './types'
@@ -146,24 +147,14 @@ function statusLabel(status: number): string {
       <div v-else class="umm-series-empty">暂无内容</div>
 
       <!-- ═══ Paginator ═══ -->
-      <div v-if="data.paginator.pages.length > 1" class="umm-series-paginator">
-        <a
-          v-if="data.paginator.prevUrl"
-          :href="data.paginator.prevUrl"
-          class="umm-series-page-btn"
-        >‹</a>
-        <a
-          v-for="p in data.paginator.pages"
-          :key="p.label"
-          :href="p.url || undefined"
-          :class="['umm-series-page-btn', p.current ? 'umm-series-page-btn--active' : '']"
-        >{{ p.label }}</a>
-        <a
-          v-if="data.paginator.nextUrl"
-          :href="data.paginator.nextUrl"
-          class="umm-series-page-btn"
-        >›</a>
-      </div>
+      <UmmPageLinks
+        v-if="data.paginator.pages.length > 1"
+        :pages="data.paginator.pages"
+        :prev-url="data.paginator.prevUrl"
+        :next-url="data.paginator.nextUrl"
+        container-class="umm-series-paginator"
+        page-class="umm-series-page-btn"
+      />
     </div>
   </UmmPageLayout>
 </template>

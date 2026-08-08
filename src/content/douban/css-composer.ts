@@ -44,7 +44,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'user-reviews':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['user-reviews'] },
   'book-reviews':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['book-reviews'] },
   'review-detail':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['review-detail'] },
-  'book-review-detail': { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['book-review-detail'] },
+  'book-review-detail': { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'review-detail'], page: ['book-review-detail'] },
   'book-collect':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['book-collect'] },
   'book-authors':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['book-authors'] },
   'genre':            { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['genre'] },

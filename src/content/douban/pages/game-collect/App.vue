@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { collectTitleLabel } from '../../shared/collect-title-label';
 import { statusBadgeLabels } from '../../shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import type { GameCollectData } from './types'
@@ -20,14 +21,7 @@ function parseRating(rating: string): number {
   return match ? parseInt(match[1], 10) / 10 : 0
 }
 
-const titleLabel = computed(() => {
-  const labels = statusBadgeLabels.game
-  switch (props.data.subType) {
-    case 'wish': return labels.wish
-    case 'do': return labels.doing
-    default: return labels.done
-  }
-})
+const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.game, props.data.subType, 'do'))
 </script>
 
 <template>

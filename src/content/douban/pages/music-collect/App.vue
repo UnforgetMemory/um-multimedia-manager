@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { collectTitleLabel } from '../../shared/collect-title-label';
 import { statusBadgeLabels } from '../../shared/status-labels'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmRating } from '@/content/douban/components/UmmRating'
@@ -19,14 +20,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
 )
 
 /** Human-readable tab label for the current collection sub-type */
-const titleLabel = computed(() => {
-  const labels = statusBadgeLabels.music
-  switch (props.data.subType) {
-    case 'wish': return labels.wish
-    case 'doing': return labels.doing
-    default: return labels.done
-  }
-})
+const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.music, props.data.subType, 'doing'))
 
 /** Convert music rating (1-3) to 0-10 scale for UmmRating */
 function toRatingScore(rating: string): string | undefined {

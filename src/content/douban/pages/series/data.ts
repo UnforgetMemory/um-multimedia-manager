@@ -1,3 +1,4 @@
+import { parseDoubanPaginatorDetail } from '@/content/douban/shared/parse-douban-paginator'
 import type { SeriesPageData, SeriesItem, SeriesSortOption, SeriesPaginator } from './types'
 
 function extractRating(itemEl: Element): { rating: number; ratingCount: number } {
@@ -62,44 +63,8 @@ function extractSortOptions(): SeriesSortOption[] {
 }
 
 function extractPaginator(): SeriesPaginator {
-  const paginator: SeriesPaginator = {
-    currentPage: 1, totalPages: 1, prevUrl: '', nextUrl: '', pages: [],
-  }
-
-  const pagEl = document.querySelector('.paginator')
-  if (!pagEl) return paginator
-
-  const thisPage = pagEl.querySelector<HTMLElement>('.thispage')
-  const thisPageLabel = thisPage?.textContent?.trim() ?? ''
-  if (thisPage) {
-    paginator.currentPage = parseInt(thisPageLabel, 10) || 1
-    const totalAttr = thisPage.getAttribute('data-total-page')
-    if (totalAttr) paginator.totalPages = parseInt(totalAttr, 10) || 1
-  }
-
-  const prevLink = pagEl.querySelector<HTMLAnchorElement>('.prev a')
-  const nextLink = pagEl.querySelector<HTMLAnchorElement>('.next a')
-  if (prevLink) paginator.prevUrl = prevLink.getAttribute('href') ?? prevLink.href
-  if (nextLink) paginator.nextUrl = nextLink.getAttribute('href') ?? nextLink.href
-
-  const pageEntries: { label: string; url: string; current: boolean }[] = []
-  pagEl.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
-    if (a.closest('.prev') || a.closest('.next')) return
-    const label = a.textContent?.trim() ?? ''
-    const href = a.getAttribute('href') ?? a.href
-    if (!href) return
-    const num = parseInt(label, 10)
-    if (isNaN(num)) return
-    pageEntries.push({ label, url: href, current: label === thisPageLabel })
-  })
-
-  if (thisPageLabel && !pageEntries.some(p => p.label === thisPageLabel)) {
-    pageEntries.push({ label: thisPageLabel, url: '', current: true })
-  }
-
-  pageEntries.sort((a, b) => parseInt(a.label, 10) - parseInt(b.label, 10))
-  paginator.pages = pageEntries
-  return paginator
+  // H3 2026-08-08: delegated to the shared rich parser (same contract).
+  return parseDoubanPaginatorDetail(document.querySelector('.paginator'))
 }
 
 export function extractSeriesData(): SeriesPageData | null {

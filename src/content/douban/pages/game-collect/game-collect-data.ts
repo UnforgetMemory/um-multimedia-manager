@@ -1,3 +1,5 @@
+import { parseDoubanPaginator } from '@/content/douban/shared/parse-douban-paginator';
+
 import type { GameCollectData, GameItem } from './types'
 
 function getSubTypeFromUrl(url: string): GameCollectData['subType'] {
@@ -53,39 +55,7 @@ function _extractGameCollectData(): GameCollectData | null {
     if (countMatch) total = parseInt(countMatch[1], 10)
   }
 
-  const pageLinks: { label: string; url: string; current: boolean }[] = []
-  let prevPageUrl = ''
-  let nextPageUrl = ''
-  const paginator = document.querySelector('.paginator')
-  if (paginator) {
-    Array.from(paginator.children).forEach((child) => {
-      const tag = child.tagName
-      const cls = (child as HTMLElement).className || ''
-      if (tag === 'SPAN' && (cls.includes('prev') || cls.includes('next'))) {
-        const a = child.querySelector<HTMLAnchorElement>('a')
-        if (!a) return
-        const href = a.href
-        if (cls.includes('next')) nextPageUrl = href
-        else prevPageUrl = href
-        return
-      }
-      if (tag === 'SPAN' && cls.includes('thispage')) {
-        const text = child.textContent?.trim() ?? ''
-        const num = parseInt(text, 10)
-        if (!isNaN(num)) pageLinks.push({ label: text, url: '', current: true })
-        return
-      }
-      if (tag === 'SPAN') return
-      if (tag === 'A') {
-        const a = child as HTMLAnchorElement
-        const text = a.textContent?.trim()
-        const href = a.href
-        if (!text || !href) return
-        const num = parseInt(text, 10)
-        if (!isNaN(num)) pageLinks.push({ label: text, url: href, current: false })
-      }
-    })
-  }
+  const { pageLinks, prevPageUrl, nextPageUrl } = parseDoubanPaginator(document.querySelector('.paginator'))
 
   const items: GameItem[] = []
   const itemEls = document.querySelectorAll('.game-list .common-item')
