@@ -3,25 +3,18 @@ import {
   buildNeoDBLinkedIds,
   buildNeoDBSyncRecord,
   buildNeoDBSyncTargets,
-  decideNeoDBTargetSync,
-  mergeTargetLinkedIds,
   platformLabel,
   shouldSaveNeoDBPrimary,
-  type NeoDBTargetSyncDecision,
 } from '@/entrypoints/content/handlers/neodb-sync'
 import type { StoreRecord, UrlIdentity } from '@/types'
 
 /**
- * T12（audit §2.3）— neodb.ts 内联跨平台同步的行为特征锁定（characterization）。
+ * T12（audit §2.3）— neodb.ts onSave 委托 RecordService 前的输入构建器特征锁定。
  *
- * 在将 onSave 内联 sync 改写为 RecordService.syncRecord 委托之前，
- * 用本 spec 锁定**旧内联规则**（抽取自 neodb.ts onSave 的纯函数）：
+ * 旧内联目标决策（R1–R5）随 decideNeoDBTargetSync / mergeTargetLinkedIds 删除
+ * （2026-08-07 C1 清理），其行为规则现由 tests/unit/record-service-sync.spec.ts
+ * 直接锁定（create-if-missing / update-if-not-watched / skip-if-watched）。
  *
- *  R1  linkedIds 始终写回目标记录（含已完成目标 —— 仅更新关联）
- *  R2  目标不存在 → create（使用 NeoDB 状态/评分，页面未完成也用页面评分）
- *  R3  目标存在且未完成 → update（页面未完成时保留目标 status，空评分才填充）
- *  R4  目标存在且已完成 → links-only（不覆盖状态/评分）
- *  R5  不覆盖已存在的目标评分（existing.rating 有值时不写 pageRating）
  *  R6  主记录保存门控：页面已完成→status/rating/linkedIds 变化才存；
  *      页面未完成→仅记录不存在或 linkedIds 变化才存
  */
@@ -226,108 +219,6 @@ test.describe('shouldSaveNeoDBPrimary (R6 主记录保存门控)', () => {
         linkedIds: { douban: 'movie::1292052', tmdb: 'movie::550' },
       }),
     ).toBe(true)
-  })
-})
-
-test.describe('mergeTargetLinkedIds', () => {
-  test('目标无 linkedIds → 仅 neodb 回链', () => {
-    expect(mergeTargetLinkedIds(undefined, NEO_KEY)).toEqual({ neodb: NEO_KEY })
-  })
-
-  test('目标已有 linkedIds → 合并且保留，neodb 键覆盖', () => {
-    expect(
-      mergeTargetLinkedIds({ douban: 'movie::1292052', neodb: 'movie::stale' }, NEO_KEY),
-    ).toEqual({ douban: 'movie::1292052', neodb: NEO_KEY })
-  })
-})
-
-test.describe('decideNeoDBTargetSync (R1–R5 目标决策)', () => {
-  const base = { targetUrl: TARGET_URL, neodbKey: NEO_KEY, now: NOW, comment: undefined }
-
-  function decision(existing: Pick<StoreRecord, 'status' | 'rating' | 'comment' | 'linkedIds'> | null, isPageDone: boolean, pageRating = 8.5): NeoDBTargetSyncDecision {
-    return decideNeoDBTargetSync({ ...base, existing, isPageDone, pageRating })
-  }
-
-  test('R2: 目标不存在 + 页面已完成 → create（status 2 + 页面评分 + neodb 回链）', () => {
-    const d = decision(null, true)
-    expect(d).toEqual({
-      action: 'create',
-      record: {
-        url: TARGET_URL,
-        status: 2,
-        rating: 8.5,
-        comment: '',
-        updatedAt: NOW,
-        linkedIds: { neodb: NEO_KEY },
-      },
-    })
-  })
-
-  test('R2: 目标不存在 + 页面未完成 → create（status 0，但评分仍为页面评分）', () => {
-    const d = decision(null, false)
-    expect(d).toMatchObject({ action: 'create', record: { status: 0, rating: 8.5, linkedIds: { neodb: NEO_KEY } } })
-  })
-
-  test('R3+F4: 目标未完成(status 1) + 页面未完成 → update 且保留目标 status', () => {
-    const d = decision({ status: 1, rating: 0, comment: 'old', linkedIds: {} }, false)
-    expect(d).toEqual({
-      action: 'update',
-      updates: {
-        status: 1,
-        rating: 8.5,
-        comment: 'old',
-        updatedAt: NOW,
-        linkedIds: { neodb: NEO_KEY },
-      },
-    })
-  })
-
-  test('R3: 目标未完成(status 1) + 页面已完成 → update 且 status 提升为 2', () => {
-    const d = decision({ status: 1, rating: 0, comment: '', linkedIds: {} }, true)
-    expect(d).toMatchObject({ action: 'update', updates: { status: 2, rating: 8.5 } })
-  })
-
-  test('R5: 目标未完成但已有评分 → 不覆盖目标评分', () => {
-    const d = decision({ status: 1, rating: 6, comment: '', linkedIds: {} }, false)
-    expect(d).toMatchObject({ action: 'update', updates: { status: 1, rating: 6 } })
-  })
-
-  test('R3: 目标未完成且无任何变化 → skip', () => {
-    const d = decision(
-      { status: 1, rating: 8.5, comment: '', linkedIds: { neodb: NEO_KEY } },
-      false,
-    )
-    expect(d).toEqual({ action: 'skip' })
-  })
-
-  test('R3: linkedIds 变化触发 update（即使 status/rating 未变）', () => {
-    const d = decision(
-      { status: 1, rating: 8.5, comment: '', linkedIds: { douban: 'movie::1292052' } },
-      false,
-    )
-    expect(d).toEqual({
-      action: 'update',
-      updates: {
-        status: 1,
-        rating: 8.5,
-        comment: '',
-        updatedAt: NOW,
-        linkedIds: { douban: 'movie::1292052', neodb: NEO_KEY },
-      },
-    })
-  })
-
-  test('R1: 目标已完成且缺 neodb 回链 → links-only（刷新关联，不碰状态/评分）', () => {
-    const d = decision({ status: 2, rating: 8, comment: '', linkedIds: { douban: 'movie::1292052' } }, true)
-    expect(d).toEqual({ action: 'links-only', linkedIds: { douban: 'movie::1292052', neodb: NEO_KEY } })
-  })
-
-  test('R1: 目标已完成且回链已存在 → skip', () => {
-    const d = decision(
-      { status: 2, rating: 8, comment: '', linkedIds: { douban: 'movie::1292052', neodb: NEO_KEY } },
-      true,
-    )
-    expect(d).toEqual({ action: 'skip' })
   })
 })
 
