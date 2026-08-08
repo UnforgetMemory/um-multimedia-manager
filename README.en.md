@@ -9,7 +9,7 @@
 <h1 align="center">UMM — Unified Multimedia Manager</h1>
 
 <p align="center">
-  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.10.0-blue?logo=git" alt="Version"></a>
+  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.11.1-blue?logo=git" alt="Version"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen?logo=googlechrome" alt="Chrome"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest_V3-orange?logo=googlechrome" alt="MV3"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-green?logo=apache" alt="License"></a>
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <b>A Chrome extension that unifies your media tracking across Douban, IMDb, NeoDB, TMDB, and private trackers — with cross-platform sync, automatic PT dimming, and WebDAV backup.</b>
+  <b>A Chrome extension that unifies your media tracking across Douban, IMDb, NeoDB, TMDB, private trackers, and BT sites — with cross-platform sync, automatic torrent dimming, and WebDAV backup.</b>
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 |---|---|
 | 🎯 **Cross-Platform Marking** | One-click status and rating on Douban, IMDb, NeoDB, TMDB, Bangumi, Bilibili, and YouTube pages |
 | 🔗 **ID Linking** | Auto-map IDs across platforms — one record, all platforms |
-| 🌙 **PT Auto-Dimming** | Gray out watched torrents on supported private trackers |
+| 🌙 **PT/BT Auto-Dimming** | Gray out watched torrents on supported private trackers and the Mukaku BT site |
 | 📦 **WebDAV Backup** | Auto-backup to any WebDAV server, plus ZIP export/import |
 | 🧩 **NeoDB Integration** | Pull ratings and push scores via NeoDB API |
 | 🎨 **Theme Switching** | Light, dark, and system-following themes |
@@ -44,14 +44,13 @@
 
 | Category | Sites |
 |---|---|
-| Film & TV | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` `bgm.tv` `bangumi.tv` `chii.in` |
+| Film & TV | `movie.douban.com` `imdb.com` `neodb.social` `themoviedb.org` `bgm.tv` `bangumi.tv` `chii.in` `bilibili.com` `youtube.com` |
 | Music | `music.douban.com` `neodb.social/album` |
 | Books | `book.douban.com` |
 | Games | `game.douban.com` |
 | Private Trackers | M-Team, Audiences, HDHome, HDArea, OurBits, PTerClub, PTHome, Haidan, Ptsbao, BTSchool, Discfan, HhanClub, HDDolby, HDFans, SoulVoice, HDTime, Piggo |
+| BitTorrent | Mukaku (`web5.mukaku.com`, watched-video dimming) |
 | Adult | JavDB, Sehuatang |
-
-> Note: Mukaku (`web5.mukaku.com`) is a scan-only helper used for video ID extraction. It persists no media records.
 
 ## Quick Start
 
@@ -394,7 +393,7 @@ um-multimedia-manager/
 │   │   │   │   ├── bangumi-list.ts  # Bangumi list pages
 │   │   │   │   ├── bangumi-extract.ts      # Bangumi DOM extraction
 │   │   │   │   ├── bangumi-list-extract.ts # Bangumi list DOM extraction
-│   │   │   │   ├── mukaku/          # Mukaku scan helper (config/dom/api/cache/handler)
+│   │   │   │   ├── mukaku/          # Mukaku BT site dimmer (config/dom/api/cache/handler)
 │   │   │   │   ├── pt-detail.ts     # PT detail page ID extraction
 │   │   │   │   ├── javdb.ts         # JavDB
 │   │   │   │   ├── sehuatang.ts     # Sehuatang

@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <b>一款 Chrome 扩展，帮你统一管理豆瓣、IMDb、NeoDB、TMDB 及 PT 站点的观影和收听记录，支持跨平台同步、PT 种子自动淡化、WebDAV 云端备份。</b>
+  <b>一款 Chrome 扩展，帮你统一管理豆瓣、IMDb、NeoDB、TMDB、PT 及 BT 站点的观影和收听记录，支持跨平台同步、已看种子自动淡化、WebDAV 云端备份。</b>
 </p>
 
 <p align="center">
@@ -32,12 +32,12 @@
 |---|---|
 | 🎯 **跨平台标记** | 在豆瓣、IMDb、NeoDB、TMDB、Bangumi、Bilibili、YouTube 页面一键标记状态和评分 |
 | 🔗 **ID 关联** | 自动建立多平台 ID 映射，一份记录关联所有平台 |
-| 🌙 **PT 自动淡化** | 已看种子在支持的 PT 站点自动置灰 |
+| 🌙 **PT/BT 自动淡化** | 已看种子在支持的 PT 站点及 Mukaku BT 站自动置灰 |
 | 📦 **WebDAV 备份** | 自动备份到任意 WebDAV 服务器，支持 ZIP 导出/导入 |
 | 🧩 **NeoDB 集成** | 从 NeoDB 拉取评分元数据，支持推送评分 |
 | 🎨 **主题切换** | 亮色、暗色、跟随系统三种主题 |
 | 📊 **统计看板** | 弹窗概览 + 完整选项页（热力图、分布图、评分管理） |
-| 🔞 **成人内容支持** | 统一管理 JavDB、Sehuatang 的观看记录，Mukaku 辅助扫描 |
+| 🔞 **成人内容支持** | 统一管理 JavDB、Sehuatang 的观看记录 |
 | 🌐 **国际化** | 中英文双语支持 |
 
 ## 支持的站点
@@ -48,8 +48,9 @@
 | 音乐 | `music.douban.com` `neodb.social/album` |
 | 书籍 | `book.douban.com` |
 | 游戏 | `game.douban.com` |
-| PT 站点 | M-Team、Audiences、HDHome、HDArea、OurBits、PTerClub 等 |
-| 成人 | JavDB、Sehuatang、Mukaku（辅助扫描） |
+| PT 站点 | M-Team、Audiences、HDHome、HDArea、OurBits、PTerClub、PTHome、Haidan、Ptsbao、BTSchool、Discfan、HhanClub、HDDolby、HDFans、SoulVoice、HDTime、Piggo |
+| BT 站点 | Mukaku（web5.mukaku.com，已看视频淡化） |
+| 成人 | JavDB、Sehuatang |
 
 ## 快速开始
 
