@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.3] - 2026-08-10
+
+### 修复与优化
+
+- **豆瓣 profile 页面 statbar 样式修复**：清理提交 708b658 误删了 user-profile/book-profile/movie-profile CSS 中的非 scoped statbar 样式（Vue scoped CSS 因 cssInjectionMode:manual 不注入 Shadow DOM），导致 statbar 完全无样式。新建共享 statbar.css 安全兜底文件，注入 4 个 profile 页面
+- **Statbar 视觉重新设计**：卡片式→胶囊式（inline-flex, border-radius: 999px），更紧凑圆润，匹配页面 doulist 胶囊设计语言
+- **双主题适配修复**：`--umm-accent`/`--umm-accent-soft` 未定义变量→统一改为 `--umm-brand-accent`/`--umm-brand-accent-soft`（design-tokens 中 light: `#4f6ef7`/`#e0e7ff`，dark: `#6e8aff`/`#312e81`），light/dark 均正确切换
+
 ## [5.11.2] - 2026-08-08
 
 ### 文档与描述修正

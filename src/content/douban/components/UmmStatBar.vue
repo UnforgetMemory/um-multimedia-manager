@@ -65,28 +65,27 @@ function handleClick(item: StatBarItem): void {
   font-size: var(--umm-font-sm, 0.85rem);
   font-weight: 600;
   color: var(--umm-text-primary);
-  margin-bottom: var(--umm-space-1-5, 6px);
+  margin-bottom: 8px;
   white-space: nowrap;
 }
 
 .umm-statbar-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--umm-space-md, 14px);
+  gap: 8px;
 }
 
 .umm-statbar-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
   background: var(--umm-bg-secondary);
   border: 1px solid var(--umm-border);
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   cursor: default;
+  line-height: 1.4;
 }
 
 .umm-statbar-item--clickable {
@@ -94,21 +93,21 @@ function handleClick(item: StatBarItem): void {
 }
 
 .umm-statbar-item--clickable:hover {
-  background: var(--umm-accent-soft, #e0e7ff);
-  border-color: var(--umm-accent, #6366f1);
+  background: var(--umm-brand-accent-soft, #e0e7ff);
+  border-color: var(--umm-brand-accent, #4f6ef7);
 }
 
 .umm-statbar-val {
-  font-size: var(--umm-font-lg, 1.125rem);
+  font-size: var(--umm-font-base, 0.875rem);
   font-weight: 700;
-  color: var(--umm-accent, #6366f1);
+  color: var(--umm-brand-accent, #4f6ef7);
   line-height: 1.2;
   transition: color 0.15s;
   white-space: nowrap;
 }
 
 .umm-statbar-item--active .umm-statbar-val {
-  color: var(--umm-accent, #6366f1);
+  color: var(--umm-brand-accent, #4f6ef7);
 }
 
 .umm-statbar-lbl {

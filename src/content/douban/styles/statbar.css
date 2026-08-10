@@ -1,0 +1,62 @@
+/* ===== Shared StatBar — Shadow DOM safety copy of UmmStatBar.vue scoped CSS ===== */
+/* Vue 3 scoped CSS (data-v-a541d055) is extracted into the content script CSS bundle
+   but cssInjectionMode:manual prevents automatic injection. The composed CSS from
+   composeStylesForPage (injected via mountUmmOverlay) only contains ?raw CSS imports,
+   not Vue component scoped CSS. This file provides the safety net in the shadow root. */
+
+.umm-statbar-title {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  margin-bottom: 8px;
+  white-space: nowrap;
+}
+
+.umm-statbar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.umm-statbar-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--umm-bg-secondary);
+  border: 1px solid var(--umm-border);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  cursor: default;
+  line-height: 1.4;
+}
+
+.umm-statbar-item--clickable {
+  cursor: pointer;
+}
+
+.umm-statbar-item--clickable:hover {
+  background: var(--umm-brand-accent-soft, #e0e7ff);
+  border-color: var(--umm-brand-accent, #4f6ef7);
+}
+
+.umm-statbar-val {
+  font-size: var(--umm-font-base, 0.875rem);
+  font-weight: 700;
+  color: var(--umm-brand-accent, #4f6ef7);
+  line-height: 1.2;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.umm-statbar-item--active .umm-statbar-val {
+  color: var(--umm-brand-accent, #4f6ef7);
+}
+
+.umm-statbar-lbl {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-muted);
+  line-height: 1.2;
+  transition: color 0.15s;
+  white-space: nowrap;
+}

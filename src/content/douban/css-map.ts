@@ -50,6 +50,7 @@ import seriesCss from './styles/series.css?raw'
 import musicCollectCss from './styles/music-collect.css?raw'
 import titlebarCss from './styles/titlebar.css?raw'
 import emptyStateCss from './styles/empty-state.css?raw'
+import statbarCss from './styles/statbar.css?raw'
 
 export {
   designTokensCss,
@@ -93,6 +94,7 @@ export {
   titlebarCss,
   musicCollectCss,
   emptyStateCss,
+  statbarCss,
 }
 
 /**
@@ -142,4 +144,5 @@ export const cssMap: Record<string, string> = {
   'media-chips': mediaChipsCss,
   titlebar: titlebarCss,
   'empty-state': emptyStateCss,
+  statbar: statbarCss,
 }
