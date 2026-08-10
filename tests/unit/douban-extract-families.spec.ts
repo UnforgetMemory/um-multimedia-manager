@@ -248,11 +248,11 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
     expect(result.mode).toBe('grid')
     expect(result.pageLinks).toEqual([
       { label: '1', url: '', current: true },
-      { label: '2', url: '?start=20', current: false },
-      { label: '3', url: '?start=40', current: false },
+      { label: '2', url: 'https://book.douban.com/people/u1/collect?start=20', current: false },
+      { label: '3', url: 'https://book.douban.com/people/u1/collect?start=40', current: false },
     ])
-    expect(result.prevPageUrl).toBe('?start=0')
-    expect(result.nextPageUrl).toBe('?start=20')
+    expect(result.prevPageUrl).toBe('https://book.douban.com/people/u1/collect?start=0')
+    expect(result.nextPageUrl).toBe('https://book.douban.com/people/u1/collect?start=20')
   })
 
   test('music-collect URL with /wish → subType=wish', () => {

@@ -32,13 +32,13 @@ test.describe('parseDoubanPaginatorDetail — 富契约', () => {
     expect(parseDoubanPaginatorDetail(paginatorFromHtml(RICH_PAGINATOR_HTML))).toEqual({
       currentPage: 1,
       totalPages: 500,
-      prevUrl: '?start=0',
-      nextUrl: '?start=20',
+      prevUrl: 'https://movie.douban.com/subject/1292052/?start=0',
+      nextUrl: 'https://movie.douban.com/subject/1292052/?start=20',
       pages: [
         { label: '1', url: '', current: true },
-        { label: '2', url: '?start=20', current: false },
-        { label: '3', url: '?start=40', current: false },
-        { label: '500', url: '?start=9980', current: false },
+        { label: '2', url: 'https://movie.douban.com/subject/1292052/?start=20', current: false },
+        { label: '3', url: 'https://movie.douban.com/subject/1292052/?start=40', current: false },
+        { label: '500', url: 'https://movie.douban.com/subject/1292052/?start=9980', current: false },
       ],
     })
   })
@@ -78,7 +78,7 @@ test.describe('parseDoubanPaginatorDetail — 富契约', () => {
     const html = '<div class="paginator"><a href="?start=20">2</a></div>'
     const result = parseDoubanPaginatorDetail(paginatorFromHtml(html))
     expect(result.currentPage).toBe(1)
-    expect(result.pages).toEqual([{ label: '2', url: '?start=20', current: false }])
+    expect(result.pages).toEqual([{ label: '2', url: 'https://movie.douban.com/subject/1292052/?start=20', current: false }])
   })
 
   test('prev/next 无 a → URL 空串', () => {
@@ -91,7 +91,7 @@ test.describe('parseDoubanPaginatorDetail — 富契约', () => {
   test('薄版契约保持兼容（回归锚点）', () => {
     const thin = parseDoubanPaginator(paginatorFromHtml(RICH_PAGINATOR_HTML))
     expect(thin.pageLinks).toHaveLength(4)
-    expect(thin.prevPageUrl).toBe('?start=0')
-    expect(thin.nextPageUrl).toBe('?start=20')
+    expect(thin.prevPageUrl).toBe('https://movie.douban.com/subject/1292052/?start=0')
+    expect(thin.nextPageUrl).toBe('https://movie.douban.com/subject/1292052/?start=20')
   })
 })

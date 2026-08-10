@@ -45,13 +45,13 @@ test.describe('parseDoubanPaginator — 豆瓣 .paginator 解析契约', () => {
     expect(parseDoubanPaginator(paginatorFromHtml(PAGINATOR_HTML))).toEqual({
       pageLinks: [
         { label: '1', url: '', current: true },
-        { label: '2', url: '?start=20&sort=time&rating=all&filter=all', current: false },
-        { label: '3', url: '?start=40&sort=time&rating=all&filter=all', current: false },
-        { label: '4', url: '?start=60&sort=time&rating=all&filter=all', current: false },
-        { label: '500', url: '?start=9980&sort=time&rating=all&filter=all', current: false },
+        { label: '2', url: 'https://movie.douban.com/people/xx/reviews?start=20&sort=time&rating=all&filter=all', current: false },
+        { label: '3', url: 'https://movie.douban.com/people/xx/reviews?start=40&sort=time&rating=all&filter=all', current: false },
+        { label: '4', url: 'https://movie.douban.com/people/xx/reviews?start=60&sort=time&rating=all&filter=all', current: false },
+        { label: '500', url: 'https://movie.douban.com/people/xx/reviews?start=9980&sort=time&rating=all&filter=all', current: false },
       ],
-      prevPageUrl: '?start=0&sort=time&rating=all&filter=all',
-      nextPageUrl: '?start=20&sort=time&rating=all&filter=all',
+      prevPageUrl: 'https://movie.douban.com/people/xx/reviews?start=0&sort=time&rating=all&filter=all',
+      nextPageUrl: 'https://movie.douban.com/people/xx/reviews?start=20&sort=time&rating=all&filter=all',
     })
   })
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.4] - 2026-08-10
+
+### 修复与优化
+
+- **豆瓣用户收藏页分页修复**：`parseDoubanPaginator` 改用 `a.href`（浏览器解析绝对 URL）替代 `a.getAttribute('href')`（原始相对值）。`usePaginator` 的 `isSafeDoubanUrl` 同源守卫因相对 `?start=N` URL 静默阻止导航，导致所有使用 `usePaginator` 的页面（user-media/user-celebrities/doulists/book-collect/music-collect/game-collect/book-authors）分页点击无反应
+
+### 测试
+
+- **分页器解析契约更新**：`parse-douban-paginator.spec.ts`/`parse-douban-paginator-detail.spec.ts`/`douban-extract-families.spec.ts` 期望值从相对 URL 改为绝对 URL，锁定 `a.href` 行为
+
 ## [5.11.3] - 2026-08-10
 
 ### 修复与优化

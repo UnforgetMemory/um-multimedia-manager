@@ -32,14 +32,16 @@ export function parseDoubanPaginator(paginatorEl: Element | null): DoubanPaginat
     Array.from(paginatorEl.children).forEach((child) => {
       const tag = child.tagName
       const cls = (child as HTMLElement).className || ''
+      // Use a.href (browser-resolved) not getAttribute('href'): Douban paginator
+      // anchors are relative (?start=N), which isSafeDoubanUrl would reject.
       if (tag === 'SPAN' && cls.includes('prev')) {
         const a = child.querySelector<HTMLAnchorElement>('a')
-        if (a) prevPageUrl = a.getAttribute('href') ?? a.href
+        if (a) prevPageUrl = a.href
         return
       }
       if (tag === 'SPAN' && cls.includes('next')) {
         const a = child.querySelector<HTMLAnchorElement>('a')
-        if (a) nextPageUrl = a.getAttribute('href') ?? a.href
+        if (a) nextPageUrl = a.href
         return
       }
       if (tag === 'SPAN' && cls.includes('thispage')) {
@@ -48,10 +50,11 @@ export function parseDoubanPaginator(paginatorEl: Element | null): DoubanPaginat
         if (!isNaN(num)) pageLinks.push({ label: text, url: '', current: true })
         return
       }
+      // Use a.href (browser-resolved) — ditto for relative ?start= links
       if (tag === 'A') {
         const a = child as HTMLAnchorElement
         const text = a.textContent?.trim()
-        const href = a.getAttribute('href') ?? a.href
+        const href = a.href
         if (!text || !href) return
         const num = parseInt(text, 10)
         if (!isNaN(num)) pageLinks.push({ label: text, url: href, current: false })
