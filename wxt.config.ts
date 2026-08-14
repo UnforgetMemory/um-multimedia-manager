@@ -83,6 +83,11 @@ export default defineConfig({
     base: '',
     build: {
       target: 'es2022',
+      // Disable Vite's modulepreload tags in popup.html/options.html — Chrome's
+      // preload scanner flags extension-page preloads of non-web-accessible
+      // chunks as "cross-world extension resource mismatch" noise. Extension
+      // pages load chunks locally, so preloading gains nothing.
+      modulePreload: false,
       rolldownOptions: {
         output: {
           assetFileNames: 'assets/[name]-[hash][extname]',
