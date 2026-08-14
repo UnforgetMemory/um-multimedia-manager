@@ -321,7 +321,10 @@ export default defineBackground({
 
           // ==================== Export / Import ====================
           case 'EXPORT_DATA':
-            await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM' })
+            // Full-library scan (getAllStores, 8 stores) routinely exceeds the
+            // 8s default — a mid-scan task kill leaves orphaned IDB
+            // transactions and surfaces a bogus error. 60s matches IMPORT/WEBDAV.
+            await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
           case 'IMPORT_DATA':
             await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', timeout: 60_000 })
@@ -329,12 +332,12 @@ export default defineBackground({
 
           // ==================== Statistics ====================
           case 'GET_STATISTICS':
-            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM' })
+            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
 
           // ==================== Popup Data ====================
           case 'GET_ALL_RECORDS':
-            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM' })
+            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
 
           // ==================== Utility ====================
