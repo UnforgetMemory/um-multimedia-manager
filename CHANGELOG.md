@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.5] - 2026-08-15
+
+### 修复与优化
+
+- **PT 站已看集合超时级联修复**：`getWatchedIds` 改用 `openKeyCursor`（纯主键游标，不再逐条反序列化整条记录），大库下毫秒级返回，消除 `DB_GET_WATCHED_IDS` 8 秒超时级联与 PT 淡化失效
+- **DB_GET_WATCHED_IDS 故障隔离**：多 store 并行拉取，单个 store 失败不再丢弃其他 store 结果；DB API 对瞬时连接错误（SW 唤醒竞态、消息端口关闭）自动短退避重试；watched 查询内容侧预算提至 20 秒
+- **PT Dimmer 初始扫描重试**：失败后 2s/4s 退避重试 3 次，静态页面不再永久失效；SPA 导航中途取消过期重试，避免双观察者泄漏
+- **调度器超时诊断**：超时任务迟到结算的真实错误以 `task:late-settled` 信息性事件上报（不污染监控指标），超时消息附带 store 名
+- **长任务超时修正**：导出/统计/全量拉取由 8 秒默认超时改为 60 秒（对齐导入与 WebDAV），不再中途误杀全库扫描
+- **未捕获拒绝消除**：event-bus 广播与豆瓣照片页下载改为回调式 sendMessage，不再产生 "Could not establish connection" 未捕获错误
+- **构建噪音消除**：禁用扩展页面的 modulepreload 标签，清除控制台 cross-world 预加载警告
+
+### 测试
+
+- 新增 `data-scheduler-timeout.spec`（3 用例：超时消息契约/真实错误上报与指标不双计/迟到成功缓存自愈）与 `database-api-retry.spec`（4 用例：重试成功/耗尽拒绝/语义错误不重试/context 失效不重试）；全量 683 单元测试通过
+
 ## [5.11.4] - 2026-08-10
 
 ### 修复与优化
