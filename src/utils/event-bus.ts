@@ -11,9 +11,22 @@ export interface EventBusMessage {
 /** Broadcast an event to all content scripts */
 export function broadcast(event: EventType, data?: unknown): void {
   try {
-    chrome.runtime.sendMessage({ type: 'EVENT_BUS', event, data })
+    // Callback form, not promise form: with no callback, MV3 sendMessage
+    // returns a promise that REJECTS with "Could not establish connection.
+    // Receiving end does not exist." when no content script is listening —
+    // an uncaught (in promise) error. lastError here is expected (nobody
+    // subscribed), so swallow it explicitly.
+    chrome.runtime.sendMessage({ type: 'EVENT_BUS', event, data }, () => {
+      const lastError = chrome.runtime.lastError
+      // "No receiver" is expected here (fire-and-forget); anything else is a
+      // real messaging failure worth surfacing.
+      const message = lastError?.message ?? ''
+      if (lastError && !message.includes('Could not establish connection')) {
+        console.debug('[EventBus] broadcast failed:', lastError.message)
+      }
+    })
   } catch {
-    // Content scripts may not be listening — fire and forget
+    // Context invalidated — fire and forget
   }
 }
 

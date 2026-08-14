@@ -120,10 +120,19 @@ function openLink(href: string): void {
 
 function downloadPhoto(photo: PhotoItem): void {
   const ext = photo.src.split('.').pop()?.split('?')[0] || 'jpg'
-  chrome.runtime.sendMessage({
-    type: 'DOWNLOAD_FILE',
-    payload: { url: photo.src, filename: `${photo.id}.${ext}` },
-  })
+  // Callback form: promise form would leave an uncaught rejection when the
+  // background receiver is unavailable ("Could not establish connection").
+  chrome.runtime.sendMessage(
+    {
+      type: 'DOWNLOAD_FILE',
+      payload: { url: photo.src, filename: `${photo.id}.${ext}` },
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        console.warn('[UMM] Download message failed:', chrome.runtime.lastError.message)
+      }
+    },
+  )
 }
 
 onMounted(() => {
