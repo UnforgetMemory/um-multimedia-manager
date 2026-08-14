@@ -2,40 +2,80 @@
  * Database API — thin message-passing layer
  *
  * Sends DB_* messages to Background Service Worker which holds the
- * single IndexedDB connection. No retry, no fallback — the Background
- * SW handles all errors and the caller should use safeSendMessage for
- * retry/timeout handling if needed.
+ * single IndexedDB connection. The Background SW handles all errors;
+ * transient connection failures (SW waking up / killed mid-flight, MV3)
+ * are retried here with short backoff, everything else propagates to the
+ * caller.
  */
 
 import type { Provider } from '@/config'
 import type { MessageType, MessagePayloadMap, StoreRecord, AppSettings, PtIdCacheEntry } from '@/types'
+import { sleep } from '@/utils'
 
 /**
- * Send a typed runtime message with timeout.
+ * Connection-level failures worth retrying — all mean "the receiving end
+ * was not there at send time", which is transient in MV3 (service worker
+ * startup race / killed while asleep). Semantic DB errors (success:false
+ * responses) are never retried, and neither is 'Extension context
+ * invalidated' — that condition is permanent for the current context
+ * (extension updated/disabled), so retrying would be futile.
+ */
+const CONNECTION_ERROR_MARKERS = [
+  'Could not establish connection',
+  'Receiving end does not exist',
+  'The message port closed before a response was received',
+]
+
+function isTransientConnectionError(message: string): boolean {
+  return CONNECTION_ERROR_MARKERS.some((marker) => message.includes(marker))
+}
+
+/**
+ * Send a typed runtime message with timeout and transient-error retry.
  * `K` is the message type; `payload` is type-checked against MessagePayloadMap.
- * Thin wrapper — errors propagate to caller.
+ * Retries are only taken for connection-level failures (which fail fast),
+ * so the wall-clock budget stays near `timeout`.
  */
 async function send<K extends MessageType>(
   type: K,
   payload: MessagePayloadMap[K],
   timeout = 8000,
+  retries = 2,
 ): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`[DB API] '${type}' timed out after ${timeout}ms`))
-    }, timeout)
+  let lastError: unknown = null
 
-    chrome.runtime.sendMessage({ type, payload }, (response) => {
-      clearTimeout(timer)
-      if (chrome.runtime.lastError) {
-        reject(new Error(`[DB API] sendMessage failed: ${chrome.runtime.lastError.message}`))
-      } else if (response?.success === false) {
-        reject(new Error(`[DB API] ${response.error || 'Unknown error'}`))
-      } else {
-        resolve(response)
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await new Promise<any>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error(`[DB API] '${type}' timed out after ${timeout}ms`))
+        }, timeout)
+
+        chrome.runtime.sendMessage({ type, payload }, (response) => {
+          clearTimeout(timer)
+          if (chrome.runtime.lastError) {
+            reject(new Error(`[DB API] sendMessage failed: ${chrome.runtime.lastError.message}`))
+          } else if (response?.success === false) {
+            reject(new Error(`[DB API] ${response.error || 'Unknown error'}`))
+          } else {
+            resolve(response)
+          }
+        })
+      })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (!isTransientConnectionError(message)) throw err
+      lastError = err
+      if (attempt < retries) {
+        console.warn(`[DB API] '${type}' connection error (attempt ${attempt + 1}/${retries}), retrying:`, message)
+        await sleep(250 * (attempt + 1))
       }
-    })
-  })
+    }
+  }
+
+  // Defensive: unreachable in practice (every non-retried path throws inside
+  // the loop), but never throw null.
+  throw lastError ?? new Error('[DB API] send failed: no error captured')
 }
 
 // ==================== Core CRUD ====================
@@ -69,9 +109,12 @@ export async function dbGetBulk(
 }
 
 export async function dbGetWatchedIds(
-  storeNames: string[]
+  storeNames: string[],
 ): Promise<Record<string, string[]>> {
-  const res = await send('DB_GET_WATCHED_IDS', { storeNames })
+  // 20s content-side budget: the handler schedules ONE task per store and the
+  // scheduler executes tasks serially (8s each) — an 8s budget would cut the
+  // second store short when the first one stalls.
+  const res = await send('DB_GET_WATCHED_IDS', { storeNames }, 20_000)
   return res?.results || {}
 }
 

@@ -137,17 +137,26 @@ export async function handleDbGetWatchedIds(
 ) {
   const { storeNames } = payload
   const results: Record<string, string[]> = {}
-  for (const storeName of storeNames) {
+  // Parallel per-store fetch with fault isolation: the previous sequential
+  // loop failed the WHOLE message when one store's task timed out (dropping
+  // the other stores' results). Each store now resolves independently — a
+  // failed store is reported via warnLog and skipped, successful stores still
+  // come back, so the PT dimmer keeps working on partial data.
+  await Promise.all(storeNames.map(async (storeName) => {
     if (!isAllowedStore(storeName)) {
       warnLog(`DB_GET_WATCHED_IDS: skipped disallowed store "${storeName}"`)
-      continue
+      return
     }
-    const ids = await ctx.scheduler.schedule(
-      () => ctx.db.getWatchedIds(storeName),
-      { priority: 'HIGH', storeName, cacheKey: `watched:${storeName}`, cacheTTL: 10000 },
-    )
-    results[storeName] = Array.from(ids as Set<string>)
-  }
+    try {
+      const ids = await ctx.scheduler.schedule(
+        () => ctx.db.getWatchedIds(storeName),
+        { priority: 'HIGH', storeName, cacheKey: `watched:${storeName}`, cacheTTL: 10000 },
+      )
+      results[storeName] = Array.from(ids as Set<string>)
+    } catch (err: unknown) {
+      warnLog(`DB_GET_WATCHED_IDS: store "${storeName}" failed:`, err)
+    }
+  }))
   return { success: true, results }
 }
 

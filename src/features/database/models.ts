@@ -438,8 +438,15 @@ export class MediaDatabase {
    * - IndexedDB key ranges are type-sensitive (numeric 2 and string 'done' are
    *   DIFFERENT index keys), so both keys are queried explicitly
    * - isWatchedStatus accepts only numeric 2 and string 'done' as watched, so
-   *   the union of these two index cursors is exactly the watched set — no
-   *   value reads (no structured clone of every record) are needed
+   *   the union of these two index cursors is exactly the watched set
+   *
+   * CRITICAL: this MUST use `openKeyCursor` (plain IDBCursor, index key +
+   * primary key only). `index.openCursor()` returns IDBCursorWithValue and the
+   * browser structured-clones the FULL record value for every visited entry
+   * even when `cursor.value` is never read — a large watched library then
+   * takes seconds and blows the 8s scheduler task budget (DB_GET_WATCHED_IDS
+   * timeout cascade on PT sites). Key cursors never deserialize values, so the
+   * cost is strictly O(watched) with zero per-record clone.
    *
    * NOTE: Only status=2 (watched) is returned — wishlist (status=1) and doing (status=3)
    * records are excluded because they should NOT trigger PT site dimming or UI
@@ -456,16 +463,24 @@ export class MediaDatabase {
       const ids = new Set<string>()
       let count = 0
       let pending = 2
+      // Guard against double settlement (e.g. one cursor errors while the
+      // other finishes, or tx.onerror fires after resolve) — JS ignores the
+      // second call, but the finish() log would mislead.
+      let settled = false
 
       const finish = () => {
         pending--
         if (pending === 0) {
           console.log(`[DB] getWatchedIds(${storeName}): scanned ${count} records, found ${ids.size} watched`)
-          resolve(ids)
+          if (!settled) {
+            settled = true
+            resolve(ids)
+          }
         }
       }
 
-      const walk = (request: IDBRequest<IDBCursorWithValue | null>): void => {
+      // Key-only cursor: `cursor.primaryKey` is the record's primary key.
+      const walk = (request: IDBRequest<IDBCursor | null>): void => {
         request.onsuccess = () => {
           const cursor = request.result
           if (cursor) {
@@ -478,18 +493,24 @@ export class MediaDatabase {
         }
         request.onerror = () => {
           console.error(`[DB] getWatchedIds(${storeName}) status-index cursor failed:`, request.error)
-          reject(request.error)
+          if (!settled) {
+            settled = true
+            reject(request.error)
+          }
         }
       }
 
       // Cursor 1: numeric status 2 (watched). Cursor 2: legacy string 'done'.
       // A record cannot have both statuses, so the union is the exact watched set.
-      walk(index.openCursor(IDBKeyRange.only(2)))
-      walk(index.openCursor(IDBKeyRange.only('done')))
+      walk(index.openKeyCursor(IDBKeyRange.only(2)))
+      walk(index.openKeyCursor(IDBKeyRange.only('done')))
 
       tx.onerror = () => {
         console.error(`[DB] Transaction error on ${storeName}:`, tx.error)
-        reject(tx.error)
+        if (!settled) {
+          settled = true
+          reject(tx.error)
+        }
       }
     })
   }
