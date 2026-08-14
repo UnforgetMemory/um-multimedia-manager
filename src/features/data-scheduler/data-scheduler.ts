@@ -109,6 +109,7 @@ export class DataScheduler {
         createdAt: Date.now(),
         enqueuedAt: Date.now(),
         attempts: 0,
+        storeName: options?.storeName,
         resolve: resolve as (value: unknown) => void,
         reject,
       }
@@ -179,15 +180,26 @@ export class DataScheduler {
     // Per-task timeout — keep the handle so it can be cleared once the race
     // settles; a leaked timer would keep the Service Worker alive.
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    let timedOut = false
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(
-        () => reject(new Error(`Task ${task.id} timed out after ${task.timeout}ms`)),
+        () => {
+          timedOut = true
+          reject(new Error(
+            `Task ${task.id}${task.storeName ? ` (${task.storeName})` : ''} timed out after ${task.timeout}ms`,
+          ))
+        },
         task.timeout,
       )
     })
 
+    // Keep the operation promise — after a timeout it may still settle later
+    // (e.g. a slow IndexedDB scan), and its real outcome must not be masked by
+    // the timeout error. NEVER call task.operation() again (it would re-run).
+    const opPromise = task.operation()
+
     try {
-      const result = await Promise.race([task.operation(), timeoutPromise])
+      const result = await Promise.race([opPromise, timeoutPromise])
       clearTimeout(timeoutHandle)
 
       this.monitor.recordEvent({
@@ -208,6 +220,29 @@ export class DataScheduler {
         timestamp: Date.now(),
       })
       task.reject(error)
+
+      if (timedOut) {
+        // Diagnostics: the timed-out operation keeps running (its IDB
+        // transaction is not cancellable) — when it finally settles, surface
+        // its real outcome so the root cause is visible instead of only
+        // "timed out". A late SUCCESS also means the scheduler cache was
+        // populated, so the next caller hits the cache (self-healing).
+        // Emitted as task:late-settled (informational — NOT counted in
+        // monitor metrics; the timed-out task was already recorded as failed).
+        opPromise.then(
+          () => this.monitor.recordEvent({
+            type: 'task:late-settled',
+            taskId: task.id,
+            timestamp: Date.now(),
+          }),
+          (opErr: unknown) => this.monitor.recordEvent({
+            type: 'task:late-settled',
+            taskId: task.id,
+            error: opErr,
+            timestamp: Date.now(),
+          }),
+        )
+      }
     }
   }
 

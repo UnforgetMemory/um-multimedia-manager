@@ -33,6 +33,8 @@ export interface QueuedTask<T = unknown> extends SchedulerTask<T> {
   attempts: number
   resolve: (value: T) => void
   reject: (reason: unknown) => void
+  /** Store name for diagnostics (included in timeout errors). */
+  storeName?: string
 }
 
 // ==================== Scheduler Options ====================
@@ -105,6 +107,7 @@ export type SchedulerEventType =
   | 'task:failed'
   | 'task:retrying'
   | 'task:timeout'
+  | 'task:late-settled'
   | 'cache:hit'
   | 'cache:miss'
   | 'rate:limited'

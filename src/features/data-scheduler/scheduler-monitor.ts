@@ -55,7 +55,8 @@ export class SchedulerMonitor {
       case 'cache:miss':
         this.totalCacheMisses++
         break
-      // task:retrying and rate:limited are informational-only (not counted)
+      // task:retrying, task:late-settled and rate:limited are informational-only
+      // (not counted — late-settled duplicates a task already counted as failed)
     }
   }
 
