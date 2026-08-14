@@ -3,10 +3,14 @@ import { MTeamHandler } from './mteam'
 import { NexusPHPHandler } from './nexusphp'
 import { clearResolvedAttributes, createDebouncedScheduler } from './refresh'
 import { resetPtBulkMemo } from './cache'
-import { throttle } from '@/utils'
+import { sleep, throttle } from '@/utils'
 import { waitForElement } from '../../../utils/dom'
 import { initEventBus, onEvent } from '@/utils/event-bus'
 import type { HandlerContext, ListPageHandler } from '../types'
+
+/** Initial-process retry budget: attempts at 2s/4s backoff before giving up. */
+const INIT_PROCESS_ATTEMPTS = 3
+const INIT_PROCESS_BACKOFF_MS = 2000
 
 export class PTDimmer {
   private debugTag = '[PT Dimmer Debug]'
@@ -146,10 +150,28 @@ export class PTDimmer {
       idCache: this.idCache,
       cacheTimestamp: this.cacheTimestamp,
     }
-    try {
-      await active.process(ctx)
-    } catch (err: unknown) {
-      console.warn('[PT Dimmer] Initial process failed:', err)
+    // Retry the initial process with backoff: the first DB fetch can fail on a
+    // transient SW/IndexedDB condition (MV3 wake race, scheduler timeout), and
+    // for static pages no MutationObserver event would ever re-trigger it.
+    let lastErr: unknown = null
+    for (let attempt = 1; attempt <= INIT_PROCESS_ATTEMPTS; attempt++) {
+      // A newer runFor (SPA navigation) may have cleaned us up mid-retry —
+      // stop instead of processing the new page state with a stale context.
+      if (this.disposed) return
+      try {
+        await active.process(ctx)
+        lastErr = null
+        break
+      } catch (err: unknown) {
+        lastErr = err
+        if (attempt < INIT_PROCESS_ATTEMPTS) {
+          this.debug(`[PT Dimmer] Initial process attempt ${attempt} failed, retrying in ${INIT_PROCESS_BACKOFF_MS * attempt}ms`)
+          await sleep(INIT_PROCESS_BACKOFF_MS * attempt)
+        }
+      }
+    }
+    if (lastErr) {
+      console.warn('[PT Dimmer] Initial process failed after retries:', lastErr)
     }
 
     if (typeof active.setup === 'function') {
