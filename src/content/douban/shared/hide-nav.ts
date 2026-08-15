@@ -67,6 +67,7 @@ export function hideNavForPage(pageType: PageType): void {
       hideNativeNav({ globalNav: true, musicNav: true })
       break
     case 'personage':
+    case 'personage-creations':
     case 'user-profile':
     case 'doulists':
     case 'doulist-detail':

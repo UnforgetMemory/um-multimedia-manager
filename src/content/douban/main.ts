@@ -35,6 +35,7 @@ import { mountPhotos } from './pages/photos/config'
 import { mountTrailer } from './pages/trailer/config'
 import { mountCelebrities } from './pages/celebrities/config'
 import { mountPersonage } from './pages/personage/config'
+import { mountPersonageCreations } from './pages/personage-creations/config'
 import { mountUserProfile } from './pages/user-profile/config'
 import { mountMovieProfile } from './pages/movie-profile/config'
 import { mountMusicProfile } from './pages/music-profile/config'
@@ -68,6 +69,7 @@ registry.register('photos', mountPhotos)
 registry.register('trailer', mountTrailer)
 registry.register('celebrities', mountCelebrities)
 registry.register('personage', mountPersonage)
+registry.register('personage-creations', mountPersonageCreations)
 registry.register('user-profile', mountUserProfile)
 registry.register('movie-profile', mountMovieProfile)
 registry.register('music-profile', mountMusicProfile)

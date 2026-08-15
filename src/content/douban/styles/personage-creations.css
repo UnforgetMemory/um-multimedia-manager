@@ -1,0 +1,416 @@
+/* ===== UMM Douban Personage Creations Overlay — Shadow DOM styles ===== */
+
+:host {
+  --umm-personage-accent: #f43f5e;
+  --umm-personage-card-border: #e5e7eb;
+  --umm-personage-section-border: #e5e7eb;
+  --umm-rating-score: #e0901a;
+  --umm-creations-bg-hover: #f8f9fa;
+}
+
+:host(.umm-theme--dark) {
+  --umm-personage-accent: #fb7185;
+  --umm-personage-card-border: #3a3b40;
+  --umm-personage-section-border: #3a3b40;
+  --umm-rating-score: #fbbf24;
+  --umm-creations-bg-hover: #2a2b30;
+}
+
+/* ===== Root layout ===== */
+
+.umm-personage-root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--umm-space-md, 16px) clamp(16px, 4vw, 64px) var(--umm-space-lg, 24px);
+}
+
+/* ===== Header ===== */
+
+.umm-creations-header {
+  margin-bottom: var(--umm-space-xl, 24px);
+}
+
+.umm-creations-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--umm-space-sm, 8px);
+  margin-bottom: var(--umm-space-md, 12px);
+}
+
+.umm-creations-title {
+  font-size: var(--umm-font-2xl, 1.5rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  margin: 0;
+}
+
+.umm-creations-count {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Tabs ===== */
+
+.umm-creations-tabs {
+  display: flex;
+  gap: var(--umm-space-sm, 8px);
+  margin-bottom: var(--umm-space-sm, 8px);
+  border-bottom: 1px solid var(--umm-personage-section-border);
+  padding-bottom: var(--umm-space-sm, 8px);
+}
+
+.umm-creations-tab {
+  padding: 6px 14px;
+  border: none;
+  background: none;
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-family: inherit;
+  color: var(--umm-text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.umm-creations-tab:hover {
+  background: var(--umm-creations-bg-hover);
+  color: var(--umm-text-primary);
+}
+
+.umm-creations-tab--active {
+  background: var(--umm-personage-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.umm-creations-tab--active:hover {
+  background: var(--umm-personage-accent);
+  color: #fff;
+}
+
+/* ===== Sort ===== */
+
+.umm-creations-sort {
+  display: flex;
+  gap: var(--umm-space-sm, 8px);
+  margin-bottom: var(--umm-space-sm, 8px);
+}
+
+.umm-creations-sort-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--umm-personage-card-border);
+  background: var(--umm-card-bg, #fff);
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-family: inherit;
+  color: var(--umm-text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.umm-creations-sort-btn:hover {
+  border-color: var(--umm-personage-accent);
+  color: var(--umm-personage-accent);
+}
+
+.umm-creations-sort-btn--active {
+  background: var(--umm-personage-accent);
+  color: #fff;
+  border-color: var(--umm-personage-accent);
+  font-weight: 500;
+}
+
+.umm-creations-sort-btn--active:hover {
+  color: #fff;
+}
+
+/* ===== Role filter bar ===== */
+
+.umm-creations-rolebar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--umm-space-sm, 8px);
+  padding: var(--umm-space-sm, 8px) 0;
+}
+
+.umm-creations-rolebar-label {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+}
+
+.umm-creations-rolebar-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--umm-space-xs, 6px);
+}
+
+.umm-creations-role-chip {
+  padding: 3px 14px;
+  border: 1px solid var(--umm-personage-card-border);
+  border-radius: 20px;
+  background: var(--umm-card-bg, #fff);
+  font-size: var(--umm-font-xs, 0.75rem);
+  font-family: inherit;
+  color: var(--umm-text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  line-height: 1.5;
+}
+
+.umm-creations-role-chip:hover {
+  border-color: var(--umm-personage-accent);
+  color: var(--umm-personage-accent);
+}
+
+.umm-creations-role-chip--active {
+  background: var(--umm-personage-accent);
+  border-color: var(--umm-personage-accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.umm-creations-role-chip--active:hover {
+  color: #fff;
+}
+
+/* ===== Creations list ===== */
+
+.umm-creations-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-sm, 8px);
+}
+
+.umm-creation-card {
+  display: flex;
+  gap: var(--umm-space-md, 12px);
+  padding: var(--umm-space-md, 12px);
+  border: 1px solid var(--umm-personage-card-border);
+  border-radius: var(--umm-card-radius, 10px);
+  background: var(--umm-card-bg, #fff);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.umm-creation-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+:host(.umm-theme--dark) .umm-creation-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Poster ===== */
+
+.umm-creation-poster {
+  width: 80px;
+  min-width: 80px;
+  aspect-ratio: var(--umm-aspect-poster, 2/3);
+  border-radius: var(--umm-card-radius, 6px);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg-secondary, #f0f0f0);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.umm-creation-poster:hover {
+  transform: scale(1.05);
+}
+
+/* ===== Info ===== */
+
+.umm-creation-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs, 4px);
+}
+
+.umm-creation-title-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--umm-space-xs, 4px);
+  margin-bottom: var(--umm-space-xs, 2px);
+}
+
+.umm-creation-title {
+  font-size: var(--umm-font-base, 0.9375rem);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.umm-creation-title:hover {
+  color: var(--umm-link, var(--umm-personage-accent));
+}
+
+.umm-creation-year {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+  white-space: nowrap;
+}
+
+.umm-creation-status {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: #e0901a;
+  background: rgba(224, 144, 26, 0.1);
+  padding: 0 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.umm-creation-role {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+  padding: 0 6px;
+  border-radius: 3px;
+  background: var(--umm-bg-secondary, #f0f0f0);
+  white-space: nowrap;
+}
+
+.umm-creation-meta {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umm-creation-meta-label {
+  color: var(--umm-text-muted);
+  font-weight: 500;
+}
+
+.umm-creation-rating {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-xs, 2px);
+}
+
+.umm-creation-rating-star {
+  color: var(--umm-rating-score);
+  font-weight: 600;
+  font-size: var(--umm-font-base, 0.9375rem);
+}
+
+.umm-creation-rating-label {
+  font-size: var(--umm-font-xs, 0.75rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Record status badge ===== */
+
+.umm-creation-badge {
+  position: absolute;
+  top: var(--umm-space-sm, 8px);
+  right: var(--umm-space-sm, 8px);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: var(--umm-font-xs, 0.6875rem);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.umm-creation-badge--wish {
+  background: rgba(79, 158, 245, 0.15);
+  color: #4f9ef5;
+}
+
+.umm-creation-badge--do {
+  background: rgba(244, 180, 0, 0.15);
+  color: #f4b400;
+}
+
+.umm-creation-badge--collect {
+  background: rgba(72, 199, 142, 0.15);
+  color: #48c78e;
+}
+
+.umm-creation-badge-rating {
+  font-weight: 700;
+}
+
+/* ===== Paginator ===== */
+
+.umm-creations-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--umm-space-md, 12px);
+  margin-top: var(--umm-space-xl, 24px);
+  padding-top: var(--umm-space-md, 12px);
+  border-top: 1px solid var(--umm-personage-section-border);
+}
+
+.umm-paginator-btn {
+  padding: 7px 18px;
+  border: 1px solid var(--umm-personage-card-border);
+  border-radius: 8px;
+  background: var(--umm-card-bg, #fff);
+  color: var(--umm-text-primary);
+  font-size: var(--umm-font-sm, 0.8125rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.umm-paginator-btn:hover {
+  background: var(--umm-bg-secondary, #f8f9fa);
+  border-color: var(--umm-personage-accent);
+  color: var(--umm-personage-accent);
+}
+
+.umm-paginator-info {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Empty state ===== */
+
+.umm-personage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: var(--umm-space-md, 12px);
+}
+
+.umm-empty-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.umm-empty-text {
+  font-size: var(--umm-font-sm, 0.8125rem);
+  color: var(--umm-text-muted);
+}
+
+/* ===== Responsive adjustments ===== */
+
+@media (min-width: 768px) {
+  .umm-creation-poster {
+    width: 100px;
+    min-width: 100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .umm-creation-poster {
+    width: 120px;
+    min-width: 120px;
+  }
+}

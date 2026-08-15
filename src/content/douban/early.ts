@@ -24,6 +24,7 @@ const SUBTITLE: Record<string, string> = {
   'book-profile': '读书主页 · 加载中',
   search: '加载搜索结果...',
   personage: '加载影人资料...',
+  'personage-creations': '加载作品列表...',
   'user-profile': '用户主页 · 加载中',
   'movie-profile': '电影主页 · 加载中',
   'music-profile': '音乐主页 · 加载中',
@@ -59,6 +60,7 @@ function getOverlayConfig(): OverlayOptions | null {
     : pageType.type === 'detail' ? 'umm-detail-mask'
     : pageType.type === 'search' ? 'umm-search-overlay'
     : pageType.type === 'personage' ? 'umm-personage-overlay'
+    : pageType.type === 'personage-creations' ? 'umm-personage-overlay'
     : pageType.type === 'doulist-detail' ? 'umm-douban-overlay'
     : 'umm-douban-overlay'
 

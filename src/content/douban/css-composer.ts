@@ -34,6 +34,7 @@ const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: strin
   'video':            { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['trailer'] },
   'celebrities':      { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['celebrities'] },
   'personage':        { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['personage'] },
+  'personage-creations': { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'paginator'], page: ['personage-creations'] },
   'user-profile':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'empty-state', 'statbar'], page: ['user-profile'] },
   'movie-profile':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'statbar'], page: ['movie-profile'] },
   'music-profile':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'statbar'], page: ['music-profile'] },

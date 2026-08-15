@@ -24,6 +24,7 @@ import photosCss from './styles/photos.css?raw'
 import trailerCss from './styles/trailer.css?raw'
 import celebritiesCss from './styles/celebrities.css?raw'
 import personageCss from './styles/personage.css?raw'
+import personageCreationsCss from './styles/personage-creations.css?raw'
 import userProfileCss from './styles/user-profile.css?raw'
 import movieProfileCss from './styles/movie-profile.css?raw'
 import musicProfileCss from './styles/music-profile.css?raw'
@@ -69,6 +70,7 @@ export {
   trailerCss,
   celebritiesCss,
   personageCss,
+  personageCreationsCss,
   userProfileCss,
   movieProfileCss,
   musicProfileCss,
@@ -119,6 +121,7 @@ export const cssMap: Record<string, string> = {
   trailer: trailerCss,
   celebrities: celebritiesCss,
   personage: personageCss,
+  'personage-creations': personageCreationsCss,
   'user-profile': userProfileCss,
   'movie-profile': movieProfileCss,
   'music-profile': musicProfileCss,
