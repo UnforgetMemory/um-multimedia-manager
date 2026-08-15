@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.12.0] - 2026-08-15
+
+### 新增功能
+
+- **豆瓣影人作品页深度适配**：新增 `personage-creations` 页面类型（`/personage/{id}/creations`），UMM overlay 统一渲染全部作品——卡片式列表（海报/标题/年份/角色/导演/主演/10 分制评分），记录状态徽标（想看/在看/看过），排序切换（时间/标记/评价），类型标签（影视/图书/音乐）与分页导航
+- **角色筛选持久设计**：演员/出镜/配音筛选按钮为固有常量（不依赖原生 `#role_filter` 下拉——该下拉在不同排序/角色变体下渲染不一致甚至缺失），激活状态由 URL `role` 参数驱动，选项 URL 保留当前排序/类型参数
+- **解析鲁棒性**：作品列表用全局 `.creation` 选择器兼容平坦/分组两种布局并去重；标题从 h1 提取、缺失时以 `document.title` 兜底；评分由 `allstar` 星级类换算 10 分制（`allstar35`→7.0），未评分不显示
+
+### 修复与优化
+
+- **豆瓣影人页 URL 判型边界修正**：`isPersonagePage` 收紧为仅匹配 `/personage/{id}`（含可选尾部斜杠），`/personage/{id}/creations` 子页路由至新页面类型，不再误判为普通影人页
+
+### 测试
+
+- 新增 `personage-creations-extract.spec`（15 用例）：5 个 URL 变体（time/vote 排序 × 全部/演员/出镜/配音）+ 原生 `#role_filter` 完全缺失的持久设计回归锚点 + 分组布局 + title 兜底 + 评分换算 + 记录状态徽标映射（1=想看/2=看过/3=在看）+ 非 creations 页面判空；`url-detector.spec` 补 4 个 creations 变体用例；全量 702 单元测试通过
+
 ## [5.11.5] - 2026-08-15
 
 ### 修复与优化
