@@ -22,6 +22,7 @@ export type PageType =
   | { type: 'video' }
   | { type: 'celebrities' }
   | { type: 'personage' }
+  | { type: 'personage-creations' }
   | { type: 'user-profile' }
   | { type: 'movie-profile' }
   | { type: 'music-profile' }
@@ -97,7 +98,11 @@ export function isCelebritiesPage(url: string): boolean {
 }
 
 export function isPersonagePage(url: string): boolean {
-  return /^https?:\/\/www\.douban\.com\/personage\/\d+/.test(url)
+  return /^https?:\/\/www\.douban\.com\/personage\/\d+\/?$/.test(url)
+}
+
+export function isPersonageCreationsPage(url: string): boolean {
+  return /^https?:\/\/www\.douban\.com\/personage\/\d+\/creations/.test(url)
 }
 
 export function isGameDetailPage(url: string): boolean {
@@ -220,6 +225,7 @@ export function detectPageType(url: string = location.href): PageType | null {
     const mediaType = url.includes('search.douban.com/music') ? 'music' : url.includes('search.douban.com/book') ? 'book' : 'movie'
     return { type: 'search', mediaType }
   }
+  if (isPersonageCreationsPage(url))  return { type: 'personage-creations' }
   if (isPersonagePage(url))  return { type: 'personage' }
   if (isDoulistDetailPage(url)) return { type: 'doulist-detail' }
   if (isDoulistsPage(url))   return { type: 'doulists' }

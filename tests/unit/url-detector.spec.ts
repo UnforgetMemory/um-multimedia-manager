@@ -199,6 +199,24 @@ test.describe('detectPageType', () => {
       expect(detectPageType('https://www.douban.com/personage/12345/')).toEqual({ type: 'personage' })
     })
 
+    test('personage without trailing slash', () => {
+      expect(detectPageType('https://www.douban.com/personage/12345')).toEqual({ type: 'personage' })
+    })
+
+    test('personage creations — time sort', () => {
+      expect(detectPageType('https://www.douban.com/personage/27235071/creations?type=filmmaker&role=&sortby=time&format=pic')).toEqual({ type: 'personage-creations' })
+    })
+
+    test('personage creations — vote sort + role=A1', () => {
+      expect(detectPageType('https://www.douban.com/personage/27235071/creations?type=filmmaker&role=A1&sortby=vote&format=pic')).toEqual({ type: 'personage-creations' })
+    })
+
+    test('personage creations — vote sort + role=A2/A3', () => {
+      expect(detectPageType('https://www.douban.com/personage/27235071/creations?sortby=vote&type=filmmaker&role=&format=pic')).toEqual({ type: 'personage-creations' })
+      expect(detectPageType('https://www.douban.com/personage/27235071/creations?type=filmmaker&role=A3&sortby=vote&format=pic')).toEqual({ type: 'personage-creations' })
+      expect(detectPageType('https://www.douban.com/personage/27235071/creations?type=filmmaker&role=A2&sortby=vote&format=pic')).toEqual({ type: 'personage-creations' })
+    })
+
     test('book series', () => {
       expect(detectPageType('https://book.douban.com/series/123')).toEqual({ type: 'series' })
     })
