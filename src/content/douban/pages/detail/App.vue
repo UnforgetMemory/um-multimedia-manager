@@ -9,6 +9,7 @@ import { metaToChips, ratingBarWidth, starClass as starClassFn, openLink, handle
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
 import { syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
 import { extractCrossPlatformLinks } from '@/content/douban/shared/legacy-bridge'
+import { UrlResolverBuilder } from '@/shared/identity'
 import { rating10ToDoubanStars, doubanStarsToRating10, shouldWriteRecord } from '@/content/douban/shared/rating-scale'
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'
@@ -139,10 +140,11 @@ onMounted(() => {
           currentRecord.updatedAt = new Date().toISOString()
           await Store.dbPut('douban_records', key, currentRecord)
 
-          // Create/update cross-platform records for imdb/tmdb, matching
-          // the pattern in onCrossPlatformSave.
+          // Create/update cross-platform records for imdb/tmdb/neodb, matching
+          // the pattern in onCrossPlatformSave. NeoDB was previously skipped
+          // here and left to syncNeoDBOnLoad — now the local record is created
+          // regardless of the autoSyncNeoDB setting (the API push remains gated).
           for (const platform of [...newPlatforms, ...changedPlatforms]) {
-            if (platform === 'neodb') continue
             const fullKey = domLinkedIds[platform]
             if (!fullKey) continue
             const [, pid] = fullKey.split('::')
@@ -151,7 +153,12 @@ onMounted(() => {
             if (!existingTarget || existingTarget.status !== currentRecord.status) {
               const targetUrl = platform === 'imdb'
                 ? `https://www.imdb.com/title/${pid}/`
-                : `https://www.themoviedb.org/movie/${pid}/`
+                : platform === 'tmdb'
+                  ? `https://www.themoviedb.org/movie/${pid}/`
+                  // NeoDB URL via the shared builder — handles music→album
+                  // and show:/season:/episode: TV prefixes (single source of
+                  // truth, matches syncToNeoDB / neodb-push).
+                  : UrlResolverBuilder.buildNeoDBUrl(identity.type, pid)
               await Store.dbPut(targetStore, fullKey, {
                 url: targetUrl,
                 status: currentRecord.status,

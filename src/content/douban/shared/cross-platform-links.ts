@@ -39,6 +39,5 @@ export function extractCrossPlatformLinks(
     }
   }
 
-  console.log('[UMM Douban] Extracted cross-platform links:', links)
   return links
 }
