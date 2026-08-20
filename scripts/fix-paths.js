@@ -1,6 +1,10 @@
 /**
  * Post-build script to fix asset paths in generated HTML files
  * Chrome Extensions require relative paths for assets
+ *
+ * Usage: node scripts/fix-paths.js [--dir <dist-dir>]
+ *   --dir  build output directory (default: dist/chrome-mv3).
+ *          Pass dist-dev/chrome-mv3 for `npm run build:dev` artifacts.
  */
 
 import { readFileSync, writeFileSync } from 'fs'
@@ -10,7 +14,21 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const distDir = join(__dirname, '..', 'dist', 'chrome-mv3')
+/** Resolve --dir <path> / --dir=<path> from argv; default to the production output. Paths are resolved against the project root. */
+function resolveDistDir() {
+  const projectRoot = join(__dirname, '..')
+  const argv = process.argv.slice(2)
+  const flagIdx = argv.indexOf('--dir')
+  const inline = argv.find(a => a.startsWith('--dir='))
+  const raw = flagIdx !== -1 && argv[flagIdx + 1]
+    ? argv[flagIdx + 1]
+    : inline
+      ? inline.slice('--dir='.length)
+      : join('dist', 'chrome-mv3')
+  return join(projectRoot, raw)
+}
+
+const distDir = resolveDistDir()
 const htmlFiles = ['popup.html', 'options.html']
 
 console.log('[PostBuild] Fixing asset paths in HTML files...')

@@ -228,3 +228,10 @@ nohup.out
 # ----- Stale directories from refactors -----
 **/__pycache__/
 *.egg-info/
+
+# ----- Local tool-output artifacts -----
+typecheck.err
+.npm-audit-cache/
+
+# ----- Dev build output (npm run build:dev → dist-dev/chrome-mv3) -----
+dist-dev/

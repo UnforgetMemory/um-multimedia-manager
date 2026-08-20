@@ -1,5 +1,34 @@
 import { defineConfig } from 'wxt'
 import tailwindcss from '@tailwindcss/vite'
+import { devVersionSegment } from './src/utils/dev-version'
+
+/**
+ * Extension version — single source inside this config; kept in sync with
+ * package.json (npm run package:* updates both).
+ */
+const VERSION = '5.12.0'
+
+const PROD_NAME = 'UMManager - 多媒体管理器'
+const DEV_NAME = `${PROD_NAME} (DEV)`
+
+/**
+ * Is this a dev build (npm run build:dev)?
+ * WXT CLI sets UMM_DEV=1 via the package.json script; the env var is checked
+ * here because defineConfig only accepts a static object — manifest alone
+ * can be a function, but the outDir and other top-level fields cannot.
+ */
+const isDevBuild = !!process.env.UMM_DEV
+
+/** Full human-readable dev version, e.g. "5.12.0-dev.20260819.1425". */
+function devVersionName(): string {
+  const now = new Date()
+  const y = now.getFullYear()
+  const mo = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const hh = String(now.getHours()).padStart(2, '0')
+  const mm = String(now.getMinutes()).padStart(2, '0')
+  return `${VERSION}-dev.${y}${mo}${d}.${hh}${mm}`
+}
 
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
@@ -7,9 +36,19 @@ export default defineConfig({
     '@': './src',
   },
   publicDir: 'icons',
-  manifest: {
-    name: 'UMManager - 多媒体管理器',
-    version: '5.12.0',
+  // WXT appends the browser-mv suffix: 'dist' → dist/chrome-mv3,
+  // 'dist-dev' → dist-dev/chrome-mv3.
+  outDir: isDevBuild ? 'dist-dev' : 'dist',
+  manifest: (env) => ({
+    name: isDevBuild || env.command === 'serve' ? DEV_NAME : PROD_NAME,
+    version: isDevBuild ? `${VERSION}.${devVersionSegment(new Date())}` : VERSION,
+    // chrome://extensions displays version_name instead of version when
+    // present — carry the full timestamp there for dev builds only.
+    ...(isDevBuild ? { version_name: devVersionName() } : {}),
+    // Runtime floor: Promise.withResolvers (requestQueue.ts) is Chrome 119+.
+    // Declaring it prevents a broken install on older Chrome instead of
+    // failing at runtime (ADR-009 / optimization-blueprint E3).
+    minimum_chrome_version: '119',
     description: '常见影视音乐平台的观看/收听记录管理工具，支持数据导入、清洗、合并和导出，提供 WebDAV 备份和第三方平台数据抓取功能。',
     permissions: [
       'storage',
@@ -74,9 +113,8 @@ export default defineConfig({
       page: 'options.html',
       open_in_tab: true,
     },
-  },
+  }),
   entrypointsDir: 'entrypoints',
-  outDir: 'dist',
   srcDir: 'src',
   vite: () => ({
     plugins: [tailwindcss()],
