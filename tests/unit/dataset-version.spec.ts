@@ -7,26 +7,6 @@ import {
 } from '@/features/migration/models'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 
-// Node (v26) does not expose the FileReader global, yet jszip 3.10.1 requires
-// it to read Blob inputs (support.blob is true, but the Blob→bytes conversion
-// only happens in the FileReader branch of prepareContent). Shim just enough
-// of FileReader for jszip: readAsArrayBuffer + onload/onerror. Browser runs
-// (real extension) use the native FileReader — this only bridges the unit-test
-// environment.
-if (typeof (globalThis as { FileReader?: unknown }).FileReader === 'undefined') {
-  class FileReaderShim {
-    onload: ((e: { target: { result: ArrayBuffer } }) => void) | null = null
-    onerror: ((e: { error: unknown }) => void) | null = null
-    readAsArrayBuffer(blob: Blob): void {
-      blob.arrayBuffer().then(
-        (result) => this.onload?.({ target: { result } }),
-        (error) => this.onerror?.({ error })
-      )
-    }
-  }
-  ;(globalThis as { FileReader?: unknown }).FileReader = FileReaderShim
-}
-
 /**
  * Dataset (backup ZIP) versioning — T1 contract.
  *

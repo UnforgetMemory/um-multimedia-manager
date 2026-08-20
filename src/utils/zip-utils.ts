@@ -3,17 +3,21 @@
  *
  * ==================== UTF-8 encoding policy ====================
  * All text content (ZIP entry names, JSON data, metadata) is
- * explicitly handled as UTF-8 through JSZip and TextEncoder/Decoder.
- * JSZip defaults to UTF-8 for entry filenames (bit 11 in the ZIP
- * general purpose flag), and content is passed as raw UTF-8 bytes.
+ * explicitly handled as UTF-8 through fflate and TextEncoder/Decoder.
+ * fflate uses UTF-8 for entry filenames and content by default.
  * ==============================================================
  *
  * Each dataset zip contains:
  *   - data.json    → { "movie::id": StoreRecord, ... }
  *   - meta.json    → { key, hash, updatedAt, recordCount, dataVersion }
+ *
+ * Migrated from JSZip to fflate (ADR-016 follow-up / U8):
+ * - fflate is zero-dependency, ~8KB vs jszip's ~100KB + pako polyfills
+ * - flate uses native CompressionStream where available, async non-blocking
+ * - API: zip/unzip return Uint8Array; Blob conversion via Response/Blob
  */
 
-import JSZip from 'jszip'
+import { zip, unzip } from 'fflate'
 import type { StoreRecord, DatasetMeta } from '../types'
 import { calculateStoreHash } from './hash-utils'
 import { CURRENT_DATASET_VERSION, validateDatasetVersion } from '@/features/migration/models'
@@ -57,12 +61,22 @@ export async function packageDataset(
   const dataJson = JSON.stringify(dataObj, null, 2)
   const metaJson = JSON.stringify(meta, null, 2)
 
-  const zip = new JSZip()
-  zip.file('data.json', dataJson)
-  zip.file('meta.json', metaJson)
+  // fflate expects Uint8Array values; encode strings as UTF-8
+  const encoder = new TextEncoder()
+  const files: Record<string, Uint8Array> = {
+    'data.json': encoder.encode(dataJson),
+    'meta.json': encoder.encode(metaJson),
+  }
 
-  // JSZip defaults to UTF-8 filenames + content (bit 11 set in ZIP header)
-  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+  // fflate zip is async and non-blocking (uses CompressionStream if available)
+  const zipped: Uint8Array = await new Promise((resolve: (value: Uint8Array) => void, reject: (reason: unknown) => void) => {
+    zip(files, { level: 6 }, (err: Error | null, data: Uint8Array) => {
+      if (err) reject(err)
+      else resolve(data)
+    })
+  })
+
+  const blob = new Blob([zipped.slice()], { type: 'application/zip' })
   return { blob, meta }
 }
 
@@ -81,18 +95,29 @@ export async function unpackageDataset(
     throw new Error(`Invalid dataset ZIP: size ${blob.size} exceeds ${MAX_DATASET_BYTES} bytes limit`)
   }
 
-  const zip = await JSZip.loadAsync(blob)
+  // Blob → Uint8Array for fflate unzip
+  const arrayBuffer = await blob.arrayBuffer()
+  const zipped = new Uint8Array(arrayBuffer)
 
-  const dataFile = zip.file('data.json')
-  const metaFile = zip.file('meta.json')
+  // fflate unzip is async and non-blocking (uses DecompressionStream if available)
+  const unzipped: Record<string, Uint8Array> = await new Promise((resolve: (value: Record<string, Uint8Array>) => void, reject: (reason: unknown) => void) => {
+    unzip(zipped, (err: Error | null, data: Record<string, Uint8Array>) => {
+      if (err) reject(err)
+      else resolve(data)
+    })
+  })
+
+  const dataFile = unzipped['data.json']
+  const metaFile = unzipped['meta.json']
 
   if (!dataFile || !metaFile) {
     throw new Error('Invalid dataset ZIP: missing data.json or meta.json')
   }
 
-  // Read as string (UTF-8) then parse JSON
-  const dataStr = await dataFile.async('string')
-  const metaStr = await metaFile.async('string')
+  // Decode Uint8Array as UTF-8 string then parse JSON
+  const decoder = new TextDecoder()
+  const dataStr = decoder.decode(dataFile)
+  const metaStr = decoder.decode(metaFile)
 
   const data: Record<string, StoreRecord> = JSON.parse(dataStr)
   const meta: DatasetMeta = JSON.parse(metaStr)
