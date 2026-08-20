@@ -33,6 +33,7 @@ export default {
   'common.unlistened': '未听',
   'common.importData': '导入数据',
   'common.exportData': '导出数据',
+  'common.includeWebdavCredentials': '包含 WebDAV 凭证',
   'common.startImport': '开始导入',
   'common.fileName': '文件名',
   'common.overrideWarning': '相同 ID 的记录将被覆盖',
@@ -208,4 +209,6 @@ export default {
   // Confirm dialog
   'confirm.importData': '导入数据',
   'confirm.importRecords': '即将导入 {count} 条记录',
+  'confirm.exportWithCredentials': '导出包含 WebDAV 凭证',
+  'confirm.exportWithCredentialsDesc': '导出文件将以明文包含 WebDAV URL、用户名和密码。请妥善保管此文件，避免泄露。',
 } as const

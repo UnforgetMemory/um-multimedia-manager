@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Download, Upload } from 'lucide-vue-next'
 import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
+import { Switch } from '@/shared/ui/switch'
 import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
 import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
 import LoadingButton from '@/shared/ui/loading-button/LoadingButton.vue'
@@ -14,18 +15,47 @@ const toast = useToast()
 const { show } = useConfirmStore()
 const isExporting = ref(false)
 const isImporting = ref(false)
+// ADR-016 decision 3: opt-in switch for including WebDAV credentials in the
+// local export. Defaults to off — credentials are only exported when the user
+// explicitly acknowledges the plaintext-password warning. Import still rejects
+// these keys (IMPORT_SETTINGS_KEYS), so the security gate is one-directional.
+const includeWebdavCredentials = ref(false)
 
-async function exportData() {
+async function performExport() {
   isExporting.value = true
   try {
-    const response = await safeSendMessage({ type: 'EXPORT_DATA' }, { timeout: 30000 })
+    const response = await safeSendMessage<{ success: boolean; error?: string; data?: unknown }>(
+      { type: 'EXPORT_DATA', payload: { includeWebDAVCredentials: includeWebdavCredentials.value } },
+      { timeout: 30000 }
+    )
     if (!response?.success) throw new Error(response?.error || t('toast.exportFailed'))
-    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
+    const data = response.data as Record<string, unknown> | undefined
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
     toast.success(t('toast.exportSuccess'))
   } catch (e: unknown) { toast.error(t('toast.exportFailed'), String(e)) } finally { isExporting.value = false }
+}
+
+async function exportData() {
+  // ADR-016 decision 3: when the user opts to include WebDAV credentials,
+  // surface a confirm dialog warning that the file will contain the password
+  // in plaintext. Only proceed after explicit confirmation.
+  if (!includeWebdavCredentials.value) {
+    await performExport()
+    return
+  }
+  show({
+    title: t('confirm.exportWithCredentials'),
+    description: t('confirm.exportWithCredentialsDesc'),
+    warning: t('confirm.exportWithCredentialsDesc'),
+    icon: Download,
+    confirmText: t('common.exportData'),
+    action: async () => {
+      await performExport()
+    },
+  })
 }
 
 function triggerImport() {
@@ -111,6 +141,12 @@ function triggerImport() {
         :disabled="isExporting || isImporting"
         @click="triggerImport"
       />
+    </div>
+    <div class="umm:flex umm:items-center umm:justify-between umm:mt-3 umm:gap-3">
+      <label class="umm:text-sm umm:text-muted-foreground umm:cursor-pointer" for="umm-include-webdav-creds">
+        {{ t('common.includeWebdavCredentials') }}
+      </label>
+      <Switch id="umm-include-webdav-creds" v-model="includeWebdavCredentials" />
     </div>
   </SectionContainer>
 </template>

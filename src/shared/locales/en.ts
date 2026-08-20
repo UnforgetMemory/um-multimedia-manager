@@ -33,6 +33,7 @@ export default {
   'common.unlistened': 'Unlistened',
   'common.importData': 'Import Data',
   'common.exportData': 'Export Data',
+  'common.includeWebdavCredentials': 'Include WebDAV credentials',
   'common.startImport': 'Start Import',
   'common.fileName': 'File name',
   'common.overrideWarning': 'Records with the same ID will be overwritten',
@@ -208,4 +209,6 @@ export default {
   // Confirm dialog
   'confirm.importData': 'Import Data',
   'confirm.importRecords': 'About to import {count} records',
+  'confirm.exportWithCredentials': 'Export with WebDAV credentials',
+  'confirm.exportWithCredentialsDesc': 'The export file will contain the WebDAV URL, username, and password in plaintext. Keep this file safe to avoid leakage.',
 } as const

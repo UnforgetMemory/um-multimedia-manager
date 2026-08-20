@@ -45,7 +45,7 @@ export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
  * rewrite the WebDAV target to an attacker-controlled server; the next sync
  * would then push the user's full library + real WebDAV password there.
  */
-const IMPORT_SETTINGS_KEYS: ReadonlySet<string> = new Set(EXPORT_SETTINGS_KEYS)
+export const IMPORT_SETTINGS_KEYS: ReadonlySet<string> = new Set(EXPORT_SETTINGS_KEYS)
 
 /** Map store names to platform identifiers for stats/records aggregation */
 const storePlatformMap: Record<string, string> = {
@@ -74,14 +74,28 @@ export async function handleUpdateSettings(
   sendResponse({ success: true, settings })
 }
 
-/** EXPORT_DATA — dump all stores + settings (excludes WebDAV credentials) */
-export async function handleExportData(sendResponse: SendResponse) {
+/** EXPORT_DATA — dump all stores + settings (excludes WebDAV credentials unless requested) */
+export async function handleExportData(
+  payload: { includeWebDAVCredentials?: boolean } | undefined,
+  sendResponse: SendResponse
+) {
   const stores = await mediaDB.getAllStores()
   const appSettings = settingsCache.get()
   const settings: Record<string, unknown> = {}
   for (const key of EXPORT_SETTINGS_KEYS) {
     const value = appSettings[key]
     if (value !== undefined) settings[key] = value
+  }
+
+  // ADR-016 decision 3: optionally include WebDAV credentials when the caller
+  // explicitly opts in. This is a user-initiated export (own data → own file),
+  // so plaintext credentials are acceptable when the user acknowledges the
+  // warning. Import still rejects these keys (IMPORT_SETTINGS_KEYS), keeping
+  // the security gate one-directional: exportable but not importable.
+  if (payload?.includeWebDAVCredentials) {
+    settings.webdavUrl = appSettings.webdavUrl
+    settings.webdavUsername = appSettings.webdavUsername
+    settings.webdavPassword = appSettings.webdavPassword
   }
 
   const data: ExportData = {

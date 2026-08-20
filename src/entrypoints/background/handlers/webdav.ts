@@ -5,7 +5,7 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord } from '@/types'
+import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord, AppSettings } from '@/types'
 import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
 import { normalizeStoreRecord } from '@/features/migration/models'
 import * as WebDAV from '@/features/webdav/api'
@@ -14,6 +14,8 @@ import { calculateStoreHash } from '@/utils/hash-utils'
 import { errorLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
+import { EXPORT_SETTINGS_KEYS, IMPORT_SETTINGS_KEYS } from './data'
+import { settingsCache } from '@/features/settings/cache'
 import { STORAGE_KEYS } from '@/config'
 import { errorMessage, type SendResponse } from '@/utils/error-message'
 
@@ -29,6 +31,47 @@ async function getWebDAVSettings() {
     webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
     webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
   }
+}
+
+/**
+ * ADR-016: settings are backed up as a virtual `__settings__` dataset inside
+ * `RemoteMeta.datasets` (scheme A — no RemoteMeta version bump). Settings are
+ * scalar key/value pairs, not StoreRecord rows, so they travel as a JSON blob
+ * rather than a packaged ZIP.
+ */
+export const SETTINGS_DATASET_KEY = '__settings__'
+
+/**
+ * Collect the non-sensitive settings (ADR-016 decision 1: reuses
+ * EXPORT_SETTINGS_KEYS, 12 items including neodbToken, excludes WebDAV
+ * credentials) into a plain JSON object.
+ */
+export function collectBackupSettings(): Record<string, unknown> {
+  const appSettings = settingsCache.get()
+  const settingsPayload: Record<string, unknown> = {}
+  for (const key of EXPORT_SETTINGS_KEYS) {
+    const value = appSettings[key]
+    if (value !== undefined) settingsPayload[key] = value
+  }
+  return settingsPayload
+}
+
+/**
+ * SHA-256 hash of the settings JSON (stable UTF-8 → SHA-256). Settings are
+ * scalar values, not StoreRecord rows, so calculateStoreHash (which dereferences
+ * record.status/rating/linkedIds/url) does not apply; a direct content hash is
+ * the type-safe equivalent of the ADR-016 example that used `as any` to fake a
+ * StoreRecord (banned by project convention).
+ */
+export async function calculateSettingsHash(settings: Record<string, unknown>): Promise<string> {
+  const keys = Object.keys(settings).toSorted((a, b) => a.localeCompare(b))
+  const sorted: Record<string, unknown> = {}
+  for (const k of keys) sorted[k] = settings[k]
+  const encoder = new TextEncoder()
+  const data = encoder.encode(JSON.stringify(sorted))
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 /*
@@ -89,6 +132,18 @@ async function buildLocalMeta(): Promise<RemoteMeta> {
       dataVersion: 1,
     })
   }
+  // ADR-016: include __settings__ virtual dataset meta so sync sees it locally.
+  // Settings themselves are only restored via upload/download (sync skips them),
+  // but the meta entry keeps the local/remote dataset sets symmetric.
+  const localSettings = collectBackupSettings()
+  const settingsHash = await calculateSettingsHash(localSettings)
+  datasets.push({
+    key: SETTINGS_DATASET_KEY,
+    hash: settingsHash,
+    updatedAt: new Date().toISOString(),
+    recordCount: Object.keys(localSettings).length,
+    dataVersion: 1,
+  })
   return {
     schema: 'umm-meta',
     version: 1,
@@ -169,6 +224,23 @@ export async function handleWebDAVUpload(sendResponse: SendResponse) {
       totalUploaded += entries.length
     }
 
+    // ADR-016 decision 1: upload non-sensitive settings (12 keys, excludes
+    // WebDAV credentials) as a virtual __settings__ dataset. Settings are
+    // scalar values, not StoreRecord rows, so they travel as a plain JSON blob
+    // (application/json) instead of a packaged ZIP. This is the single source
+    // of truth for the upload side; buildLocalMeta mirrors the meta entry.
+    const settingsPayload = collectBackupSettings()
+    const settingsBlob = new Blob([JSON.stringify(settingsPayload, null, 2)], { type: 'application/json' })
+    await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, SETTINGS_DATASET_KEY, settingsBlob)
+    const settingsHash = await calculateSettingsHash(settingsPayload)
+    datasetMetas.push({
+      key: SETTINGS_DATASET_KEY,
+      hash: settingsHash,
+      updatedAt: new Date().toISOString(),
+      recordCount: Object.keys(settingsPayload).length,
+      dataVersion: 1,
+    })
+
     const remoteMeta: RemoteMeta = {
       schema: 'umm-meta',
       version: 1,
@@ -209,6 +281,44 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
     const writtenStores = new Set<string>()
     const writtenKeys = new Map<string, string[]>()
     for (const ds of remoteMeta.datasets) {
+      // ADR-016 decision 4/5: the __settings__ virtual dataset carries scalar
+      // settings (not StoreRecord rows) as a JSON blob. Route it to a dedicated
+      // restore path BEFORE the BACKUP_STORES allowlist check — __settings__ is
+      // not an IndexedDB store name, so the allowlist would otherwise reject it.
+      // The restore reuses IMPORT_SETTINGS_KEYS (data.ts) so a malicious WebDAV
+      // server cannot inject credential keys (webdavUrl/Username/Password) —
+      // the security model mirrors handleImportData exactly.
+      if (ds.key === SETTINGS_DATASET_KEY) {
+        if (ds.recordCount === 0) continue
+        try {
+          const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, SETTINGS_DATASET_KEY)
+          const text = await blob.text()
+          let rawSettings: Record<string, unknown>
+          try {
+            rawSettings = JSON.parse(text) as Record<string, unknown>
+          } catch (parseErr: unknown) {
+            errorLog(`WebDAV download: ${SETTINGS_DATASET_KEY} dataset is not valid JSON, skipping: ${errorMessage(parseErr)}`)
+            continue
+          }
+          // Reuse IMPORT_SETTINGS_KEYS whitelist (mirrors EXPORT_SETTINGS_KEYS,
+          // excludes WebDAV credentials) — same security model as handleImportData.
+          // Iterate EXPORT_SETTINGS_KEYS for keyof-AppSettings typing; the .has()
+          // check keeps the runtime gate on IMPORT_SETTINGS_KEYS so a future
+          // divergence (if IMPORT_SETTINGS_KEYS is ever narrowed) is honored.
+          const filtered: Record<string, unknown> = {}
+          for (const key of EXPORT_SETTINGS_KEYS) {
+            if (IMPORT_SETTINGS_KEYS.has(key) && key in rawSettings) {
+              filtered[key] = rawSettings[key]
+            }
+          }
+          if (Object.keys(filtered).length > 0) {
+            await settingsCache.updateAll(filtered as Partial<AppSettings>)
+          }
+        } catch (dsErr: unknown) {
+          errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
+        }
+        continue
+      }
       if (ds.recordCount === 0) continue
       // Security: only accept datasets whose store name is a known backup store
       // (record stores + jav_ids). remoteMeta comes from an external WebDAV server
@@ -288,6 +398,23 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
     for (const key of allKeys) {
       const local = localMap.get(key)
       const remote = remoteMap.get(key)
+
+      // ADR-016 decision 5: settings do not participate in the bidirectional
+      // merge. Settings are scalar values with no primary-key merge semantics,
+      // and changes are infrequent (typically one device). Preserve the local
+      // meta (buildLocalMeta always emits it) and skip upload/download — users
+      // who want settings synced use the explicit upload/download actions.
+      if (key === SETTINGS_DATASET_KEY) {
+        resultingMetas.push(local || remote || {
+          key,
+          hash: 'empty',
+          updatedAt: new Date().toISOString(),
+          recordCount: 0,
+          dataVersion: 1,
+        })
+        skipped++
+        continue
+      }
 
       // Security: mirror the download-path guard — only sync known backup stores
       // (record stores + jav_ids). remoteMeta.datasets[].key is attacker-influenceable

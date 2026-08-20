@@ -153,7 +153,7 @@ export interface MessagePayloadMap {
   PT_ID_CACHE_GET_BULK: { ptUrls: string[] }
   GET_SETTINGS: void
   UPDATE_SETTINGS: Partial<AppSettings>
-  EXPORT_DATA: void
+  EXPORT_DATA: { includeWebDAVCredentials?: boolean } | undefined
   IMPORT_DATA: ExportData
   GET_ALL_RECORDS: void
   GET_STATISTICS: void

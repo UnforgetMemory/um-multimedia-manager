@@ -33,6 +33,7 @@ export default {
   'common.unlistened': '未聽',
   'common.importData': '導入資料',
   'common.exportData': '匯出資料',
+  'common.includeWebdavCredentials': '包含 WebDAV 憑證',
   'common.importing': '導入中...',
   'common.exporting': '匯出中...',
   'common.saving': '儲存中...',
@@ -208,4 +209,6 @@ export default {
   // Confirm dialog
   'confirm.importData': '導入資料',
   'confirm.importRecords': '即將導入 {count} 條記錄',
+  'confirm.exportWithCredentials': '匯出包含 WebDAV 憑證',
+  'confirm.exportWithCredentialsDesc': '匯出檔案將以明文包含 WebDAV URL、使用者名稱和密碼。請妥善保管此檔案，避免洩露。',
 } as const
