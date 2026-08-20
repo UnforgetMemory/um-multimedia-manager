@@ -46,7 +46,7 @@
    for 循环不会，直接替换是行为变更，必须 clamp）。
 3. **16 个 config.ts retry 循环 → 共享 `withRetry()`**（`src/content/douban/shared/retry.ts`，
    保留 `baseDelay * (i+1)` 缩放与 truthy 校验语义）。
-4. **`toSorted()` ×1**（scheduler-monitor；hash-utils 已随波次 1 删除）、**`??=` ×5**（data.ts）、
+4. **`toSorted()` ×2**（hash-utils + scheduler-monitor，见 blueprint E3）、**`??=` ×5**（data.ts）、
    **`== null` ×1**（search/App.vue）、**`dateKey()` 共享 ×5**（OverviewTab + HeatmapCalendar）。
 
 ### 波次 4 — 性能

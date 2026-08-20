@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 新增功能
+
+- **WebDAV 备份纳入设置项（ADR-016）**：`__settings__` 虚拟 dataset 随备份上传（12 项非敏感设置：11 项偏好 + neodbToken），下载/恢复时经 `IMPORT_SETTINGS_KEYS` 白名单过滤（排除 WebDAV 凭证，防恶意服务器注入），换机后设置不再丢失；sync 路径保守跳过 settings（无主键不做双向合并）；向后兼容（旧客户端读新 meta 自动跳过，新客户端读旧 meta 不恢复 settings）
+- **本地导出可选包含 WebDAV 凭证（ADR-016）**：`EXPORT_DATA` 支持 `{ includeWebDAVCredentials }` payload，选项页导出按钮旁新增开关（默认关），勾选时明文密码警告确认对话框；导入侧仍拒绝凭证键（安全门禁单向：可导出不可导入）
+- **chrome.storage.session L1.5 三层缓存（ADR-014）**：新增 `features/cache/session-cache.ts`——SW wake 后 settings 快照（~400B）与 watched ids 集合（~280KB）从 session 秒恢复，跳过 `storage.local.get(null)` 全量扫描与 IndexedDB status 索引扫描；写入时同步失效 session；旧版 Chrome（无 session API）优雅降级为 no-op
+- **Dev 编译模式（`npm run build:dev`）**：与生产 build 并存——扩展显示名自动追加 `(DEV)` 标记、version 自动附加时间戳第 4 段（`5.12.0.HHMM`，同一天内自动递增）、`version_name` 字段携带完整时间戳（`5.12.0-dev.YYYYMMDD.HHMM`）；产物输出到独立目录 `dist-dev/chrome-mv3-dev`，不干扰生产 build；`npm run dev` serve 模式也带 `(DEV)` 标记
+
+### 修复与优化
+
+- **detail 页跨平台同步链批量化（ADR-015）**：`onCrossPlatformSave` 单次保存 dbGet 消息往返 8→4（3 路并行替代串行），douban key 写入 2→1（写合并），移除末尾 reload；`syncToNeoDB` 改为接收 `NeoDBSyncCtx`（调用方预读记录传入），函数内部 dbGet 3→0；所有更新改为不可变对象构造（值对象范式）
+- **detail 页已看记录跨平台 ID 关联修复**：`syncNeoDBOnLoad` 分离本地 `neodb_records` 记录创建与 NeoDB API 推送——禁用 `autoSyncNeoDB` 时本地记录仍正确创建/更新（仅 API 推送受门控）；App.vue linkedIds reconciliation 移除 `if (platform === 'neodb') continue` 跳过，新发现的 NeoDB 链接自动创建本地记录（URL 经 `UrlResolverBuilder.buildNeoDBUrl()` 构造，处理 music→album 与 TV 前缀）；`syncNeoDBOnLoad` 的本地记录恢复路径（已有 NeoDB ID 但缺本地记录时）也能触发 NeoDB 按钮注入
+- **detail 页轮询改事件驱动（ADR-015）**：移除 3s `intervalWhenVisible(loadRecord)` 轮询，改订阅 `EVENT_BUS record:updated`（含 `key: '*'` bulk 事件，导入/WebDAV 恢复后页面自动刷新）；空闲时零消息往返
+- **jszip → fflate 迁移**：`zip-utils.ts` 压缩库替换（fflate 零依赖 ~8KB vs jszip ~100KB + pako polyfill 链，移除 14 个传递依赖），异步非阻塞（原生 CompressionStream），压缩炸弹防御（50MiB/10 万条上限）保持不变
+- **dompurify range 提升**：`^3.4.12` → `^3.4.13`（修复 3.4.4 引入的 selectedcontent XSS 绕过，npm audit 盲区，防 lockfile 回退）
+- **9 项 patch/minor 依赖 range 提升**：pinia 4.0.3 / reka-ui 2.10.3 / vue 3.5.41 / vue-tsc 3.3.10 / vite 8.2.1 / wxt 0.21.4 / tsx 4.23.12 / @types/chrome 0.2.6 / @types/node 26.2.0；@types/jsdom 28→30（major 对齐 jsdom 30）
+- **youtube/bilibili 内容脚本 timer 清理**：SPA 轮询 `setInterval` 配对 `pagehide`（`{ once: true }`）清理，消除 bfcache 孤儿 timer（与 useHomepageObserver/mteam/video-progress-tracker 清理纪律对齐）
+- **bangumi handler catch 收窄**：最后一处 untyped catch 改为 `catch (error: unknown)`（全仓库 untyped catch 归零）
+
+### 测试
+
+- 新增 `cross-platform-save-bulk.spec`（4 用例）：ADR-015 行为锁定——单读单写契约、链接未变零多余往返、`#info` 新链接并行读+跨平台写、GET_SETTINGS 门控恰 1 次
+- 新增 `session-cache.spec` / `settings-session-snapshot.spec`（session 层 round-trip / 前缀删除 / 降级 / 异常吞噬）
+- 新增 `zip-utils-boundaries.spec`（空数据集 / 超 50MiB 拒绝 / 非 ZIP 拒绝 / 缺 data.json / 超记录数 / UTF-8 中文 emoji 保真 / 大记录）
+- 新增 `webdav-settings-backup.spec`（collectBackupSettings 白名单排除凭证 / 12 键完整 / hash 确定性）
+
+### 文档
+
+- 新增 5 份 ADR：ADR-012（chrome.offscreen 评估：部分推荐）、ADR-013（chrome.sidePanel 评估：共存模式部分推荐）、ADR-014（storage.session 三层缓存）、ADR-015（detail 页 dbGet 批量化）、ADR-016（备份+WebDAV settings 脱节修复）——均 Proposed 状态待评审
+- AGENTS.md 同步：版本号 5.12.0、Douban 页面数 32、平台列表补 Bangumi
+
 ## [5.12.0] - 2026-08-15
 
 ### 新增功能

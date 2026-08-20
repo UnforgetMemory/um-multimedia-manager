@@ -2,7 +2,7 @@
 
 ## 项目
 
-**UMM（Unified Multimedia Manager）** — Chrome 扩展（Manifest V3），统一管理豆瓣/IMDb/NeoDB/TMDB/PT 站的观影收听记录，支持跨平台同步、PT 种子淡化、WebDAV 备份。Vue 3 + TypeScript + WXT + Tailwind CSS v4 + reka-ui。当前版本 5.5.0。
+**UMM（Unified Multimedia Manager）** — Chrome 扩展（Manifest V3），统一管理豆瓣/IMDb/NeoDB/TMDB/Bangumi/PT 站的观影收听记录，支持跨平台同步、PT 种子淡化、WebDAV 备份。Vue 3 + TypeScript + WXT + Tailwind CSS v4 + reka-ui。当前版本 5.12.0。
 
 ## 快速命令
 
@@ -34,7 +34,7 @@ npm run zip             # 构建 + 打包 Chrome 商店包
 ### 两套内容注入系统
 
 1. **legacy**（`content.ts` → `content/router.ts` → `handlers/`）：服务所有非 Douban 站点。Douban 域名已在 content.ts 的 `excludeMatches` 排除。
-2. **新 Douban**（`douban-early/douban-main` → `src/content/douban/`）：31 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `content/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
+2. **新 Douban**（`douban-early/douban-main` → `src/content/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `content/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
 
 ### 领域层（domain/，纯 TS 无框架依赖）
 
@@ -87,7 +87,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 ```
 src/
 ├── entrypoints/          # WXT 入口（见上表）
-├── content/douban/       # 新 Douban overlay（31 页面 + shared/ + styles/）
+├── content/douban/       # 新 Douban overlay（32 页面 + shared/ + styles/）
 ├── domain/               # DDD 领域层（record/identity/platform）
 ├── features/             # database / data-scheduler / cache / webdav / neodb /
 │                         # adult-av / migration / settings / optimistic-lock(仅类型)
