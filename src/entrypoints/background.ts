@@ -324,7 +324,7 @@ export default defineBackground({
             // Full-library scan (getAllStores, 8 stores) routinely exceeds the
             // 8s default — a mid-scan task kill leaves orphaned IDB
             // transactions and surfaces a bogus error. 60s matches IMPORT/WEBDAV.
-            await dataScheduler.schedule(() => handleExportData(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleExportData(message.payload, sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
             break
           case 'IMPORT_DATA':
             await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', timeout: 60_000 })

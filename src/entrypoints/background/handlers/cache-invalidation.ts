@@ -8,11 +8,13 @@
  * flow through this module instead — identical key semantics to DB_PUT /
  * DB_DELETE / DB_SYNC_PAGE_RECORD.
  *
- * Pure module: imports only the CacheManager type — no db.ts/background.ts
- * imports, so there are no import cycles.
+ * Pure module: imports only the CacheManager type and the session-cache
+ * helper (which itself imports nothing from db.ts/background.ts), so there
+ * are no import cycles.
  */
 
 import type { CacheManager } from '@/features/cache/cache-manager'
+import * as sessionCache from '@/features/cache/session-cache'
 
 let registeredCacheManager: CacheManager | null = null
 
@@ -37,6 +39,13 @@ export function getCacheManager(): CacheManager | null {
  *
  * LruCache operations are synchronous internally, so entries are removed
  * before this returns even though CacheManager.invalidate is async.
+ *
+ * L1.5 (ADR-014): the session-layer `watched:{storeName}` entry is also
+ * dropped here. chrome.storage.session.remove is async, so this is a
+ * fire-and-forget invalidation — the L1 cache is already gone synchronously
+ * and the session area's write-through on the next watched-ids read will
+ * repopulate it. Browser restart (which clears chrome.storage.session) is the
+ * backstop for any rare lost remove — the session layer carries no TTL.
  */
 export function invalidateSchedulerStore(cm: CacheManager, storeName: string, keys?: string[]): void {
   if (keys && keys.length > 0) {
@@ -50,4 +59,7 @@ export function invalidateSchedulerStore(cm: CacheManager, storeName: string, ke
   cm.invalidate('scheduler', `count:${storeName}`)
   cm.invalidate('scheduler', `watched:${storeName}`)
   cm.invalidateByPattern('scheduler', `bulk:${storeName}:`)
+  // L1.5: drop the session-layer watched-ids entry so a post-write SW wake
+  // doesn't read stale ids. Fire-and-forget; browser restart is the backstop.
+  void sessionCache.remove(sessionCache.SESSION_CACHE_KEYS.watched(storeName))
 }

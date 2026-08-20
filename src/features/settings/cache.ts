@@ -1,5 +1,6 @@
 import type { AppSettings, LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
+import * as sessionCache from '@/features/cache/session-cache'
 
 class SettingsCache {
   private cache: AppSettings | null = null
@@ -9,6 +10,18 @@ class SettingsCache {
     if (this.cache) return
     if (this.initPromise) return this.initPromise
     this.initPromise = (async () => {
+      // L1.5: try the session snapshot first (ADR-014). On a SW wake the
+      // session area still holds the last-resolved AppSettings, so we skip
+      // the chrome.storage.local.get(null) full scan (~15 keys). A miss or
+      // an unavailable session area falls through to the local-scan path,
+      // which then writes the resolved snapshot back for the next wake.
+      const snapshot = await sessionCache.get<AppSettings>(
+        sessionCache.SESSION_CACHE_KEYS.SETTINGS_SNAPSHOT,
+      )
+      if (snapshot) {
+        this.cache = snapshot
+        return
+      }
       const raw = await chrome.storage.local.get(null)
       this.cache = {
         webdavUrl: (raw[STORAGE_KEYS.WEBDAV_URL] as string) ?? '',
@@ -27,6 +40,11 @@ class SettingsCache {
         debugEnabled: (raw[STORAGE_KEYS.DEBUG_ENABLED] as boolean) ?? false,
         logLevel: (raw[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
       }
+      // Persist the resolved snapshot so the next SW wake hits session first.
+      await sessionCache.set(
+        sessionCache.SESSION_CACHE_KEYS.SETTINGS_SNAPSHOT,
+        this.cache,
+      )
     })()
     return this.initPromise
   }
@@ -43,14 +61,22 @@ class SettingsCache {
     if (!this.cache) await this.init()
     Object.assign(this.cache!, settings)
     await chrome.storage.local.set(settings as Record<string, unknown>)
+    // L1.5: keep the session snapshot in sync (ADR-014). write-after-write so
+    // a SW wake between the local write and the next read still hits session.
+    await sessionCache.set(
+      sessionCache.SESSION_CACHE_KEYS.SETTINGS_SNAPSHOT,
+      this.cache,
+    )
   }
 
   startListening(): void {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local' || !this.cache) return
+      let mutated = false
       for (const [key, change] of Object.entries(changes)) {
         if (change.newValue !== undefined) {
           ;(this.cache as unknown as Record<string, unknown>)[key] = change.newValue
+          mutated = true
         }
       }
       // Sync theme from umm:appearance key (used by content scripts / AppearanceTab)
@@ -60,7 +86,16 @@ class SettingsCache {
         const mode = (appearanceChange.newValue as { theme?: string }).theme
         if (mode && ['auto', 'light', 'dark'].includes(mode)) {
           this.cache.theme = mode as AppSettings['theme']
+          mutated = true
         }
+      }
+      // L1.5: mirror any mutation into the session snapshot (ADR-014). Fire
+      // and forget — session writes are best-effort and never throw.
+      if (mutated) {
+        void sessionCache.set(
+          sessionCache.SESSION_CACHE_KEYS.SETTINGS_SNAPSHOT,
+          this.cache,
+        )
       }
     })
   }

@@ -12,6 +12,7 @@ import { broadcast } from '@/utils/event-bus'
 import { warnLog } from '@/utils/logger'
 import { RecordService } from '@/domain/record/RecordService'
 import { StoreRecord } from '@/domain/record/StoreRecord'
+import * as sessionCache from '@/features/cache/session-cache'
 import type { MessagePayloadMap } from '@/types'
 import { invalidateSchedulerStore } from './cache-invalidation'
 
@@ -148,11 +149,29 @@ export async function handleDbGetWatchedIds(
       return
     }
     try {
+      // L1.5 (ADR-014): the scheduler's L1 LRU is wiped on every SW wake,
+      // so a cold SW would re-query IndexedDB for the full watched-id set
+      // (~280KB across stores) on the first PT-dimmer / list render. The
+      // session layer survives wake cycles; check it before scheduling the
+      // IDB task. On a hit we still seed the L1 (so subsequent same-wake
+      // reads stay in-memory) via a zero-cost assignment through the
+      // scheduler cache by simply returning — the next schedule() call with
+      // the same cacheKey will miss L1 and hit session again, which is fine
+      // because session reads are cheap.
+      const sessionKey = sessionCache.SESSION_CACHE_KEYS.watched(storeName)
+      const sessionHit = await sessionCache.get<string[]>(sessionKey)
+      if (sessionHit) {
+        results[storeName] = sessionHit
+        return
+      }
       const ids = await ctx.scheduler.schedule(
         () => ctx.db.getWatchedIds(storeName),
         { priority: 'HIGH', storeName, cacheKey: `watched:${storeName}`, cacheTTL: 10000 },
       )
-      results[storeName] = Array.from(ids as Set<string>)
+      const idsArray = Array.from(ids as Set<string>)
+      results[storeName] = idsArray
+      // Persist to the session layer so the next SW wake hits session first.
+      await sessionCache.set(sessionKey, idsArray)
     } catch (err: unknown) {
       warnLog(`DB_GET_WATCHED_IDS: store "${storeName}" failed:`, err)
     }
