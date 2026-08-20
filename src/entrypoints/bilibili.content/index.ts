@@ -118,7 +118,7 @@ export default defineContentScript({
       })
     }
 
-    function watchUrl() {
+    function watchUrl(): void {
       window.addEventListener('popstate', onBvidChange)
       const origPush = history.pushState
       history.pushState = function (...args) {
@@ -130,10 +130,16 @@ export default defineContentScript({
         origReplace.apply(this, args)
         onBvidChange()
       }
-      setInterval(() => {
+      const urlPollTimer = setInterval(() => {
         onBvidChange()
         overlay.ensureButton()
       }, 3000)
+
+      // Clear the polling timer when the page is unloaded to avoid
+      // orphaned timers lingering after the content script's host page
+      // is bfcached or destroyed. Matches the cleanup discipline used by
+      // useHomepageObserver / mteam / video-progress-tracker.
+      window.addEventListener('pagehide', () => { clearInterval(urlPollTimer) }, { once: true })
     }
 
     // ── Init ─────────────────────────────────────────────────

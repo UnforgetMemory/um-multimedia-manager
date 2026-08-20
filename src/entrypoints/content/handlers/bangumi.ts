@@ -201,7 +201,7 @@ export async function renderBangumiStatusChip(
         updatedAt: new Date().toISOString(),
         linkedIds: localRecord?.linkedIds ?? {},
       })
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[UMM] Failed to save Bangumi status:', error)
       FloatingToast.error('UMM', t('neodb.comm_failed'))
       return
