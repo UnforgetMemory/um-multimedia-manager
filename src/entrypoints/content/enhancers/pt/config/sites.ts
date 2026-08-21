@@ -227,7 +227,11 @@ export const SITE_CONFIGS: SiteScannerConfig[] = [
     isDetailPage: (url) => url.includes('hhanclub.net/details.php'),
     extractDetailUrl: extractDetailUrlFromLink,
     extractIdsFromDetail: extractIdsFromDoc,
-    rowSelector: 'table.torrents > tbody > tr',
+    // HHClub's Tailwind theme dropped the <table> layout: each row is a
+    // div.torrent-table-sub-info with no douban/imdb links or data attrs,
+    // so matching relies on background detail-page scans. Keep the table
+    // branch for the classic theme.
+    rowSelector: 'table.torrents > tbody > tr, .torrent-table-sub-info',
     skipRowSelector: 'td.colhead',
     enableBackgroundScan: true,
     scanConcurrency: 3,
