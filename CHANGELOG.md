@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.13.1] - 2026-08-21
+
+### 修复与优化
+
+- **PT 淡化器适配 HHClub 新版主题**：HHClub 弃用经典 `<table>` 布局改用 Tailwind div 行（`.torrent-table-sub-info`），旧行选择器匹配 0 行导致列表页淡化整体失效；行选择器改为双主题组合选择器（保留 table 分支兼容经典主题）；新主题行内无豆瓣/IMDb 链接或 data 属性，ID 匹配继续走详情页后台扫描（已启用）
+
+### 测试
+
+- 新增 `pt-sites-hhanclub.spec`（8 用例）：参考列表页 URL 命中精确配置、isListPage/isDetailPage 边界、双主题行选择 jsdom 实测、skipRowSelector 不误伤 div 行、详情链接提取归一化与 userdetails 跳过；RED→GREEN 回归证据（旧选择器下 2 failed / 6 passed）
+
 ## [5.13.0] - 2026-08-20
 
 ### 新增功能
