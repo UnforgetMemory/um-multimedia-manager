@@ -272,7 +272,9 @@ async function syncToNeoDB(
         providerId: identity.providerId,
         rating,
         status,
-        type: identity.type,
+        // UrlIdentity.type is string-typed in the domain layer; runtime values
+        // originate from Identity.fromUrl and are constrained to this union.
+        type: identity.type as 'movie' | 'tv' | 'music' | 'book' | 'game',
         provider: 'douban',
         comment: comment || '',
       },

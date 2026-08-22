@@ -5,6 +5,7 @@
  */
 
 import { sleep } from '@/utils'
+import type { RuntimeMessageEnvelope } from '@/types'
 
 declare global {
   interface Window {
@@ -23,11 +24,14 @@ export function isContextValid(): boolean {
 }
 
 /**
- * 安全地发送消息到 Background
- * 包含上下文检查和错误处理
+ * 安全地发送消息到 Background（类型化信封）
+ * 包含上下文检查和错误处理。
+ *
+ * 响应体默认 `any` 以兼容各 handler 的异构返回形状；需要精确类型时通过
+ * 泛型参数显式声明（如 ImportExportTab 的 `{ success; error?; data? }`）。
  */
 export async function safeSendMessage<T = any>(
-  message: any,
+  message: RuntimeMessageEnvelope,
   options?: {
     timeout?: number
     retries?: number
@@ -79,7 +83,7 @@ export async function safeSendMessage<T = any>(
 /**
  * 带超时的消息发送
  */
-function sendMessageWithTimeout(message: any, timeout: number): Promise<any> {
+function sendMessageWithTimeout(message: RuntimeMessageEnvelope, timeout: number): Promise<any> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Message timeout after ${timeout}ms`))

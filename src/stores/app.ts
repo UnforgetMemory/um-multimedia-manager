@@ -22,7 +22,7 @@ export const useAppStore = defineStore('app', () => {
     try {
       const [recordsRes, adultAvRes] = await Promise.all([
         safeSendMessage({ type: 'GET_ALL_RECORDS' }, { timeout: 10000, retries: 2 }),
-        safeSendMessage({ type: 'ADULT_AV_GET_ALL' }, { timeout: 8000, retries: 1 }),
+        safeSendMessage({ type: 'ADULT_AV_GET_ALL', payload: {} }, { timeout: 8000, retries: 1 }),
       ])
       if (!recordsRes?.success) throw new Error(recordsRes?.error || '获取数据失败')
       records.value = recordsRes.records

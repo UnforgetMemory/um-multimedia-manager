@@ -1,8 +1,10 @@
-import type { AdultAvId, AdultAvIdInput, MessageType, MessagePayloadMap } from '@/types'
+import type { AdultAvId, AdultAvIdInput, MessageType, MessagePayloadMap, RuntimeMessageEnvelope } from '@/types'
 import { safeSendMessage } from '@/utils/context'
 
 async function sendMsg<K extends MessageType>(type: K, payload: MessagePayloadMap[K]): Promise<any> {
-  const res = await safeSendMessage({ type, payload }, { timeout: 8000, retries: 1 })
+  // The generic pair is per-K constrained but not provably a member of the
+  // whole envelope union — one documented assertion at this boundary.
+  const res = await safeSendMessage({ type, payload } as RuntimeMessageEnvelope, { timeout: 8000, retries: 1 })
   if (!res?.success) throw new Error(res?.error || `${type} failed`)
   return res
 }
