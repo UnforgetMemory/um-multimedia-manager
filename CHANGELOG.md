@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.13.2] - 2026-08-22
+
+### 变更（内部重构 · 无用户可见行为变化）
+
+- **设置存储迁移至类型化 item 层（ADR-017）**：新增 `features/settings/items.ts`——15 项设置各自成为带 fallback 与版本化迁移钩子的类型化 item，物理键不变（存量数据零迁移）、默认值单源化、单次批量读取取代 `storage.local.get(null)` 全库扫描；写入保持单调用原子语义；settingsCache 公共 API 不变
+- **消息协议契约单源化**：`MessageType`/`MessagePayloadMap`/`ToastType` 抽至 `types/messages.ts` 并引入 `RuntimeMessageEnvelope` 类型化信封，background switch 与发送端共用；`WEBDAV_TEST` 契约补全为 handler 实际支持的双方言超集（声明修正）
+- **统计聚合纯函数化**：跨 store 统计与记录扁平化抽取至 `domain/record/statistics.ts`，以特征测试锁定（含平台维计数与 video 归一化契约）
+- **孤立代码清理**：删除 4 个零引用转发 barrel（migration/neodb/webdav/stores 的 index.ts）、未接线的 `deleteDataset` 与零引用 `BannerItem`；`GET_MIGRATION_STATUS` 响应接线 `MigrationStatus` 契约类型
+
+### 测试
+
+- 新增 `settings-items.spec`（8 用例：legacy 键兼容往返、undefined 跳过、无 `$` 元数据污染、门面 API 保持、onChanged 合并+杂键排除）与 `statistics-characterization.spec`（7 用例）；修复两个测试文件的全局 chrome 泄漏（补 afterEach 恢复）
+
 ## [5.13.1] - 2026-08-21
 
 ### 修复与优化
