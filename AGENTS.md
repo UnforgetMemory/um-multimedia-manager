@@ -54,7 +54,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
   → sendResponse({ success, data/error })
 ```
 
-消息类型与 payload 类型定义在 **`src/types/index.ts`**（`MessageType` 联合 + `MessagePayloadMap`）——新增消息类型必须同时更新这两处 + background.ts switch。后台 → 内容脚本广播走 `src/utils/event-bus.ts`（EVENT_BUS）。
+消息类型与 payload 类型定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope`，经 `types/index.ts` barrel 再导出）——新增消息类型必须同时更新这两处 + background.ts switch。后台 → 内容脚本广播走 `src/utils/event-bus.ts`（EVENT_BUS）。
 
 ### 数据系统
 
@@ -70,7 +70,8 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 - i18n 双系统：`src/shared/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
 - 共享工具：`src/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/content/douban/shared/`（retry/usePaginator/douban-extract）
 - 版本号在 `package.json` + `wxt.config.ts`（`npm run package:*` 同时更新）
-- 单元测试：Playwright（tests/unit/，gitignored 的 tests/ 目录）
+- 单元测试：Playwright（tests/unit/，**tests/ 源码被 git 跟踪**；仅 playwright-report/test-results 等产物被 ignore）
+- 设置存储：`src/features/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型
 
 ## 添加新站点
 
@@ -78,7 +79,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 2. `content/handlers/` 建 handler（参照 `imdb.ts` / `create-detail-handler.ts`）
 3. `Platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
 4. `database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
-5. 消息类型：`types/index.ts` MessageType + MessagePayloadMap + background.ts switch
+5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + background.ts switch
 6. 两个 i18n 系统补键
 7. （Douban 页面）`content/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
 
