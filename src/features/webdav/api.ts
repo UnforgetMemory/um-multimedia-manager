@@ -245,21 +245,3 @@ export async function downloadDataset(
   if (!res.ok) throw new Error(`Failed to download dataset: HTTP ${res.status} for ${key} (${url})`)
   return res.blob()
 }
-
-/** Delete a dataset ZIP from WebDAV — key is hashed to safe filename */
-export async function deleteDataset(
-  baseUrl: string,
-  username: string,
-  password: string,
-  key: string
-): Promise<void> {
-  const filename = await keyToFilename(key)
-  const url = datasetUrl(baseUrl, filename)
-  const res = await fetchWithTimeout(url, {
-    method: 'DELETE',
-    headers: authHeaders(username, password),
-  })
-  if (!res.ok && res.status !== 404) {
-    throw new Error(`Failed to delete dataset: HTTP ${res.status}`)
-  }
-}

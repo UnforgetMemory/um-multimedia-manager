@@ -17,7 +17,7 @@
  * 3. Done — all existing records auto-migrate on next read
  */
 
-import type { StoreRecord, PtIdCacheEntry } from '@/types'
+import type { StoreRecord, PtIdCacheEntry, MigrationStatus } from '@/types'
 
 // ==================== Version Constants ====================
 
@@ -336,8 +336,9 @@ export function validateDatasetVersion(datasetVersion: number): boolean {
 
 /**
  * Get migration status info for diagnostics.
+ * Return type is the wire contract for GET_MIGRATION_STATUS (types/index.ts).
  */
-export function getMigrationInfo() {
+export function getMigrationInfo(): MigrationStatus {
   return {
     currentRecordVersion: CURRENT_RECORD_VERSION,
     currentCacheVersion: CURRENT_CACHE_VERSION,

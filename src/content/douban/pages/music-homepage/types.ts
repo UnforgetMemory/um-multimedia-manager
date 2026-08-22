@@ -1,10 +1,3 @@
-/** Banner carousel item on music homepage */
-export interface BannerItem {
-  imageUrl: string
-  href: string
-  alt: string
-}
-
 /** Popular artist item from .popular-artists section */
 export interface PopularArtistItem {
   name: string
