@@ -1,0 +1,3 @@
+# Self-contained ignore for .um.agents — memory stays local, constraints get tracked
+memory/
+*.local.md
