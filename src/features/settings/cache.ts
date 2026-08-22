@@ -1,45 +1,46 @@
-import type { AppSettings, LogLevel } from '@/types'
-import { STORAGE_KEYS } from '@/config'
+import type { AppSettings } from '@/types'
 import * as sessionCache from '@/features/cache/session-cache'
+import {
+  defaultAppSettings,
+  persistAppSettings,
+  resolveAppSettings,
+  type ResolvedAppSettings,
+} from './items'
 
+/**
+ * In-memory settings facade over the typed storage items (items.ts).
+ *
+ * Public API is intentionally unchanged (init/get/updateAll/startListening):
+ * consumers in background handlers keep working without edits. What changed
+ * under the hood (refactor plan W1):
+ * - init() no longer does a `chrome.storage.local.get(null)` full scan; it
+ *   batch-reads exactly the known item keys with fallbacks applied.
+ * - Defaults live once — in item fallbacks — instead of a second literal here.
+ * - Persistence goes through versioned items, so future per-field schema
+ *   migrations hook in at one place.
+ *
+ * L1.5 session snapshot behavior (ADR-014) is preserved verbatim: on SW wake,
+ * the last-resolved snapshot short-circuits the local read entirely.
+ */
 class SettingsCache {
-  private cache: AppSettings | null = null
+  private cache: ResolvedAppSettings | null = null
   private initPromise: Promise<void> | null = null
 
   async init(): Promise<void> {
     if (this.cache) return
     if (this.initPromise) return this.initPromise
     this.initPromise = (async () => {
-      // L1.5: try the session snapshot first (ADR-014). On a SW wake the
-      // session area still holds the last-resolved AppSettings, so we skip
-      // the chrome.storage.local.get(null) full scan (~15 keys). A miss or
-      // an unavailable session area falls through to the local-scan path,
-      // which then writes the resolved snapshot back for the next wake.
-      const snapshot = await sessionCache.get<AppSettings>(
+      // L1.5: try the session snapshot first. A miss or an unavailable
+      // session area falls through to the item-based local read, which then
+      // writes the resolved snapshot back for the next wake.
+      const snapshot = await sessionCache.get<ResolvedAppSettings>(
         sessionCache.SESSION_CACHE_KEYS.SETTINGS_SNAPSHOT,
       )
       if (snapshot) {
         this.cache = snapshot
         return
       }
-      const raw = await chrome.storage.local.get(null)
-      this.cache = {
-        webdavUrl: (raw[STORAGE_KEYS.WEBDAV_URL] as string) ?? '',
-        webdavUsername: (raw[STORAGE_KEYS.WEBDAV_USERNAME] as string) ?? '',
-        webdavPassword: (raw[STORAGE_KEYS.WEBDAV_PASSWORD] as string) ?? '',
-        neodbToken: (raw[STORAGE_KEYS.NEODB_TOKEN] as string) ?? '',
-        autoSync: (raw[STORAGE_KEYS.AUTO_SYNC] as boolean) ?? false,
-        autoSyncNeoDB: (raw[STORAGE_KEYS.AUTO_SYNC_NEO_DB] as boolean) ?? false,
-        syncInterval: (raw[STORAGE_KEYS.SYNC_INTERVAL] as number) ?? 30,
-        theme: (raw[STORAGE_KEYS.THEME] as AppSettings['theme']) ?? 'auto',
-        language: (raw[STORAGE_KEYS.LANGUAGE] as string) ?? 'zh-CN',
-        notificationEnabled: (raw[STORAGE_KEYS.NOTIFICATION_ENABLED] as boolean) ?? true,
-        appearance: (raw[STORAGE_KEYS.APPEARANCE] as AppSettings['appearance']) ?? 'auto',
-        accentColor: (raw[STORAGE_KEYS.ACCENT_COLOR] as string) ?? 'blue',
-        grayColor: (raw[STORAGE_KEYS.GRAY_COLOR] as string) ?? 'slate',
-        debugEnabled: (raw[STORAGE_KEYS.DEBUG_ENABLED] as boolean) ?? false,
-        logLevel: (raw[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
-      }
+      this.cache = await resolveAppSettings()
       // Persist the resolved snapshot so the next SW wake hits session first.
       await sessionCache.set(
         sessionCache.SESSION_CACHE_KEYS.SETTINGS_SNAPSHOT,
@@ -52,7 +53,7 @@ class SettingsCache {
   get(): AppSettings {
     if (!this.cache) {
       console.warn('[SettingsCache] Cache not initialized, returning defaults')
-      return this.defaultSettings()
+      return defaultAppSettings()
     }
     return { ...this.cache }
   }
@@ -60,7 +61,7 @@ class SettingsCache {
   async updateAll(settings: Partial<AppSettings>): Promise<void> {
     if (!this.cache) await this.init()
     Object.assign(this.cache!, settings)
-    await chrome.storage.local.set(settings as Record<string, unknown>)
+    await persistAppSettings(settings)
     // L1.5: keep the session snapshot in sync (ADR-014). write-after-write so
     // a SW wake between the local write and the next read still hits session.
     await sessionCache.set(
@@ -74,18 +75,19 @@ class SettingsCache {
       if (area !== 'local' || !this.cache) return
       let mutated = false
       for (const [key, change] of Object.entries(changes)) {
-        if (change.newValue !== undefined) {
+        if (change.newValue !== undefined && key in this.cache) {
           ;(this.cache as unknown as Record<string, unknown>)[key] = change.newValue
           mutated = true
         }
       }
-      // Sync theme from umm:appearance key (used by content scripts / AppearanceTab)
-      // into settingsCache's theme field for background consistency
+      // Sync theme from umm:appearance key (written by the theme Pinia store
+      // via chrome.storage.local alongside its localStorage copy) into
+      // settingsCache's theme field for background consistency
       const appearanceChange = changes['umm:appearance']
       if (appearanceChange?.newValue) {
         const mode = (appearanceChange.newValue as { theme?: string }).theme
         if (mode && ['auto', 'light', 'dark'].includes(mode)) {
-          this.cache.theme = mode as AppSettings['theme']
+          this.cache.theme = mode as NonNullable<AppSettings['theme']>
           mutated = true
         }
       }
@@ -98,17 +100,6 @@ class SettingsCache {
         )
       }
     })
-  }
-
-  private defaultSettings(): AppSettings {
-    return {
-      webdavUrl: '', webdavUsername: '', webdavPassword: '',
-      neodbToken: '', autoSync: false, autoSyncNeoDB: false,
-      syncInterval: 30,       theme: 'auto', language: 'zh-CN',
-      notificationEnabled: true, appearance: 'auto',
-      accentColor: 'blue', grayColor: 'slate',
-      debugEnabled: false, logLevel: 'info',
-    }
   }
 }
 

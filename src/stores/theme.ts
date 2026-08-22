@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { useStorage, useMediaQuery } from '@vueuse/core'
-import { STORAGE_KEYS } from '@/config'
+import { settingsItems } from '@/features/settings/items'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
@@ -39,9 +39,9 @@ export const useThemeStore = defineStore('theme', () => {
     })
   }
 
-  /** Sync theme value to background settingsCache via STORAGE_KEYS.THEME key */
+  /** Sync theme value to background settingsCache via the typed THEME item */
   function syncThemeToSettings(themeValue: ThemeMode): void {
-    chrome.storage.local.set({ [STORAGE_KEYS.THEME]: themeValue }).catch(() => {
+    settingsItems().theme.setValue(themeValue).catch(() => {
       // Silent — content scripts and themeStore already have the value via 'umm:appearance'
     })
   }

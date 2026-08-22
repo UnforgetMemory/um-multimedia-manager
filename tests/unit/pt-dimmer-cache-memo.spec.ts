@@ -106,10 +106,20 @@ function installChromeStub(entries: Record<string, PtIdCacheEntry>): string[][] 
       onMessage: { addListener: () => {} },
     },
   }
-  const prev = (globalThis as { chrome?: unknown }).chrome
+  prevChromeGlobal = (globalThis as { chrome?: unknown }).chrome
   ;(globalThis as { chrome?: unknown }).chrome = chromeStub
   return bulkQueries
 }
+
+/** Restore the pre-test global so worker-reused spec files don't inherit this stub. */
+let prevChromeGlobal: unknown
+
+test.afterEach(() => {
+  if (prevChromeGlobal !== undefined) {
+    ;(globalThis as { chrome?: unknown }).chrome = prevChromeGlobal
+    prevChromeGlobal = undefined
+  }
+})
 
 const noop = (): void => {}
 

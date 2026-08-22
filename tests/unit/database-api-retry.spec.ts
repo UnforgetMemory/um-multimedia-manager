@@ -19,6 +19,14 @@ interface ScriptStep {
   response?: unknown
 }
 
+/** Restore the pre-test global so worker-reused spec files don't inherit this stub. */
+let prevChrome: unknown
+
+test.afterEach(() => {
+  ;(globalThis as { chrome?: unknown }).chrome = prevChrome
+  prevChrome = undefined
+})
+
 function stubChromeSendMessage(script: ScriptStep[]) {
   let callIndex = 0
   const calls: Array<{ type: string }> = []
@@ -40,6 +48,7 @@ function stubChromeSendMessage(script: ScriptStep[]) {
     lastError: null as { message: string } | null,
   }
 
+  prevChrome = (globalThis as { chrome?: unknown }).chrome
   ;(globalThis as unknown as { chrome: unknown }).chrome = { runtime } as unknown as typeof chrome
   return calls
 }

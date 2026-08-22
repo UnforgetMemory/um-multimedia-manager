@@ -8,7 +8,7 @@
 import * as NeoDB from '@/features/neodb/api'
 import { infoLog, warnLog, errorLog } from '@/utils/logger'
 import { sleep } from '@/utils'
-import { STORAGE_KEYS } from '@/config'
+import { settingsItems } from '@/features/settings/items'
 import type { MessagePayloadMap } from '@/types'
 import type { SendResponse } from '@/utils/error-message'
 
@@ -41,9 +41,8 @@ export async function handleNeoDBPushRating(
       return
     }
 
-    // Get NeoDB token
-    const result = (await chrome.storage.local.get(STORAGE_KEYS.NEODB_TOKEN)) as { [STORAGE_KEYS.NEODB_TOKEN]?: string }
-    const token = result[STORAGE_KEYS.NEODB_TOKEN] || ''
+    // Get NeoDB token (typed storage item — same physical key as legacy reads)
+    const token = await settingsItems().neodbToken.getValue()
     if (!token) {
       sendResponse({ success: false, message: 'NeoDB token not configured' })
       return

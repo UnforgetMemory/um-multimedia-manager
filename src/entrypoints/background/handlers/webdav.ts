@@ -16,21 +16,18 @@ import { broadcast } from '@/utils/event-bus'
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 import { EXPORT_SETTINGS_KEYS, IMPORT_SETTINGS_KEYS } from './data'
 import { settingsCache } from '@/features/settings/cache'
-import { STORAGE_KEYS } from '@/config'
+import { settingsItems } from '@/features/settings/items'
 import { errorMessage, type SendResponse } from '@/utils/error-message'
 
-/** Read WebDAV settings from chrome.storage.local */
+/** Read WebDAV settings from the typed storage items (targeted, batched) */
 async function getWebDAVSettings() {
-  const result = (await chrome.storage.local.get(null)) as {
-    [STORAGE_KEYS.WEBDAV_URL]?: string
-    [STORAGE_KEYS.WEBDAV_USERNAME]?: string
-    [STORAGE_KEYS.WEBDAV_PASSWORD]?: string
-  }
-  return {
-    webdavUrl: result[STORAGE_KEYS.WEBDAV_URL] || '',
-    webdavUsername: result[STORAGE_KEYS.WEBDAV_USERNAME] || '',
-    webdavPassword: result[STORAGE_KEYS.WEBDAV_PASSWORD] || '',
-  }
+  const items = settingsItems()
+  const [webdavUrl, webdavUsername, webdavPassword] = await Promise.all([
+    items.webdavUrl.getValue(),
+    items.webdavUsername.getValue(),
+    items.webdavPassword.getValue(),
+  ])
+  return { webdavUrl, webdavUsername, webdavPassword }
 }
 
 /**
@@ -153,18 +150,15 @@ async function buildLocalMeta(): Promise<RemoteMeta> {
 }
 
 /**
- * WEBDAV_TEST payload — canonical fields from MessagePayloadMap plus
- * legacy aliases ({ url, username, password }) still sent by older callers.
+ * WEBDAV_TEST payload — canonical superset from MessagePayloadMap (both caller
+ * dialects); every field optional, `undefined` allowed (falls back to stored
+ * settings inside the handler).
  */
-type WebDAVTestPayload = MessagePayloadMap['WEBDAV_TEST'] & {
-  url?: string
-  username?: string
-  password?: string
-}
+type WebDAVTestPayload = NonNullable<MessagePayloadMap['WEBDAV_TEST']>
 
 /** WEBDAV_TEST — check connection */
 export async function handleWebDAVTest(
-  payload: WebDAVTestPayload,
+  payload: WebDAVTestPayload | undefined,
   sendResponse: SendResponse
 ) {
   try {

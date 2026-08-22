@@ -9,7 +9,7 @@
  */
 
 import { defineBackground } from 'wxt/utils/define-background'
-import type { LogLevel, MessageType, MessagePayloadMap } from '@/types'
+import type { LogLevel, RuntimeMessageEnvelope } from '@/types'
 import { mediaDB, STORE_NAMES } from '@/features/database/models'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
 import { STORAGE_KEYS } from '@/config'
@@ -18,6 +18,7 @@ import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
 import { CacheManager } from '@/features/cache'
 import { infoLog as schedulerLog } from '@/utils/logger'
 import { errorMessage } from '@/utils/error-message'
+import { settingsItems } from '@/features/settings/items'
 
 // Handler imports
 import { handleWebDAVTest, handleWebDAVUpload, handleWebDAVDownload, handleWebDAVSync } from './background/handlers/webdav'
@@ -95,11 +96,12 @@ export default defineBackground({
 
     async function initLogConfig() {
       try {
-        const result = await chrome.storage.local.get([STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL])
-        configureLogging({
-          enabled: (result[STORAGE_KEYS.DEBUG_ENABLED] as boolean) ?? false,
-          level: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
-        })
+        const items = settingsItems()
+        const [debugEnabled, level] = await Promise.all([
+          items.debugEnabled.getValue(),
+          items.logLevel.getValue(),
+        ])
+        configureLogging({ enabled: debugEnabled, level })
       } catch {
         // Silent fallback — keep defaults
       }
@@ -212,17 +214,11 @@ export default defineBackground({
     })
 
     /**
-     * Discriminated union over MessageType.
-     * `payload` is non-optional and narrowed per-case: every known message
-     * carries a payload (void for the payload-free messages), so the switch
-     * below accesses `message.payload` directly — no non-null assertions.
+     * Discriminated union over MessageType — now imported as the shared
+     * `RuntimeMessageEnvelope` contract (types/messages.ts) instead of a
+     * locally duplicated mapped type.
      */
-    type RuntimeMessage = {
-      [K in MessageType]: {
-        type: K
-        payload: MessagePayloadMap[K]
-      }
-    }[MessageType]
+    type RuntimeMessage = RuntimeMessageEnvelope
 
     async function handleMessage(
       message: RuntimeMessage,

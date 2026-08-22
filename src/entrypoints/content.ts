@@ -18,6 +18,7 @@ import { infoLog, errorLog, configureLogging } from '@/utils/logger'
 import { sleep } from '@/utils'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/config'
+import { settingsItems } from '@/features/settings/items'
 import { initEventBus } from '@/utils/event-bus'
 
 export default defineContentScript({
@@ -137,11 +138,12 @@ export default defineContentScript({
 
     // Configure logging from storage
     try {
-      const result = await chrome.storage.local.get([STORAGE_KEYS.DEBUG_ENABLED, STORAGE_KEYS.LOG_LEVEL])
-      configureLogging({
-        enabled: (result[STORAGE_KEYS.DEBUG_ENABLED] as boolean) ?? false,
-        level: (result[STORAGE_KEYS.LOG_LEVEL] as LogLevel) ?? 'info',
-      })
+      const items = settingsItems()
+      const [debugEnabled, level] = await Promise.all([
+        items.debugEnabled.getValue(),
+        items.logLevel.getValue(),
+      ])
+      configureLogging({ enabled: debugEnabled, level })
     } catch { /* keep defaults */ }
 
     chrome.storage.onChanged.addListener((changes, area) => {
