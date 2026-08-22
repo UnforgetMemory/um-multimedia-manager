@@ -6,7 +6,7 @@
  * Extracted from background.ts for modularity.
  */
 
-import type { AppSettings, ExportData, Statistics, StoreRecord } from '@/types'
+import type { AppSettings, ExportData, Statistics } from '@/types'
 import { mediaDB, RECORD_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
 import {
   validateExportVersion,
@@ -15,6 +15,8 @@ import {
   normalizeStoreRecord,
 } from '@/features/migration/models'
 import { settingsCache } from '@/features/settings/cache'
+import { computeStatistics, flattenRecords, type PlatformStoreEntries } from '@/domain/record/statistics'
+import type { StoreRecordSnapshot as StoreRecord } from '@/domain/record/StoreRecord'
 import { infoLog, warnLog } from '@/utils/logger'
 import { broadcast } from '@/utils/event-bus'
 import type { SendResponse } from '@/utils/error-message'
@@ -203,58 +205,39 @@ export async function handleImportData(
   sendResponse({ success: true })
 }
 
+/** Bilibili/YouTube stores whose records all normalize to the 'video' media type */
+const VIDEO_TYPE_STORES: ReadonlySet<string> = new Set([
+  STORE_NAMES.BILIBILI,
+  STORE_NAMES.YOUTUBE,
+])
+
+/**
+ * Snapshot every record store sequentially with its resolved platform id.
+ * Kept sequential on purpose — identical I/O order to the pre-extraction
+ * handlers so scheduler/cache timing characteristics don't shift.
+ */
+async function collectStoreEntries(): Promise<Array<PlatformStoreEntries<StoreRecord>>> {
+  const out: Array<PlatformStoreEntries<StoreRecord>> = []
+  for (const storeName of RECORD_STORES) {
+    out.push({
+      storeName,
+      platform: storePlatformMap[storeName] || 'unknown',
+      entries: await mediaDB.getAll(storeName),
+    })
+  }
+  return out
+}
+
 /** GET_STATISTICS — aggregate counts across all stores */
 export async function handleGetStatistics(sendResponse: SendResponse) {
-  const stats: Statistics = {
-    total: 0, movie: 0, tv: 0, music: 0, book: 0,
-    douban: 0, imdb: 0, neodb: 0, tmdb: 0,
-    bilibili: 0,
-    youtube: 0,
-    bangumi: 0,
-  }
-
-  for (const storeName of RECORD_STORES) {
-    const entries = await mediaDB.getAll(storeName)
-    const platform = storePlatformMap[storeName] || 'unknown'
-
-    stats.total += entries.length
-    if (platform && platform in stats) {
-      (stats as unknown as Record<string, number>)[platform] += entries.length
-    }
-
-    for (const entry of entries) {
-      const type = entry.key.split('::')[0]
-      if (type && type in stats) {
-        (stats as unknown as Record<string, number>)[type]++
-      }
-    }
-  }
-
+  const stats: Statistics = computeStatistics(await collectStoreEntries())
   sendResponse({ success: true, stats })
 }
 
 /** GET_ALL_RECORDS — flatten all stores for popup display */
 export async function handleGetAllRecords(sendResponse: SendResponse) {
-  const allRecords: any[] = []
-
-  for (const storeName of RECORD_STORES) {
-    const entries = await mediaDB.getAll(storeName)
-    for (const entry of entries) {
-      const [type, ...idParts] = entry.key.split('::')
-      const providerId = idParts.join('::')
-      // Normalize Bilibili/YouTube record types: all are videos,
-      // regardless of actual key prefix (legacy records may have bvid/movie prefixes)
-      const normalizedType = storeName === STORE_NAMES.BILIBILI || storeName === STORE_NAMES.YOUTUBE ? 'video' : type
-      allRecords.push({
-        ...entry.record,
-        type: normalizedType,
-        provider: storePlatformMap[storeName] || 'unknown',
-        providerId,
-      })
-    }
-  }
-
-  sendResponse({ success: true, records: allRecords })
+  const records = flattenRecords(await collectStoreEntries(), VIDEO_TYPE_STORES)
+  sendResponse({ success: true, records })
 }
 
 /** GET_MIGRATION_STATUS — return current migration info */
