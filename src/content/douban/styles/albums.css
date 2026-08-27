@@ -86,7 +86,7 @@
   font-weight: 600;
   line-height: 1.4;
   border-radius: 4px;
-  color: #fff;
+  color: var(--umm-static-neutral-00);
   border-color: transparent;
   user-select: none;
   white-space: nowrap;

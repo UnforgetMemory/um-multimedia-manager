@@ -2,12 +2,12 @@
 /* Follows the movie-profile pattern for user homepage. */
 
 :host {
-  --umm-mp-accent: #6366f1;
-  --umm-mp-accent-soft: #eef2ff;
+  --umm-mp-accent: var(--umm-static-indigo-600);
+  --umm-mp-accent-soft: var(--umm-static-blue-50);
 }
 :host(.umm-theme--dark) {
-  --umm-mp-accent: #818cf8;
-  --umm-mp-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
+  --umm-mp-accent: var(--umm-static-indigo-400);
+  --umm-mp-accent-soft: color-mix(in srgb, var(--umm-static-violet-900) 60%, transparent);
 }
 
 /* ===== Root ===== */
@@ -133,7 +133,7 @@
 .umm-mp-musician {
   display: inline-flex;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   font-size: var(--umm-font-xs, 0.75rem);
   font-weight: 500;
   color: var(--umm-mp-accent);
@@ -143,7 +143,7 @@
 }
 .umm-mp-musician:hover {
   background: var(--umm-mp-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ===== Doulists ===== */

@@ -1,25 +1,32 @@
 /* ===== Media Format Chips — shared across search and albums pages ===== */
-.umm-chip-cd       { background: #546e7a; color: #fff; border-color: transparent; }
-.umm-chip-dvd      { background: #7b1fa2; color: #fff; border-color: transparent; }
-.umm-chip-cd-dvd   { background: #4527a0; color: #fff; border-color: transparent; }
-.umm-chip-cassette { background: #5d4037; color: #fff; border-color: transparent; }
-.umm-chip-digital  { background: #00695c; color: #fff; border-color: transparent; }
-.umm-chip-vinyl    { background: #37474f; color: #fff; border-color: transparent; }
-.umm-chip-lp       { background: #4a148c; color: #fff; border-color: transparent; }
-.umm-chip-sacd     { background: #4e342e; color: #fff; border-color: transparent; }
-.umm-chip-bluray   { background: #0d47a1; color: #fff; border-color: transparent; }
-.umm-chip-vcd      { background: #455a64; color: #fff; border-color: transparent; }
-.umm-chip-streaming{ background: #1b5e20; color: #fff; border-color: transparent; }
+/* ADR-018/020: raw values live in tokens.static.css (--umm-static-chip-*).
+   Deep categorical fills keep WHITE ink in BOTH themes — the former dark-theme
+   color-mix lightening broke text contrast and was removed (ADR-020 D3). */
 
-:host(.umm-theme--dark) .umm-chip-cd       { background: #607d8b; }
-:host(.umm-theme--dark) .umm-chip-dvd      { background: #8e24aa; }
-:host(.umm-theme--dark) .umm-chip-cd-dvd   { background: #5e35b1; }
-:host(.umm-theme--dark) .umm-chip-cassette { background: #6d4c41; }
-:host(.umm-theme--dark) .umm-chip-digital  { background: #00897b; }
-:host(.umm-theme--dark) .umm-chip-vinyl    { background: #455a64; }
-:host(.umm-theme--dark) .umm-chip-lp       { background: #5e35b1; }
-:host(.umm-theme--dark) .umm-chip-sacd     { background: #5d4037; }
-:host(.umm-theme--dark) .umm-chip-bluray   { background: #1565c0; }
-:host(.umm-theme--dark) .umm-chip-vcd      { background: #546e7a; }
-:host(.umm-theme--dark) .umm-chip-ld       { background: #00838f; }
-:host(.umm-theme--dark) .umm-chip-streaming{ background: #2e7d32; }
+:host {
+  --umm-chip-cd: var(--umm-static-chip-cd);
+  --umm-chip-dvd: var(--umm-static-chip-dvd);
+  --umm-chip-cd-dvd: var(--umm-static-chip-cd-dvd);
+  --umm-chip-cassette: var(--umm-static-chip-cassette);
+  --umm-chip-digital: var(--umm-static-chip-digital);
+  --umm-chip-vinyl: var(--umm-static-chip-vinyl);
+  --umm-chip-lp: var(--umm-static-chip-lp);
+  --umm-chip-sacd: var(--umm-static-chip-sacd);
+  --umm-chip-bluray: var(--umm-static-chip-bluray);
+  --umm-chip-vcd: var(--umm-static-chip-vcd);
+  --umm-chip-ld: var(--umm-static-chip-ld);
+  --umm-chip-streaming: var(--umm-static-chip-streaming);
+}
+
+.umm-chip-cd       { background: var(--umm-chip-cd); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-dvd      { background: var(--umm-chip-dvd); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-cd-dvd   { background: var(--umm-chip-cd-dvd); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-cassette { background: var(--umm-chip-cassette); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-digital  { background: var(--umm-chip-digital); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-vinyl    { background: var(--umm-chip-vinyl); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-lp       { background: var(--umm-chip-lp); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-sacd     { background: var(--umm-chip-sacd); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-bluray   { background: var(--umm-chip-bluray); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-vcd      { background: var(--umm-chip-vcd); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-ld       { background: var(--umm-chip-ld); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-streaming{ background: var(--umm-chip-streaming); color: var(--umm-static-neutral-00); border-color: transparent; }

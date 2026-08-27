@@ -80,7 +80,7 @@ function handleClick(item: StatBarItem): void {
   align-items: baseline;
   gap: 5px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   background: var(--umm-bg-secondary);
   border: 1px solid var(--umm-border);
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -93,21 +93,21 @@ function handleClick(item: StatBarItem): void {
 }
 
 .umm-statbar-item--clickable:hover {
-  background: var(--umm-brand-accent-soft, #e0e7ff);
-  border-color: var(--umm-brand-accent, #4f6ef7);
+  background: var(--umm-brand-accent-soft);
+  border-color: var(--umm-brand-accent);
 }
 
 .umm-statbar-val {
   font-size: var(--umm-font-base, 0.875rem);
   font-weight: 700;
-  color: var(--umm-brand-accent, #4f6ef7);
+  color: var(--umm-brand-accent, #3a55ec);
   line-height: 1.2;
   transition: color 0.15s;
   white-space: nowrap;
 }
 
 .umm-statbar-item--active .umm-statbar-val {
-  color: var(--umm-brand-accent, #4f6ef7);
+  color: var(--umm-brand-accent, #3a55ec);
 }
 
 .umm-statbar-lbl {

@@ -1,10 +1,10 @@
 /* ===== UMM Douban User Celebrities — Shadow DOM styles ===== */
 
 :host {
-  --umm-cel-accent: #6366f1;
+  --umm-cel-accent: var(--umm-static-indigo-500);
 }
 :host(.umm-theme--dark) {
-  --umm-cel-accent: #818cf8;
+  --umm-cel-accent: var(--umm-static-indigo-400);
 }
 
 .umm-celebrities-root {

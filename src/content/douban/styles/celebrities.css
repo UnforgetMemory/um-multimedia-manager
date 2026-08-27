@@ -1,17 +1,17 @@
 /* ===== UMM Douban Celebrities Overlay — Shadow DOM styles ===== */
 
 :host {
-  --umm-celebrity-accent: #f43f5e;
-  --umm-celebrity-card-bg: #ffffff;
-  --umm-celebrity-card-border: #e5e7eb;
-  --umm-celebrity-avatar-ring: #e5e7eb;
+  --umm-celebrity-accent: var(--umm-static-rose-600);
+  --umm-celebrity-card-bg: var(--umm-static-neutral-00);
+  --umm-celebrity-card-border: var(--umm-static-neutral-150);
+  --umm-celebrity-avatar-ring: var(--umm-static-neutral-150);
 }
 
 :host(.umm-theme--dark) {
-  --umm-celebrity-accent: #fb7185;
-  --umm-celebrity-card-bg: #2a2b30;
-  --umm-celebrity-card-border: #3a3b40;
-  --umm-celebrity-avatar-ring: #3a3b40;
+  --umm-celebrity-accent: var(--umm-static-rose-400);
+  --umm-celebrity-card-bg: var(--umm-static-neutral-800);
+  --umm-celebrity-card-border: var(--umm-static-neutral-700);
+  --umm-celebrity-avatar-ring: var(--umm-static-neutral-700);
 }
 
 /* ===== Root layout ===== */

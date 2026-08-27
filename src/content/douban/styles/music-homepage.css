@@ -6,15 +6,15 @@
   width: 100%;
   min-height: 100vh;
   /* user-select is not set at :host level — specific interactive elements opt-in */
-  --umm-border-light: var(--umm-border, #f0f0f0);
+  --umm-border-light: var(--umm-border, var(--umm-static-neutral-75));
   --umm-card-bg: transparent;
-  --umm-mask-from: var(--umm-color-surface, #ffffff);
+  --umm-mask-from: var(--umm-color-surface, var(--umm-static-neutral-00));
 }
 
 :host(.umm-theme--dark) {
-  --umm-border-light: #2c2e33;
+  --umm-border-light: var(--umm-static-neutral-800);
   --umm-card-bg: transparent;
-  --umm-mask-from: var(--umm-color-surface, #1a1b1e);
+  --umm-mask-from: var(--umm-color-surface, var(--umm-static-neutral-900));
 }
 
 /* Root panel */
@@ -26,7 +26,9 @@
   padding: var(--umm-space-lg) 0;
   background: var(--umm-bg);
   position: relative;
-  z-index: var(--umm-z-overlay, 300);
+  /* z:0 — local stacking context for inner .umm-mask children, below the
+     sticky header (z:50), see homepage.css .umm-top-panel note. */
+  z-index: 0;
   overflow: visible;
   color: var(--umm-text-primary);
 }
@@ -169,15 +171,15 @@
   font-weight: 500;
   color: var(--umm-text-secondary);
   background: var(--umm-bg-secondary);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
   cursor: pointer;
 }
 
 .umm-genre-tag:hover {
-  background: var(--umm-accent);
-  color: #fff;
+  background: var(--umm-brand-accent);
+  color: var(--umm-on-accent);
 }
 
 /* ---- Hide native elements ---- */

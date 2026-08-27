@@ -5,19 +5,19 @@
    ============================================================ */
 
 :host {
-  --dd-accent: var(--umm-link, #1757d6);
-  --dd-accent-bg: color-mix(in srgb, var(--umm-link, #1757d6) 10%, transparent);
-  --dd-card-bg: var(--umm-card-bg, #ffffff);
-  --dd-card-border: var(--umm-card-border, #e5e7eb);
-  --dd-rating-color: var(--umm-rating-gold-high, #d4a017);
+  --dd-accent: var(--umm-link, var(--umm-static-brand-600));
+  --dd-accent-bg: color-mix(in srgb, var(--umm-link, var(--umm-static-brand-600)) 10%, transparent);
+  --dd-card-bg: var(--umm-card-bg, var(--umm-static-neutral-00));
+  --dd-card-border: var(--umm-card-border, var(--umm-static-neutral-150));
+  --dd-rating-color: var(--umm-rating-gold-high, var(--umm-static-gold-500));
 }
 
 :host(.umm-theme--dark) {
-  --dd-accent: var(--umm-link, #60a5fa);
-  --dd-accent-bg: color-mix(in srgb, var(--umm-link, #60a5fa) 12%, transparent);
-  --dd-card-bg: var(--umm-card-bg, #2a2b30);
-  --dd-card-border: var(--umm-card-border, #3a3b40);
-  --dd-rating-color: var(--umm-rating-gold-high, #e8c030);
+  --dd-accent: var(--umm-link, var(--umm-static-blue-400));
+  --dd-accent-bg: color-mix(in srgb, var(--umm-link, var(--umm-static-blue-400)) 12%, transparent);
+  --dd-card-bg: var(--umm-card-bg, var(--umm-static-neutral-800));
+  --dd-card-border: var(--umm-card-border, var(--umm-static-neutral-700));
+  --dd-rating-color: var(--umm-rating-gold-high, var(--umm-static-amber-400));
 }
 
 /* ── Root container ── */
@@ -201,12 +201,12 @@
 
 .umm-dlist-filter-btn--active {
   background: var(--dd-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   border-color: var(--dd-accent);
 }
 
 .umm-dlist-filter-btn--active:hover {
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ── Item card ── */
@@ -356,12 +356,12 @@
 
 .umm-dlist-page-btn--active {
   background: var(--dd-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   border-color: var(--dd-accent);
 }
 
 .umm-dlist-page-btn--active:hover {
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 

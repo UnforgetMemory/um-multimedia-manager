@@ -22,40 +22,49 @@ export function composeStyles(...chunks: CssChunk[]): string {
 }
 
 /** Each page type's CSS preset — maps to the CSS chunk names used in main.ts */
+/**
+ * Base shared chunks composed FIRST for every page, in order:
+ * 1. static-tokens — Tier-1 palette (:root,:host), single source of raw values (ADR-018)
+ * 2. design-tokens — Tier-2 semantic aliases (light + :host(.umm-theme--dark))
+ * 3. theme        — legacy alias bridge (--umm-bg etc.)
+ * 4+. layout/shared components
+ */
+const BASE_SHARED: string[] = ['static-tokens', 'design-tokens', 'theme', 'breakpoints', 'page-layout', 'base']
+
 const PAGE_CSS_PRESETS: Record<PageType['type'], { shared: string[]; page: string[] }> = {
-  'homepage':         { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['homepage'] },
-  'music-homepage':   { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['homepage', 'music-homepage'] },
-  'book-homepage':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['homepage', 'book-homepage'] },
-  'book-profile':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'empty-state', 'statbar'], page: ['book-profile'] },
-  'detail':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['detail', 'interest'] },
-  'search':           { shared: ['design-tokens', 'theme', 'page-layout', 'base', 'media-chips'], page: ['search'] },
-  'photos':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['photos'] },
-  'trailer':          { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['trailer'] },
-  'video':            { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['trailer'] },
-  'celebrities':      { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['celebrities'] },
-  'personage':        { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['personage'] },
-  'personage-creations': { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'paginator'], page: ['personage-creations'] },
-  'user-profile':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'empty-state', 'statbar'], page: ['user-profile'] },
-  'movie-profile':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'statbar'], page: ['movie-profile'] },
-  'music-profile':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'statbar'], page: ['music-profile'] },
-  'doulists':         { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator'], page: ['doulists'] },
-  'doulist-detail':   { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['doulist-detail'] },
-  'user-media':       { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['user-media'] },
-  'user-celebrities': { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['user-celebrities'] },
-  'user-reviews':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['user-reviews'] },
-  'book-reviews':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['book-reviews'] },
-  'review-detail':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['review-detail'] },
-  'book-review-detail': { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'review-detail'], page: ['book-review-detail'] },
-  'book-collect':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['book-collect'] },
-  'book-authors':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['book-authors'] },
-  'genre':            { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['genre'] },
-  'artists-overview': { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['artists-overview'] },
-  'game-collect':     { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['game-collect'] },
-  'game-detail':      { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['detail', 'interest', 'game-detail'] },
-  'game-explore':     { shared: ['design-tokens', 'theme', 'page-layout', 'base'], page: ['game-explore'] },
-  'albums':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'media-chips'], page: ['albums'] },
-  'series':           { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base'], page: ['series'] },
-  'music-collect':    { shared: ['design-tokens', 'theme', 'breakpoints', 'page-layout', 'base', 'userbar', 'paginator', 'titlebar'], page: ['music-collect'] },
+  'homepage':         { shared: BASE_SHARED, page: ['homepage'] },
+  'music-homepage':   { shared: BASE_SHARED, page: ['homepage', 'music-homepage'] },
+  'book-homepage':    { shared: BASE_SHARED, page: ['homepage', 'book-homepage'] },
+  'book-profile':     { shared: [...BASE_SHARED, 'empty-state', 'statbar'], page: ['book-profile'] },
+  'detail':           { shared: BASE_SHARED, page: ['detail', 'interest'] },
+  'search':           { shared: [...BASE_SHARED, 'media-chips'], page: ['search'] },
+  'photos':           { shared: BASE_SHARED, page: ['photos'] },
+  'trailer':          { shared: BASE_SHARED, page: ['trailer'] },
+  'video':            { shared: BASE_SHARED, page: ['trailer'] },
+  'celebrities':      { shared: BASE_SHARED, page: ['celebrities'] },
+  'personage':        { shared: BASE_SHARED, page: ['personage'] },
+  'personage-creations': { shared: [...BASE_SHARED, 'paginator'], page: ['personage-creations'] },
+  'user-profile':     { shared: [...BASE_SHARED, 'empty-state', 'statbar'], page: ['user-profile'] },
+  'movie-profile':    { shared: [...BASE_SHARED, 'statbar'], page: ['movie-profile'] },
+  'music-profile':    { shared: [...BASE_SHARED, 'statbar'], page: ['music-profile'] },
+  'doulists':         { shared: [...BASE_SHARED, 'userbar', 'paginator'], page: ['doulists'] },
+  'doulist-detail':   { shared: BASE_SHARED, page: ['doulist-detail'] },
+  'user-media':       { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar'], page: ['user-media'] },
+  'user-celebrities': { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['user-celebrities'] },
+  'user-reviews':     { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['user-reviews'] },
+  'book-reviews':     { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['book-reviews'] },
+  'review-detail':    { shared: BASE_SHARED, page: ['review-detail'] },
+  'book-review-detail': { shared: [...BASE_SHARED, 'review-detail'], page: ['book-review-detail'] },
+  'book-collect':     { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar'], page: ['book-collect'] },
+  'book-authors':     { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar', 'empty-state'], page: ['book-authors'] },
+  'genre':            { shared: BASE_SHARED, page: ['genre'] },
+  'artists-overview': { shared: BASE_SHARED, page: ['artists-overview'] },
+  'game-collect':     { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar'], page: ['game-collect'] },
+  'game-detail':      { shared: BASE_SHARED, page: ['detail', 'interest', 'game-detail'] },
+  'game-explore':     { shared: BASE_SHARED, page: ['game-explore'] },
+  'albums':           { shared: [...BASE_SHARED, 'media-chips'], page: ['albums'] },
+  'series':           { shared: BASE_SHARED, page: ['series'] },
+  'music-collect':    { shared: [...BASE_SHARED, 'userbar', 'paginator', 'titlebar'], page: ['music-collect'] },
 }
 
 /**

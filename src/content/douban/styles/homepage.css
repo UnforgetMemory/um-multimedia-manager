@@ -7,15 +7,15 @@
   width: 100%;
   min-height: 100vh;
   /* user-select is not set at :host level — specific interactive elements opt-in */
-  --umm-border-light: var(--umm-border, #f0f0f0);
+  --umm-border-light: var(--umm-border, var(--umm-static-neutral-75));
   --umm-card-bg: transparent;
-  --umm-mask-from: var(--umm-color-surface, #ffffff);
+  --umm-mask-from: var(--umm-color-surface, var(--umm-static-neutral-00));
 }
 
 :host(.umm-theme--dark) {
-  --umm-border-light: #2c2e33;
+  --umm-border-light: var(--umm-static-neutral-800);
   --umm-card-bg: transparent;
-  --umm-mask-from: var(--umm-color-surface, #1a1b1e);
+  --umm-mask-from: var(--umm-color-surface, var(--umm-static-neutral-900));
 }
 
 /* ---- Root panel ---- */
@@ -27,7 +27,11 @@
   padding: var(--umm-space-lg) 0;
   background: var(--umm-bg);
   position: relative;
-  z-index: var(--umm-z-overlay, 300);
+  /* z:0 (not the 300 overlay tier): keeps a local stacking context for inner
+     .umm-mask z10 children while staying BELOW the sticky header (z:50) —
+     after .umm-layout-content lost its z-index cap, z:300 would paint this
+     opaque panel over the header while scrolling. */
+  z-index: 0;
   overflow: visible;
   color: var(--umm-text-primary);
 }
@@ -208,13 +212,13 @@
 }
 /* Left accent stripe by rank */
 .umm-billboard-card--gold {
-  border-left-color: #daa520;
+  border-left-color: var(--umm-static-gold-500);
 }
 .umm-billboard-card--silver {
-  border-left-color: #a0a0a0;
+  border-left-color: var(--umm-static-neutral-400);
 }
 .umm-billboard-card--bronze {
-  border-left-color: #cd7f32;
+  border-left-color: var(--umm-static-gold-600);
 }
 
 .umm-billboard-card:link,
@@ -231,19 +235,19 @@
 .umm-billboard-card--gold:visited,
 .umm-billboard-card--gold:hover,
 .umm-billboard-card--gold:active {
-  border-left-color: #daa520;
+  border-left-color: var(--umm-static-gold-500);
 }
 .umm-billboard-card--silver:link,
 .umm-billboard-card--silver:visited,
 .umm-billboard-card--silver:hover,
 .umm-billboard-card--silver:active {
-  border-left-color: #a0a0a0;
+  border-left-color: var(--umm-static-neutral-400);
 }
 .umm-billboard-card--bronze:link,
 .umm-billboard-card--bronze:visited,
 .umm-billboard-card--bronze:hover,
 .umm-billboard-card--bronze:active {
-  border-left-color: #cd7f32;
+  border-left-color: var(--umm-static-gold-600);
 }
 
 .umm-billboard-card:hover {
@@ -273,8 +277,11 @@
   line-height: 1;
   flex-shrink: 0;
   transition: all 0.2s ease;
-  color: #ffffff;
+  color: var(--umm-static-neutral-00);
   background: var(--umm-text-muted);
+}
+:host(.umm-theme--dark) .umm-billboard-order {
+  color: var(--umm-static-neutral-1000);
 }
 .umm-billboard-card:hover .umm-billboard-order {
   transform: scale(1.15);
@@ -282,9 +289,9 @@
 
 /* Gold medal — #1 */
 .umm-billboard-order--gold {
-  background: linear-gradient(135deg, #ffd700 0%, #daa520 60%, #b8860b 100%);
+  background: linear-gradient(135deg, var(--umm-static-amber-400) 0%, var(--umm-static-gold-500) 60%, var(--umm-static-gold-700) 100%);
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.2);
-  color: #fff;
+  color: var(--umm-static-neutral-1000);
   font-size: var(--umm-font-sm);
 }
 .umm-billboard-card:hover .umm-billboard-order--gold {
@@ -293,9 +300,9 @@
 
 /* Silver medal — #2 */
 .umm-billboard-order--silver {
-  background: linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 50%, #a0a0a0 100%);
+  background: linear-gradient(135deg, var(--umm-static-neutral-150) 0%, var(--umm-static-neutral-300) 50%, var(--umm-static-neutral-400) 100%);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  color: #fff;
+  color: var(--umm-static-neutral-1000);
 }
 .umm-billboard-card:hover .umm-billboard-order--silver {
   box-shadow: 0 0 12px rgba(192, 192, 192, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -303,34 +310,45 @@
 
 /* Bronze medal — #3 */
 .umm-billboard-order--bronze {
-  background: linear-gradient(135deg, #e8a060 0%, #cd7f32 50%, #a0522d 100%);
+  background: linear-gradient(135deg, var(--umm-static-amber-400) 0%, var(--umm-static-gold-600) 50%, var(--umm-static-amber-600) 100%);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  color: #fff;
+  color: var(--umm-static-neutral-1000);
 }
 .umm-billboard-card:hover .umm-billboard-order--bronze {
   box-shadow: 0 0 12px rgba(205, 127, 50, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Dark theme — adjust left accent and medal */
+/* Dark theme — adjust left accent and medal glow.
+   Medal ink stays neutral-1000 on bright metallic gradients in BOTH themes (ADR-020 D3). */
 :host(.umm-theme--dark) .umm-billboard-card--gold {
-  border-left-color: #b8860b;
+  border-left-color: var(--umm-static-gold-700);
 }
 :host(.umm-theme--dark) .umm-billboard-card--silver {
-  border-left-color: #808080;
+  border-left-color: var(--umm-static-neutral-500);
 }
 :host(.umm-theme--dark) .umm-billboard-card--bronze {
-  border-left-color: #8b5a2b;
+  border-left-color: var(--umm-static-amber-800);
 }
+/* Dark (Vibrancy): solid metal fills — gradients & glow banned by stylekit.
+   Deep ink stays (ADR-020 D3). */
 :host(.umm-theme--dark) .umm-billboard-order--gold {
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+  background: var(--umm-static-gold-500);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 :host(.umm-theme--dark) .umm-billboard-order--silver {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  background: var(--umm-static-neutral-300);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 :host(.umm-theme--dark) .umm-billboard-order--bronze {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  background: var(--umm-static-amber-600);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 
+:host(.umm-theme--dark) .umm-billboard-order--gold,
+:host(.umm-theme--dark) .umm-billboard-order--silver,
+:host(.umm-theme--dark) .umm-billboard-order--bronze {
+  color: var(--umm-static-neutral-1000);
+}
 .umm-billboard-title {
   font-size: var(--umm-font-sm);
   font-weight: 500;
@@ -352,7 +370,7 @@
   border-radius: var(--umm-card-radius);
   font-size: var(--umm-font-xs);
   font-weight: 600;
-  color: #fff;
+  color: var(--umm-static-neutral-00);
   background: rgba(0, 0, 0, 0.6);
 }
 

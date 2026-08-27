@@ -19,6 +19,7 @@
 import { MountRegistry } from './page-registry'
 import { detectPageType } from './shared/url-detector'
 import { injectGlobalStyles } from '@/entrypoints/content/styles/global'
+import { startThemeAttrSync } from './overlay/theme-sync'
 import { initEventBus } from '@/utils/event-bus'
 import { FloatingToast } from '@/entrypoints/content/utils/toast'
 
@@ -100,6 +101,9 @@ export async function mountDoubanMain(): Promise<void> {
   try {
     // Global infrastructure (was previously in content.ts)
     injectGlobalStyles()
+    // Keep html[data-umm-theme] live for ALL light-DOM dark rules
+    // (search badges / status chips / NeoDB buttons) — overlay or not.
+    startThemeAttrSync()
     initEventBus()
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (sender.id !== chrome.runtime.id) return false

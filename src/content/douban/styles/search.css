@@ -69,13 +69,13 @@
 }
 
 .umm-type-btn--active {
-  color: #fff;
-  background: var(--umm-link, #1757d6);
+  color: var(--umm-on-accent);
+  background: var(--umm-link);
 }
 
 .umm-type-btn--active:hover {
-  color: #fff;
-  background: var(--umm-link, #1757d6);
+  color: var(--umm-on-accent);
+  background: var(--umm-link);
 }
 
 /* ---- Results grid ---- */
@@ -155,7 +155,7 @@
   font-size: 11px;
   font-weight: 600;
   background: rgba(0, 0, 0, 0.65);
-  color: #fff;
+  color: var(--umm-static-neutral-00);
 }
 
 /* ---- Media format row below cover (music search) ---- */
@@ -183,7 +183,7 @@
 :host(.umm-theme--dark) .umm-search-media-chip {
   background: var(--umm-bg-secondary);
   border-color: var(--umm-border);
-  color: var(--umm-text-secondary, #999999);
+  color: var(--umm-text-secondary);
 }
 
 /* ---- Media chip color variants (all ≥4.5:1 WCAG AA with white text) ---- */
@@ -257,17 +257,20 @@
   font-size: 0.7rem;
   font-weight: 500;
   line-height: 1.4;
-  color: var(--umm-text-accent, #e7a33e);
+  color: var(--umm-static-amber-800);
   background: rgba(231, 163, 62, 0.12);
   border: 1px solid rgba(231, 163, 62, 0.3);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
+:host(.umm-theme--dark) .umm-search-imdb {
+  color: var(--umm-static-amber-300);
+}
 
 .umm-search-imdb:hover {
-  background: var(--umm-text-accent, #e7a33e);
-  color: #fff;
+  background: var(--umm-static-gold-500);
+  color: var(--umm-static-neutral-1000);
 }
 
 /* ---- Pagination (unchanged) ---- */

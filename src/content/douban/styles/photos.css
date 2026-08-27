@@ -2,18 +2,18 @@
 
 :host {
   /* Brand — photos page specific */
-  --umm-success: #116f46;
+  --umm-success: var(--umm-static-green-700);
   --umm-success-bg: rgba(17, 111, 70, 0.1);
   --umm-overlay-bg: rgba(0, 0, 0, 0.5);
-  --umm-rating-score: #e0901a;
+  --umm-rating-score: var(--umm-static-gold-800);
 }
 
 :host(.umm-theme--dark) {
-  --umm-accent: #a5b4fc;
-  --umm-success: #34d399;
+  --umm-accent: var(--umm-static-indigo-300);
+  --umm-success: var(--umm-static-green-400);
   --umm-success-bg: rgba(52, 211, 153, 0.12);
   --umm-overlay-bg: rgba(0, 0, 0, 0.7);
-  --umm-rating-score: #e0901a;
+  --umm-rating-score: var(--umm-static-gold-800);
 }
 
 /* ---- Page layout ---- */
@@ -297,7 +297,7 @@
   height: 32px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  color: var(--umm-static-neutral-00);
   opacity: 0;
   transition: opacity 0.2s ease;
   z-index: var(--umm-z-floating, 100);
@@ -370,7 +370,7 @@
 }
 
 .umm-gallery-close:hover {
-  color: #fff;
+  color: var(--umm-static-neutral-00);
 }
 
 /* ---- Bottom bar: res left, zoom center, counter right ---- */
@@ -453,7 +453,7 @@
 
 .umm-gallery-dl:hover {
   background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  color: var(--umm-static-neutral-00);
 }
 
 .umm-gallery-stage {
@@ -504,7 +504,7 @@
 
 .umm-gallery-nav:hover {
   background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  color: var(--umm-static-neutral-00);
 }
 
 .umm-gallery-nav--prev {

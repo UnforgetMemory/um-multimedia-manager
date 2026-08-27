@@ -6,15 +6,15 @@
   width: 100%;
   min-height: 100vh;
   /* user-select is not set at :host level — specific interactive elements opt-in */
-  --umm-border-light: var(--umm-border, #f0f0f0);
+  --umm-border-light: var(--umm-border, var(--umm-static-neutral-75));
   --umm-card-bg: transparent;
-  --umm-mask-from: var(--umm-color-surface, #ffffff);
+  --umm-mask-from: var(--umm-color-surface, var(--umm-static-neutral-00));
 }
 
 :host(.umm-theme--dark) {
-  --umm-border-light: #2c2e33;
+  --umm-border-light: var(--umm-static-neutral-800);
   --umm-card-bg: transparent;
-  --umm-mask-from: var(--umm-color-surface, #1a1b1e);
+  --umm-mask-from: var(--umm-color-surface, var(--umm-static-neutral-900));
 }
 
 /* Root panel */
@@ -26,7 +26,9 @@
   padding: var(--umm-space-lg) 0;
   background: var(--umm-bg);
   position: relative;
-  z-index: var(--umm-z-overlay, 300);
+  /* z:0 — local stacking context for inner .umm-mask children, below the
+     sticky header (z:50), see homepage.css .umm-top-panel note. */
+  z-index: 0;
   overflow: visible;
   color: var(--umm-text-primary);
 }
@@ -129,9 +131,9 @@
   padding: 3px 10px;
   font-size: var(--umm-font-xs);
   font-weight: 600;
-  color: #fff;
+  color: var(--umm-static-neutral-00);
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   margin-bottom: auto;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -140,7 +142,7 @@
 .umm-activity-title {
   font-size: var(--umm-font-sm);
   font-weight: 600;
-  color: #fff;
+  color: var(--umm-static-neutral-00);
   line-height: 1.4;
   margin-top: auto;
   display: -webkit-box;
@@ -240,7 +242,10 @@
   flex-shrink: 0;
   font-size: var(--umm-font-sm);
   font-weight: 600;
-  color: var(--umm-rating-score, #e09040);
+  color: var(--umm-static-gold-800);
+}
+:host(.umm-theme--dark) .umm-ranking-rating {
+  color: var(--umm-static-amber-400);
 }
 
 

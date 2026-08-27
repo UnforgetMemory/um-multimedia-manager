@@ -38,28 +38,36 @@
 }
 .umm-paginator-btn:hover:not(:disabled),
 .umm-reviews-page:hover {
-  background: var(--umm-bg, #fff);
+  background: var(--umm-bg);
   color: var(--umm-text-primary);
 }
 .umm-paginator-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
-/* Active (current) page button */
+/* Active (current) page button — brand accent (ADR-018 vivid push) */
 .umm-paginator-btn--active {
-  background: var(--umm-text-primary, #333);
-  color: var(--umm-bg, #fff);
+  background: var(--umm-brand-accent);
+  color: var(--umm-on-accent);
   font-weight: 700;
 }
 .umm-paginator-btn--active:hover {
-  background: var(--umm-text-primary, #333);
-  color: var(--umm-bg, #fff);
+  background: var(--umm-brand-accent);
+  color: var(--umm-on-accent);
+}
+/* Lucide chevron icons for prev/next */
+.umm-paginator-icon {
+  width: 14px;
+  height: 14px;
 }
 /* Page-specific active states (accent tokens set per-page) */
 .umm-reviews-page--active {
   background: var(--umm-rev-accent);
-  color: #fff;
+  color: var(--umm-static-neutral-00);
   font-weight: 700;
+}
+:host(.umm-theme--dark) .umm-reviews-page--active {
+  color: var(--umm-static-neutral-1000);
 }
 /* Ellipsis separator between page ranges */
 .umm-paginator-ellipsis {
@@ -68,6 +76,6 @@
   justify-content: center;
   min-width: 28px;
   height: 28px;
-  color: var(--umm-text-muted, #999);
+  color: var(--umm-text-muted);
   font-size: var(--umm-font-xs, 0.75rem);
 }

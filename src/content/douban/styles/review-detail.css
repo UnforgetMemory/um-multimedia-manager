@@ -1,10 +1,10 @@
 /* ===== UMM Douban Review Detail — Shadow DOM styles ===== */
 
 :host {
-  --umm-rd-accent: #f59e0b;
+  --umm-rd-accent: var(--umm-static-amber-700);
 }
 :host(.umm-theme--dark) {
-  --umm-rd-accent: #fbbf24;
+  --umm-rd-accent: var(--umm-static-amber-300);
 }
 
 .umm-rd-root {

@@ -1,19 +1,19 @@
 /* ===== UMM Douban Personage Creations Overlay — Shadow DOM styles ===== */
 
 :host {
-  --umm-personage-accent: #f43f5e;
-  --umm-personage-card-border: #e5e7eb;
-  --umm-personage-section-border: #e5e7eb;
-  --umm-rating-score: #e0901a;
-  --umm-creations-bg-hover: #f8f9fa;
+  --umm-personage-accent: var(--umm-static-rose-600);
+  --umm-personage-card-border: var(--umm-static-neutral-150);
+  --umm-personage-section-border: var(--umm-static-neutral-150);
+  --umm-rating-score: var(--umm-static-gold-800);
+  --umm-creations-bg-hover: var(--umm-static-neutral-50);
 }
 
 :host(.umm-theme--dark) {
-  --umm-personage-accent: #fb7185;
-  --umm-personage-card-border: #3a3b40;
-  --umm-personage-section-border: #3a3b40;
-  --umm-rating-score: #fbbf24;
-  --umm-creations-bg-hover: #2a2b30;
+  --umm-personage-accent: var(--umm-static-rose-400);
+  --umm-personage-card-border: var(--umm-static-neutral-700);
+  --umm-personage-section-border: var(--umm-static-neutral-700);
+  --umm-rating-score: var(--umm-static-amber-400);
+  --umm-creations-bg-hover: var(--umm-static-neutral-800);
 }
 
 /* ===== Root layout ===== */
@@ -78,13 +78,13 @@
 
 .umm-creations-tab--active {
   background: var(--umm-personage-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   font-weight: 600;
 }
 
 .umm-creations-tab--active:hover {
   background: var(--umm-personage-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ===== Sort ===== */
@@ -98,7 +98,7 @@
 .umm-creations-sort-btn {
   padding: 4px 12px;
   border: 1px solid var(--umm-personage-card-border);
-  background: var(--umm-card-bg, #fff);
+  background: var(--umm-card-bg, var(--umm-static-neutral-00));
   font-size: var(--umm-font-xs, 0.75rem);
   font-family: inherit;
   color: var(--umm-text-secondary);
@@ -114,13 +114,13 @@
 
 .umm-creations-sort-btn--active {
   background: var(--umm-personage-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   border-color: var(--umm-personage-accent);
   font-weight: 500;
 }
 
 .umm-creations-sort-btn--active:hover {
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ===== Role filter bar ===== */
@@ -149,7 +149,7 @@
   padding: 3px 14px;
   border: 1px solid var(--umm-personage-card-border);
   border-radius: 20px;
-  background: var(--umm-card-bg, #fff);
+  background: var(--umm-card-bg, var(--umm-static-neutral-00));
   font-size: var(--umm-font-xs, 0.75rem);
   font-family: inherit;
   color: var(--umm-text-secondary);
@@ -167,12 +167,12 @@
 .umm-creations-role-chip--active {
   background: var(--umm-personage-accent);
   border-color: var(--umm-personage-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   font-weight: 500;
 }
 
 .umm-creations-role-chip--active:hover {
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ===== Creations list ===== */
@@ -189,7 +189,7 @@
   padding: var(--umm-space-md, 12px);
   border: 1px solid var(--umm-personage-card-border);
   border-radius: var(--umm-card-radius, 10px);
-  background: var(--umm-card-bg, #fff);
+  background: var(--umm-card-bg, var(--umm-static-neutral-00));
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   position: relative;
 }
@@ -212,7 +212,7 @@
   border-radius: var(--umm-card-radius, 6px);
   background-size: cover;
   background-position: center;
-  background-color: var(--umm-bg-secondary, #f0f0f0);
+  background-color: var(--umm-bg-secondary, var(--umm-static-neutral-100));
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -259,8 +259,8 @@
 
 .umm-creation-status {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: #e0901a;
-  background: rgba(224, 144, 26, 0.1);
+  color: var(--umm-static-gold-800);
+  background: color-mix(in srgb, var(--umm-static-gold-500) 10%, transparent);
   padding: 0 6px;
   border-radius: 3px;
   white-space: nowrap;
@@ -271,7 +271,7 @@
   color: var(--umm-text-muted);
   padding: 0 6px;
   border-radius: 3px;
-  background: var(--umm-bg-secondary, #f0f0f0);
+  background: var(--umm-bg-secondary, var(--umm-static-neutral-100));
   white-space: nowrap;
 }
 
@@ -321,21 +321,23 @@
   font-size: var(--umm-font-xs, 0.6875rem);
   font-weight: 600;
   line-height: 1.4;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .umm-creation-badge--wish {
-  background: rgba(79, 158, 245, 0.15);
-  color: #4f9ef5;
+  background: rgba(219, 234, 254, 0.92);
+  color: var(--umm-static-blue-700);
 }
 
 .umm-creation-badge--do {
-  background: rgba(244, 180, 0, 0.15);
-  color: #f4b400;
+  background: rgba(254, 243, 199, 0.92);
+  color: var(--umm-static-amber-700);
 }
 
 .umm-creation-badge--collect {
-  background: rgba(72, 199, 142, 0.15);
-  color: #48c78e;
+  background: rgba(209, 250, 229, 0.92);
+  color: var(--umm-static-green-700);
 }
 
 .umm-creation-badge-rating {
@@ -358,7 +360,7 @@
   padding: 7px 18px;
   border: 1px solid var(--umm-personage-card-border);
   border-radius: 8px;
-  background: var(--umm-card-bg, #fff);
+  background: var(--umm-card-bg, var(--umm-static-neutral-00));
   color: var(--umm-text-primary);
   font-size: var(--umm-font-sm, 0.8125rem);
   font-weight: 500;
@@ -368,7 +370,7 @@
 }
 
 .umm-paginator-btn:hover {
-  background: var(--umm-bg-secondary, #f8f9fa);
+  background: var(--umm-bg-secondary, var(--umm-static-neutral-50));
   border-color: var(--umm-personage-accent);
   color: var(--umm-personage-accent);
 }
@@ -413,4 +415,12 @@
     width: 120px;
     min-width: 120px;
   }
+}
+/* Dark theme: bright text tiers on deep tint fills (ADR-020 D3/D4) */
+:host(.umm-theme--dark) .umm-creation-badge--wish { background: rgba(23, 37, 84, 0.92); color: var(--umm-static-blue-300); }
+:host(.umm-theme--dark) .umm-creation-badge--do { background: rgba(66, 32, 6, 0.92); color: var(--umm-static-amber-300); }
+:host(.umm-theme--dark) .umm-creation-badge--collect { background: rgba(6, 78, 59, 0.92); color: var(--umm-static-green-300); }
+:host(.umm-theme--dark) .umm-creation-status {
+  color: var(--umm-static-amber-300);
+  background: color-mix(in srgb, var(--umm-static-amber-400) 14%, transparent);
 }

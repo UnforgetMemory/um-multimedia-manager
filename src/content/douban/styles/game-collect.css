@@ -73,11 +73,11 @@
 }
 .umm-gc-rating {
   font-size: var(--umm-font-xs, 0.65rem);
-  color: #e6a817;
+  color: var(--umm-static-gold-800);
   font-weight: 600;
 }
 :host(.umm-theme--dark) .umm-gc-rating {
-  color: #f0c040;
+  color: var(--umm-static-amber-400);
 }
 .umm-gc-date {
   font-size: var(--umm-font-xs, 0.65rem);

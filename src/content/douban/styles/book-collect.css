@@ -27,7 +27,7 @@
 }
 .umm-bc-opt {
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   color: var(--umm-text-secondary);
   text-decoration: none;
   transition: all 0.15s ease;
@@ -38,7 +38,7 @@
 }
 .umm-bc-opt--active {
   background: var(--umm-bc-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   font-weight: 600;
 }
 

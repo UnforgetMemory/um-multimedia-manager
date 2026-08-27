@@ -2,10 +2,10 @@
 /* Follows the user-media/book-collect pattern for user collection pages. */
 
 :host {
-  --umm-mc-accent: #6366f1;
+  --umm-mc-accent: var(--umm-static-indigo-600);
 }
 :host(.umm-theme--dark) {
-  --umm-mc-accent: #818cf8;
+  --umm-mc-accent: var(--umm-static-indigo-400);
 }
 
 /* ===== Root ===== */
@@ -56,7 +56,7 @@
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   color: var(--umm-text-secondary);
   text-decoration: none;
   font-weight: 500;
@@ -68,12 +68,12 @@
 }
 .umm-mc-opt--active {
   background: var(--umm-mc-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   font-weight: 600;
 }
 .umm-mc-opt--active:hover {
   background: var(--umm-mc-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ===== Card Grid ===== */
@@ -160,7 +160,7 @@
   font-weight: 600;
   color: var(--umm-text-muted);
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   background: var(--umm-bg-secondary);
   display: inline-block;
   align-self: flex-start;

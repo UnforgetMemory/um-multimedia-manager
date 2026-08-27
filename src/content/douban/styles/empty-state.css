@@ -15,7 +15,7 @@
   justify-content: center;
   padding: var(--umm-space-2xl, 48px) var(--umm-space-xl, 24px);
   font-size: var(--umm-font-base, 0.85rem);
-  color: var(--umm-text-muted, #9ca3af);
+  color: var(--umm-text-muted);
   text-align: center;
 }
 .umm-umedia-empty-icon {
@@ -27,5 +27,5 @@
 .umm-bc-empty-text,
 .umm-gc-empty-text {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: var(--umm-text-muted, #9ca3af);
+  color: var(--umm-text-muted);
 }

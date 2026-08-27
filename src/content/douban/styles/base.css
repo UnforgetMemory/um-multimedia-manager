@@ -10,6 +10,22 @@
   scrollbar-color: var(--umm-color-border) var(--umm-color-surface-secondary);
 }
 
+/* ---- Selection — brand-tinted signature (HIG/M3 accent usage).
+     Alpha keeps legibility on BOTH themes without theme-scoped overrides ---- */
+::selection {
+  background: color-mix(in srgb, var(--umm-brand-accent) 32%, transparent);
+  color: var(--umm-color-text-primary);
+}
+
+/* ---- Keyboard focus visibility — UA default is near-invisible on dark.
+     Brand outline + offset; follows element border-radius in modern Chrome ---- */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--umm-brand-accent);
+  outline-offset: 2px;
+}
+
 /* ---- Shared page host reset ---- */
 :host {
   display: block;
@@ -32,6 +48,32 @@
 }
 :host::-webkit-scrollbar-thumb:hover {
   background: var(--umm-color-text-muted);
+}
+
+/* ---- Reduced motion — a11y guard (StyleKit checklist requirement) ---- */
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Mount entrance (StyleKit fade, restrained) ---- */
+/* Opacity-only by design: ANY motion property (transform OR the individual
+   translate) that survives via fill-mode both turns .umm-mount into the
+   containing block for position:fixed descendants (interest dialog, photos
+   viewer) — top:50% then resolves against the scroll content, not the
+   viewport. Even transform:none endpoints still fill as identity matrices;
+   omitting motion entirely is the only leak-free form. */
+@keyframes umm-mount-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.umm-mount {
+  animation: umm-mount-fade var(--umm-static-duration-enter, 500ms) var(--umm-static-ease-emphasized, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
 /* ---- Image shimmer placeholder ---- */
@@ -118,14 +160,14 @@
   padding: 4px 10px;
   font-size: var(--umm-font-xs, 11px);
   font-weight: 700;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   user-select: none;
   letter-spacing: 0.04em;
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.15),
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  color: #ffffff;
+  color: var(--umm-static-neutral-00);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   line-height: 1.3;
   max-width: 120px;
@@ -137,22 +179,22 @@
 }
 
 .umm-status--done {
-  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(180deg, var(--umm-static-green-600) 0%, var(--umm-static-green-700) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .umm-status--none {
-  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(180deg, var(--umm-static-red-600) 0%, var(--umm-static-red-700) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .umm-status--wish {
-  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+  background: linear-gradient(180deg, var(--umm-static-amber-500) 0%, var(--umm-static-amber-600) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .umm-status--doing {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(180deg, var(--umm-static-blue-500) 0%, var(--umm-static-blue-600) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
@@ -172,20 +214,22 @@
   max-width: 100px;
 }
 
+/* Dark status badges — Primer convention: desaturated dark solids x WHITE ink
+   (no gradients in dark; no ink text on any dark fill). */
 :host(.umm-theme--dark) .umm-status--done {
-  background: linear-gradient(180deg, #15803d 0%, #166534 100%);
+  background: var(--umm-static-green-700);
 }
 
 :host(.umm-theme--dark) .umm-status--none {
-  background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%);
+  background: var(--umm-static-red-700);
 }
 
 :host(.umm-theme--dark) .umm-status--wish {
-  background: linear-gradient(180deg, #c2410c 0%, #9a3412 100%);
+  background: var(--umm-static-neodb-amber-dark);
 }
 
 :host(.umm-theme--dark) .umm-status--doing {
-  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+  background: var(--umm-static-blue-700);
 }
 
 /* ---- Dynamic Island (shared across all pages) ---- */
@@ -199,7 +243,7 @@
   background: var(--umm-island-bg);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   border: 1px solid var(--umm-island-border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
               0 4px 12px rgba(0, 0, 0, 0.03);
@@ -240,7 +284,7 @@
   align-items: center;
   gap: 5px;
   padding: var(--umm-space-1-5, 6px) var(--umm-space-2-5, 10px);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   text-decoration: none;
   color: var(--umm-island-text-secondary);
   font-size: var(--umm-font-caption-size);
@@ -379,4 +423,14 @@
   .umm-island { max-width: 800px; height: 54px; }
   .umm-island-nav-link { font-size: 16px; padding: 8px 14px; }
   .umm-island-input { font-size: 17px; }
+}
+
+/* Wish/amber fills pair with deep text in LIGHT (M3, ADR-019 D2).
+   Dark wish fill is Primer attention-dark #9e6a03 → WHITE ink (4.65). */
+.umm-status--wish {
+  color: var(--umm-static-neutral-1000);
+  text-shadow: none;
+}
+:host(.umm-theme--dark) .umm-status--wish {
+  color: var(--umm-static-neutral-00);
 }

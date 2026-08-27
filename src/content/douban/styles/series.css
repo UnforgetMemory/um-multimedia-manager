@@ -4,19 +4,19 @@
    ============================================================ */
 
 :host {
-  --s-accent: var(--umm-link, #1757d6);
-  --s-accent-bg: color-mix(in srgb, var(--umm-link, #1757d6) 10%, transparent);
-  --s-card-bg: var(--umm-card-bg, #ffffff);
-  --s-card-border: var(--umm-card-border, #e5e7eb);
-  --s-rating-color: var(--umm-rating-gold-high, #d4a017);
+  --s-accent: var(--umm-link, var(--umm-static-brand-600));
+  --s-accent-bg: color-mix(in srgb, var(--umm-link, var(--umm-static-brand-600)) 10%, transparent);
+  --s-card-bg: var(--umm-card-bg, var(--umm-static-neutral-00));
+  --s-card-border: var(--umm-card-border, var(--umm-static-neutral-150));
+  --s-rating-color: var(--umm-rating-gold-high, var(--umm-static-gold-500));
 }
 
 :host(.umm-theme--dark) {
-  --s-accent: var(--umm-link, #60a5fa);
-  --s-accent-bg: color-mix(in srgb, var(--umm-link, #60a5fa) 12%, transparent);
-  --s-card-bg: var(--umm-card-bg, #2a2b30);
-  --s-card-border: var(--umm-card-border, #3a3b40);
-  --s-rating-color: var(--umm-rating-gold-high, #e8c030);
+  --s-accent: var(--umm-link, var(--umm-static-blue-400));
+  --s-accent-bg: color-mix(in srgb, var(--umm-link, var(--umm-static-blue-400)) 12%, transparent);
+  --s-card-bg: var(--umm-card-bg, var(--umm-static-neutral-800));
+  --s-card-border: var(--umm-card-border, var(--umm-static-neutral-700));
+  --s-rating-color: var(--umm-rating-gold-high, var(--umm-static-amber-400));
 }
 
 /* ── Root container ── */
@@ -78,7 +78,7 @@
   padding: 8px 20px;
   font-size: var(--umm-font-sm, 13px);
   font-weight: 500;
-  color: #fff;
+  color: var(--umm-on-accent);
   background: var(--s-accent);
   border: none;
   border-radius: var(--umm-radius-md, 8px);
@@ -153,12 +153,12 @@
 
 .umm-series-sort-link--active {
   background: var(--s-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   border-color: var(--s-accent);
 }
 
 .umm-series-sort-link--active:hover {
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ── Book item list ── */
@@ -289,18 +289,18 @@
 }
 
 .umm-series-status--done {
-  background: var(--umm-success-bg, #e6f7e6);
-  color: var(--umm-success, #2e7d32);
+  background: var(--umm-success-bg, var(--umm-static-green-50));
+  color: var(--umm-success, var(--umm-static-green-700));
 }
 
 .umm-series-status--wish {
-  background: var(--umm-info-bg, #e3f2fd);
-  color: var(--umm-info, #1565c0);
+  background: var(--umm-info-bg, var(--umm-static-blue-100));
+  color: var(--umm-info, var(--umm-static-blue-700));
 }
 
 .umm-series-status--doing {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--umm-static-amber-50);
+  color: var(--umm-static-amber-700);
 }
 
 /* ── Paginator ── */
@@ -338,12 +338,12 @@
 
 .umm-series-page-btn--active {
   background: var(--s-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
   border-color: var(--s-accent);
 }
 
 .umm-series-page-btn--active:hover {
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ── Empty state ── */

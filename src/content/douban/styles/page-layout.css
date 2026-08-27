@@ -33,8 +33,12 @@
   flex: 1;
   width: 100%;
   box-sizing: border-box;
+  /* No z-index here: a z-index:0 + relative pair creates a stacking context
+     that caps every internal fixed overlay (dialog overlay/panel at
+     --umm-z-overlay/dialog 300/400) below .umm-layout-header's z:50 — the
+     header then stays visible and clickable above an open modal. Only
+     position is kept for any absolutely-positioned children. */
   position: relative;
-  z-index: 0;
 }
 
 .umm-layout-footer {

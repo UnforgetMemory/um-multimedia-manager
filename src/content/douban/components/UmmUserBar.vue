@@ -54,7 +54,7 @@ defineProps<{
   gap: var(--umm-space-sm, 12px);
   margin-bottom: var(--umm-space-md, 16px);
   padding-bottom: var(--umm-space-sm, 10px);
-  border-bottom: 1px solid var(--umm-border, #e5e7eb);
+  border-bottom: 1px solid var(--umm-border, #e3e8f0);
 }
 .umm-userbar-avatar {
   width: 36px;
@@ -62,7 +62,7 @@ defineProps<{
   border-radius: 50%;
   background-size: cover;
   background-position: center;
-  background-color: var(--umm-bg-secondary, #f3f4f6);
+  background-color: var(--umm-bg-secondary, #f1f4f9);
   flex-shrink: 0;
 }
 .umm-userbar-info {
@@ -74,11 +74,11 @@ defineProps<{
 .umm-userbar-name {
   font-size: var(--umm-font-sm, 0.85rem);
   font-weight: 600;
-  color: var(--umm-text-primary, #111827);
+  color: var(--umm-text-primary, #151a23);
   text-decoration: none;
 }
 .umm-userbar-name:hover {
-  color: var(--umm-link, #6366f1);
+  color: var(--umm-link, #3a55ec);
 }
 .umm-userbar-nav {
   display: flex;
@@ -87,7 +87,7 @@ defineProps<{
 }
 .umm-userbar-navlink {
   font-size: var(--umm-font-xs, 0.65rem);
-  color: var(--umm-text-muted, #9ca3af);
+  color: var(--umm-text-muted, #5d6a81);
   text-decoration: none;
   white-space: nowrap;
   padding: 1px 4px;
@@ -95,7 +95,7 @@ defineProps<{
   transition: color 0.15s, background 0.15s;
 }
 .umm-userbar-navlink:hover {
-  color: var(--umm-link, #6366f1);
-  background: var(--umm-bg-secondary, #f3f4f6);
+  color: var(--umm-link, #3a55ec);
+  background: var(--umm-bg-secondary, #f1f4f9);
 }
 </style>

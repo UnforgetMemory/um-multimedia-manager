@@ -14,6 +14,7 @@
  * - page-change(page: number)
  */
 import { computed } from 'vue'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 const props = defineProps<{
   currentPage: number
@@ -53,9 +54,10 @@ const visiblePages = computed<(number | string)[]>(() => {
     <button
       class="umm-paginator-btn"
       :disabled="currentPage <= 1"
+      aria-label="Previous page"
       @click="emit('page-change', currentPage - 1)"
     >
-      ‹
+      <ChevronLeft class="umm-paginator-icon" />
     </button>
     <template v-for="page in visiblePages" :key="page">
       <button
@@ -71,9 +73,10 @@ const visiblePages = computed<(number | string)[]>(() => {
     <button
       class="umm-paginator-btn"
       :disabled="currentPage >= totalPages"
+      aria-label="Next page"
       @click="emit('page-change', currentPage + 1)"
     >
-      ›
+      <ChevronRight class="umm-paginator-icon" />
     </button>
   </div>
 </template>

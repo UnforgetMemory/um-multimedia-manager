@@ -59,6 +59,7 @@ export function mountUmmOverlay(options: MountOptions): void {
     if (loading) loading.remove()
 
     const container = document.createElement('div')
+    container.className = 'umm-mount'
     shadow.appendChild(container)
     const app = options.createApp(shadow, ctx)
     app.mount(container)

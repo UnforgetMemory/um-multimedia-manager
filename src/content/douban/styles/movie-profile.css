@@ -2,10 +2,10 @@
 /* Reuses umm-dash-* pattern from user-profile sections. */
 
 :host {
-  --umm-mp-accent: #6366f1;
+  --umm-mp-accent: var(--umm-static-indigo-600);
 }
 :host(.umm-theme--dark) {
-  --umm-mp-accent: #818cf8;
+  --umm-mp-accent: var(--umm-static-indigo-400);
 }
 
 /* ===== Root ===== */

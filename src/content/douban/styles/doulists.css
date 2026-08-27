@@ -1,17 +1,17 @@
 /* ===== UMM Douban Doulists — Shadow DOM styles ===== */
 
 :host {
-  --dc-accent: #f43f5e;
-  --dc-accent-bg: color-mix(in srgb, #f43f5e 10%, transparent);
-  --dc-card-bg: #ffffff;
-  --dc-card-border: #e5e7eb;
+  --dc-accent: var(--umm-static-rose-600);
+  --dc-accent-bg: color-mix(in srgb, var(--umm-static-rose-600) 10%, transparent);
+  --dc-card-bg: var(--umm-static-neutral-00);
+  --dc-card-border: var(--umm-static-neutral-150);
 }
 
 :host(.umm-theme--dark) {
-  --dc-accent: #fb7185;
-  --dc-accent-bg: color-mix(in srgb, #fb7185 10%, transparent);
-  --dc-card-bg: #2a2b30;
-  --dc-card-border: #3a3b40;
+  --dc-accent: var(--umm-static-rose-400);
+  --dc-accent-bg: color-mix(in srgb, var(--umm-static-rose-400) 10%, transparent);
+  --dc-card-bg: var(--umm-static-neutral-800);
+  --dc-card-border: var(--umm-static-neutral-700);
 }
 
 /* ===== Root layout ===== */
@@ -39,7 +39,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   font-size: var(--umm-font-xs);
   font-weight: 500;
   color: var(--umm-text-secondary);
@@ -57,15 +57,16 @@
 }
 
 .umm-doulist-xbar-tab--active {
-  color: #fff;
+  color: var(--umm-on-accent);
   background: var(--dc-accent);
   border-color: var(--dc-accent);
   font-weight: 600;
 }
 
 .umm-doulist-xbar-tab--active .umm-doulist-count {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  color: inherit;
 }
 
 .umm-doulist-xbar-tab--active:hover {
@@ -95,11 +96,28 @@
   font-size: var(--umm-font-sm);
   font-weight: 500;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  position: relative;
   white-space: nowrap;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color var(--umm-static-duration-fast, 200ms) ease;
   font-family: inherit;
+}
+
+/* StyleKit Underline Draw — currentColor follows text state; 1px-class bar */
+.umm-doulist-tab::after {
+  content: '';
+  position: absolute;
+  left: var(--umm-space-sm);
+  right: var(--umm-space-sm);
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--umm-static-duration-fast, 200ms) var(--umm-static-ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.umm-doulist-tab:hover::after {
+  transform: scaleX(1);
 }
 
 .umm-doulist-tab:hover {
@@ -108,8 +126,10 @@
 
 .umm-doulist-tab--active {
   color: var(--dc-accent);
-  border-bottom-color: var(--dc-accent);
   font-weight: 600;
+}
+.umm-doulist-tab--active::after {
+  transform: scaleX(1);
 }
 
 .umm-doulist-count {
@@ -118,17 +138,18 @@
   justify-content: center;
   min-width: 20px;
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   font-size: var(--umm-font-xs);
   font-weight: 600;
   line-height: 1.2;
   background: var(--umm-bg-secondary);
   color: var(--umm-text-muted);
+  border: 1px solid transparent;
 }
 
 .umm-doulist-tab--active .umm-doulist-count {
   background: var(--dc-accent);
-  color: #fff;
+  color: var(--umm-on-accent);
 }
 
 /* ===== Grid ===== */
@@ -242,7 +263,7 @@
   top: 8px;
   right: 8px;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   font-size: var(--umm-font-xs);
   font-weight: 600;
   line-height: 1.3;
@@ -253,15 +274,15 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.umm-doulist-cat--movie { background: rgba(238, 242, 255, 0.92); color: #4f46e5; }
-.umm-doulist-cat--music { background: rgba(243, 232, 255, 0.92); color: #9333ea; }
-.umm-doulist-cat--book  { background: rgba(254, 243, 199, 0.92); color: #b45309; }
-.umm-doulist-cat--thing_place { background: rgba(219, 234, 254, 0.92); color: #2563eb; }
+.umm-doulist-cat--movie { background: rgba(238, 242, 255, 0.92); color: var(--umm-static-indigo-600); }
+.umm-doulist-cat--music { background: rgba(243, 232, 255, 0.92); color: var(--umm-static-violet-600); }
+.umm-doulist-cat--book  { background: rgba(254, 243, 199, 0.92); color: var(--umm-static-amber-700); }
+.umm-doulist-cat--thing_place { background: rgba(219, 234, 254, 0.92); color: var(--umm-static-blue-700); }
 
-:host(.umm-theme--dark) .umm-doulist-cat--movie { background: rgba(30, 27, 75, 0.92); color: #818cf8; }
-:host(.umm-theme--dark) .umm-doulist-cat--music { background: rgba(46, 16, 101, 0.92); color: #a855f7; }
-:host(.umm-theme--dark) .umm-doulist-cat--book  { background: rgba(66, 32, 6, 0.92); color: #fbbf24; }
-:host(.umm-theme--dark) .umm-doulist-cat--thing_place { background: rgba(23, 37, 84, 0.92); color: #60a5fa; }
+:host(.umm-theme--dark) .umm-doulist-cat--movie { background: rgba(30, 27, 75, 0.92); color: var(--umm-static-indigo-400); }
+:host(.umm-theme--dark) .umm-doulist-cat--music { background: rgba(46, 16, 101, 0.92); color: var(--umm-static-violet-300); }
+:host(.umm-theme--dark) .umm-doulist-cat--book  { background: rgba(66, 32, 6, 0.92); color: var(--umm-static-amber-400); }
+:host(.umm-theme--dark) .umm-doulist-cat--thing_place { background: rgba(23, 37, 84, 0.92); color: var(--umm-static-blue-400); }
 
 /* ===== Layer 3: Body (stats → intro → footer) ===== */
 
@@ -313,7 +334,7 @@
 }
 
 :host(.umm-theme--dark) .umm-doulist-intro {
-  color: #999;
+  color: var(--umm-static-neutral-400);
 }
 
 /* --- Footer: time left, follower right --- */

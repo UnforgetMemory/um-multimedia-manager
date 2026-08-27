@@ -5,11 +5,11 @@
   width: 100%;
   min-height: 100vh;
   /* user-select is not set at :host level — specific interactive elements opt-in */
-  --umm-accent: #6366f1;
+  --umm-accent: var(--umm-static-indigo-600);
 }
 
 :host(.umm-theme--dark) {
-  --umm-accent: #818cf8;
+  --umm-accent: var(--umm-static-indigo-400);
 }
 
 /* Root panel */
@@ -47,7 +47,7 @@
   display: inline-block;
   padding: 4px 12px;
   font-size: var(--umm-font-sm, 0.8125rem);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
 }
@@ -59,11 +59,11 @@
 
 .umm-genre-nav-link:hover {
   background: var(--umm-accent);
-  color: var(--umm-color-surface);
+  color: var(--umm-on-accent);
 }
 
 .umm-genre-nav-current {
-  color: var(--umm-color-surface);
+  color: var(--umm-on-accent);
   background: var(--umm-accent);
   font-weight: 600;
 }
@@ -151,7 +151,7 @@
 
 .umm-page-btn:hover {
   background: var(--umm-accent);
-  color: var(--umm-color-surface);
+  color: var(--umm-on-accent);
 }
 
 .umm-page-btn:disabled {

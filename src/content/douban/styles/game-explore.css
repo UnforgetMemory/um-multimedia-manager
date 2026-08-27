@@ -73,14 +73,14 @@
 }
 
 .umm-game-filter-chip:hover {
-  border-color: var(--umm-brand-accent, #4f6ef7);
-  color: var(--umm-brand-accent, #4f6ef7);
+  border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-brand-accent, var(--umm-static-brand-500));
 }
 
 .umm-game-filter-chip--active {
-  border-color: var(--umm-brand-accent, #4f6ef7);
-  background: var(--umm-brand-accent, #4f6ef7);
-  color: #fff;
+  border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  background: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-on-accent);
 }
 
 /* ---- Sort bar ---- */
@@ -111,14 +111,14 @@
 }
 
 .umm-game-sort-btn:hover {
-  border-color: var(--umm-brand-accent, #4f6ef7);
-  color: var(--umm-brand-accent, #4f6ef7);
+  border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-brand-accent, var(--umm-static-brand-500));
 }
 
 .umm-game-sort-btn--active {
-  border-color: var(--umm-brand-accent, #4f6ef7);
-  background: var(--umm-brand-accent, #4f6ef7);
-  color: #fff;
+  border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  background: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-on-accent);
 }
 
 /* ---- Game list (single column) ---- */
@@ -189,7 +189,7 @@
 }
 
 .umm-game-item-title:hover {
-  color: var(--umm-link, #1757d6);
+  color: var(--umm-link, var(--umm-static-brand-600));
 }
 
 /* Status badge in title row — NOT overlaid on poster */
@@ -225,7 +225,10 @@
 .umm-game-item-rating-num {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--umm-accent, #e09030);
+  color: var(--umm-static-gold-800);
+}
+:host(.umm-theme--dark) .umm-game-item-rating-num {
+  color: var(--umm-static-amber-400);
 }
 
 .umm-game-item-rating-people {
@@ -267,8 +270,8 @@
 }
 
 .umm-game-load-btn:hover {
-  border-color: var(--umm-brand-accent, #4f6ef7);
-  color: var(--umm-brand-accent, #4f6ef7);
+  border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-brand-accent, var(--umm-static-brand-500));
 }
 
 .umm-game-load-btn--loading {

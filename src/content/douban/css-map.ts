@@ -8,6 +8,7 @@
  * mount factory and page-specific mount configurations.
  */
 
+import staticTokensCss from '@/shared/styles/tokens.static.css?raw'
 import designTokensCss from './styles/design-tokens.css?raw'
 import themeCss from './styles/theme.css?raw'
 import baseCss from './styles/base.css?raw'
@@ -54,6 +55,7 @@ import emptyStateCss from './styles/empty-state.css?raw'
 import statbarCss from './styles/statbar.css?raw'
 
 export {
+  staticTokensCss,
   designTokensCss,
   themeCss,
   baseCss,
@@ -104,6 +106,7 @@ export {
  * to their raw CSS string values from ?raw imports.
  */
 export const cssMap: Record<string, string> = {
+  'static-tokens': staticTokensCss,
   'design-tokens': designTokensCss,
   theme: themeCss,
   base: baseCss,

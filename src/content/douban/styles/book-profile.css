@@ -2,13 +2,13 @@
 /* Dashboard design following user-profile.css pattern. */
 
 :host {
-  --umm-profile-accent: #6366f1;
-  --umm-profile-accent-soft: #e0e7ff;
+  --umm-profile-accent: var(--umm-static-indigo-600);
+  --umm-profile-accent-soft: var(--umm-static-blue-100);
 }
 
 :host(.umm-theme--dark) {
-  --umm-profile-accent: #818cf8;
-  --umm-profile-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
+  --umm-profile-accent: var(--umm-static-indigo-400);
+  --umm-profile-accent-soft: color-mix(in srgb, var(--umm-static-violet-900) 60%, transparent);
 }
 
 /* ===== Root ===== */
@@ -39,7 +39,7 @@
   color: var(--umm-text-muted);
   text-decoration: none;
   padding: var(--umm-space-1-5, 6px) var(--umm-space-md, 12px);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -50,13 +50,13 @@
 }
 
 .umm-profile-nav-item--active {
-  color: #fff;
-  background: var(--umm-accent, #6366f1);
+  color: var(--umm-on-accent);
+  background: var(--umm-accent, var(--umm-static-indigo-600));
   font-weight: 600;
 }
 
 .umm-profile-nav-item--active:hover {
-  background: var(--umm-accent-hover, #4f46e5);
+  background: var(--umm-accent-hover, var(--umm-static-indigo-600));
 }
 
 /* ===== Hero (shared with user-profile) ===== */
@@ -265,7 +265,7 @@
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: var(--umm-border, #e5e7eb);
+  background: var(--umm-border, var(--umm-static-neutral-150));
 }
 
 .umm-timeline-date {
@@ -326,8 +326,11 @@
 
 .umm-timeline-stars {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: #f59e0b;
+  color: var(--umm-static-gold-800);
   margin-left: 4px;
+}
+:host(.umm-theme--dark) .umm-timeline-stars {
+  color: var(--umm-static-amber-400);
 }
 
 .umm-timeline-quote {
@@ -409,7 +412,10 @@
 
 .umm-review-stars {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: #f59e0b;
+  color: var(--umm-static-gold-800);
+}
+:host(.umm-theme--dark) .umm-review-stars {
+  color: var(--umm-static-amber-400);
 }
 
 .umm-review-excerpt {
@@ -432,7 +438,7 @@
   align-items: center;
   gap: var(--umm-space-xs, 6px);
   padding: var(--umm-space-xs, 6px) var(--umm-space-md, 12px);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   background: var(--umm-bg-secondary);
   border: 1px solid var(--umm-border);
   text-decoration: none;

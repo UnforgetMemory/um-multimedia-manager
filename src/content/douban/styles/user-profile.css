@@ -2,13 +2,13 @@
 /* Dashboard design — completely rebuilt from scratch. */
 
 :host {
-  --umm-profile-accent: #6366f1;
-  --umm-profile-accent-soft: #e0e7ff;
+  --umm-profile-accent: var(--umm-static-indigo-600);
+  --umm-profile-accent-soft: var(--umm-static-blue-100);
 }
 
 :host(.umm-theme--dark) {
-  --umm-profile-accent: #818cf8;
-  --umm-profile-accent-soft: color-mix(in srgb, #312e81 60%, transparent);
+  --umm-profile-accent: var(--umm-static-indigo-400);
+  --umm-profile-accent-soft: color-mix(in srgb, var(--umm-static-violet-900) 60%, transparent);
 }
 
 /* ===== Root ===== */
@@ -217,7 +217,7 @@
   align-items: center;
   gap: var(--umm-space-xs, 6px);
   padding: var(--umm-space-xs, 6px) var(--umm-space-md, 12px);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   background: var(--umm-bg-secondary);
   border: 1px solid var(--umm-border);
   text-decoration: none;
@@ -358,7 +358,10 @@
 
 .umm-review-stars {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: #f59e0b;
+  color: var(--umm-static-gold-800);
+}
+:host(.umm-theme--dark) .umm-review-stars {
+  color: var(--umm-static-amber-400);
 }
 
 .umm-review-excerpt {
@@ -408,8 +411,11 @@
 
 .umm-status-stars {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: #f59e0b;
+  color: var(--umm-static-gold-800);
   margin-left: auto;
+}
+:host(.umm-theme--dark) .umm-status-stars {
+  color: var(--umm-static-amber-400);
 }
 
 .umm-status-content {

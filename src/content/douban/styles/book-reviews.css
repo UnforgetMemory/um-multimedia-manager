@@ -124,7 +124,7 @@
   color: var(--umm-rev-accent);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--umm-rev-accent) 30%, transparent);
-  border-radius: 999px;
+  border-radius: var(--umm-radius-lg, 12px);
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;

@@ -1,25 +1,25 @@
 /* ===== Shared Title Bar (left stripe) ===== */
-/* Page-specific accent color is set via --umm-titlebar-accent or falls through to --umm-accent. */
-
+/* Page-specific accent via --umm-titlebar-accent; default = brand accent
+   (design-tokens.css, always composed before this chunk). */
 .umm-titlebar {
   display: flex;
   align-items: baseline;
   gap: var(--umm-space-sm, 12px);
   margin-bottom: var(--umm-space-sm, 10px);
   padding-left: var(--umm-space-sm, 10px);
-  border-left: 3px solid var(--umm-titlebar-accent, var(--umm-accent, #6366f1));
+  border-left: 3px solid var(--umm-titlebar-accent, var(--umm-brand-accent));
 }
 
 .umm-titlebar-label {
   font-size: var(--umm-font-lg, 1.125rem);
   font-weight: 800;
-  color: var(--umm-text-primary, #1a1a1a);
+  color: var(--umm-text-primary);
   line-height: 1.3;
   margin: 0;
 }
 
 .umm-titlebar-count {
   font-size: var(--umm-font-xs, 0.75rem);
-  color: var(--umm-text-muted, #9ca3af);
+  color: var(--umm-text-muted);
   font-weight: 600;
 }

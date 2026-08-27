@@ -6,18 +6,24 @@
  */
 
 import { startThemeSync } from './theme-sync'
+import { COLOR_SURFACE_DARK, COLOR_SURFACE_LIGHT, COLOR_ACCENT_APPLE } from '@/entrypoints/content/styles/tokens'
 
-/** Shadow root CSS for loading spinner (shared across all overlays) */
-const SHADOW_CSS = `:host{--ov-bg:hsl(240 6% 10%);--ov-text:hsl(0 0% 98%);--ov-text-muted:hsl(0 0% 98%/0.5);--ov-ring:hsl(0 0% 98%/0.15);--ov-ring-top:hsl(0 0% 98%/0.8);background:var(--ov-bg);transition:background-color 0.3s ease,color 0.3s ease,border-color 0.3s ease}:host([data-theme="light"]){--ov-bg:hsl(0 0% 100%);--ov-text:hsl(240 10% 3.9%);--ov-text-muted:hsl(240 3.8% 46.1%);--ov-ring:hsl(0 0% 98%/0.15);--ov-ring-top:hsl(240 5.9% 10%/0.8);background:var(--ov-bg)}.ov-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--ov-text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ov-spinner{width:40px;height:40px;border:3px solid var(--ov-ring);border-top-color:var(--ov-ring-top);border-radius:50%;animation:ov-spin .8s linear infinite;box-sizing:border-box}.ov-title{font-size:1.25rem;font-weight:600}.ov-subtitle{font-size:.8125rem;color:var(--ov-text-muted)}@keyframes ov-spin{to{transform:rotate(360deg)}}`
+/** Shadow root CSS for loading spinner (shared across all overlays).
+ *  Colors mirror the DARK Vibrancy surface (--umm-static-vibrancy-0 #1c1c1e)
+ *  and light surface (#f7f9fc); kept literal because this early overlay
+ *  cannot wait for the ?raw token composition. Shell must equal the mounted
+ *  app surface pixel-for-pixel — no seams. */
+const SHADOW_CSS = `:host{--ov-bg:${COLOR_SURFACE_DARK};--ov-text:#f4f4f5;--ov-text-muted:rgb(255 255 255/0.58);--ov-ring:rgb(255 255 255/0.15);--ov-ring-top:${COLOR_ACCENT_APPLE};background:var(--ov-bg);transition:background-color 0.3s ease,color 0.3s ease,border-color 0.3s ease}:host([data-theme="light"]){--ov-bg:${COLOR_SURFACE_LIGHT};--ov-text:#151a23;--ov-text-muted:#5d6a81;--ov-ring:rgb(21 26 35/0.12);--ov-ring-top:var(--umm-ring-top-light, #4f6ef7);background:var(--ov-bg)}.ov-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--ov-text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ov-spinner{width:40px;height:40px;border:3px solid var(--ov-ring);border-top-color:var(--ov-ring-top);border-radius:50%;animation:ov-spin .8s linear infinite;box-sizing:border-box}.ov-title{font-size:1.25rem;font-weight:600}.ov-subtitle{font-size:.8125rem;color:var(--ov-text-muted)}@keyframes ov-spin{to{transform:rotate(360deg)}}`
 
 /** Page-level style element ID scoped to the overlay */
 function getPageStyleId(overlayId: string): string {
   return `${overlayId}-page-style`
 }
 
-/** Page-level CSS to lock body and style overlay (injected into document root) */
+/** Page-level CSS to lock body and style overlay (injected into document root).
+ *  Backgrounds mirror --umm-color-surface per theme (see SHADOW_CSS note). */
 function getPageCSS(overlayId: string): string {
-  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:200!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:hsl(240 6% 10%)!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:hsl(0 0% 100%)!important;color-scheme:light!important}body{overflow:hidden!important}`
+  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:200!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:${COLOR_SURFACE_DARK}!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:${COLOR_SURFACE_LIGHT}!important;color-scheme:light!important}body{overflow:hidden!important}`
 }
 
 export interface OverlayOptions {
