@@ -12,6 +12,7 @@ export default {
   'common.save': '保存',
   'common.cancel': '取消',
   'common.close': '关闭',
+  'common.menu': '菜单',
   'common.search': '搜索',
   'common.retry': '重试',
   'common.today': '今天',
@@ -60,6 +61,7 @@ export default {
   'common.saveRating': '保存评分',
   'common.activity': '活跃度',
   'common.last90Days': '最近 90 天',
+  'common.daysCount': '{n}天',
   'common.noActivity': '无活动',
   'common.countActivity': '{count} 条活动',
   'common.legendLess': '少',
@@ -74,7 +76,8 @@ export default {
   'tab.importExport': '导入/导出',
 
   // Statistics
-'stats.movie': '电影',
+  'stats.movie': '电影',
+  'stats.yearly': '年度统计',
    'stats.tv': '剧集',
    'stats.video': '视频',
   'stats.book': '书籍',

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { FunctionalComponent, SVGAttributes } from 'vue'
-import StatCard from '@/shared/StatCard.vue'
+import StatCard, { type Accent } from '@/shared/StatCard.vue'
 
 interface StatItem {
   key: string
   icon: FunctionalComponent<SVGAttributes>
   label: string
   value: number
+  accent?: Accent
 }
 
 defineProps<{
@@ -23,6 +24,7 @@ defineProps<{
       :icon="stat.icon"
       :label="stat.label"
       :value="stat.value"
+      :accent="stat.accent"
       :loading="loading"
     />
   </div>

@@ -12,10 +12,10 @@ const icons = {
 }
 
 const colors = {
-  success: 'umm:bg-state-success',
-  error: 'umm:bg-state-error',
-  info: 'umm:bg-state-info',
-  loading: 'umm:bg-state-info',
+  success: 'umm:bg-state-success umm:text-state-success-on',
+  error: 'umm:bg-state-error umm:text-state-error-on',
+  info: 'umm:bg-state-info umm:text-state-info-on',
+  loading: 'umm:bg-state-info umm:text-state-info-on',
 }
 </script>
 
@@ -35,7 +35,7 @@ const colors = {
           :key="toast.id"
           :class="
   [
-            'umm:pointer-events-auto umm:flex umm:items-start umm:gap-3 umm:px-4 umm:py-3 umm:rounded-lg umm:shadow-lg umm:text-white umm:min-w-[280px] umm:max-w-[400px]',
+            'umm:pointer-events-auto umm:flex umm:items-start umm:gap-3 umm:px-4 umm:py-3 umm:rounded-lg umm:shadow-lg umm:min-w-[280px] umm:max-w-[400px]',
             colors[toast.type],
           ]
 "

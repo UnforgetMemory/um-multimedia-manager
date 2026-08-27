@@ -191,7 +191,7 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
             <div class="umm:flex umm:flex-col umm:gap-2 umm:text-sm">
               <div class="umm:flex umm:items-center umm:justify-between"><span class="umm:text-secondary-content">{{ t('common.mediaType') }}</span><span class="umm:font-medium">{{ linkedQueryResult.source.type }}</span></div>
               <div class="umm:flex umm:items-center umm:justify-between"><span class="umm:text-secondary-content">ID</span><span class="umm:font-mono umm:text-xs">{{ linkedQueryResult.source.providerId }}</span></div>
-              <div class="umm:flex umm:items-center umm:justify-between"><span class="umm:text-secondary-content">{{ t('common.status') }}</span><Badge :style="{ backgroundColor: getStatusColor(linkedQueryResult.source.status), color: 'hsl(var(--primary-foreground))' }" class="umm:text-xs">{{ getStatusText(linkedQueryResult.source.status, linkedQueryResult.source.type) }}</Badge></div>
+              <div class="umm:flex umm:items-center umm:justify-between"><span class="umm:text-secondary-content">{{ t('common.status') }}</span><Badge :style="{ backgroundColor: getStatusColor(linkedQueryResult.source.status), color: 'var(--primary-foreground)' }" class="umm:text-xs">{{ getStatusText(linkedQueryResult.source.status, linkedQueryResult.source.type) }}</Badge></div>
               <div v-if="linkedQueryResult.source.rating > 0" class="umm:flex umm:items-center umm:justify-between"><span class="umm:text-secondary-content">{{ t('common.rating') }}</span><span class="umm:font-medium umm:flex umm:items-center umm:gap-1"><Star class="umm:h-3 umm:w-3 umm:text-yellow-500" />{{ linkedQueryResult.source.rating }}/10</span></div>
             </div>
           </div>
@@ -201,7 +201,7 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
               <div v-for="(item, i) in linkedQueryResult.linked" :key="i" class="umm:p-3 umm:border umm:border-border umm:rounded-lg" :class="{ 'umm:bg-muted/20': item.status === -1 }">
                 <div class="umm:flex umm:items-center umm:justify-between umm:mb-2">
                   <div class="umm:flex umm:items-center umm:gap-2"><Badge variant="secondary" class="umm:text-xs">{{ getPlatformLabel(item.provider) }}</Badge><span class="umm:text-xs umm:text-secondary-content">{{ item.type }}</span></div>
-                  <Badge :style="{ backgroundColor: getStatusColor(item.status), color: 'hsl(var(--primary-foreground))' }" class="umm:text-xs">{{ getStatusText(item.status, item.type) }}</Badge>
+                  <Badge :style="{ backgroundColor: getStatusColor(item.status), color: 'var(--primary-foreground)' }" class="umm:text-xs">{{ getStatusText(item.status, item.type) }}</Badge>
                 </div>
                 <div class="umm:flex umm:flex-col umm:gap-1 umm:text-sm">
                   <div class="umm:flex umm:items-center umm:justify-between"><span class="umm:text-secondary-content">ID</span><span class="umm:font-mono umm:text-xs">{{ item.providerId }}</span></div>

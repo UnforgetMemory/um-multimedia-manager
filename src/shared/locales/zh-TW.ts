@@ -12,6 +12,7 @@ export default {
   'common.save': '儲存',
   'common.cancel': '取消',
   'common.close': '關閉',
+  'common.menu': '選單',
   'common.search': '搜尋',
   'common.retry': '重試',
   'common.today': '今天',
@@ -57,6 +58,7 @@ export default {
   'common.saveRating': '儲存評分',
   'common.activity': '活躍度',
   'common.last90Days': '最近 90 天',
+  'common.daysCount': '{n}天',
   'common.noActivity': '無活動',
   'common.countActivity': '{count} 條活動',
   'common.legendLess': '少',
@@ -74,7 +76,8 @@ export default {
   'tab.importExport': '導入/匯出',
 
   // Statistics
-'stats.movie': '電影',
+  'stats.movie': '電影',
+  'stats.yearly': '年度統計',
    'stats.tv': '劇集',
    'stats.video': '影片',
   'stats.book': '書籍',

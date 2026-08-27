@@ -26,7 +26,7 @@ const modelValue = defineModel<string>('modelValue', { required: true })
 <template>
   <div
     class="umm:grid"
-    :style="{ gridTemplateColumns: `repeat(${columns || 3}, minmax(0, 1fr))`, gap: 'var(--umm-spacing-3)' }"
+    :style="{ gridTemplateColumns: `repeat(${columns || 3}, minmax(0, 1fr))`, gap: 'var(--umm-spacing-3, 0.75rem)' }"
   >
     <Button
       v-for="opt in options"

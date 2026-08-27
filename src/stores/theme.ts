@@ -27,7 +27,12 @@ export const useThemeStore = defineStore('theme', () => {
 
   function applyTheme(mode: ThemeMode) {
     const dark = mode === 'dark' || (mode === 'auto' && isDark.value)
-    document.documentElement.classList.toggle('dark', dark)
+    const root = document.documentElement
+    // Exclusive dual-class: explicit .light must override the OS-dark
+    // @media fallback in index.html (html:not(.dark) color-scheme hack),
+    // otherwise UA widgets render dark over the light UI.
+    root.classList.toggle('dark', dark)
+    root.classList.toggle('light', !dark)
   }
 
   function applyAll() {

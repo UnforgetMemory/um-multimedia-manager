@@ -8,6 +8,7 @@ import { dateKey } from '@/utils'
 
 
 import HeatmapCalendar from '@/shared/HeatmapCalendar.vue'
+import { computeYearlyStats } from '@/domain/record/statistics'
 import PlatformDistribution from '@/shared/PlatformDistribution.vue'
 import { Card, CardHeader, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
@@ -66,11 +67,18 @@ const platformStats = computed<PlatformStat[]>(() => {
 const maxCount = computed(() => Math.max(1, ...platformStats.value.map(p => p.count)))
 
 interface DailyItem { source: string; label: string; count: number }
-interface DailyStat { date: string; dateStr: string; weekday: string; total: number; items: DailyItem[]; isToday: boolean }
+interface DailyStat { date: string; dateStr: string; weekday: string; weekdayShort: string; total: number; items: DailyItem[]; isToday: boolean }
 
 const weekdayNames = computed(() => [
   t('weekday.sunday'), t('weekday.monday'), t('weekday.tuesday'), t('weekday.wednesday'),
   t('weekday.thursday'), t('weekday.friday'), t('weekday.saturday'),
+])
+
+/** Locale-aware short labels ('Sun' / '日') — safe for badges & axis ticks.
+ *  Never slice full names: charAt(1) breaks Latin scripts ("Tuesday"→"u"). */
+const weekdayShortNames = computed(() => [
+  t('weekday.sun'), t('weekday.mon'), t('weekday.tue'), t('weekday.wed'),
+  t('weekday.thu'), t('weekday.fri'), t('weekday.sat'),
 ])
 
 const weeklyStats = computed(() => {
@@ -111,7 +119,7 @@ const weeklyStats = computed(() => {
       .map(([source, count]) => ({ source, label: t('platform.' + source, source), count }))
       .sort((a, b) => b.count - a.count)
 
-    days.push({ date: key, dateStr, weekday: weekdayNames.value[d.getDay()], total, items, isToday })
+    days.push({ date: key, dateStr, weekday: weekdayNames.value[d.getDay()], weekdayShort: weekdayShortNames.value[d.getDay()], total, items, isToday })
   }
 
   const maxDaily = Math.max(1, ...days.map(d => d.total))
@@ -129,6 +137,8 @@ const weeklyStats = computed(() => {
 const statIcons = [Film, Tv, Music, Book, Gamepad2, ShieldAlert, Play, Play]
 const statLabels = computed(() => [t('stats.movie'), t('stats.tv'), t('stats.music'), t('stats.book'), t('stats.game'), t('stats.jav'), t('stats.bilibili'), t('stats.youtube')])
 const statKeys = ['movie', 'tv', 'music', 'book', 'game', 'jav', 'bilibili', 'youtube'] as const
+/** Semantic accents — mirrors popup DashboardPage assignments */
+const statAccents = ['brand', 'violet', 'rose', 'amber', 'teal', 'red', 'blue', 'green'] as const
 
 const statsData = computed(() =>
   statKeys.map((key, i) => ({
@@ -136,8 +146,29 @@ const statsData = computed(() =>
     icon: statIcons[i],
     label: statLabels.value[i],
     value: stats.value[key],
+    accent: statAccents[i],
   }))
 )
+
+/**
+ * Yearly totals — domain-pure aggregation (continuous range, gap years = 0),
+ * starting at LAST year, newest → oldest. Timestamps merge records +
+ * adultAvItems to match the heatmap's counting surface.
+ */
+const yearlyStats = computed(() => {
+  const timestamps = [
+    ...(appStore.records as { updatedAt?: string }[]).map(r => r.updatedAt),
+    ...appStore.adultAvItems.map(i => i.updatedAt),
+  ]
+  const { rows } = computeYearlyStats(timestamps)
+  return rows.map((row, i) => ({
+    year: row.year,
+    count: row.count,
+    pct: row.pct,
+    delta: row.delta,
+    opacity: Math.max(0.35, 1 - i * 0.12),
+  }))
+})
 
 const tooltipData = ref<{ show: boolean; x: number; y: number; text: string }>({ show: false, x: 0, y: 0, text: '' })
 
@@ -152,13 +183,16 @@ function platformColor(hue: number, variant: 'bar' | 'icon'): string {
 }
 
 function barColor(count: number, maxCount: number): string {
-  if (count === 0) return 'hsl(var(--muted))'
+  if (count === 0) return 'var(--muted)'
   const s = getComputedStyle(document.documentElement)
   const baseS = parseFloat(s.getPropertyValue('--umm-bar-base-s')) || 35
   const baseL = parseFloat(s.getPropertyValue('--umm-bar-base-l')) || 75
+  // Direction lets dark themes INVERT the ramp: stronger days get BRIGHTER
+  // fills (visible on deep panels) instead of darker ones.
+  const dir = parseFloat(s.getPropertyValue('--umm-bar-dir')) || 1
   const ratio = count / maxCount
   const level = Math.min(5, Math.ceil(ratio * 5))
-  return `hsl(210, ${baseS + level * 7}%, ${baseL - level * 6}%)`
+  return `hsl(210, ${baseS + level * 7}%, ${baseL - level * 6 * dir}%)`
 }
 
 onMounted(async () => { await appStore.loadData() })
@@ -217,6 +251,33 @@ onMounted(async () => { await appStore.loadData() })
 
         <!-- Calendar Heatmap -->
         <HeatmapCalendar :records="appStore.records" :adultAvItems="appStore.adultAvItems" />
+
+        <!-- Yearly stats — from last year back to the earliest year -->
+        <Card>
+          <CardHeader>
+            <h3 class="umm:font-h2 umm:text-primary-content">{{ t('stats.yearly') }}</h3>
+          </CardHeader>
+          <CardContent>
+            <div v-if="yearlyStats.length" class="umm:flex umm:flex-col umm:gap-3 umm-stagger">
+              <div v-for="row in yearlyStats" :key="row.year" class="umm:flex umm:items-center umm:gap-3">
+                <span class="umm:font-bold umm:tabular-nums umm:text-primary-content" style="width: 52px;">{{ row.year }}</span>
+                <div class="umm:flex-1 umm:h-2.5 umm:rounded-full umm:bg-muted umm:overflow-hidden">
+                  <div class="umm:h-full umm:rounded-full" :style="{
+                    width: row.pct + '%',
+                    background: 'var(--primary)',
+                    opacity: row.opacity,
+                  }" />
+                </div>
+                <span class="umm:font-bold umm:tabular-nums umm:text-primary-content" style="width: 64px; text-align: right;">{{ row.count.toLocaleString() }}</span>
+                <span class="umm:font-medium umm:tabular-nums"
+                  :style="{ width: '76px', textAlign: 'right', color: row.delta >= 0 ? 'var(--success-text)' : 'var(--error-text)' }">
+                  {{ row.delta >= 0 ? '▲' : '▼' }} {{ Math.abs(row.delta).toLocaleString() }}
+                </span>
+              </div>
+            </div>
+            <div v-else class="umm:py-8 umm:text-center umm:font-caption umm:text-secondary-content">{{ t('common.noRecords') }}</div>
+          </CardContent>
+        </Card>
       </div><!-- end overview tab -->
 
       <!-- Tab: Weekly Detail -->
@@ -263,7 +324,7 @@ onMounted(async () => { await appStore.loadData() })
                 <div class="umm:w-full umm:rounded-t-lg umm:transition-all umm:duration-300 umm:relative group umm:cursor-default"
                   :style="{
                     height: `${Math.max(10, (Math.log(day.total + 1) / Math.log(weeklyStats.maxDaily + 1)) * 100)}%`,
-                    backgroundColor: day.isToday ? 'hsl(var(--primary))' : barColor(day.total, weeklyStats.maxDaily),
+                    backgroundColor: day.isToday ? 'var(--primary)' : barColor(day.total, weeklyStats.maxDaily),
                     minHeight: '10px',
                     opacity: day.total === 0 ? 0.3 : 1,
                   }">
@@ -274,8 +335,8 @@ onMounted(async () => { await appStore.loadData() })
               </div>
               <!-- Label -->
               <div class="umm:text-center">
-                <div class="umm:font-caption umm:text-secondary-content" :style="{ fontSize: '0.625rem' }">{{ day.weekday }}</div>
-                <div class="umm:font-caption umm:text-secondary-content" :style="{ fontSize: '0.625rem', color: day.isToday ? 'hsl(var(--primary))' : undefined }">{{ day.dateStr }}</div>
+                <div class="umm:font-caption umm:text-secondary-content" :style="{ fontSize: '0.625rem' }">{{ day.weekdayShort }}</div>
+                <div class="umm:font-caption umm:text-secondary-content" :style="{ fontSize: '0.625rem', color: day.isToday ? 'var(--primary)' : undefined }">{{ day.dateStr }}</div>
               </div>
             </div>
           </div>
@@ -296,14 +357,15 @@ onMounted(async () => { await appStore.loadData() })
               <!-- Day header row -->
               <div class="umm:flex umm:items-center umm:justify-between umm:mb-3">
                 <div class="umm:flex umm:items-center umm:gap-3">
-                  <!-- Day badge -->
-                  <div class="umm:w-10 umm:h-10 umm:rounded-xl umm:flex umm:flex-col umm:items-center umm:justify-center"
+                  <!-- Day badge — horizontal layout, ink hierarchy: weekday
+                       solid (primary), date subdued via opacity of SAME ink -->
+                  <div class="umm:h-10 umm:px-3 umm:rounded-lg umm:flex umm:items-center umm:gap-1.5"
                     :style="{
-                      backgroundColor: day.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                      color: day.isToday ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                      backgroundColor: day.isToday ? 'var(--primary)' : 'var(--muted)',
+                      color: day.isToday ? 'var(--primary-foreground)' : 'var(--accent-foreground)',
                     }">
-                    <span class="umm:font-bold umm:leading-none" :style="{ fontSize: '0.9rem' }">{{ day.weekday.charAt(1) }}</span>
-                    <span class="umm:leading-none umm:text-secondary-content" :style="{ fontSize: '0.7rem' }">{{ day.dateStr }}</span>
+                    <span class="umm:font-bold umm:leading-none" :style="{ fontSize: '0.9rem' }">{{ day.weekdayShort }}</span>
+                    <span class="umm:leading-none" :style="{ fontSize: '0.7rem', opacity: 0.85 }">{{ day.dateStr }}</span>
                   </div>
                 </div>
                 <div class="umm:flex umm:items-center" :style="{ gap: 'var(--umm-spacing-2)' }">
@@ -315,7 +377,7 @@ onMounted(async () => { await appStore.loadData() })
               </div>
 
               <!-- Source breakdown with mini progress bars -->
-              <div v-if="day.items.length > 0" class="umm:flex umm:flex-col umm:gap-2">
+              <div v-if="day.items.length > 0" class="umm:flex umm:flex-col umm:gap-2 umm-stagger">
                 <div v-for="(item, i) in day.items" :key="i" class="umm:flex umm:items-center" :style="{ gap: 'var(--umm-spacing-2)' }">
                   <span class="umm:font-body umm:text-secondary-content umm:shrink-0" :style="{ width: '80px', fontSize: '0.75rem' }">{{ item.label }}</span>
                   <div class="umm:flex-1 umm:h-2 umm:rounded-full umm:bg-muted umm:overflow-hidden">
@@ -390,9 +452,9 @@ onMounted(async () => { await appStore.loadData() })
           left: tooltipData.x + 'px',
           top: tooltipData.y + 'px',
           transform: 'translate(-50%, -100%)',
-          background: 'hsl(var(--popover))',
-          color: 'hsl(var(--popover-foreground))',
-          border: '1px solid hsl(var(--border))',
+          background: 'var(--popover)',
+          color: 'var(--popover-foreground)',
+          border: '1px solid var(--border)',
         }"
       >
         {{ tooltipData.text }}

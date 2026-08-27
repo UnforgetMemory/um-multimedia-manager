@@ -18,7 +18,7 @@ const emit = defineEmits<{
     :class="[
       'umm:w-full umm:flex umm:items-center umm:gap-3 umm:rounded-lg umm:font-medium umm:transition-all umm:duration-200 umm:px-3 umm:py-2',
       active
-        ? 'umm:bg-primary umm:text-primary-foreground umm:shadow-sm'
+        ? 'umm:bg-primary/10 umm:text-primary umm:dark:bg-primary/18'
         : 'umm:text-secondary-content umm:hover:bg-muted umm:hover:text-primary-content'
     ]"
     style="font-size: var(--umm-font-body-size)"

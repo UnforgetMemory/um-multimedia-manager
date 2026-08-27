@@ -12,6 +12,7 @@ export default {
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'common.menu': 'Menu',
   'common.search': 'Search',
   'common.retry': 'Retry',
   'common.today': 'Today',
@@ -60,8 +61,9 @@ export default {
   'common.saveRating': 'Save Rating',
   'common.activity': 'Activity',
   'common.last90Days': 'Last 90 Days',
+  'common.daysCount': '{n}d',
   'common.noActivity': 'No activity',
-  'common.countActivity': '{count} activities',
+  'common.countActivity': '{count} activity | {count} activities',
   'common.legendLess': 'Less',
   'common.legendMore': 'More',
 
@@ -74,7 +76,8 @@ export default {
   'tab.importExport': 'Import / Export',
 
   // Statistics
-'stats.movie': 'Movies',
+  'stats.movie': 'Movies',
+  'stats.yearly': 'Yearly Stats',
    'stats.tv': 'TV Series',
    'stats.video': 'Video',
   'stats.book': 'Books',

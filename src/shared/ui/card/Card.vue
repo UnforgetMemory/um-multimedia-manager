@@ -11,7 +11,7 @@ const props = defineProps<{
   <div
     :class="
   cn(
-        'umm:rounded-lg umm:border umm:bg-card umm:text-card-foreground umm:shadow-sm',
+        'umm:rounded-lg umm:border umm:bg-card umm:text-card-foreground umm:shadow-sm umm:dark:backdrop-blur-xl',
         props.class,
       )
 "

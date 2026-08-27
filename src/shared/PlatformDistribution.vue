@@ -17,13 +17,13 @@ defineProps<{
 </script>
 
 <template>
-  <div class="umm:grid umm:grid-cols-1 umm:sm:grid-cols-2 umm:gap-3">
+  <div class="umm:grid umm:grid-cols-1 umm:sm:grid-cols-2 umm:gap-3 umm-stagger">
     <Card v-for="info in platformStats" :key="info.provider" class="umm:transition-all umm:hover:shadow-md umm:hover:border-primary/30">
       <CardContent class="umm:p-4">
         <div class="umm:flex umm:items-center umm:justify-between umm:mb-3">
           <div class="umm:flex umm:items-center umm:gap-3">
-            <div class="umm:w-10 umm:h-10 umm:rounded-xl umm:flex umm:items-center umm:justify-center umm:text-sm umm:font-bold umm:text-white umm:shrink-0"
-              :style="{ backgroundColor: usePlatformColor(PLATFORM_HUES[info.provider] || 0).icon }">
+            <div class="umm:w-10 umm:h-10 umm:rounded-xl umm:flex umm:items-center umm:justify-center umm:text-sm umm:font-bold umm:shrink-0"
+              :style="{ backgroundColor: usePlatformColor(PLATFORM_HUES[info.provider] || 0).icon, color: usePlatformColor(PLATFORM_HUES[info.provider] || 0).onIcon }">
               {{ t('platform.' + info.provider, info.provider).charAt(0) }}
             </div>
             <div>
