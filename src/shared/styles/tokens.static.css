@@ -1,0 +1,229 @@
+/* ============================================================
+   UMM Static Design Tokens — SINGLE SOURCE OF TRUTH FOR COLOR VALUES
+   ============================================================
+   Architecture (ADR-018): DSH-style three-tier token model.
+   Tier 1 "static"  → THIS FILE. Raw palette scales. Theme-invariant.
+   Tier 2 "semantic"→ thin alias layers ONLY var() references:
+                        - Layer 1 (SPA):      src/shared/styles/style.css (:root/.dark)
+                        - Layer 2 (Shadow DOM): src/content/douban/styles/design-tokens.css (:host)
+                        - Layer 3 (JS inject):  src/entrypoints/content/styles/tokens.ts
+   Tier 3 "component" → --umm-island-* etc., live beside their components.
+
+   Dual selector ":root, :host" lets ONE file serve both contexts:
+   - :root matches when imported into the popup/options document (Tailwind entry).
+   - :host matches when composed into a shadow root via css-composer (?raw).
+   Values here MUST NOT change between light/dark — semantic layers adapt.
+
+   Consistency is enforced by scripts/check-design-tokens.cjs (npm run ds:check),
+   which also asserts WCAG >=4.5:1 on key role pairs (ADR-019 D2).
+
+   Step -> role cheat-sheet (Radix-style semantics mapped onto our ramps):
+     25-75   page wash / subtle backgrounds        (surface family)
+     100-150 component fills, hover, card borders (container-high band)
+     200-300 decorative borders (outline-variant), disabled
+     400-500 muted text, icons, chart accents      (>=3:1 non-text)
+     500-600 solid fills paired with white/deep on-colors
+     600-700 AA text-tier (light) & solid fills     (>=4.5:1 pairs)
+     800-950 deep containers (dark), on-colors, high-contrast text
+   ============================================================ */
+
+:root,
+:host {
+  /* ===== Brand — vivid indigo-blue (anchor #4f6ef7) ===== */
+  --umm-static-brand-50: #eef3ff;
+  --umm-static-brand-100: #dfe9ff;
+  --umm-static-brand-200: #c6d6fe;
+  --umm-static-brand-300: #a3bbfc;
+  --umm-static-brand-400: #7e9bf9;
+  --umm-static-brand-500: #4f6ef7;
+  --umm-static-brand-600: #3a55ec;
+  --umm-static-brand-700: #2f43cf;
+  --umm-static-brand-800: #2a3aa4;
+  --umm-static-brand-900: #28377f;
+  --umm-static-brand-950: #1a2350;
+
+  /* ===== Success / Done — emerald ===== */
+  --umm-static-green-50: #ecfdf5;
+  --umm-static-green-100: #d1fae5;
+  --umm-static-green-200: #a7f3d0;
+  --umm-static-green-300: #6ee7b7;
+  --umm-static-green-400: #34d399;
+  --umm-static-green-500: #10b981;
+  --umm-static-green-600: #059669;
+  --umm-static-green-700: #047857;
+  --umm-static-green-800: #065f46;
+  --umm-static-green-900: #064e3b;
+
+  /* ===== Danger / None — red ===== */
+  --umm-static-red-50: #fef2f2;
+  --umm-static-red-100: #fee2e2;
+  --umm-static-red-200: #fecaca;
+  --umm-static-red-300: #fca5a5;
+  --umm-static-red-400: #f87171;
+  --umm-static-red-500: #ef4444;
+  --umm-static-red-600: #dc2626;
+  --umm-static-red-700: #b91c1c;
+  --umm-static-red-800: #991b1b;
+  --umm-static-red-900: #7f1d1d;
+
+  /* ===== Warning / Wish — amber ===== */
+  --umm-static-amber-50: #fffbeb;
+  --umm-static-amber-100: #fef3c7;
+  --umm-static-amber-200: #fde68a;
+  --umm-static-amber-300: #fcd34d;
+  --umm-static-amber-400: #fbbf24;
+  --umm-static-amber-500: #f59e0b;
+  --umm-static-amber-600: #d97706;
+  --umm-static-amber-700: #b45309;
+  --umm-static-amber-800: #92400e;
+  --umm-static-amber-900: #78350f;
+
+  /* ===== Info / Watched — blue ===== */
+  --umm-static-blue-50: #eff6ff;
+  --umm-static-blue-100: #dbeafe;
+  --umm-static-blue-200: #bfdbfe;
+  --umm-static-blue-300: #93c5fd;
+  --umm-static-blue-400: #60a5fa;
+  --umm-static-blue-500: #3b82f6;
+  --umm-static-blue-600: #2563eb;
+  --umm-static-blue-700: #1d4ed8;
+  --umm-static-blue-800: #1e40af;
+  --umm-static-blue-900: #1e3a8a;
+
+  /* ===== Accent — violet (detail/photos/original) ===== */
+  --umm-static-violet-50: #f5f3ff;
+  --umm-static-violet-100: #ede9fe;
+  --umm-static-violet-200: #ddd6fe;
+  --umm-static-violet-300: #c4b5fd;
+  --umm-static-violet-400: #a78bfa;
+  --umm-static-violet-500: #8b5cf6;
+  --umm-static-violet-600: #7c3aed;
+  --umm-static-violet-700: #6d28d9;
+  --umm-static-violet-800: #5b21b6;
+  --umm-static-violet-900: #4c1d95;
+
+  /* ===== Accent — indigo (legacy --umm-accent anchor) ===== */
+  --umm-static-indigo-300: #a5b4fc;
+  --umm-static-indigo-400: #818cf8;
+  --umm-static-indigo-500: #6366f1;
+  --umm-static-indigo-600: #4f46e5;
+  --umm-static-indigo-700: #4338ca;
+
+  /* ===== Accent — rose (celebrities/personage) ===== */
+  --umm-static-rose-50: #fff1f2;
+  --umm-static-rose-100: #ffe4e6;
+  --umm-static-rose-300: #fda4af;
+  --umm-static-rose-400: #fb7185;
+  --umm-static-rose-500: #f43f5e;
+  --umm-static-rose-600: #e11d48;
+  --umm-static-rose-700: #be123c;
+
+  /* ===== Accent — teal (digital/streaming media) ===== */
+  --umm-static-teal-100: #ccfbf1;
+  --umm-static-teal-500: #14b8a6;
+  --umm-static-teal-600: #0d9488;
+  --umm-static-teal-700: #0f766e;
+  --umm-static-teal-800: #115e59;
+
+  /* ===== Neutral — cool blue-tinted gray (DSH neutral-bluish style)
+     Luminosity matches legacy grays; hue shifted cool for cohesion.
+     Key anchors: 00 card · 50 page-wash · 150 border · 500 muted-text
+     · 700 secondary-text · 800 dark-surface · 950 dark-page ===== */
+  --umm-static-neutral-00: #ffffff;
+  --umm-static-neutral-25: #fbfcfe;
+  --umm-static-neutral-50: #f7f9fc;
+  --umm-static-neutral-75: #f1f4f9;
+  --umm-static-neutral-100: #eaeef5;
+  --umm-static-neutral-150: #e3e8f0;
+  --umm-static-neutral-200: #dbe1ea;
+  --umm-static-neutral-250: #cfd6e2;
+  --umm-static-neutral-300: #b6bfd0;
+  --umm-static-neutral-400: #94a0b5;
+  --umm-static-neutral-500: #6f7d94;
+  --umm-static-neutral-550: #5d6a81;
+  --umm-static-neutral-600: #4d5870;
+  --umm-static-neutral-650: #434c61;
+  --umm-static-neutral-700: #3d4659;
+  --umm-static-neutral-750: #303848;
+  --umm-static-neutral-800: #262d3b;
+  --umm-static-neutral-850: #1f2531;
+  --umm-static-neutral-875: #1a202a;
+  --umm-static-neutral-900: #151a23;
+  --umm-static-neutral-950: #10141b;
+  --umm-static-neutral-1000: #0b0e14;
+
+  /* ===== Rating gold tiers (shared both themes; dark lifts lightness) ===== */
+  --umm-static-gold-500: #d4970e;
+  --umm-static-gold-600: #bd850c;
+  --umm-static-gold-700: #a17408;
+  --umm-static-gold-800: #7f5c06;
+
+  /* ===== Media format chips — categorical, shared search/albums ===== */
+  --umm-static-chip-cd: #546e7a;
+  --umm-static-chip-dvd: #7b1fa2;
+  --umm-static-chip-cd-dvd: #4527a0;
+  --umm-static-chip-cassette: #5d4037;
+  --umm-static-chip-digital: #00695c;
+  --umm-static-chip-vinyl: #37474f;
+  --umm-static-chip-lp: #4a148c;
+  --umm-static-chip-sacd: #4e342e;
+  --umm-static-chip-bluray: #0d47a1;
+  --umm-static-chip-vcd: #455a64;
+  --umm-static-chip-ld: #00838f;
+  --umm-static-chip-streaming: #1b5e20;
+
+  /* ===== macOS Vibrancy panel grays (STYLEKIT macos-vibrancy) =====
+     Three-depth dark panel system for the dark theme: deepest page →
+     mid panels/cards → top surfaces. Neutral (no hue tint), Apple-style. */
+  --umm-static-vibrancy-0: #1c1c1e;
+  --umm-static-vibrancy-1: #2c2c2e;
+  --umm-static-vibrancy-2: #3a3a3c;
+  /* Apple system blue — interactive highlights ONLY (links/focus/selection).
+     White-on-blue is 4.03:1 → never a solid fill behind small white text.
+     -bright is the AA text tier for links sitting on mid panels (#2c2c2e). */
+  --umm-static-apple-blue: #0a84ff;
+  --umm-static-apple-blue-bright: #4da3ff;
+
+  /* NeoDB dark button fills — GitHub Primer dark button convention:
+     ALL dark-theme buttons carry WHITE ink on desaturated dark fills.
+     amber = Primer attention-emphasis #9e6a03; green = #238636;
+     indigo/violet = Radix dark step9 (#3e63dd/#6e56cf). */
+  --umm-static-neodb-amber-dark: #9e6a03;
+  --umm-static-neodb-green-dark: #238636;
+  --umm-static-neodb-indigo-dark: #3e63dd;
+  --umm-static-neodb-violet-dark: #6e56cf;
+
+  /* Wish ink — warm deep-brown on amber fills (NOT neutral-1000; hue-matched) */
+  --umm-static-wish-ink: #451a03;
+
+  /* White-alpha overlays — dark Vibrancy text/border tiers (ADR-021).
+     Tier-1 statics keep the Tier-2 alias layers literal-free. */
+  --umm-static-white-a95: rgb(255 255 255 / 0.95);
+  --umm-static-white-a72: rgb(255 255 255 / 0.72);
+  --umm-static-white-a58: rgb(255 255 255 / 0.58);
+  --umm-static-white-a12: rgb(255 255 255 / 0.12);
+  --umm-static-white-a10: rgb(255 255 255 / 0.10);
+  --umm-static-white-a09: rgb(255 255 255 / 0.09);
+  --umm-static-white-a08: rgb(255 255 255 / 0.08);
+  --umm-static-white-a06: rgb(255 255 255 / 0.06);
+
+  /* Ink tints — light-theme interactive overlays (ADR-018 overlay tokens) */
+  --umm-static-ink-hover: rgb(38 49 72 / 0.06);
+  --umm-static-ink-active: rgb(38 49 72 / 0.11);
+  --umm-static-ink-island-hover: rgb(38 49 72 / 0.05);
+  --umm-static-ink-island-active: rgb(38 49 72 / 0.08);
+
+  /* Wish dark pill (JS-injected legacy styles) — Tier-1 values mirrored in
+     tokens.ts (COLOR_WISH_*_DARK), spot-checked by ds:check. */
+  --umm-static-wish-fill-dark: rgba(187, 128, 9, 0.32);
+  --umm-static-wish-ink-dark: #f5c211;
+  --umm-static-wish-border-dark: rgba(210, 153, 34, 0.45);
+
+  /* ===== Motion (DSH-aligned curves) ===== */
+  --umm-static-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --umm-static-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Duration scale (StyleKit animations reference): micro / state / enter */
+  --umm-static-duration-fast: 200ms;
+  --umm-static-duration-base: 300ms;
+  --umm-static-duration-enter: 500ms;
+}

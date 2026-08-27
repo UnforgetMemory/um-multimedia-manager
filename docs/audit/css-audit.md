@@ -3,6 +3,12 @@
 Generated: 2026-07-12  
 Scope: All 4 token systems + 36 Shadow DOM CSS files + 2 global-injection TS files
 
+> **✅ RESOLUTION (2026-08-22, ADR-018)**: 本审计驱动的问题已通过三层令牌模型系统性解决——
+> 原始色值收敛至 `tokens.static.css` 单一事实源；§5 的 36% 令牌值不一致已消除（semantic 层
+> 零字面量，`npm run ds:check` 门禁）；§3 的重复模式在先期整合（paginator/titlebar/userbar/
+> statbar/empty-state/media-chips 共享 chunk）基础上完成令牌化收口。本文档保留为历史审计记录，
+> 现行规范见 docs/DESIGN_GUIDE.md §2。
+
 ---
 
 ## 1. Token System Overview

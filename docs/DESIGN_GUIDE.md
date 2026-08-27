@@ -5,13 +5,17 @@
 >
 > This is the single source of truth for all UI styling decisions in the UMM project.
 > Every new UI contribution MUST be reviewed against this document before merging.
+>
+> **令牌架构 (ADR-018)**：三层模型，原始色值只存在于 `src/shared/styles/tokens.static.css`
+> 一个文件中；本文档与其他任何文件一样**不再内联具体色值清单**——需要看值请直接读该文件。
+> 一致性由 `npm run ds:check` 门禁强制。
 
 ---
 
 ## Table of Contents
 
 1. [Architecture Overview](#1-architecture-overview)
-2. [Design Tokens (CSS Variables)](#2-design-tokens)
+2. [Design Tokens (Three-Tier Model)](#2-design-tokens)
 3. [Typography System](#3-typography-system)
 4. [Spacing and Layout](#4-spacing-and-layout)
 5. [Shadow DOM Styling Rules](#5-shadow-dom-styling-rules)
@@ -41,7 +45,7 @@ UMM 的样式系统分为 **三层**，每一层对应不同的渲染上下文�
 ├────────────────────────────────────────────────────┤
 │  Layer 2: Content Script Shadow DOM                 │
 │  Context: <host> (Shadow DOM, Douban overlay)       │
-│  Entry:   12 CSS files in                           │
+│  Entry:   43 CSS files composed by                  │
 │          src/content/douban/styles/                 │
 │  Style:   Raw CSS via composeStyles()               │
 │  Theme:   host(.umm-theme--dark) selectors          │
@@ -80,11 +84,11 @@ src/
 │   ├── style.css              ← Layer 1: Tailwind v4 entry + shadcn + UMM tokens
 │   └── toast-css.ts           ← Shared: Toast CSS (consumed by Layer 2 & 3)
 │
-├── content/douban/styles/      ← Layer 2: Shadow DOM styles (12 files)
+├── content/douban/styles/      ← Layer 2: Shadow DOM styles (43 files)
 │   ├── theme.css               ← 基础 --umm-* CSS 变量 + 主题
 │   ├── breakpoints.css         ← 13 级响应式断点系统
 │   ├── page-layout.css         ← 页面骨架：header/content/footer
-│   ├── common.css              ← 滚动条、shimmer、评级、状态徽章、Dynamic Island
+│   ├── base.css                ← 滚动条、shimmer、评级、状态徽章、Dynamic Island
 │   ├── homepage.css            ← 首页：滚动区、卡片、Billboard
 │   ├── search.css              ← 搜索：筛选器、结果卡片、分页器
 │   ├── detail.css              ← 详情页：网格布局、评分、演员、评论
@@ -108,218 +112,97 @@ src/
 
 ## 2. Design Tokens
 
-UMM has **TWO separate CSS variable systems** that are NOT connected:
+**ADR-018 (2026-08-22)**：采用 DSH 式三层令牌模型，取代历史上「两套互不连通的 `--umm-*` 系统」。
 
-| System | Scope | File | Naming |
-|--------|-------|------|--------|
-| `@theme` block | Layer 1 (Tailwind) | `style.css` | `--umm-*` in `@theme {}` |
-| `:host` variables | Layer 2 (Shadow DOM) | `theme.css`, `breakpoints.css`, `detail.css`, etc. | `--umm-*` in `:host {}` |
+### Three-Tier Model
 
-### CRITICAL: Atualm, esses dois sistemas são INDEPENDENTES.
+```
+Tier 1  static     src/shared/styles/tokens.static.css
+                   唯一允许书写原始色值的 CSS 文件（品牌/状态/中性/分类色阶 + 动效曲线）。
+                   「:root, :host」双选择器：文档上下文由 Tailwind 入口 @import 生效；
+                   Shadow DOM 上下文由 css-composer 作为首个 chunk（'static-tokens'）生效。
+                   明暗主题同值（主题无关），主题切换全部发生在 Tier 2。
 
-Tanto `style.css` (`@theme`) quanto `theme.css` (`:host`) definem variáveis `--umm-*` com valores **diferentes**. Elas não se sincronizam. Um componente Shadow DOM usa as variáveis de `:host`; um componente Tailwind `umm:` usa as variáveis de `@theme `. Nunca assuma que `var(--umm-text-primary)` em um Shadow DOM equivale a `umm:text-primary` no Tailwind.
+Tier 2  semantic   L1: src/shared/styles/style.css   (:root / .dark) — 只做 var() 引用
+                   L2: src/content/douban/styles/design-tokens.css (:host / :host-dark) — 只做 var() 引用
+                   规则：零 hex、零 hsl() 字面量。ds:check 强制。
 
-### 2.1 @theme Block Tokens (Layer 1)
+Tier 3  specific   组件令牌（--umm-island-*、--umm-chip-*、--umm-neodb-* 等）
+                   与组件同文件定义，可引用 Tier1/Tier2；效果类字面量
+                   （黑白透明叠加、阴影 rgba）豁免。
 
-Defined in `src/shared/styles/style.css` → `@theme {}` block.
-
-**Color System (shadcn complete set):**
-
-```css
-/* HSL variables — actual values set in :root block */
---color-background:        hsl(var(--background));
---color-foreground:        hsl(var(--foreground));
---color-card:              hsl(var(--card));
---color-card-foreground:   hsl(var(--card-foreground));
---color-primary:           hsl(var(--primary));
---color-primary-foreground:hsl(var(--primary-foreground));
---color-secondary:         hsl(var(--secondary));
---color-secondary-foreground: hsl(var(--secondary-foreground));
---color-muted:             hsl(var(--muted));
---color-muted-foreground:  hsl(var(--muted-foreground));
---color-accent:            hsl(var(--accent));
---color-accent-foreground: hsl(var(--accent-foreground));
---color-destructive:       hsl(var(--destructive));
---color-destructive-foreground: hsl(var(--destructive-foreground));
---color-border:            hsl(var(--border));
---color-input:             hsl(var(--input));
---color-ring:              hsl(var(--ring));
+L3 (JS) tokens.ts  src/entrypoints/content/styles/tokens.ts
+                   全局注入无法用 CSS 变量时的 TS 常量层。
+                   值从 static 派生；scripts/check-design-tokens.cjs 抽查对齐。
 ```
 
-**UMM Section System:**
-```css
---umm-section-bg: transparent;
---umm-section-border: hsl(240 5.9% 90% / 0.5);
---umm-section-radius: 0.75rem;
---umm-section-padding: 1rem;
+### Consistency Gate
+
+```bash
+npm run ds:check   # scripts/check-design-tokens.cjs
 ```
 
-**UMM Element System:**
-```css
---umm-element-radius: 0.5rem;
---umm-element-padding: 0.5rem 0.75rem;
---umm-element-gap: 0.5rem;
-```
+校验内容：static 解析完整且无重复定义、两个 semantic 层零 hex/hsl 字面量、
+所有 var() 引用可解析、tokens.ts 抽查点与 static 一致、wish=amber 语义防回归。
 
-**UMM Interactive System:**
-```css
---umm-interactive-bg: transparent;
---umm-interactive-hover: hsl(240 4.8% 95.9% / 0.8);
---umm-interactive-active: hsl(240 4.8% 95.9% / 0.6);
---umm-interactive-radius: 0.5rem;
-```
+### Status Semantic Map (全局统一)
 
-**UMM Status Colors:**
-```css
---umm-color-status-unknown: hsl(220 9% 46%);
---umm-color-status-unwatched: hsl(215 16% 47%);
---umm-color-status-watched: hsl(217 91% 60%);
---umm-color-status-done: hsl(160 84% 39%);
-/* Dark theme overrides in .dark {} block */
-```
+| 状态 | 色 | 说明 |
+|------|-----|------|
+| done | green | 已看 |
+| wish | **amber**（历史曾蓝/橙分裂，ADR-018 D3 统一为琥珀） | 想看 |
+| doing / watched | blue | 在看 |
+| none | red | 不想看 |
+| page accent | 页面级 `--umm-accent` 指向 static 档位（indigo/rose/violet…） | 页面个性色 |
 
-**UMM Badge Colors (Layer 1):**
-```css
---umm-badge-done-bg-start: rgba(17, 111, 70, 0.96);
---umm-badge-done-bg-end: rgba(11, 83, 53, 0.98);
---umm-badge-done-text: #f4fff8;
---umm-badge-done-border: rgba(198, 255, 228, 0.26);
---umm-badge-none-bg-start: rgba(164, 43, 60, 0.96);
---umm-badge-none-bg-end: rgba(126, 28, 48, 0.98);
---umm-badge-none-text: #fff7f8;
---umm-badge-none-border: rgba(255, 214, 220, 0.22);
---umm-badge-wish-bg-start: #2563eb;
---umm-badge-wish-bg-end: #1d4ed8;
---umm-badge-wish-text: #fff;
---umm-badge-wish-border: rgba(37, 99, 235, 0.3);
-```
+> 具体色值清单不再内联于本文档——单一事实源是 `tokens.static.css`，
+> 文档复制值列表正是历史上 36% 漂移的根源。
 
-**Layout tokens:**
-```css
---popup-max-width: 560px;
---page-margin: 20px;
---section-gap: 24px;
---card-padding: 16px;
---umm-space-0: 0;
---umm-space-1: 0.25rem;
---umm-space-2: 0.5rem;
---umm-space-3: 0.75rem;
---umm-space-4: 1rem;
-/* ... up to --umm-space-20: 5rem */
-```
+### M3 Role Matrix (ADR-019，参考 Material Design 3 裁剪落地)
 
-### 2.2 :host Variables (Layer 2)
+> 来源说明：本节依据 Material Design 3 color roles / Radix Colors step 语义 /
+> Refactoring UI 对比度红线的体系化公开知识整理（编写时联网检索服务不可用，
+> 未附实时链接；规则本身为各设计体系的稳定内容）。
 
-Defined in `src/content/douban/styles/theme.css` → `:host {}`.
+| M3 Role | Light | Dark | UMM 载体 |
+|---|---|---|---|
+| primary / on-primary | brand-600 / white | brand-400 / neutral-1000 | `--primary(-foreground)` |
+| primary-container / on-primary-container | brand-100 / brand-800 | brand-900 / brand-200 | `--color-primary-container` 等 |
+| surface（页面底，tone98 微灰） | neutral-50 | neutral-900 | `--background` |
+| surface-container-lowest（卡面浮出） | white | neutral-850 | `--card` |
+| container-high 带（hover/次级底） | neutral-100 | neutral-800 | `--secondary`/`--muted`/`--accent` |
+| on-surface / on-surface-variant | neutral-900 / -600 | neutral-100 / -400 | `--foreground` / `--muted-foreground` |
+| outline-variant（弱描边）/ outline（输入框） | neutral-200 / -250 | white/10 / white/12（ADR-021 Vibrancy） | `--border` / `--input` |
+| status 三件套 fill/on/text | fill=700 档 · on=白或 amber-950 · text=700 档 | fill=400 档 · on=neutral-1000 · text=300 档 | `--color-state-{x}{,-on,-text}` |
 
-**Core theme variables:**
-```css
---umm-bg:                #ffffff;          /* Host page background */
---umm-bg-secondary:      #f8f9fa;          /* Card/section bg */
---umm-text-primary:      #1a1a1a;          /* Main text */
---umm-text-secondary:    #666666;          /* Subtitle text */
---umm-text-muted:        #aaaaaa;          /* Hint text */
---umm-border:            #e5e7eb;          /* Card borders */
---umm-link:              #1757d6;          /* Links / interactive */
---umm-link-hover:        #0d47b8;
-```
+**关键纪律（M3 on-* 配对思想）**：
+1. 每个填充色与声明的 on-color 成对使用（`umm:bg-state-success umm:text-state-success-on`），禁止裸 `umm:text-white`
+2. **amber 系永不承载白色文字**——一律 amber-950 / neutral-1000 深字
+3. 彩色**小号文本**：light 用 700–800 档、dark 用 300 档；填充/图标可用 500–600
+4. **主题自适应 accent 填充**（`--umm-brand-accent`/`--umm-accent`/各页面 `-accent`）上的文字一律用翻转令牌 **`--umm-on-accent`**（light=白 / dark=深墨），禁止写死白字（ADR-020 D1）
+5. 金色系文字用专用文字档：light=gold-800、dark=amber-400；gold-500 只做填充/条形图，不做小号文字色
 
-**Dynamic Island variables:**
-```css
---umm-island-bg:              color-mix(in srgb, #ffffff 92%, transparent);
---umm-island-border:          color-mix(in srgb, #e5e7eb 6%, transparent);
---umm-island-border-hover:    color-mix(in srgb, #e5e7eb 10%, transparent);
---umm-island-border-focus:    color-mix(in srgb, #1757d6 30%, transparent);
---umm-island-text-primary:    #1a1a1a;
---umm-island-text-secondary:  #666666;
---umm-island-text-muted:      #aaaaaa;
---umm-island-hover-bg:        rgba(0, 0, 0, 0.05);
---umm-island-active-bg:       rgba(0, 0, 0, 0.06);
---umm-island-divider:         color-mix(in srgb, #e5e7eb 8%, transparent);
-```
+### WCAG Contrast Table（ds:check 强制断言）
 
-**Rating gold tiers:**
-```css
---umm-rating-gold-low:  #b8860b;  /* < 7.0 */
---umm-rating-gold-mid:  #c9941a;  /* 7.0-8.9 */
---umm-rating-gold-high: #d4a017;  /* >= 9.0 */
-```
+`scripts/check-design-tokens.cjs` 内置 33 组角色对断言（≥4.5:1）。新增角色或调档后若断言失败，以「文本升档」修复，禁止放宽阈值。
 
-### 2.3 Detail Page Overrides (Layer 2)
+### Token Naming Convention
 
-`detail.css` redefines several `:host` variables in its own `:host {}` block:
-
-```css
-:host {
-  --umm-accent: #6366f1;
-  --umm-success: #116f46;
-  --umm-success-bg: rgba(17, 111, 70, 0.1);
-  --umm-card-bg: #ffffff;
-  --umm-card-border: #e5e7eb;
-  --umm-overlay-bg: rgba(0, 0, 0, 0.5);
-  --umm-rating-score: #e0901a;
-  --umm-rating-bar: #f5a623;
-  --umm-font-3xl: clamp(1.25rem, 1rem + 1.25vw, 2.25rem);
-  --umm-font-display: clamp(1.5rem, 1.1rem + 2vw, 3rem);
-}
-```
-
-> ⚠️ Note: `detail.css` does NOT redefine `--umm-bg`, `--umm-text-primary`, etc. — those are inherited from `theme.css` via cascade. This relies on the CSS file order in `composeStyles()`.
-
-### 2.4 Page-Specific Variable Overrides
-
-Several pages define their own accent variables:
-
-| Page | File | Override Variables |
-|------|------|-------------------|
-| Celebrities | `celebrities.css` | `--umm-celebrity-accent: #f43f5e`, `--umm-celebrity-card-bg`, `--umm-celebrity-card-border` |
-| Personage | `personage.css` | `--umm-personage-accent: #f43f5e`, `--umm-personage-card-bg`, `--umm-personage-card-border` |
-| Photos | `photos.css` | `--umm-accent: #6366f1`, `--umm-card-bg`, `--umm-card-border` |
-| Trailers | `trailer.css` | `--umm-trailer-radius: 10px`, `--umm-trailer-aspect: 16/9` |
-
-### 2.5 Hardcoded Color Tokens (Layer 3)
-
-Defined in `src/entrypoints/content/styles/tokens.ts`. Used by `global.ts` for injecting styles into the host page (outside Shadow DOM).
-
-```typescript
-export const COLOR_PRIMARY_START = '#1757d6'
-export const COLOR_PRIMARY_END = '#0d47b8'
-export const COLOR_PRIMARY_SHADOW = 'rgba(13, 71, 184, 0.3)'
-export const COLOR_DONE_START = 'rgba(17, 111, 70, 0.96)'
-export const COLOR_DONE_END = 'rgba(11, 83, 53, 0.98)'
-export const COLOR_DONE_TEXT = '#f4fff8'
-export const COLOR_NONE_START = 'rgba(164, 43, 60, 0.96)'
-export const COLOR_NONE_END = 'rgba(126, 28, 48, 0.98)'
-export const COLOR_NONE_TEXT = '#fff7f8'
-// ... and more
-```
-
-> ⚠️ **Migration Note**: These colors DUPLICATE the values in `theme.css` and `style.css` but as hardcoded constants. They exist because global injected styles (Layer 3) can't use CSS variables (they're injected into a scope where those variables don't exist). Future work should consider a shared source of truth.
-
-### 2.6 Token Naming Convention Rules
-
-| Pattern | Example | Layer | Purpose |
-|---------|---------|-------|---------|
-| `--umm-*` | `--umm-bg` | Layer 1 & 2 | All UMM design tokens |
-| `--umm-<component>-*` | `--umm-island-bg` | Layer 2 | Component-specific scoping |
-| `--umm-font-<name>-size` | `--umm-font-h1-size` | Layer 1 | Typography sizing |
-| `--umm-space-<scale>` | `--umm-space-4` | Layer 1 & 2 | Spacing scale |
-| `--color-*` | `--color-background` | Layer 1 | shadcn standard tokens |
-| `--radius-*` | `--radius-lg` | Layer 1 | Border radius (shadcn) |
-| `--umm-color-*` | `--umm-color-primary` | Layer 1 | UMM profile colors |
-| `--umm-badge-<status>-*` | `--umm-badge-done-bg-start` | Layer 1 | Badge gradients |
-| `COLOR_*` | `COLOR_DONE_START` | Layer 3 | Hardcoded constants |
-| `--umm-celebrity-*` | `--umm-celebrity-accent` | Layer 2 | Page-specific overrides |
+| Pattern | Example | Tier | Purpose |
+|---------|---------|------|---------|
+| `--umm-static-<ramp>-<step>` | `--umm-static-brand-500` | 1 | 原始色阶（唯一字面量来源） |
+| `--color-*` | `--color-background` | 2 (Tailwind ns) | shadcn 标准语义色 |
+| `--background` … `--ring` | `--primary` | 2 | shadcn 变量（直连颜色值，非 HSL 三元组） |
+| `--umm-color-*` / `--umm-*` | `--umm-color-surface` | 2 | UMM 跨层语义别名 |
+| `--umm-<component>-*` | `--umm-island-bg` | 3 | 组件级令牌 |
+| `COLOR_*` | `COLOR_DONE_START` | L3 | JS 注入常量（从 static 派生） |
 
 Rules:
-1. **Layer 1**: Always within `@theme {}` in `style.css`
-2. **Layer 2**: Always within `:host {}` blocks in individual CSS files
-3. **Layer 3**: Always as exported consts in `tokens.ts`
-4. NEVER define the same token name with different values in two places
-5. NEVER use hardcoded colors in Vue SFCs — always reference variables
-
----
-
+1. **新颜色一律先进 tokens.static.css 成阶，再在 semantic 层引用**；禁止在任何 css/vue/ts 直接写调色板 hex
+2. 效果类字面量（rgba 黑白叠加、阴影、图片遮罩渐变）豁免于规则 1
+3. NEVER define the same token name with different values in two places — ds:check 把关
+4. shadcn 变量为直连颜色值；`hsl(var(--x))` 三元组模式已废弃（ADR-018 D2）
+5. NEVER use hardcoded palette colors in Vue SFCs — always reference variables
 ## 3. Typography System
 
 UMM has two separate typography scales — one for each layer.
@@ -547,7 +430,7 @@ import { composeStyles } from '@/content/douban/css-composer'
 import theme from '@/content/douban/styles/theme.css?raw'
 import breakpoints from '@/content/douban/styles/breakpoints.css?raw'
 import detail from '@/content/douban/styles/detail.css?raw'
-import common from '@/content/douban/styles/common.css?raw'
+import base from '@/content/douban/styles/base.css?raw'
 
 const styles = composeStyles(
   { name: 'breakpoints', css: breakpoints },
@@ -559,11 +442,13 @@ const styles = composeStyles(
 
 **CSS file order matters**: later files can override variables and styles from earlier files. Standard order:
 
-1. `breakpoints.css` — responsive variable defaults
-2. `theme.css` — core `--umm-*` variables
-3. `common.css` — scrollbar, shimmer, rating, status badge, island
-4. `page-layout.css` — header/content/footer (if page uses the layout template)
-5. `<pagetype>.css` — page-specific styles (homepage, detail, search, ...)
+1. static-tokens.css — Tier-1 palette (:root,:host), composed via css-map 'static-tokens' (ADR-018)
+2. `design-tokens.css` — Tier-2 semantic aliases (light + dark)
+3. `theme.css` — legacy alias bridge (--umm-bg etc.)
+4. `breakpoints.css` — responsive variable defaults
+5. `base.css` — scrollbar, shimmer, rating, status badge, island
+6. `page-layout.css` — header/content/footer (if page uses the layout template)
+7. <pagetype>.css + shared component chunks (userbar/paginator/titlebar/statbar/empty-state/media-chips)
 
 ### 5.2 CSS Variable Usage in :host
 
@@ -632,7 +517,7 @@ The composed string is injected into the shadow root via `adoptedStyleSheets` or
 
 ### 5.5 Image Rendering (UmmImage + Shimmer)
 
-UMM uses the `UmmImage` Vue component with a shimmer loading placeholder. Defined in `common.css`:
+UMM uses the `UmmImage` Vue component with a shimmer loading placeholder. Defined in `base.css`:
 
 ```css
 .umm-img-shimmer {
@@ -734,7 +619,7 @@ theme.css (:host)  →  tokens.ts (hardcoded export)  →  global.ts (template l
                   Add script to sync from theme.css
 ```
 
-Currently, `tokens.ts` duplicates values that also exist in `theme.css` and `style.css`. A `sync-tokens` script could validate they match or generate `tokens.ts` from `theme.css`.
+ADR-018 已解决：`tokens.ts` 值从 `tokens.static.css` 派生，`npm run ds:check`（scripts/check-design-tokens.cjs）强制校验三层一致。
 
 ---
 
@@ -771,7 +656,7 @@ Always use `cn()` for conditional class merging in Vue components. Never constru
 
 ### 7.3 shadcn/vue Component Customization
 
-shadcn/vue components live in `src/components/ui/`. They use:
+shadcn/vue components live in `src/shared/ui/`. They use:
 
 - `class-variance-authority` for variant props (e.g., `badgeVariants`)
 - `Reakit` / `reka-ui` primitives for accessibility
@@ -977,15 +862,15 @@ Toasts in UMM come from two sources:
 
 `toast-css.ts` is the **canonical source** for toast styles. Both consumers import from it.
 
-Toast variant colors:
+Toast variant colors (semantic backgrounds stay theme-independent; **ink references the legacy theme token** `--usl-ink-on-fill`, falling back to white on pages without UMM injection — same token the neodb buttons/badges use):
 ```css
-.umm-toast--success { background: linear-gradient(180deg, rgba(17,111,70,0.96), rgba(11,83,53,0.98)); color: white; }
-.umm-toast--error   { background: linear-gradient(180deg, rgba(164,43,60,0.96), rgba(126,28,48,0.98)); color: white; }
-.umm-toast--info    { background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%); color: white; }
-.umm-toast--loading { background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%); color: white; }
+.umm-toast--success { background: linear-gradient(180deg, rgba(17,111,70,0.96), rgba(11,83,53,0.98)); color: var(--usl-ink-on-fill, #ffffff); }
+.umm-toast--error   { background: linear-gradient(180deg, rgba(164,43,60,0.96), rgba(126,28,48,0.98)); color: var(--usl-ink-on-fill, #ffffff); }
+.umm-toast--info    { background: linear-gradient(180deg, #3a55ec 0%, #2f43cf 100%); color: var(--usl-ink-on-fill, #ffffff); }
+.umm-toast--loading { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: var(--usl-ink-on-fill, #ffffff); }
 ```
 
-WCAG AA contrast verified: All four variants pass ≥ 4.5:1 ratio.
+Font-family: `inherit` — the toast lives in the page's light DOM and follows the page/theme font like every other legacy injection. WCAG AA contrast verified: All four variants pass ≥ 4.5:1 ratio with the ink token.
 
 ---
 
@@ -995,8 +880,8 @@ WCAG AA contrast verified: All four variants pass ≥ 4.5:1 ratio.
 
 | Badge | Layer | File | Context | Notes |
 |-------|-------|------|---------|-------|
-| `.umm-status` | Layer 2 | `common.css` | Shadow DOM general status | Canonical Shadow DOM badge |
-| `.umm-status--inline` | Layer 2 | `common.css` | Inline variant | Smaller, inline with text |
+| `.umm-status` | Layer 2 | `base.css` | Shadow DOM general status | Canonical Shadow DOM badge |
+| `.umm-status--inline` | Layer 2 | `base.css` | Inline variant | Smaller, inline with text |
 | `.umm-status-chip` | Layer 3 | `global.ts` | Injected into host detail page | Different gradient, more padding |
 | `.umm-search-badge` | Layer 3 | `global.ts` | Injected search result badge | Uses `data-status` attribute |
 | `.umm-homepage-badge` | Layer 3 | `global.ts` | Injected homepage overlay badge | Small circle/pill on card corner |
@@ -1173,11 +1058,13 @@ Before submitting any UI change, verify ALL of the following:
 ### File Dependency Order (Shadow DOM CSS Composition)
 
 ```
-breakpoints.css   ← Must be first (establishes responsive var defaults)
+static-tokens.css ← Must be first (Tier-1 palette, ADR-018)
+      ↓
+design-tokens.css ← Tier-2 semantic aliases
       ↓
 theme.css         ← Core --umm-* variables
       ↓
-common.css        ← Shared components (scrollbar, shimmer, rating, status, island)
+base.css          ← Shared components (scrollbar, shimmer, rating, status, island)
       ↓
 page-layout.css   ← Page structural layout (header/content/footer)
       ↓
@@ -1188,10 +1075,10 @@ page-layout.css   ← Page structural layout (header/content/footer)
 
 ```
 src/
-├── components/ui/           ← Layer 1 UI components (shadcn/vue)
+├── shared/ui/                ← Layer 1 UI components (shadcn/vue)
 ├── shared/styles/            ← Layer 1 CSS entry + shared CSS
 ├── shared/ui/                ← Layer 1 shadcn components
-├── content/douban/styles/    ← Layer 2 CSS (12 files)
+├── content/douban/styles/    ← Layer 2 CSS (43 files, composed by PAGE_CSS_PRESETS)
 ├── content/douban/pages/     ← Layer 2 Vue pages (homepage, detail, search, ...)
 ├── entrypoints/content/styles/ ← Layer 3 injected styles
 ├── entrypoints/popup/        ← Layer 1 popup Vue app
@@ -1200,6 +1087,6 @@ src/
 
 ---
 
-*Last updated: 2025-07-05*
+*Last updated: 2026-08-22 (ADR-018 three-tier token model)*
 *Maintainer: UMM Team*
 *Review cadence: Every PR with UI changes must reference this guide.*

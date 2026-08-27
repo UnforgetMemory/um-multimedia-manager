@@ -10,6 +10,9 @@
   --umm-font-lg: clamp(1.125rem, 0.875rem + 1.25vw, 2.75rem);
   --umm-font-xl: clamp(1.375rem, 1rem + 1.875vw, 3.75rem);
   --umm-font-2xl: clamp(1.75rem, 1.1rem + 3.25vw, 5.5rem);
+  /* Caption tier (consumed by base.css rating/stat components) */
+  --umm-font-caption-size: clamp(0.65rem, 0.6rem + 0.25vw, 0.8125rem);
+  --umm-font-caption-weight: 500;
   --umm-space-xs: clamp(4px, 0.25rem + 0.3vw, 12px);
   --umm-space-sm: clamp(8px, 0.4rem + 0.5vw, 20px);
   --umm-space-md: clamp(12px, 0.6rem + 0.75vw, 28px);

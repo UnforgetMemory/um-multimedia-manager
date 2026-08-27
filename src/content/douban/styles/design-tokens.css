@@ -1,65 +1,91 @@
-/* ===== UMM Design Tokens — Shadow DOM :host ===== */
-/* HSL values shared with Tailwind @theme in src/shared/styles/style.css */
-/* NOTE: Keep HSL values in sync with style.css @theme definitions */
-/* WARNING: ?raw import — NO @import statements allowed inside this file */
+/* ============================================================
+   UMM Semantic Design Tokens — Shadow DOM alias layer (Tier 2)
+   ============================================================
+   ADR-018: this layer must contain ZERO raw color literals —
+   every value references tokens.static.css (:root,:host dual scope),
+   which css-composer composes BEFORE this chunk in every preset.
+   Theme switching happens ONLY here via :host(.umm-theme--dark).
+   Keep variable names stable — pages/components consume them.
+   ============================================================ */
 
 /* ---- Light theme ---- */
 :host {
-  /* === Brand accent (single source — audit H5 2026-08-08) === */
-  --umm-brand-accent: #4f6ef7;
-  --umm-brand-accent-soft: #e0e7ff;
+  /* === Brand accent === */
+  --umm-brand-accent: var(--umm-static-brand-600);
+  --umm-brand-accent-strong: var(--umm-static-brand-700);
+  --umm-brand-accent-soft: var(--umm-static-brand-100);
 
-  /* === Surface colors === */
-  --umm-color-surface: hsl(0 0% 100%);
-  --umm-color-surface-secondary: hsl(240 5% 96%);
-  --umm-card-bg: hsl(0 0% 100%);
-  --umm-card-border: hsl(220 13% 91%);
+  /* Deep light accents carry white (ADR-020 D1 flip) */
+  --umm-on-accent: var(--umm-static-neutral-00);
+
+  /* === Surface colors — M3 ladder: page wash (tone98) under white cards === */
+  --umm-color-surface: var(--umm-static-neutral-50);
+  --umm-color-surface-secondary: var(--umm-static-neutral-75);
+  --umm-card-bg: var(--umm-static-neutral-00);
+  --umm-card-border: var(--umm-static-neutral-150);
 
   /* === Text colors === */
-  --umm-color-text-primary: hsl(240 10% 3.9%);
-  --umm-color-text-secondary: hsl(240 3.8% 46.1%);
-  --umm-color-text-muted: hsl(0 0% 67%);
+  --umm-color-text-primary: var(--umm-static-neutral-900);
+  --umm-color-text-secondary: var(--umm-static-neutral-600);
+  --umm-color-text-muted: var(--umm-static-neutral-550);
 
   /* === Border colors === */
-  --umm-color-border: hsl(220 13% 91%);
+  --umm-color-border: var(--umm-static-neutral-150);
+
+  /* === Interactive overlays (DSH-style alpha states) === */
+  --umm-hover-bg: var(--umm-static-ink-hover);
+  --umm-active-bg: var(--umm-static-ink-active);
 
   /* === Link colors === */
-  --umm-color-link: hsl(220 80% 46%);
-  --umm-color-link-hover: hsl(220 87% 39%);
+  --umm-color-link: var(--umm-static-brand-600);
+  --umm-color-link-hover: var(--umm-static-brand-700);
 
-  /* === Status colors === */
-  --umm-color-status-done: hsl(160 84% 39%);
-  --umm-color-status-watched: hsl(217 91% 60%);
-  --umm-color-error: hsl(6 78% 57%);
+  /* === Status colors (done/wish/watched/none semantic map) === */
+  --umm-color-status-done: var(--umm-static-green-600);
+  --umm-color-status-watched: var(--umm-static-blue-500);
+  --umm-color-error: var(--umm-static-red-500);
+  --umm-success-bg: color-mix(in srgb, var(--umm-static-green-600) 10%, transparent);
+  --umm-success: var(--umm-static-green-700);
 
   /* === Dynamic Island (fluent top bar) === */
-  --umm-island-bg: hsl(0 0% 100% / 0.92);
-  --umm-island-border: hsl(220 13% 91% / 0.06);
-  --umm-island-border-hover: hsl(220 13% 91% / 0.10);
-  --umm-island-border-focus: hsl(220 80% 46% / 0.30);
-  --umm-island-text-primary: hsl(0 0% 10%);
-  --umm-island-text-secondary: hsl(0 0% 40%);
-  --umm-island-text-muted: hsl(0 0% 67%);
-  --umm-island-hover-bg: hsl(0 0% 0% / 0.05);
-  --umm-island-active-bg: hsl(0 0% 0% / 0.06);
-  --umm-island-divider: hsl(220 13% 91% / 0.08);
+  --umm-island-bg: color-mix(in srgb, var(--umm-static-neutral-00) 92%, transparent);
+  --umm-island-border: color-mix(in srgb, var(--umm-static-neutral-1000) 8%, transparent);
+  --umm-island-border-hover: color-mix(in srgb, var(--umm-static-neutral-1000) 12%, transparent);
+  --umm-island-border-focus: color-mix(in srgb, var(--umm-static-brand-500) 30%, transparent);
+  --umm-island-text-primary: var(--umm-static-neutral-900);
+  --umm-island-text-secondary: var(--umm-static-neutral-550);
+  --umm-island-text-muted: var(--umm-static-neutral-550);
+  --umm-island-hover-bg: var(--umm-static-ink-island-hover);
+  --umm-island-active-bg: var(--umm-static-ink-island-active);
+  --umm-island-divider: color-mix(in srgb, var(--umm-static-neutral-1000) 8%, transparent);
 
   /* === Rating gold tiers === */
-  --umm-rating-gold-low: hsl(43 87% 38%);
-  --umm-rating-gold-mid: hsl(41 78% 45%);
-  --umm-rating-gold-high: hsl(41 81% 46%);
+  --umm-rating-gold-low: var(--umm-static-gold-700);
+  --umm-rating-gold-mid: var(--umm-static-gold-600);
+  --umm-rating-gold-high: var(--umm-static-gold-500);
 
-  /* === NeoDB button colors === */
-  --umm-neodb-push-bg: linear-gradient(135deg, rgba(15,122,67,0.08), rgba(23,87,214,0.08));
-  --umm-neodb-push-border: var(--umm-card-border, #e5e7eb);
-  --umm-neodb-minus-bg: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-  --umm-neodb-minus-shadow: 0 2px 4px rgba(180,83,9,0.3);
-  --umm-neodb-plus-bg: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
-  --umm-neodb-plus-shadow: 0 2px 4px rgba(21,128,61,0.3);
-  --umm-neodb-original-bg: linear-gradient(180deg, var(--umm-accent, #6366f1) 0%, #4f46e5 100%);
-  --umm-neodb-original-shadow: 0 2px 4px rgba(79,70,229,0.3);
-  --umm-neodb-open-bg: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
-  --umm-neodb-open-shadow: 0 2px 4px rgba(109,40,217,0.3);
+  /* === NeoDB buttons — solid 700-tier fills × white ink (AA ≥5.02) === */
+  --umm-neodb-push-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--umm-static-green-600) 8%, transparent),
+    color-mix(in srgb, var(--umm-static-blue-600) 8%, transparent)
+  );
+  --umm-neodb-push-border: var(--umm-card-border);
+  --umm-neodb-minus-bg: var(--umm-static-amber-700);
+  --umm-neodb-minus-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-amber-700) 30%, transparent);
+  --umm-neodb-plus-bg: var(--umm-static-green-700);
+  --umm-neodb-plus-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-green-700) 30%, transparent);
+  --umm-neodb-original-bg: var(--umm-static-indigo-700);
+  --umm-neodb-original-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-indigo-700) 30%, transparent);
+  --umm-neodb-open-bg: var(--umm-static-violet-600);
+  --umm-neodb-open-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-violet-600) 30%, transparent);
+
+  /* === Extended surfaces & text (light) === */
+  --umm-accent-hover: var(--umm-static-indigo-600);
+  --umm-bg-tertiary: var(--umm-static-neutral-100);
+  --umm-text-tertiary: color-mix(in srgb, var(--umm-color-text-secondary) 85%, transparent);
+  --umm-info: var(--umm-static-blue-600);
+  --umm-info-bg: color-mix(in srgb, var(--umm-static-blue-500) 9%, transparent);
 
   /* === Aspect ratio tokens === */
   --umm-aspect-poster: 2/3;
@@ -92,49 +118,82 @@
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* ---- Dark theme ---- */
+/* ---- Dark theme — macOS Vibrancy (STYLEKIT macos-vibrancy) ---- */
 :host(.umm-theme--dark) {
-  /* === Brand accent (dark) === */
-  --umm-brand-accent: #6e8aff;
-  --umm-brand-accent-soft: #312e81;
+  /* === Brand accent (dark lifts lightness) === */
+  --umm-brand-accent: var(--umm-static-brand-400);
+  --umm-brand-accent-strong: var(--umm-static-brand-300);
+  --umm-brand-accent-soft: var(--umm-static-brand-950);
 
-  /* Surface */
-  --umm-color-surface: hsl(240 5% 15%);
-  --umm-color-surface-secondary: hsl(240 4% 20%);
-  --umm-card-bg: hsl(240 4% 20%);
-  --umm-card-border: hsl(240 4% 25%);
+  /* Bright dark accents carry deep ink (ADR-020 D1 flip) */
+  --umm-on-accent: var(--umm-static-neutral-1000);
 
-  /* Text */
-  --umm-color-text-primary: hsl(0 0% 98%);
-  --umm-color-text-secondary: hsl(240 5% 60%);
-  --umm-color-text-muted: hsl(240 5% 40%);
+  /* === Surface — Vibrancy three-depth: page deepest, panels mid, tops light.
+     Borders are 1px white-alpha per stylekit; no hue tint on panels. === */
+  --umm-color-surface: var(--umm-static-vibrancy-0);
+  --umm-color-surface-secondary: var(--umm-static-vibrancy-1);
+  --umm-card-bg: var(--umm-static-vibrancy-1);
+  --umm-card-border: var(--umm-static-white-a10);
+
+  /* Text — white-alpha tiers; muted floor raised to white/58 for WCAG AA
+     (stylekit's white/40 is reserved for decorative micro-text only) */
+  --umm-color-text-primary: var(--umm-static-white-a95);
+  --umm-color-text-secondary: var(--umm-static-white-a72);
+  --umm-color-text-muted: var(--umm-static-white-a58);
 
   /* Border */
-  --umm-color-border: hsl(240 4% 25%);
+  --umm-color-border: var(--umm-static-white-a08);
 
-  /* Links */
-  --umm-color-link: hsl(214 94% 68%);
-  --umm-color-link-hover: hsl(214 97% 86%);
+  /* Interactive overlays — white alpha per Vibrancy interaction rules */
+  --umm-hover-bg: var(--umm-static-white-a06);
+  --umm-active-bg: var(--umm-static-white-a10);
+
+  /* Links — Apple system blue, AA text tier for mid panels */
+  --umm-color-link: var(--umm-static-apple-blue-bright);
+  --umm-color-link-hover: color-mix(in srgb, var(--umm-static-apple-blue-bright) 70%, var(--umm-static-neutral-00));
 
   /* Status */
-  --umm-color-status-done: hsl(160 84% 49%);
-  --umm-color-status-watched: hsl(217 91% 70%);
-  --umm-color-error: hsl(0 91% 71%);
+  --umm-color-status-done: var(--umm-static-green-400);
+  --umm-color-status-watched: var(--umm-static-blue-400);
+  --umm-color-error: var(--umm-static-red-400);
+  --umm-success-bg: color-mix(in srgb, var(--umm-static-green-400) 12%, transparent);
+  --umm-success: var(--umm-static-green-300);
 
-  /* Dynamic Island */
-  --umm-island-bg: hsl(230 10% 13% / 0.92);
-  --umm-island-border: hsl(0 0% 88% / 0.08);
-  --umm-island-border-hover: hsl(0 0% 88% / 0.12);
-  --umm-island-border-focus: hsl(214 94% 68% / 0.40);
-  --umm-island-text-primary: hsl(0 0% 88%);
-  --umm-island-text-secondary: hsl(0 0% 60%);
-  --umm-island-text-muted: hsl(0 0% 40%);
-  --umm-island-hover-bg: hsl(0 0% 88% / 0.06);
-  --umm-island-active-bg: hsl(0 0% 88% / 0.08);
-  --umm-island-divider: hsl(0 0% 88% / 0.10);
+  /* === Extended surfaces & text (dark) === */
+  --umm-accent-hover: var(--umm-static-indigo-400);
+  --umm-bg-tertiary: var(--umm-static-vibrancy-2);
+  --umm-text-tertiary: color-mix(in srgb, var(--umm-color-text-secondary) 85%, transparent);
+  --umm-info: var(--umm-static-blue-400);
+  --umm-info-bg: color-mix(in srgb, var(--umm-static-blue-400) 12%, transparent);
+
+  /* Dynamic Island — NSVisualEffectView vibrancy: deepest panel @80 + blur */
+  --umm-island-bg: color-mix(in srgb, var(--umm-static-vibrancy-0) 80%, transparent);
+  --umm-island-border: var(--umm-static-white-a08);
+  --umm-island-border-hover: var(--umm-static-white-a12);
+  --umm-island-border-focus: color-mix(in srgb, var(--umm-static-apple-blue) 45%, transparent);
+  --umm-island-text-primary: var(--umm-static-white-a95);
+  --umm-island-text-secondary: var(--umm-static-white-a72);
+  --umm-island-text-muted: var(--umm-static-white-a58);
+  --umm-island-hover-bg: var(--umm-static-white-a06);
+  --umm-island-active-bg: var(--umm-static-white-a09);
+  --umm-island-divider: var(--umm-static-white-a08);
 
   /* Rating gold */
-  --umm-rating-gold-low: hsl(41 63% 55%);
-  --umm-rating-gold-mid: hsl(44 76% 50%);
-  --umm-rating-gold-high: hsl(45 80% 55%);
+  --umm-rating-gold-low: var(--umm-static-gold-600);
+  --umm-rating-gold-mid: var(--umm-static-gold-500);
+  --umm-rating-gold-high: var(--umm-static-amber-400);
+
+  /* === NeoDB buttons — Radix dark step9 / GitHub Primer dark fills.
+     Ink per hue family: warm amber → deep ink (11.69); cool
+     green/indigo/violet → white (4.64/5.21/5.39). 1px light border. === */
+  --umm-neodb-push-bg: none;
+  --umm-neodb-minus-bg: var(--umm-static-neodb-amber-dark);
+  --umm-neodb-plus-bg: var(--umm-static-neodb-green-dark);
+  --umm-neodb-original-bg: var(--umm-static-neodb-indigo-dark);
+  --umm-neodb-open-bg: var(--umm-static-neodb-violet-dark);
+  --umm-neodb-btn-border: var(--umm-static-white-a10);
+  --umm-neodb-minus-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-plus-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-original-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-open-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
 }
