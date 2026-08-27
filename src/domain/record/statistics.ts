@@ -113,3 +113,61 @@ export function flattenRecords<R extends object>(
 
   return all
 }
+
+// ==================== Yearly statistics (ADR-021 Wave-G) ====================
+
+export interface YearlyStatRow {
+  year: number
+  count: number
+  /** Bar width percentage (0–100) relative to the peak year */
+  pct: number
+  /** count(year) − count(year − 1); year − 1 counts as 0 when before all data */
+  delta: number
+}
+
+export interface YearlyStatsResult {
+  /** Newest → oldest, CONTINUOUS (gap years filled with 0) */
+  rows: YearlyStatRow[]
+  maxCount: number
+  /** The starting year: `now.getFullYear() − 1` */
+  lastYear: number
+}
+
+/**
+ * Yearly totals from ISO timestamps, starting at LAST year and running back
+ * to the earliest data year. The range is continuous — years without records
+ * appear as 0 so the timeline and year-over-year deltas stay honest.
+ *
+ * Pure: no clock reads (caller passes `now`), no I/O.
+ */
+export function computeYearlyStats(
+  timestamps: readonly (string | undefined)[],
+  now: Date = new Date(),
+): YearlyStatsResult {
+  const lastYear = now.getFullYear() - 1
+
+  const counts = new Map<number, number>()
+  for (const ts of timestamps) {
+    if (!ts) continue
+    const y = new Date(ts).getFullYear()
+    if (Number.isNaN(y)) continue
+    counts.set(y, (counts.get(y) ?? 0) + 1)
+  }
+
+  const dataYears = [...counts.keys()].filter(y => y <= lastYear)
+  // Nothing at or before last year → no timeline to show
+  if (!dataYears.length) return { rows: [], maxCount: 0, lastYear }
+  const oldestDataYear = Math.min(...dataYears)
+
+  const rows: YearlyStatRow[] = []
+  let maxCount = 0
+  for (let y = lastYear; y >= oldestDataYear; y--) {
+    const count = counts.get(y) ?? 0
+    const prev = counts.get(y - 1) ?? 0
+    maxCount = Math.max(maxCount, count)
+    rows.push({ year: y, count, pct: 0, delta: count - prev })
+  }
+  for (const row of rows) row.pct = Math.round((row.count / Math.max(1, maxCount)) * 100)
+
+  return { rows, maxCount, lastYear }
+}
