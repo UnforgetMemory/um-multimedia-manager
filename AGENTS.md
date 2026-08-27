@@ -2,7 +2,7 @@
 
 ## 项目
 
-**UMM（Unified Multimedia Manager）** — Chrome 扩展（Manifest V3），统一管理豆瓣/IMDb/NeoDB/TMDB/Bangumi/PT 站的观影收听记录，支持跨平台同步、PT 种子淡化、WebDAV 备份。Vue 3 + TypeScript + WXT + Tailwind CSS v4 + reka-ui。当前版本 5.13.1。
+**UMM（Unified Multimedia Manager）** — Chrome 扩展（Manifest V3），统一管理豆瓣/IMDb/NeoDB/TMDB/Bangumi/PT 站的观影收听记录，支持跨平台同步、PT 种子淡化、WebDAV 备份。Vue 3 + TypeScript + WXT + Tailwind CSS v4 + reka-ui。当前版本 5.14.0。
 
 ## 快速命令
 

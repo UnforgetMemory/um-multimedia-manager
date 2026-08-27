@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.0] - 2026-08-26
+
+### 新增功能
+
+- **三层设计令牌系统（ADR-018/019/020）**：Tier-1 原始色板（`tokens.static.css` 单一事实源）+ Tier-2 语义别名层（SPA `style.css` / 豆瓣 Shadow DOM `design-tokens.css` / legacy 注入 `global.ts`），`npm run ds:check` 强制 Tier-2 零裸色值（hex/rgb/hsl）+ 33 组 WCAG 对比断言（新增静态令牌解析与 `tokens.ts` spot-check）
+- **暗色主题 macOS Vibrancy 风格（ADR-021）**：三级灰阶面板（#1c1c1e → #2c2c2e → #3a3a3c）、Apple 系统蓝文字级高亮（无实底填充）、白色透明度文字三档（95/72/58%）、island 毛玻璃、暗色去渐变去辉光
+- **语义间距/字号流式统一（ADR-022 勘误版）**：`search` / `genre` / `artists-overview` / `game-explore` 四页接入 `breakpoints` 断点层，全站 32 页共享同一 clamp 流式 + 14 档断点尺度（320→5120px）
+- **图标按钮组件**：新增 `shared/ui/icon-button` 可复用原语（含变体/尺寸/loading 态）
+- **年度统计**：按年聚合各平台记录数（相对峰值年百分比 + 跨年空档补零），配套单元测试
+
+### 修复与优化
+
+- **豆瓣详情页标记弹窗无法显示**：`.umm-mount` 入场动画残留 transform（fill-mode both）使 fixed 弹层以滚动容器为包含块、`top:50%` 落到内容深处——keyframe 改纯 opacity 淡入，弹窗恢复视口精确居中
+- **豆瓣重构页 header 盖住弹窗**：`.umm-layout-content` 的 `z-index:0` 创建 stacking context 把内部弹层锁死在 header（z:50）之下——移除 cap 后弹层正确浮于 header 之上；同步修正首页三页 `.umm-top-panel` 层级（z:300→0）避免滚动时覆盖 sticky header
+- **NeoDB 等站点 toast 黑字**：宿主页面 `p`/`strong` 元素规则会直接给 toast 内部文字着色（继承链被截断）——内部文字显式 `color:inherit`；同步 toast 字色接入主题墨色 token（`--usl-ink-on-fill`）、字体族改为 `inherit` 跟随页面
+- **暗色主题生效策略修正**：新增 `@custom-variant dark (&:where(.dark, .dark *))`，`umm:dark:*` 工具类由默认的 `prefers-color-scheme` 媒体查询改为 `.dark` 类驱动（与主题 store `root.classList` 切换一致）
+- 移除 7 个孤立 `_END_DARK` 常量与死 `--umm-accent-page` token；修正 DESIGN_GUIDE 若干漂移（33 组断言、Dark 列、损坏列表等）
+
+### 测试
+
+- 新增 `yearly-statistics.spec`（7 用例：上一日开始/跨年空档补零/同年累积/峰值百分比/非法时间戳跳过/空数据）
+- 新增视觉探针工具链：`probe:spa` / `probe:douban`（Playwright 截图 + 计算样式断言）与豆瓣渲染 fixture 生成器
+
+### 文档
+
+- 新增 5 份 ADR：ADR-018（三层设计令牌）、ADR-019（M3 色彩角色）、ADR-020（on-color 对比对）、ADR-021（macOS Vibrancy 暗色）、ADR-022（语义间距统一，含初版勘误与 `git grep -E` 教训）
+
 ## [5.13.2] - 2026-08-22
 
 ### 变更（内部重构 · 无用户可见行为变化）

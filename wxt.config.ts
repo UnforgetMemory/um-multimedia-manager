@@ -6,7 +6,7 @@ import { devVersionSegment } from './src/utils/dev-version'
  * Extension version — single source inside this config; kept in sync with
  * package.json (npm run package:* updates both).
  */
-const VERSION = '5.13.2'
+const VERSION = '5.14.0'
 
 const PROD_NAME = 'UMManager - 多媒体管理器'
 const DEV_NAME = `${PROD_NAME} (DEV)`
