@@ -9,7 +9,7 @@
 <h1 align="center">UMM — 多媒体管理器</h1>
 
 <p align="center">
-  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.11.2-blue?logo=git" alt="Version"></a>
+  <a href="https://github.com/UnforgetMemory/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.14.0-blue?logo=git" alt="Version"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen?logo=googlechrome" alt="Chrome"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest_V3-orange?logo=googlechrome" alt="MV3"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-green?logo=apache" alt="License"></a>
@@ -36,7 +36,7 @@
 | 📦 **WebDAV 备份** | 自动备份到任意 WebDAV 服务器，支持 ZIP 导出/导入 |
 | 🧩 **NeoDB 集成** | 从 NeoDB 拉取评分元数据，支持推送评分 |
 | 🎨 **主题切换** | 亮色、暗色、跟随系统三种主题 |
-| 📊 **统计看板** | 弹窗概览 + 完整选项页（热力图、分布图、评分管理） |
+| 📊 **统计看板** | 弹窗概览 + 完整选项页（热力图、分布图、年度统计、评分管理） |
 | 🔞 **成人内容支持** | 统一管理 JavDB、Sehuatang 的观看记录 |
 | 🌐 **国际化** | 中英文双语支持 |
 
@@ -87,12 +87,15 @@ npm run build
 
 ```bash
 npm run dev          # 开发模式（热更新）
-npm run build        # 生产构建
-npm run type-check    # TypeScript 类型检查
-npm test              # 运行 Playwright 测试
-npm run zip           # 构建并打包
-npm run i18n:check    # 检查 i18n 键完整性
-npm run package:patch # 版本号递增 + 构建 + 打包
+npm run build        # 生产构建（含 fix-paths 后置步骤）
+npm run build:dev    # Dev 构建（独立输出目录 dist-dev/chrome-mv3-dev，带 (DEV) 标记）
+npm run type-check   # TypeScript 类型检查（质量门禁）
+npm run test:unit    # Playwright 单元测试
+npm test             # 运行全部 Playwright 测试
+npm run zip          # 构建并打包
+npm run i18n:check   # 检查 i18n 键完整性
+npm run ds:check     # 设计令牌一致性检查
+npm run package:patch # 版本号递增（patch）+ 构建 + 打包
 ```
 
 ## 贡献
@@ -102,7 +105,7 @@ npm run package:patch # 版本号递增 + 构建 + 打包
 - **翻译** — 帮助完善或添加语言支持
 - **测试** — 编写或改进 Playwright E2E 测试
 
-提交前请运行 `npm run type-check`，TypeScript 类型检查是项目的质量门禁。
+提交前请运行 `npm run type-check` 与 `npm run build`，类型检查与构建是项目的质量门禁。
 
 ## 许可
 
@@ -111,8 +114,8 @@ npm run package:patch # 版本号递增 + 构建 + 打包
 ---
 
 <p align="center">
-  <a href="https://ko-fi.com/unforgetmemory">
-    <img src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" alt="Support on Ko-fi" width="180" height="36">
+  <a href="https://ko-fi.com/unforgetmemory" target="_blank" rel="noopener">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="在 Ko-fi 上支持我们" width="223" height="30">
   </a>
 </p>
 

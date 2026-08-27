@@ -9,7 +9,7 @@
 <h1 align="center">UMM — Unified Multimedia Manager</h1>
 
 <p align="center">
-  <a href="https://github.com/um-2023/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.11.2-blue?logo=git" alt="Version"></a>
+  <a href="https://github.com/UnforgetMemory/um-multimedia-manager/releases"><img src="https://img.shields.io/badge/version-5.14.0-blue?logo=git" alt="Version"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Chrome-88%2B-brightgreen?logo=googlechrome" alt="Chrome"></a>
   <a href="https://developer.chrome.com/docs/extensions/mv3/"><img src="https://img.shields.io/badge/Manifest_V3-orange?logo=googlechrome" alt="MV3"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-green?logo=apache" alt="License"></a>
@@ -36,7 +36,7 @@
 | 📦 **WebDAV Backup** | Auto-backup to any WebDAV server, plus ZIP export/import |
 | 🧩 **NeoDB Integration** | Pull ratings and push scores via NeoDB API |
 | 🎨 **Theme Switching** | Light, dark, and system-following themes |
-| 📊 **Statistics Dashboard** | Popup overview + full options page with heatmap, distribution, ratings |
+| 📊 **Statistics Dashboard** | Popup overview + full options page with heatmap, distribution, yearly stats, ratings |
 | 🔞 **Adult Content Support** | Unified tracking for JavDB and Sehuatang |
 | 🌐 **Internationalization** | Multi-language support (Chinese, English) |
 
@@ -63,36 +63,6 @@ npm run build
 
 Load `dist/chrome-mv3` into Chrome via `chrome://extensions/` (Developer mode).
 
-## Configuration
-
-### WebDAV Backup
-
-Configure in the extension settings:
-
-| Field | Description |
-|---|---|
-| Server URL | WebDAV endpoint (e.g. `https://example.com/remote.php/dav/`) |
-| Username | WebDAV login |
-| Password | WebDAV password or app password |
-
-### NeoDB Token
-
-1. Log in to [NeoDB](https://neodb.social)
-2. Generate an API token in your profile settings
-3. Enter it in the extension settings
-
-## Development
-
-Requires Node.js >= 22 and npm >= 10.
-
-```bash
-npm run dev          # Hot-reload development mode
-npm run build        # Production build
-npm run type-check   # TypeScript type checking
-npm test             # Run Playwright tests
-npm run zip          # Build and package for Chrome Web Store
-```
-
 ## Contributing
 
 - **Report issues** — Open a GitHub issue for bugs or feature requests
@@ -100,26 +70,7 @@ npm run zip          # Build and package for Chrome Web Store
 - **Translate** — Help improve or add language support
 - **Test** — Write or improve Playwright E2E tests
 
-Run `npm run type-check` before committing — TypeScript type checking is the project's quality gate.
-
-## License
-
-[Apache 2.0](LICENSE)
-
----
-
-<p align="center">
-  <a href="https://ko-fi.com/unforgetmemory">
-    <img src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" alt="Support on Ko-fi" width="180" height="36">
-  </a>
-</p>
-
-<p align="center">
-  <img src="assets/logo.png" alt="UMM Logo" width="48" height="48">
-  <br/>
-  <em>Unify your media. Everywhere.</em>
-</p>
-
+Run `npm run type-check` and `npm run build` before committing — type checking and the build are the project's quality gates.
 
 ---
 
@@ -193,7 +144,7 @@ flowchart TB
 - **Content Script** (`src/entrypoints/content.ts` + `src/entrypoints/content/`) — Injected into matched pages. The URL router dispatches to the correct platform handler (IMDb, NeoDB, TMDB, Bangumi, JavDB, Sehuatang, Mukaku, PT detail pages). Enhancers add PT dimming.
 - **Options Page** (`src/entrypoints/options/`) — Full Vue 3 app with sidebar layout. Six tabs: Overview (stats, heatmap, charts), Rating (browse & filter), Linked (cross-platform records), Sync (WebDAV + import/export), Settings (NeoDB token, preferences), and Appearance (theme, font scaling).
 - **Popup Dashboard** (`src/entrypoints/popup/`) — Compact Vue 3 dashboard showing key statistics. Acts as a launch point to the options page.
-- **Douban Content** (`src/content/douban/`) — Page-specific Vue apps rendered inside a Shadow DOM overlay for 31 Douban page types (movie/music/book/game detail, search, homepage, genre, doulists, user profiles, and more). Each page type gets its own component tree, data/config modules, and stylesheet.
+- **Douban Content** (`src/content/douban/`) — Page-specific Vue apps rendered inside a Shadow DOM overlay for 32 Douban page types (movie/music/book/game detail, search, homepage, genre, doulists, user profiles, and more). Each page type gets its own component tree, data/config modules, and stylesheet.
 - **PT Dimmer** (`src/entrypoints/content/enhancers/pt/`) — Modular dimmer system with per-site config, TTL cache, and NexusPHP/M-Team support. Scans PT pages, matches against watched IDs, and dims rows.
 - **Video Overlay** (`src/entrypoints/content/ui/`) — Shared video overlay used by the Bilibili and YouTube content scripts (`video-overlay.ts` plus pure/tracker/styles helpers), alongside the check-viewed, doulist-replace, and manual-add panel modules.
 - **Domain Layer** (`src/domain/`) — DDD-style domain entities: `Identity`, `Platform`, `MediaType`, `StoreRecord`, `Rating`, `Status`, and their repositories.
@@ -335,17 +286,21 @@ Starts the WXT dev server with hot module replacement. Load the unpacked extensi
 |---------|-------------|
 | `npm run dev` | Start dev server with HMR |
 | `npm run build` | Build for production (Chrome MV3) |
+| `npm run build:dev` | Dev build to `dist-dev/chrome-mv3-dev/` with a `(DEV)` marker |
 | `npm run zip` | Build and create `.zip` for distribution |
 | `npm run type-check` | TypeScript type checking via vue-tsc |
 | `npm test` | Run Playwright tests (Chromium) |
 | `npm run test:unit` | Run unit tests only |
 | `npm run test:ui` | Launch Playwright UI mode |
 | `npm run unpack` | Unpack the built extension |
+| `npm run ds:check` | Design-token consistency check |
 | `npm run package:patch` | Bump patch version, build, and package |
 | `npm run package:minor` | Bump minor version, build, and package |
 | `npm run package:major` | Bump major version, build, and package |
 | `npm run data:export` | CLI data export |
 | `npm run data:import` | CLI data import |
+| `npm run deps:check` | Check outdated dependencies |
+| `npm run deps:update` | Update dependencies |
 | `npm run deps:audit` | npm audit |
 | `npm run i18n:check` | Check i18n key coverage |
 
@@ -470,7 +425,7 @@ um-multimedia-manager/
 │   │   └── douban/
 │   │       ├── components/          # Douban shared components
 │   │       ├── overlay/             # Shadow DOM overlay lifecycle
-│   │       ├── pages/               # 31 per-page Vue apps
+│   │       ├── pages/               # 32 per-page Vue apps
 │   │       │   ├── detail/          # Movie/music/book/game detail page
 │   │       │   ├── homepage/        # Douban homepage
 │   │       │   ├── search/          # Search page
@@ -478,7 +433,7 @@ um-multimedia-manager/
 │   │       │   ├── doulists/        # Doulist pages
 │   │       │   ├── user-media/      # User media collections
 │   │       │   ├── user-profile/    # User profile
-│   │       │   └── ...              # 31 page-specific apps total
+│   │       │   └── ...              # 32 page-specific apps total
 │   │       ├── shared/              # Shared composables & helpers
 │   │       │   ├── url-detector.ts  # Page type detection
 │   │       │   ├── douban-extract.ts # Data extraction
@@ -589,7 +544,7 @@ um-multimedia-manager/
 | **State Management** | Pinia |
 | **Internationalization** | vue-i18n |
 | **Data Storage** | IndexedDB |
-| **ZIP Handling** | JSZip |
+| **ZIP Handling** | fflate |
 | **Testing** | Playwright |
 | **Architecture** | Manifest V3 (Service Worker + Content Scripts + Popup) |
 | **Dev Tools** | Vite, vue-tsc, TypeScript |
@@ -599,3 +554,17 @@ um-multimedia-manager/
 ## License
 
 This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  <a href="https://ko-fi.com/unforgetmemory" target="_blank" rel="noopener">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" width="223" height="30">
+  </a>
+</p>
+
+<p align="center">
+  <img src="assets/logo.png" alt="UMM Logo" width="48" height="48">
+  <br/>
+  <em>Unify your media. Everywhere.</em>
+</p>
