@@ -235,3 +235,6 @@ typecheck.err
 
 # ----- Dev build output (npm run build:dev → dist-dev/chrome-mv3) -----
 dist-dev/
+
+tmp-fixture/
+tmp-probe/
