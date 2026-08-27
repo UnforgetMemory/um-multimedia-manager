@@ -6,7 +6,7 @@
  */
 
 /** Status colors: 0=NONE 1=WISHLIST 2=DONE 3=DOING */
-export const STATUS_COLORS = ['#9ca3af', '#f97316', '#22c55e', '#3b82f6'] as const
+export const STATUS_COLORS = ['#4d5870', '#b45309', '#047857', '#2563eb'] as const
 export const STATUS_LABELS = ['未看', '想看', '已看', '在看'] as const
 /** Display order of status buttons in the modal: NONE WISHLIST DOING DONE */
 export const STATUS_DISPLAY_ORDER = [0, 1, 3, 2] as const

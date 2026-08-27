@@ -19,7 +19,7 @@ export default defineContentScript({
   main() {
     // ── Constants ──────────────────────────────────────────
     const STORE = 'bilibili_records'
-    const STATUS_COLORS = ['#9ca3af', '#f97316', '#22c55e', '#3b82f6'] as const
+    const STATUS_COLORS = ['#4d5870', '#b45309', '#047857', '#2563eb'] as const
     const STATUS_LABELS = ['未看', '想看', '已看', '在看'] as const
     // Status codes that trigger dimmer : DONE=2, DOING=3
     const DIMMER_THRESHOLD = 2

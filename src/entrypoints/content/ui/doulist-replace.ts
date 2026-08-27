@@ -140,7 +140,7 @@ function buildThemedDialog(
     confirmText.textContent = msg
     confirmYes.textContent = yesLabel
     confirmNo.textContent = noLabel
-    confirmYes.style.cssText = ['padding:10px 28px;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600',`background:${theme.accent};color:#fff`].join(';')
+    confirmYes.style.cssText = ['padding:10px 28px;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600',`background:${theme.accent};color:${theme.onAccent}`].join(';')
     confirmNo.style.cssText = ['padding:10px 28px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:500',`border:1px solid ${theme.borderDark}`,`background:${theme.surfaceAlt};color:${theme.textSecondary}`].join(';')
     confirmBox.style.display = 'flex'
     confirmYes.onclick = () => { confirmBox.style.display = 'none'; action() }
@@ -231,7 +231,7 @@ function buildThemedDialog(
             renderItems(searchInput.value)
           } else {
             toggleBtn.textContent = '\u2715'
-            toggleBtn.style.color = '#e74c3c'
+            toggleBtn.style.color = '#b91c1c'
             setTimeout(() => renderItems(searchInput.value), 1200)
           }
         }
@@ -318,7 +318,7 @@ function buildThemedDialog(
   formCancel.style.cssText = `padding:7px 20px;border:1px solid ${theme.borderDark};border-radius:8px;background:${theme.surfaceAlt};color:${theme.textSecondary};font-size:13px;font-weight:500;cursor:pointer`
   const formConfirm = document.createElement('button')
   formConfirm.innerHTML = '创建'
-  formConfirm.style.cssText = `padding:7px 20px;border:none;border-radius:8px;background:${theme.accent};color:#fff;font-size:13px;font-weight:600;cursor:pointer;line-height:1.4`
+  formConfirm.style.cssText = `padding:7px 20px;border:none;border-radius:8px;background:${theme.accent};color:${theme.onAccent};font-size:13px;font-weight:600;cursor:pointer;line-height:1.4`
   formActions.append(formCancel, formConfirm)
   createForm.append(nameInput, privateRow, formActions)
   body.insertBefore(createForm, searchInput)

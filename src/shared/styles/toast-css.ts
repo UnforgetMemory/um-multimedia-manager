@@ -23,7 +23,11 @@ export const TOAST_CORE_CSS = `
   pointer-events: auto;
   position: relative;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* inherit instead of a hardcoded system stack: the toast lives in the
+     page's light DOM (like every other legacy injection: neodb buttons,
+     badges), so its font must follow the page/theme font like they do.
+     A fixed stack previously left the toast looking like an orphan UI. */
+  font-family: inherit;
 }
 
 .umm-toast.show {
@@ -32,40 +36,46 @@ export const TOAST_CORE_CSS = `
 }
 
 /* Toast color contrast verification (WCAG AA ≥ 4.5:1):
- * - Success Green (rgba(11, 83, 53, 0.98)) + White: 7.8:1 ✅
- * - Error Red (rgba(126, 28, 48, 0.98)) + White: 6.2:1 ✅
- * - Info Blue (#0d47b8) + White: 8.5:1 ✅
- * - Loading Blue (#2563eb) + White: 5.9:1 ✅
+ * - Success Green (rgba(11, 83, 53, 0.98)) + Ink white: 7.8:1 ✅
+ * - Error Red (rgba(126, 28, 48, 0.98)) + Ink white: 6.2:1 ✅
+ * - Info Blue (#3a55ec top) + Ink white: ≈5.7:1 ✅ (deep end #2f43cf higher)
+ * - Loading Blue (#2563eb top) + Ink white: ≈5.1:1 ✅ (deep end #1d4ed8 higher)
  */
 .umm-toast--success {
   background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
-  color: white;
+  color: var(--usl-ink-on-fill, #ffffff);
 }
 
 .umm-toast--error {
   background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
-  color: white;
+  color: var(--usl-ink-on-fill, #ffffff);
 }
 
 .umm-toast--info {
-  background: linear-gradient(180deg, #1757d6 0%, #0d47b8 100%);
-  color: white;
+  background: linear-gradient(180deg, #3a55ec 0%, #2f43cf 100%);
+  color: var(--usl-ink-on-fill, #ffffff);
 }
 
 .umm-toast--loading {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: var(--usl-ink-on-fill, #ffffff);
 }
 
 .umm-toast strong {
   display: block;
   margin-bottom: 4px;
+  /* Explicit color:inherit — a host page styling p or strong with its own
+     color would otherwise paint the toast text directly and override the
+     ink inherited from the type class, rendering it in the page's dark
+     text color (reported as black toasts on neodb).  */
+  color: inherit;
 }
 
 .umm-toast p {
   margin: 0;
   font-size: 12px;
   opacity: 0.9;
+  color: inherit;
 }
 
 /* ── Persistent toast ────────────────────────── */
@@ -75,6 +85,10 @@ export const TOAST_CORE_CSS = `
   padding: 16px 40px 20px 18px;
 }
 
+/* Ink follows the legacy theme token (--usl-ink-on-fill), like every other
+   light-DOM control (neodb buttons, badges); pages without UMM injection
+   fall back to white. Semantic toast backgrounds stay theme-independent
+   (variant = meaning), so ink-vs-bg contrast stays AA-verified. */
 .umm-toast__close {
   position: absolute;
   top: 10px;
@@ -83,7 +97,7 @@ export const TOAST_CORE_CSS = `
   height: 22px;
   border: none;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--usl-ink-on-fill, #ffffff);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
