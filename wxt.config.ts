@@ -119,6 +119,16 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
     base: '',
+    server: {
+      watch: {
+        // Scratch dirs written during dev sessions: agent memory files use
+        // atomic-write temp files that crashed chokidar with EBUSY (kill the
+        // dev server); visual-probe artifacts spam chokidar. Neither is part
+        // of the module graph — never watch them. (Function form: chokidar
+        // v4+ dropped glob support in `ignored`.)
+        ignored: (path: string) => path.includes('.um.agents') || path.includes('tmp-fixture'),
+      },
+    },
     build: {
       target: 'es2022',
       // Disable Vite's modulepreload tags in popup.html/options.html — Chrome's

@@ -69,6 +69,15 @@ for (const [hid, tag] of [['host-light', 'light'], ['host-dark', 'dark']]) {
   console.log(`[paginator-${tag}]`, JSON.stringify(r, null, 1))
 }
 
+// zoom: status badge matrix (.umm-status — the user-reported component)
+for (const [hid, tag] of [['host-light', 'light'], ['host-dark', 'dark']]) {
+  const h = page.locator(`#${hid}`)
+  const badge = h.locator('.umm-status--wish').first()
+  await badge.scrollIntoViewIfNeeded()
+  const bb = await badge.boundingBox()
+  if (bb) await page.screenshot({ path: path.join(out, `zoom-status-badges-${tag}.png`), clip: { x: bb.x - 20, y: bb.y - 60, width: 640, height: 160 } })
+}
+
 // zoom: paginator + creation badges (both hosts)
 for (const [hid, tag] of [['host-light', 'light'], ['host-dark', 'dark']]) {
   const h = page.locator(`#${hid}`)

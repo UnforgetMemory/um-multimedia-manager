@@ -35,6 +35,17 @@ const css = order.map(([n, f]) => {
 }).join('\n')
 
 const markup = `
+<!-- 状态徽章 (.umm-status — 榜单/搜索/专辑卡片 + 豆列/游戏行内) -->
+<section>
+  <h3>卡片状态徽章 (.umm-status)</h3>
+  <span class="umm-status umm-status--small umm-status--wish">想看</span>
+  <span class="umm-status umm-status--small umm-status--none">未看</span>
+  <span class="umm-status umm-status--small umm-status--doing">在看</span>
+  <span class="umm-status umm-status--small umm-status--done">看过</span>
+  <span class="umm-status umm-status--wish">想看</span>
+  <span class="umm-status umm-status--none">未看</span>
+</section>
+
 <!-- 状态徽章（series） -->
 <section>
   <h3>状态徽章</h3>
