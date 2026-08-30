@@ -5,7 +5,7 @@
  */
 
 import { sleep } from '@/utils'
-import type { RuntimeMessageEnvelope } from '@/types'
+import type { MessageType, ResponseMessageMap, RuntimeMessageEnvelope } from '@/types'
 
 declare global {
   interface Window {
@@ -27,17 +27,18 @@ export function isContextValid(): boolean {
  * 安全地发送消息到 Background（类型化信封）
  * 包含上下文检查和错误处理。
  *
- * 响应体默认 `any` 以兼容各 handler 的异构返回形状；需要精确类型时通过
- * 泛型参数显式声明（如 ImportExportTab 的 `{ success; error?; data? }`）。
+ * 响应体由 `ResponseMessageMap`（types/messages.ts）按消息类型判别联合化——
+ * 不再需要 `T = any` 默认参数：K 从 `message.type` 推断，返回该消息类型的
+ * 判别联合响应；超时/上下文失效等异常路径返回 `null`。
  */
-export async function safeSendMessage<T = any>(
-  message: RuntimeMessageEnvelope,
+export async function safeSendMessage<K extends MessageType>(
+  message: Extract<RuntimeMessageEnvelope, { type: K }>,
   options?: {
     timeout?: number
     retries?: number
     fallback?: () => void
   }
-): Promise<T | null> {
+): Promise<ResponseMessageMap[K] | null> {
   // ✅ 修复：降低默认超时和重试次数，更快反馈错误
   const { timeout = 15000, retries = 2, fallback } = options || {}
   
@@ -52,7 +53,7 @@ export async function safeSendMessage<T = any>(
       
       // 发送消息并设置超时
       const response = await sendMessageWithTimeout(message, timeout)
-      return response as T
+      return response
       
     } catch (error: unknown) {
       lastError = error as Error
@@ -83,13 +84,16 @@ export async function safeSendMessage<T = any>(
 /**
  * 带超时的消息发送
  */
-function sendMessageWithTimeout(message: RuntimeMessageEnvelope, timeout: number): Promise<any> {
+function sendMessageWithTimeout<K extends MessageType>(
+  message: Extract<RuntimeMessageEnvelope, { type: K }>,
+  timeout: number,
+): Promise<ResponseMessageMap[K]> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Message timeout after ${timeout}ms`))
     }, timeout)
     
-    chrome.runtime.sendMessage(message, (response) => {
+    chrome.runtime.sendMessage(message, (response: ResponseMessageMap[K]) => {
       clearTimeout(timer)
       
       // 检查运行时错误

@@ -51,10 +51,6 @@ function emptyStatistics(): RecordStatistics {
   }
 }
 
-function bump(counts: Record<string, number>, dimension: string): void {
-  counts[dimension]++
-}
-
 /**
  * Aggregate per-store entry lists into cross-platform/media-type counts.
  *
@@ -64,25 +60,51 @@ export function computeStatistics(
   stores: readonly PlatformStoreEntries[],
 ): RecordStatistics {
   const stats = emptyStatistics()
-  const counts = stats as unknown as Record<string, number>
 
   for (const { platform, entries } of stores) {
     stats.total += entries.length
     if (platform && platform in stats) {
       // Platform dimension accumulates the whole store's entry count,
       // unlike the media dimensions which count one per matching key.
-      counts[platform] += entries.length
+      bumpPlatform(stats, platform, entries.length)
     }
 
     for (const entry of entries) {
       const type = entry.key.split('::')[0]
       if (type && type in stats) {
-        bump(counts, type)
+        bumpMediaType(stats, type)
       }
     }
   }
 
   return stats
+}
+
+/**
+ * Explicit field bumps — replaces the previous
+ * `stats as unknown as Record<string, number>` indirection so field drift is
+ * caught at compile time instead of being silently ignored by the index
+ * signature (2026-08-29 typed pass, research paper §5.3 #11).
+ */
+function bumpPlatform(stats: RecordStatistics, platform: string, count: number): void {
+  if (platform === 'douban') stats.douban += count
+  else if (platform === 'imdb') stats.imdb += count
+  else if (platform === 'neodb') stats.neodb += count
+  else if (platform === 'tmdb') stats.tmdb += count
+  else if (platform === 'bilibili') stats.bilibili += count
+  else if (platform === 'youtube') stats.youtube += count
+  else if (platform === 'bangumi') stats.bangumi += count
+  // Unknown platform ids were already excluded by the `platform in stats`
+  // guard — same behaviour as the pre-refactor index-signature version.
+}
+
+function bumpMediaType(stats: RecordStatistics, type: string): void {
+  if (type === 'movie') stats.movie++
+  else if (type === 'tv') stats.tv++
+  else if (type === 'music') stats.music++
+  else if (type === 'book') stats.book++
+  // Unknown key prefixes (e.g. `game::…`) are NOT counted in any media
+  // dimension — locked by tests/unit/statistics-characterization.spec.ts.
 }
 
 /**

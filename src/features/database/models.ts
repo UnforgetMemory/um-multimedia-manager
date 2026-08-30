@@ -461,17 +461,15 @@ export class MediaDatabase {
       const store = tx.objectStore(storeName)
       const index = store.index('status')
       const ids = new Set<string>()
-      let count = 0
       let pending = 2
       // Guard against double settlement (e.g. one cursor errors while the
       // other finishes, or tx.onerror fires after resolve) — JS ignores the
-      // second call, but the finish() log would mislead.
+      // second call.
       let settled = false
 
       const finish = () => {
         pending--
         if (pending === 0) {
-          console.log(`[DB] getWatchedIds(${storeName}): scanned ${count} records, found ${ids.size} watched`)
           if (!settled) {
             settled = true
             resolve(ids)
@@ -484,7 +482,6 @@ export class MediaDatabase {
         request.onsuccess = () => {
           const cursor = request.result
           if (cursor) {
-            count++
             ids.add(cursor.primaryKey as string)
             cursor.continue()
           } else {

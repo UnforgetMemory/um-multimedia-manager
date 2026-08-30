@@ -9,7 +9,7 @@
  */
 
 import type { Provider } from '@/config'
-import type { MessageType, MessagePayloadMap, StoreRecord, AppSettings, PtIdCacheEntry } from '@/types'
+import type { MessageType, MessagePayloadMap, MessageSuccess, StoreRecord, AppSettings, PtIdCacheEntry } from '@/types'
 import { sleep } from '@/utils'
 
 /**
@@ -32,7 +32,9 @@ function isTransientConnectionError(message: string): boolean {
 
 /**
  * Send a typed runtime message with timeout and transient-error retry.
- * `K` is the message type; `payload` is type-checked against MessagePayloadMap.
+ * `K` is the message type; `payload` is type-checked against MessagePayloadMap;
+ * the response resolves to the success member of `ResponseMessageMap[K]`
+ * (failures reject — the caller never sees the failure shape).
  * Retries are only taken for connection-level failures (which fail fast),
  * so the wall-clock budget stays near `timeout`.
  */
@@ -41,24 +43,31 @@ async function send<K extends MessageType>(
   payload: MessagePayloadMap[K],
   timeout = 8000,
   retries = 2,
-): Promise<any> {
+): Promise<MessageSuccess<K>> {
   let lastError: unknown = null
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await new Promise<any>((resolve, reject) => {
+      return await new Promise<MessageSuccess<K>>((resolve, reject) => {
         const timer = setTimeout(() => {
           reject(new Error(`[DB API] '${type}' timed out after ${timeout}ms`))
         }, timeout)
 
         chrome.runtime.sendMessage({ type, payload }, (response) => {
           clearTimeout(timer)
+          // The callback response is `any` at the chrome boundary; the typed
+          // contract is ResponseMessageMap (types/messages.ts). `send` resolves
+          // only the success member and rejects semantic failures, so callers
+          // never see the failure shape — one documented structural cast here.
+          const wire = response as { success: boolean; error?: string } | undefined
           if (chrome.runtime.lastError) {
             reject(new Error(`[DB API] sendMessage failed: ${chrome.runtime.lastError.message}`))
-          } else if (response?.success === false) {
-            reject(new Error(`[DB API] ${response.error || 'Unknown error'}`))
+          } else if (!wire) {
+            reject(new Error('[DB API] empty response'))
+          } else if (wire.success === false) {
+            reject(new Error(`[DB API] ${wire.error || 'Unknown error'}`))
           } else {
-            resolve(response)
+            resolve(response as MessageSuccess<K>)
           }
         })
       })

@@ -10,5 +10,11 @@ export function errorMessage(err: unknown): string {
   return (err as Error)?.message || String(err)
 }
 
-/** Response callback signature for chrome.runtime.sendMessage handlers */
-export type SendResponse = (response?: unknown) => void
+/**
+ * Response callback signature for chrome.runtime.sendMessage handlers.
+ *
+ * Generic over the response shape; the authoritative per-message response
+ * contract is `ResponseMessageMap` (types/messages.ts) — see also
+ * `MessageSuccess` for the client-side resolved member.
+ */
+export type SendResponse = <T = unknown>(response?: T) => void

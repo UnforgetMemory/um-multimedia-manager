@@ -6,7 +6,8 @@
  * Extracted from content.ts for modularity.
  */
 
-import type { StoreRecord } from '@/types'
+import type { StoreRecord, UrlIdentity } from '@/types'
+import type { MediaTypeId } from '@/domain/platform/MediaType'
 import { Store } from '@/features/database'
 import { Utils } from '@/utils'
 import { UrlResolverBuilder } from '@/shared/identity'
@@ -67,7 +68,7 @@ function showToast(message: string, type: 'success' | 'error' | 'info' = 'info')
 
 /** Inject NeoDB push buttons into Douban detail page */
 export function injectNeoDBPushButtons(
-  currentIdentity: any,
+  currentIdentity: UrlIdentity | null,
   currentRecord: StoreRecord | null,
 ): void {
   if (!currentIdentity) return
@@ -169,7 +170,7 @@ export function injectNeoDBPushButtons(
   infoLog('NeoDB push buttons injected')
 }
 
-function bindNeoDBPushEvents(currentIdentity: any, currentRecord: StoreRecord | null, container: HTMLElement): void {
+function bindNeoDBPushEvents(currentIdentity: UrlIdentity | null, currentRecord: StoreRecord | null, container: HTMLElement): void {
   container.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement
     if (!target.matches('#umm-push-minus, #umm-push-plus, #umm-push-original')) return
@@ -180,7 +181,7 @@ function bindNeoDBPushEvents(currentIdentity: any, currentRecord: StoreRecord | 
 }
 
 async function pushToNeoDB(
-  currentIdentity: any,
+  currentIdentity: UrlIdentity | null,
   currentRecord: StoreRecord | null,
   ratingAdjust: number
 ): Promise<void> {
@@ -238,7 +239,9 @@ async function pushToNeoDB(
       providerId,
       rating: adjustedRating,
       status: currentRecord?.status ?? 0,
-      type: currentIdentity.type,
+      // UrlIdentity.type is string-typed in the wire DTO; runtime values
+      // originate from Identity.fromUrl and are constrained to MediaTypeId.
+      type: currentIdentity.type as MediaTypeId,
       provider: currentIdentity.platform,
       comment: currentRecord?.comment ?? '',
     }

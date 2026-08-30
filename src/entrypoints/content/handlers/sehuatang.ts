@@ -7,6 +7,7 @@ import { AdultAvStore } from '@/features/adult-av'
 import { t, initI18n } from '../i18n'
 import { showManualAddPanel } from '../ui/manual-add-panel'
 import { showCheckViewedPanel } from '../ui/check-viewed-panel'
+import { escapeHtml } from '@/utils/escape-html'
 
 // Matches AV IDs like ABC-123 / ABC123 (2-6 letters, optional dash/space, 2-5 digits).
 // Used to tag cards with a canonical ID for AdultAvStore lookups; looser than the
@@ -44,12 +45,6 @@ function updateHeaderInfo(headerEl: HTMLElement) {
       btnEl.textContent = t('Copy All Magnets')
     }
   }
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
 }
 
 function createCard(info: ThreadInfo, container: HTMLElement, headerEl: HTMLElement) {

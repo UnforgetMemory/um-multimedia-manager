@@ -13,7 +13,15 @@ import type { Provider } from '@/config'
 
 // Message protocol contracts live in ./messages (single reviewable module);
 // re-exported here so `from '@/types'` consumers stay unchanged.
-export type { MessageType, MessagePayloadMap, ToastType, RuntimeMessageEnvelope } from './messages'
+export type {
+  MessageType,
+  MessagePayloadMap,
+  ToastType,
+  RuntimeMessageEnvelope,
+  ResponseMessageMap,
+  MessageResponse,
+  MessageSuccess,
+} from './messages'
 
 // ==================== Store Record ====================
 

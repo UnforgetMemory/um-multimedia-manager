@@ -24,13 +24,12 @@ const includeWebdavCredentials = ref(false)
 async function performExport() {
   isExporting.value = true
   try {
-    const response = await safeSendMessage<{ success: boolean; error?: string; data?: unknown }>(
+    const response = await safeSendMessage(
       { type: 'EXPORT_DATA', payload: { includeWebDAVCredentials: includeWebdavCredentials.value } },
       { timeout: 30000 }
     )
     if (!response?.success) throw new Error(response?.error || t('toast.exportFailed'))
-    const data = response.data as Record<string, unknown> | undefined
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
@@ -97,7 +96,7 @@ function triggerImport() {
                 }
                 importPayload = { stores }
               }
-              const res = await safeSendMessage<{ success: boolean; error?: string }>({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
+              const res = await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
               if (res?.success) {
                 toast.success(t('toast.importSuccess'))
               } else {

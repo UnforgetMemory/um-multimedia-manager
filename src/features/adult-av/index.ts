@@ -1,12 +1,21 @@
-import type { AdultAvId, AdultAvIdInput, MessageType, MessagePayloadMap, RuntimeMessageEnvelope } from '@/types'
+import type { AdultAvId, AdultAvIdInput, MessageType, MessagePayloadMap, MessageSuccess, RuntimeMessageEnvelope } from '@/types'
 import { safeSendMessage } from '@/utils/context'
 
-async function sendMsg<K extends MessageType>(type: K, payload: MessagePayloadMap[K]): Promise<any> {
+async function sendMsg<K extends MessageType>(type: K, payload: MessagePayloadMap[K]): Promise<MessageSuccess<K>> {
   // The generic pair is per-K constrained but not provably a member of the
   // whole envelope union — one documented assertion at this boundary.
-  const res = await safeSendMessage({ type, payload } as RuntimeMessageEnvelope, { timeout: 8000, retries: 1 })
-  if (!res?.success) throw new Error(res?.error || `${type} failed`)
-  return res
+  const res = await safeSendMessage<K>(
+    { type, payload } as Extract<RuntimeMessageEnvelope, { type: K }>,
+    { timeout: 8000, retries: 1 },
+  )
+  if (!res) throw new Error(`${type} failed: no response`)
+  if (!res.success) {
+    const err = res as { error?: string }
+    throw new Error(err.error || `${type} failed`)
+  }
+  // Narrowed by the guard above; the generic indexed access is not
+  // distributive in TS, hence the documented cast.
+  return res as unknown as MessageSuccess<K>
 }
 
 export const AdultAvStore = {

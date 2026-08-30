@@ -64,7 +64,7 @@ export default defineBackground({
     // Pending message queue for messages arriving before DB is ready
     const MAX_QUEUE_SIZE = 50
     const pendingMessages: Array<{
-      message: any
+      message: RuntimeMessageEnvelope
       sender: chrome.runtime.MessageSender
       sendResponse: (response?: unknown) => void
       timer: ReturnType<typeof setTimeout>
@@ -386,9 +386,13 @@ export default defineBackground({
             return
           }
 
-          default:
-            debugLog('Unknown message type:', (message as RuntimeMessage).type)
+          default: {
+            // Exhaustiveness gate: a new MessageType without a switch case
+            // fails type-check instead of silently landing here.
+            const _exhaustive: never = message
+            debugLog('Unknown message type:', (_exhaustive as RuntimeMessage).type)
             sendResponse({ success: false, error: 'Unknown message type' })
+          }
         }
       } catch (err: unknown) {
         errorLog(`❌ Error handling '${message.type}':`, err)
