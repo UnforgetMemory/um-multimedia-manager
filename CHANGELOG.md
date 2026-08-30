@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.1] - 2026-08-30
+
+### 修复与优化
+
+- **想看徽章与未看红色混淆（四轮定稿）**：CIEDE2000 色差实测一切暖色填充（amber/gold 全系）与红 none 只有 ΔE 30-41「相似多于相异」，暖色无解；想看徽章改为紫罗兰（浅色 violet-600→700 渐变 / 暗色纯 violet-700），与红拉开至 ΔE 42-43，白字对比 5.70/7.10:1 全达 AA
+- **跨平台同步引擎收敛**：豆瓣保存委托统一引擎，不再覆盖 IMDb/TMDB 既有评分、已看目标跳过；修复仅新增跨站链接时豆瓣主记录不落库导致的双向链接不对称
+- **TMDB 剧集外链错误**：想看记录指向 TMDB 的链接此前恒为 /movie/ 路径，剧集现正确生成 /tv/ 路径（与存储键类型段一致）
+- **GET_ALL_RECORDS 响应契约补全**：消息契约补回 type/provider/providerId 字段，消除客户端硬断言
+
+### 变更（内部重构 · 无用户可见行为变化）
+
+- **消息响应契约类型化**：新增 ResponseMessageMap/SuccessDataMap 并接入客户端解析；MediaTypeId 四处内联联合收归 domain 单源
+- **孤立代码与包体清理**：Utils 收窄至两方法（删除 13 个零引用导出）、删除 3 个废弃脚本与 3 个零引用 UI 组件、图标源图迁出 publicDir（包体 −29%）
+- **设计令牌纪律**：金色文字三档统一 gold-text 令牌；删除死 token；ds:check 守卫硬化（整体剥注释 + 暗色徽章白字断言 + 渐变顶档对比锁定）
+
+### 测试
+
+- 新增 3 个回归/特征用例：仅链接变化时主记录落库、TMDB tv/movie 路径分流、豆瓣侧委托路径 rating 保留与 watched 跳过
+
+### 文档
+
+- 新增 typed 架构调研稿（含复核附注与执行偏差记录）；AGENTS.md 消息流同步为四处契约；README 移除已删脚本条目
+
 ## [5.14.0] - 2026-08-26
 
 ### 新增功能
