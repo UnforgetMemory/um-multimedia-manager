@@ -70,21 +70,18 @@ export const COLOR_NONE_SHADOW_DARK = 'rgba(220, 38, 38, 0.35)'
 export const COLOR_MINUS_START = '#d97706' // static amber-600
 export const COLOR_MINUS_END = '#b45309' // static amber-700
 export const COLOR_MINUS_SHADOW = 'rgba(180, 83, 9, 0.3)'
-export const COLOR_MINUS_START_DARK = '#b45309' // static amber-700
 export const COLOR_MINUS_SHADOW_DARK = 'rgba(146, 64, 14, 0.4)'
 
 // ==================== Success Button (Plus) — aligned with design-tokens.css ====================
 export const COLOR_PLUS_START = '#059669' // static green-600
 export const COLOR_PLUS_END = '#047857' // static green-700
 export const COLOR_PLUS_SHADOW = 'rgba(4, 120, 87, 0.3)'
-export const COLOR_PLUS_START_DARK = '#047857' // static green-700
 export const COLOR_PLUS_SHADOW_DARK = 'rgba(6, 95, 70, 0.4)'
 
 // ==================== Info Button (Original) — aligned with design-tokens.css ====================
 export const COLOR_ORIGINAL_START = '#4f46e5' // static indigo-600 (AA with white)
 export const COLOR_ORIGINAL_END = '#4338ca' // static indigo-700
 export const COLOR_ORIGINAL_SHADOW = 'rgba(79, 70, 229, 0.3)'
-export const COLOR_ORIGINAL_START_DARK = '#4f46e5' // static indigo-600
 export const COLOR_ORIGINAL_SHADOW_DARK = 'rgba(79, 70, 229, 0.4)'
 
 // ==================== NeoDB Glow (emerald) ====================

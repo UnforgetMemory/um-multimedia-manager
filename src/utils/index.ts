@@ -1,38 +1,13 @@
 /**
  * 工具函数模块
+ *
+ * Utils 单例仅保留仍被外部消费的两个评分方法（2026-08-29 死代码清理：
+ * safeParse/normalizeStatus/nowISO/normalizeUrl/旧 delegate/waitForElement/
+ * dimElement/getRandomDelay/canonicalArrayMap/toArrayOfObjects/formatRelativeTime
+ * 均无外部引用，见 docs/audit/research-architecture-perf-typed-2026-08-29.md §4.3）。
  */
 
-import { Status } from '@/domain/record/Status';
-
 export const Utils = {
-  /**
-   * 安全解析 JSON
-   */
-  safeParse<T = any>(raw: string, fallback: T): T {
-    try {
-      return JSON.parse(raw) as T;
-    } catch (_error: unknown) {
-      return fallback;
-    }
-  },
-
-  /**
-   * 标准化状态值 (0=无, 1=想看, 2=已看)
-   * 处理遗留字符串格式（'done', 'wish'）和 Tampermonkey 旧版数值
-   */
-  normalizeStatus(status: unknown): number {
-    if (status === Status.DONE.legacyString || status === 2) {
-      return 2  // 已看
-    }
-    if (status === Status.WISHLIST.legacyString || status === 1) {
-      return 1  // 想看
-    }
-    if (status === 3) {
-      return 3  // 在看
-    }
-    return 0  // 无状态
-  },
-
   /**
    * 限制评分范围(0-10,步长0.5)
    */
@@ -54,161 +29,6 @@ export const Utils = {
       return '';
     }
     return Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
-  },
-
-  /**
-   * 获取当前 ISO 时间字符串
-   */
-  nowISO(): string {
-    return new Date().toISOString();
-  },
-
-  /**
-   * 简化 URL(移除 hash 和 query)
-   */
-  normalizeUrl(url: string): string {
-    return String(url || '').split('#')[0].split('?')[0];
-  },
-
-  /**
-   * 节流函数（委托到独立导出）
-   * @deprecated 直接导入 `throttle` 函数代替 `Utils.throttle`：
-   * ```ts
-   * import { throttle } from '@/utils'
-   * throttle(fn, delay)
-   * ```
-   */
-  throttle<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-    return throttle(fn, delay);
-  },
-
-  /**
-   * 防抖函数（委托到独立导出）
-   * @deprecated 直接导入 `debounce` 函数代替 `Utils.debounce`：
-   * ```ts
-   * import { debounce } from '@/utils'
-   * debounce(fn, delay)
-   * ```
-   */
-  debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-    return debounce(fn, delay);
-  },
-
-  /**
-   * 延迟执行
-   */
-  sleep(ms: number): Promise<void> {
-    return sleep(ms);
-  },
-
-  /**
-   * 等待 DOM 元素出现
-   *
-   * @deprecated Use the Promise-based `waitForElement` from
-   * `src/entrypoints/content/utils/dom.ts` instead.
-   * This callback version is retained for reference only.
-   */
-  waitForElement(
-    selector: string,
-    callback: (element: Element) => void,
-    timeout = 15000,
-  ): () => void {
-    const existing = document.querySelector(selector);
-    if (existing) {
-      callback(existing);
-      return () => {};
-    }
-
-    const observer = new MutationObserver(() => {
-      const found = document.querySelector(selector);
-      if (found) {
-        observer.disconnect();
-        callback(found);
-      }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    const timer = setTimeout(() => observer.disconnect(), timeout);
-
-    return () => {
-      clearTimeout(timer);
-      observer.disconnect();
-    };
-  },
-
-  /**
-   * 淡化元素
-   */
-  dimElement(element: HTMLElement | null): void {
-    if (!element || element.dataset.ummDimmed === 'true') {
-      return;
-    }
-    element.dataset.ummDimmed = 'true';
-    element.style.transition = 'opacity 180ms ease';
-    element.style.opacity = '0.34';
-    element.addEventListener('mouseenter', () => {
-      element.style.opacity = '1';
-    });
-    element.addEventListener('mouseleave', () => {
-      element.style.opacity = '0.34';
-    });
-  },
-
-  /**
-   * 生成随机延迟
-   */
-  getRandomDelay(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  },
-
-  /**
-   * 将原始数据转换为数组
-   */
-  canonicalArrayMap(raw: any): any[] {
-    if (Array.isArray(raw)) {
-      return raw;
-    }
-    if (typeof raw === 'string') {
-      const parsed = this.safeParse(raw, []);
-      return Array.isArray(parsed) ? parsed : [];
-    }
-    return [];
-  },
-
-  /**
-   * 将对象或数组转换为对象数组
-   */
-  toArrayOfObjects(raw: any): any[] {
-    if (Array.isArray(raw)) {
-      return raw;
-    }
-    if (raw && typeof raw === 'object') {
-      return Object.values(raw);
-    }
-    return [];
-  },
-
-  /**
-   * 格式化相对时间
-   */
-  formatRelativeTime(isoString: string): string {
-    const now = Date.now();
-    const date = new Date(isoString).getTime();
-    const diff = now - date;
-
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (seconds < 60) return '刚刚';
-    if (minutes < 60) return `${minutes}分钟前`;
-    if (hours < 24) return `${hours}小时前`;
-    if (days < 7) return `${days}天前`;
-    
-    // 超过7天显示具体日期
-    return new Date(isoString).toLocaleDateString('zh-CN');
   },
 };
 

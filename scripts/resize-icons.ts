@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const sizes = [16, 48, 128]
-const inputFile = join(__dirname, '..', 'icons', 'icon-original.png')
+const inputFile = join(__dirname, 'icon-original.png')
 const outputDir = join(__dirname, '..', 'icons')
 
 async function resizeIcons() {
@@ -22,7 +22,7 @@ async function resizeIcons() {
   
   // 验证输入文件存在
   if (!fs.existsSync(inputFile)) {
-    throw new Error(`输入文件不存在: ${inputFile}\n请确保 icons/icon-original.png 存在`)
+    throw new Error(`输入文件不存在: ${inputFile}\n请确保 scripts/icon-original.png 存在`)
   }
   
   // 确保输出目录存在

@@ -523,7 +523,6 @@ um-multimedia-manager/
 │   ├── resize-icons.ts              # Icon resizing
 │   ├── data-export.js               # CLI data export
 │   ├── data-import.js               # CLI data import
-│   ├── add-umm-prefix.js            # UMM prefix helper
 │   ├── check-i18n.js                # i18n coverage checker
 │   └── archived/                    # Archived scripts (e.g. migrate-data.ts)
 └── docs/                             # Additional documentation
