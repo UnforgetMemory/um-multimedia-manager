@@ -1,8 +1,10 @@
 import { Store } from '@/features/database'
 import { UrlResolverBuilder } from '@/shared/identity'
 import { safeSendMessage } from '@/utils/context'
-import { extractCrossPlatformLinks, injectNeoDBPushButtons, FloatingToast, t } from '@/content/douban/shared/legacy-bridge'
+import { extractCrossPlatformLinks, buildCrossPlatformTargets } from '@/content/douban/shared/cross-platform-links'
+import { injectNeoDBPushButtons, FloatingToast, t } from '@/content/douban/shared/legacy-bridge'
 import type { StoreRecord, UrlIdentity } from '@/types'
+import type { MediaTypeId } from '@/domain/platform/MediaType'
 
 export interface SaveOptions {
   identity: UrlIdentity
@@ -63,39 +65,19 @@ export async function onCrossPlatformSave(options: SaveOptions): Promise<StoreRe
     if (!isRatingChanged && !isCommentChanged) FloatingToast.info('UMM', t('sync.status_updated'))
   }
 
-  // Cross-platform sync (IMDb / TMDB) — only when links actually changed.
-  // Use the pre-read existingImdb/existingTmdb instead of re-reading.
-  if (linksChanged) {
-    let syncedCount = 0
-    const linkedWrites: Array<Promise<void>> = []
-    for (const [platform, linkKey] of Object.entries({ imdb: mergedLinks.imdb, tmdb: mergedLinks.tmdb })) {
-      if (!linkKey) continue
-      const [, pid] = linkKey.split('::')
-      const targetStore = `${platform}_records`
-      const existingTarget = platform === 'imdb' ? existingImdb : existingTmdb
-      if (!existingTarget || existingTarget.status !== newStatus) {
-        linkedWrites.push(
-          Store.dbPut(targetStore, linkKey, {
-            url: `${platform === 'imdb' ? 'https://www.imdb.com/title/' : 'https://www.themoviedb.org/movie/'}${pid}/`,
-            status: newStatus,
-            rating: newRating,
-            comment: comment || '',
-            updatedAt: new Date().toISOString(),
-            linkedIds: { ...(existingTarget?.linkedIds || {}), douban: key },
-          } as StoreRecord),
-        )
-        syncedCount++
-      }
-    }
-    // Persist the douban record (with merged links) exactly once, in parallel
-    // with the linked-platform writes.
-    await Promise.all([Store.dbPut('douban_records', key, record), ...linkedWrites])
-    if (syncedCount > 0) {
-      FloatingToast.info('UMM', t('sync.platform_link', { platform: 'IMDb/TMDB' }))
-    }
-  } else {
-    // Links unchanged — still persist status/rating/comment changes once.
-    await Store.dbPut('douban_records', key, record)
+  // Cross-platform sync (IMDb / TMDB) — delegated to the domain sync engine
+  // (Store.dbSyncPageRecord → RecordService.syncRecord), the same engine the
+  // NeoDB side uses. This removes the second, divergent engine that previously
+  // OVERWROTE linked platforms' ratings here (research paper X-1 / P1-1,
+  // 2026-08-29): linked-platform ratings are now preserved and already-watched
+  // linked records are skipped, identically on both save paths.
+  // The `linksChanged` gate keeps the original trigger semantics — linked
+  // platforms are only synced when the extracted links actually changed.
+  const linked = linksChanged ? buildCrossPlatformTargets(mergedLinks) : []
+  const syncResult = await Store.dbSyncPageRecord('douban', key, record, linked)
+  const linkedSynced = syncResult.syncedPlatforms.filter((p) => p === 'imdb' || p === 'tmdb')
+  if (linkedSynced.length > 0) {
+    FloatingToast.info('UMM', t('sync.platform_link', { platform: 'IMDb/TMDB' }))
   }
 
   // NeoDB auto-sync
@@ -273,8 +255,8 @@ async function syncToNeoDB(
         rating,
         status,
         // UrlIdentity.type is string-typed in the domain layer; runtime values
-        // originate from Identity.fromUrl and are constrained to this union.
-        type: identity.type as 'movie' | 'tv' | 'music' | 'book' | 'game',
+        // originate from Identity.fromUrl and are constrained to MediaTypeId.
+        type: identity.type as MediaTypeId,
         provider: 'douban',
         comment: comment || '',
       },

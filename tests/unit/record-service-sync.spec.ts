@@ -105,6 +105,24 @@ test.describe('RecordService.syncRecord — 主记录规则', () => {
     expect(result.syncedPlatforms).toEqual([])
   })
 
+  test('规则1: 主记录 status/rating/comment 不变但新增链接 → linkedIds 并集落库', async () => {
+    // umreview D1 回归锁：仅链接变化时主记录必须写入，否则目标记录拿到
+    // 回链而主记录丢失正向链接（不对称漂移）。
+    const existing = doneRecord('https://movie.douban.com/subject/1292052/', 9)
+    const repo = new MemoryRepo([['douban', 'movie::1292052', existing]])
+    const svc = new RecordService(repo)
+
+    const incoming = StoreRecord.fromSnapshot({
+      ...existing.toSnapshot(),
+      linkedIds: { imdb: 'movie::tt0111161' },
+    })
+    const result = await svc.syncRecord('douban', 'movie::1292052', incoming)
+
+    expect(result.changed).toBe(true)
+    expect(result.syncedPlatforms).toEqual(['douban'])
+    expect(repo.snapshot('douban', 'movie::1292052')?.linkedIds).toEqual({ imdb: 'movie::tt0111161' })
+  })
+
   test('规则1: 主记录存在但 rating 变化 → 触发写入', async () => {
     const existing = doneRecord('https://neodb.social/movie/c1/', 6)
     const repo = new MemoryRepo([['neodb', 'movie::c1', existing]])
@@ -193,5 +211,41 @@ test.describe('RecordService.syncRecord — 关联平台规则', () => {
     expect(result.syncedPlatforms).toContain('imdb')
     expect(repo.snapshot('douban', 'movie::1292052')?.rating).toBe(5)
     expect(repo.snapshot('imdb', 'movie::tt0111161')?.status).toBe(2)
+  })
+
+  test('豆瓣侧委托路径 (2026-08-29 引擎统一): douban 主保存 → imdb 未完成目标同步 status、保留 rating', async () => {
+    const imdbTarget = { platform: 'imdb', key: 'movie::tt0111161', url: 'https://www.imdb.com/title/tt0111161/' }
+    const doubanPrimary = doneRecord('https://movie.douban.com/subject/1292052/', 9)
+    const repo = new MemoryRepo([
+      ['imdb', 'movie::tt0111161', wishRecord(imdbTarget.url, 7)],
+    ])
+    const svc = new RecordService(repo)
+
+    const result = await svc.syncRecord('douban', 'movie::1292052', doubanPrimary, [imdbTarget])
+
+    expect(result.changed).toBe(true)
+    expect(result.syncedPlatforms).toContain('imdb')
+    const imdb = repo.snapshot('imdb', 'movie::tt0111161')
+    expect(imdb?.status).toBe(2)
+    // 引擎统一的核心断言：豆瓣保存不再覆盖 IMDb 既有 rating
+    expect(imdb?.rating).toBe(7)
+    expect(imdb?.linkedIds).toEqual({ douban: 'movie::1292052' })
+  })
+
+  test('豆瓣侧委托路径: 目标已 watched → 跳过（不覆盖）', async () => {
+    const imdbTarget = { platform: 'imdb', key: 'movie::tt0111161', url: 'https://www.imdb.com/title/tt0111161/' }
+    const doubanPrimary = doneRecord('https://movie.douban.com/subject/1292052/', 9)
+    const repo = new MemoryRepo([
+      ['douban', 'movie::1292052', wishRecord(doubanPrimary.url, 4)],
+      ['imdb', 'movie::tt0111161', doneRecord(imdbTarget.url, 8)],
+    ])
+    const svc = new RecordService(repo)
+
+    const result = await svc.syncRecord('douban', 'movie::1292052', doubanPrimary, [imdbTarget])
+
+    // 主记录写入；watched 的 imdb 目标被跳过。
+    expect(result.syncedPlatforms).toEqual(['douban'])
+    expect(result.syncedPlatforms).not.toContain('imdb')
+    expect(repo.snapshot('imdb', 'movie::tt0111161')?.rating).toBe(8)
   })
 })

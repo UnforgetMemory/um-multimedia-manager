@@ -46,7 +46,8 @@ export class RecordService {
    * Synchronise a record across platforms.
    *
    * **Rules:**
-   * 1. **Primary platform:** write if new or if status/rating/comment differs.
+   * 1. **Primary platform:** write if new or if status/rating/comment
+   *    differs, or if linkedIds gained new links.
    * 2. **Linked platforms (no existing):** write a copy with linkedIds
    *    pointing back to the primary.
    * 3. **Linked platforms (existing + not watched):** sync status + comment
@@ -71,10 +72,18 @@ export class RecordService {
       changed = true;
       syncedPlatforms.push(platform);
     } else {
+      // A newly-discovered link on an otherwise-unchanged record must persist
+      // too — otherwise the linked record gets the backward link while the
+      // primary never records the forward one (asymmetric drift, umreview D1).
+      const mergedLinkedIds = { ...existingPrimary.linkedIds, ...record.linkedIds };
+      const linksChanged = Object.entries(record.linkedIds).some(
+        ([platform, id]) => existingPrimary.linkedIds[platform] !== id,
+      );
       const primaryChanged =
         existingPrimary.status.toNumber() !== record.status.toNumber()
         || existingPrimary.rating.toNumber() !== record.rating.toNumber()
-        || existingPrimary.comment !== record.comment;
+        || existingPrimary.comment !== record.comment
+        || linksChanged;
 
       if (primaryChanged) {
         // Merge: incoming status/rating replace existing, linkedIds union.
@@ -85,7 +94,7 @@ export class RecordService {
           status: record.status,
           rating: record.rating,
           comment: record.comment ?? existingPrimary.comment,
-          linkedIds: { ...existingPrimary.linkedIds, ...record.linkedIds },
+          linkedIds: mergedLinkedIds,
           updatedAt: new Date().toISOString(),
           recordVersion: existingPrimary.recordVersion,
         });

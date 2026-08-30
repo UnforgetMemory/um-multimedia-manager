@@ -14,7 +14,7 @@
  * - t                          from i18n                      → separate i18n system
  */
 
-export { extractCrossPlatformLinks } from '@/content/douban/shared/cross-platform-links'
+export { extractCrossPlatformLinks, buildCrossPlatformTargets } from '@/content/douban/shared/cross-platform-links'
 export { injectNeoDBPushButtons } from '@/entrypoints/content/neodb-push'
 export { FloatingToast } from '@/entrypoints/content/utils/toast'
 export { t } from '@/entrypoints/content/i18n'

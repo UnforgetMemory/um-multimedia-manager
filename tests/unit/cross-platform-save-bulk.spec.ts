@@ -4,13 +4,18 @@ import { onCrossPlatformSave } from '@/content/douban/pages/detail/composables/u
 import type { StoreRecord, UrlIdentity } from '@/types'
 
 /**
- * ADR-015 behavior locks for onCrossPlatformSave (bulk-read / write-merge).
+ * ADR-015 behavior locks for onCrossPlatformSave (bulk-read / engine delegation).
  *
- * Locks the message-level contract of the pre-read refactor:
+ * Locks the message-level contract of the save path. Updated 2026-08-29
+ * (Wave 2.2): the cross-platform write segment no longer issues direct
+ * `DB_PUT` messages for IMDb/TMDB targets — it now delegates to the domain
+ * sync engine via ONE `DB_SYNC_PAGE_RECORD` message (rating-preserving
+ * semantics, locked separately in record-service-sync.spec.ts):
  * - Step 1 reads the douban record exactly once; its linkedIds gate the
  *   parallel Step 2 reads (no linked ids → zero extra DB_GET messages).
- * - The douban key is persisted exactly once per save (write-merge — the
- *   pre-bulk version issued two DB_PUT for the same key when links changed).
+ * - The douban key is persisted exactly once per save via the sync engine
+ *   (the pre-bulk version issued two DB_PUT for the same key when links
+ *   changed; the pre-2.2 version issued one DB_PUT + N linked DB_PUTs).
  * - The trailing reload dbGet is gone: the returned record already reflects
  *   the persisted state.
  * - NeoDB auto-sync is gated by GET_SETTINGS; disabled here via the mock so
@@ -121,8 +126,8 @@ function removeInfoBlock(): void {
   document.querySelectorAll('#info').forEach(el => el.remove())
 }
 
-test.describe('onCrossPlatformSave — bulk-read / write-merge (ADR-015)', () => {
-  test('new record: exactly one DB_GET (douban) + one DB_PUT; no linked reads', async () => {
+test.describe('onCrossPlatformSave — bulk-read / engine delegation (ADR-015 + Wave 2.2)', () => {
+  test('new record: exactly one DB_GET (douban) + one DB_SYNC_PAGE_RECORD; no linked reads', async () => {
     const { sent } = installChromeStub({ existingDouban: null })
     try {
       const result = await onCrossPlatformSave({
@@ -138,10 +143,15 @@ test.describe('onCrossPlatformSave — bulk-read / write-merge (ADR-015)', () =>
       expect(of(sent, 'DB_GET')).toHaveLength(1)
       expect((of(sent, 'DB_GET')[0].payload as { storeName: string }).storeName).toBe('douban_records')
 
-      // Write-merge: exactly one DB_PUT, targeting the douban key only.
-      const puts = of(sent, 'DB_PUT')
-      expect(puts).toHaveLength(1)
-      expect((puts[0].payload as { storeName: string }).storeName).toBe('douban_records')
+      // Engine delegation: exactly one DB_SYNC_PAGE_RECORD for the douban
+      // key, with no linked targets — no direct DB_PUT remains.
+      const syncs = of(sent, 'DB_SYNC_PAGE_RECORD')
+      expect(syncs).toHaveLength(1)
+      const syncPayload = syncs[0].payload as { platform: string; key: string; linked?: unknown[] }
+      expect(syncPayload.platform).toBe('douban')
+      expect(syncPayload.key).toBe('movie::12345')
+      expect(syncPayload.linked).toEqual([])
+      expect(of(sent, 'DB_PUT')).toHaveLength(0)
 
       // NeoDB branch disabled by settings → no push traffic.
       expect(of(sent, 'NEODB_PUSH_RATING')).toHaveLength(0)
@@ -155,7 +165,7 @@ test.describe('onCrossPlatformSave — bulk-read / write-merge (ADR-015)', () =>
     }
   })
 
-  test('existing record, links unchanged: one read, one write, comment inherits', async () => {
+  test('existing record, links unchanged: one read, one sync message, comment inherits', async () => {
     const existing = stubRecord({ comment: 'old note', linkedIds: {} })
     const { sent } = installChromeStub({ existingDouban: existing })
     try {
@@ -171,9 +181,13 @@ test.describe('onCrossPlatformSave — bulk-read / write-merge (ADR-015)', () =>
       })
 
       expect(of(sent, 'DB_GET')).toHaveLength(1)
-      const puts = of(sent, 'DB_PUT')
-      expect(puts).toHaveLength(1)
-      expect((puts[0].payload as { storeName: string }).storeName).toBe('douban_records')
+      const syncs = of(sent, 'DB_SYNC_PAGE_RECORD')
+      expect(syncs).toHaveLength(1)
+      const syncPayload = syncs[0].payload as { platform: string; key: string; linked?: unknown[] }
+      expect(syncPayload.platform).toBe('douban')
+      expect(syncPayload.key).toBe('movie::12345')
+      expect(syncPayload.linked).toEqual([])
+      expect(of(sent, 'DB_PUT')).toHaveLength(0)
       // Empty incoming comment falls back to the existing record's comment.
       expect(result?.comment).toBe('old note')
       expect(result?.status).toBe(3)
@@ -182,7 +196,7 @@ test.describe('onCrossPlatformSave — bulk-read / write-merge (ADR-015)', () =>
     }
   })
 
-  test('new IMDb link discovered in #info: parallel linked read + cross-platform write', async () => {
+  test('new IMDb link discovered in #info: parallel linked read + delegated sync targets', async () => {
     removeInfoBlock()
     const info = document.createElement('div')
     info.id = 'info'
@@ -207,16 +221,21 @@ test.describe('onCrossPlatformSave — bulk-read / write-merge (ADR-015)', () =>
       const getStores = gets.map(m => (m.payload as { storeName: string }).storeName).sort()
       expect(getStores).toEqual(['douban_records', 'imdb_records'])
 
-      // Douban write-merge (exactly once) + imdb target write.
-      const puts = of(sent, 'DB_PUT')
-      expect(puts).toHaveLength(2)
-      const putStores = puts.map(m => (m.payload as { storeName: string }).storeName).sort()
-      expect(putStores).toEqual(['douban_records', 'imdb_records'])
-
-      // The imdb write carries the douban back-link.
-      const imdbPut = puts.find(m => (m.payload as { storeName: string }).storeName === 'imdb_records')
-      const imdbRecord = (imdbPut?.payload as { record: StoreRecord }).record
-      expect(imdbRecord.linkedIds.douban).toBe('movie::12345')
+      // Engine delegation: ONE DB_SYNC_PAGE_RECORD carries the douban record
+      // plus the IMDb linked target; the domain engine (RecordService) performs
+      // the rating-preserving linked write in the background.
+      const syncs = of(sent, 'DB_SYNC_PAGE_RECORD')
+      expect(syncs).toHaveLength(1)
+      const syncPayload = syncs[0].payload as {
+        platform: string
+        key: string
+        linked?: Array<{ platform: string; key: string; url: string }>
+      }
+      expect(syncPayload.platform).toBe('douban')
+      expect(syncPayload.linked).toEqual([
+        { platform: 'imdb', key: 'movie::tt23810070', url: 'https://www.imdb.com/title/tt23810070/' },
+      ])
+      expect(of(sent, 'DB_PUT')).toHaveLength(0)
     } finally {
       removeInfoBlock()
       clearChromeStub()
