@@ -54,7 +54,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
   → sendResponse({ success, data/error })
 ```
 
-消息类型与 payload 类型定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope`，经 `types/index.ts` barrel 再导出）——新增消息类型必须同时更新这两处 + background.ts switch。后台 → 内容脚本广播走 `src/utils/event-bus.ts`（EVENT_BUS）。
+消息类型与契约定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope` + `ResponseMessageMap`/`SuccessDataMap`，经 `types/index.ts` barrel 再导出）——新增消息类型必须四处同步：MessageType + MessagePayloadMap + background.ts switch + ResponseMessageMap/SuccessDataMap。后台 → 内容脚本广播走 `src/utils/event-bus.ts`（EVENT_BUS）。
 
 ### 数据系统
 
@@ -79,7 +79,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 2. `content/handlers/` 建 handler（参照 `imdb.ts` / `create-detail-handler.ts`）
 3. `Platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
 4. `database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
-5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + background.ts switch
+5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + ResponseMessageMap/SuccessDataMap + background.ts switch
 6. 两个 i18n 系统补键
 7. （Douban 页面）`content/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
 
