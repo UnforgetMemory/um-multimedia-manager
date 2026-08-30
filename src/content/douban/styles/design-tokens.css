@@ -42,7 +42,7 @@
 
   /* === Status colors (done/wish/watched/none semantic map) === */
   --umm-color-status-done: var(--umm-static-green-600);
-  --umm-color-status-watched: var(--umm-static-blue-500);
+  --umm-color-status-watched: var(--umm-static-blue-600);
   --umm-color-error: var(--umm-static-red-500);
   --umm-success-bg: color-mix(in srgb, var(--umm-static-green-600) 10%, transparent);
   --umm-success: var(--umm-static-green-700);
@@ -60,9 +60,11 @@
   --umm-island-divider: color-mix(in srgb, var(--umm-static-neutral-1000) 8%, transparent);
 
   /* === Rating gold tiers === */
-  --umm-rating-gold-low: var(--umm-static-gold-700);
-  --umm-rating-gold-mid: var(--umm-static-gold-600);
   --umm-rating-gold-high: var(--umm-static-gold-500);
+  /* Gold TEXT tier (ADR-019 D2): light colored small text needs the 700+
+     ramp; gold-500/600/700 on white measure 2.55/3.22/4.18 — only gold-800
+     clears AA 4.5 (6.11:1). gold-high above is for fills/bars only. */
+  --umm-rating-gold-text: var(--umm-static-gold-800);
 
   /* === NeoDB buttons — solid 700-tier fills × white ink (AA ≥5.02) === */
   --umm-neodb-push-bg: linear-gradient(
@@ -179,9 +181,10 @@
   --umm-island-divider: var(--umm-static-white-a08);
 
   /* Rating gold */
-  --umm-rating-gold-low: var(--umm-static-gold-600);
-  --umm-rating-gold-mid: var(--umm-static-gold-500);
   --umm-rating-gold-high: var(--umm-static-amber-400);
+  /* Gold TEXT tier (dark): amber-400 clears AA on dark surfaces
+     (9.20:1 on neutral-850, 8.35:1 on vibrancy-1 cards). */
+  --umm-rating-gold-text: var(--umm-static-amber-400);
 
   /* === NeoDB buttons — Radix dark step9 / GitHub Primer dark fills.
      Ink per hue family: warm amber → deep ink (11.69); cool

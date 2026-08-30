@@ -131,13 +131,13 @@ button:focus-visible,
   font-weight: 700;
 }
 .umm-rating-score.umm-rating--gold-low {
-  color: var(--umm-rating-gold-low);
+  color: var(--umm-rating-gold-text);
 }
 .umm-rating-score.umm-rating--gold-mid {
-  color: var(--umm-rating-gold-mid);
+  color: var(--umm-rating-gold-text);
 }
 .umm-rating-score.umm-rating--gold-high {
-  color: var(--umm-rating-gold-high);
+  color: var(--umm-rating-gold-text);
 }
 .umm-rating-count {
   color: var(--umm-color-text-muted);
@@ -152,6 +152,13 @@ button:focus-visible,
 }
 
 /* ---- Status badge ---- */
+/* Ink discipline (ADR-019 D2/M3, 2026-08-29 fix): every variant declares its
+   OWN ink token explicitly — no variant relies on the base fallback. All four
+   variants carry WHITE ink on AA-dark bottom stops; gradient top stops are
+   accepted family precedent (gold-700 4.19 / red-600 4.83 / green-600 3.77 /
+   blue-500 3.68 — doing set the <4.5 top-stop pattern). Deep ink on amber is
+   banned (user-rejected: blends with fill). ds:check locks both the contrast
+   pairs and the base.css token usage (source guards). */
 .umm-status {
   display: inline-flex;
   align-items: center;
@@ -167,6 +174,7 @@ button:focus-visible,
     0 2px 4px rgba(0, 0, 0, 0.15),
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  /* Fallback ink only — each variant below overrides it explicitly. */
   color: var(--umm-static-neutral-00);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   line-height: 1.3;
@@ -181,21 +189,39 @@ button:focus-visible,
 .umm-status--done {
   background: linear-gradient(180deg, var(--umm-static-green-600) 0%, var(--umm-static-green-700) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .umm-status--none {
+  /* 未看 = RED — locked design, do not change (2026-08-29 foul rollback:
+     briefly switched to neutral gray, red gradient restored immediately). */
   background: linear-gradient(180deg, var(--umm-static-red-600) 0%, var(--umm-static-red-700) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .umm-status--wish {
-  background: linear-gradient(180deg, var(--umm-static-amber-500) 0%, var(--umm-static-amber-600) 100%);
+  /* 想看 = VIOLET (round-4 matrix C1, user-approved 2026-08-30):
+     vertical violet-600→700 gradient x WHITE ink, shared translucent-white
+     border — family formula unchanged. CIEDE2000 proof: every warm fill
+     (amber/gold) sits at ΔE 30-41 vs the red none badge ("more similar
+     than different"); violet reaches ΔE 42-43 (Primer merged-purple
+     precedent). Supersedes the 2026-08-22 wish=amber semantic decision
+     (explicit user override). History: deep ink on amber x2, v6 gold
+     strip, orange-amber V1, warm-gold W1 — all user-rejected. */
+  background: linear-gradient(180deg, var(--umm-static-violet-600) 0%, var(--umm-static-violet-700) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .umm-status--doing {
   background: linear-gradient(180deg, var(--umm-static-blue-500) 0%, var(--umm-static-blue-600) 100%);
   border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .umm-status--inline {
@@ -218,18 +244,30 @@ button:focus-visible,
    (no gradients in dark; no ink text on any dark fill). */
 :host(.umm-theme--dark) .umm-status--done {
   background: var(--umm-static-green-700);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 :host(.umm-theme--dark) .umm-status--none {
+  /* Dark 未看 = red-700 — locked design, do not change. */
   background: var(--umm-static-red-700);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 :host(.umm-theme--dark) .umm-status--wish {
-  background: var(--umm-static-neodb-amber-dark);
+  /* Dark wish: flat violet-700 x WHITE ink — same flat-solid convention as
+     the dark done/none/doing badges (no gradients in dark). Sits near the
+     NeoDB 原评 violet accent (ΔE 9.7) — accepted: different component. */
+  background: var(--umm-static-violet-700);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 :host(.umm-theme--dark) .umm-status--doing {
   background: var(--umm-static-blue-700);
+  color: var(--umm-static-neutral-00);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* ---- Dynamic Island (shared across all pages) ---- */
@@ -423,14 +461,4 @@ button:focus-visible,
   .umm-island { max-width: 800px; height: 54px; }
   .umm-island-nav-link { font-size: 16px; padding: 8px 14px; }
   .umm-island-input { font-size: 17px; }
-}
-
-/* Wish/amber fills pair with deep text in LIGHT (M3, ADR-019 D2).
-   Dark wish fill is Primer attention-dark #9e6a03 → WHITE ink (4.65). */
-.umm-status--wish {
-  color: var(--umm-static-neutral-1000);
-  text-shadow: none;
-}
-:host(.umm-theme--dark) .umm-status--wish {
-  color: var(--umm-static-neutral-00);
 }

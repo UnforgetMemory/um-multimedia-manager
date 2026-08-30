@@ -4,7 +4,7 @@
   --umm-personage-accent: var(--umm-static-rose-600);
   --umm-personage-card-border: var(--umm-static-neutral-150);
   --umm-personage-section-border: var(--umm-static-neutral-150);
-  --umm-rating-score: var(--umm-static-gold-500);
+  --umm-rating-score: var(--umm-static-gold-800);
 }
 
 :host(.umm-theme--dark) {

@@ -303,6 +303,14 @@
   color: var(--umm-static-amber-700);
 }
 
+/* Dark: doing chip adapts like its siblings (success/info use theme-adaptive
+   vars) — translucent dark-amber fill x bright amber ink, same pattern as
+   personage-creations dark badge--do. */
+:host(.umm-theme--dark) .umm-series-status--doing {
+  background: rgba(66, 32, 6, 0.92);
+  color: var(--umm-static-amber-300);
+}
+
 /* ── Paginator ── */
 
 .umm-series-paginator {

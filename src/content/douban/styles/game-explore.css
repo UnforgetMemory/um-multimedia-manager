@@ -74,7 +74,7 @@
 
 .umm-game-filter-chip:hover {
   border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
-  color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-brand-accent, var(--umm-static-brand-600));
 }
 
 .umm-game-filter-chip--active {
@@ -112,7 +112,7 @@
 
 .umm-game-sort-btn:hover {
   border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
-  color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-brand-accent, var(--umm-static-brand-600));
 }
 
 .umm-game-sort-btn--active {
@@ -271,7 +271,7 @@
 
 .umm-game-load-btn:hover {
   border-color: var(--umm-brand-accent, var(--umm-static-brand-500));
-  color: var(--umm-brand-accent, var(--umm-static-brand-500));
+  color: var(--umm-brand-accent, var(--umm-static-brand-600));
 }
 
 .umm-game-load-btn--loading {
