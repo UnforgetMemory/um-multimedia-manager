@@ -4,7 +4,7 @@
  */
 
 import type { UrlIdentity } from '@/types'
-import { Utils } from '@/utils'
+import { Utils, throttle } from '@/utils'
 import { createStatusChip } from '../utils/dom'
 import { createDetailPageHandler } from './create-detail-handler'
 
@@ -97,10 +97,107 @@ export async function renderIMDbStatusChip(
 /**
  * 处理 IMDb 详情页
  */
-export const handleIMDbDetailPage = createDetailPageHandler({
+const baseIMDbDetailHandler = createDetailPageHandler({
   platform: 'imdb',
   titleSelector: '[data-testid="hero__pageTitle"], [data-testid="hero-title-block__title"]',
   scanFn: () => scanIMDbPageStatus(),
   renderFn: renderIMDbStatusChip,
   savedMessageKey: 'imdb.saved',
 })
+
+// ---- 动态状态观察 ----
+// IMDb 的观看按钮 / 用户评分是客户端水合后才出现、且用户操作会原地变化
+// （如 "Mark as watched" ↔ "Watched"、评分从无到有）。仅页面加载时扫描一次
+// 会留下过期 chip（.localref 已评分快照：页面已看+已评分，chip 仍是"已看(本地)"）。
+// 观察这两类状态节点，变化即重跑完整 detail 管线（scan→dbGet→merge→render→save）。
+
+/** 状态载体节点：观看按钮（含 -tt<id> 后缀）与用户评分容器。 */
+const STATE_MARKERS = [
+  '[data-testid^="watched-button-"]',
+  '[data-testid="hero-rating-bar__user-rating"]',
+]
+
+let stateObserver: MutationObserver | null = null
+let rescanThrottled: (() => void) | null = null
+let activeIdentity: UrlIdentity | null = null
+let unloadListenerBound = false
+
+function nodeTouchesState(node: Node): boolean {
+  // 文本节点（文案替换产生的 added/removed Text）经父元素判定归属；
+  // 元素节点自身 / 祖先 / 后代任一命中即算触及。
+  const el = node instanceof Element ? node : node.parentElement
+  if (!el) return false
+  return STATE_MARKERS.some(
+    (sel) => el.matches(sel) || el.closest(sel) !== null || el.querySelector(sel) !== null
+  )
+}
+
+/** 仅当变更确实触及状态载体节点时才触发重扫（防止全页面噪音）。 */
+function mutationsTouchState(mutations: MutationRecord[]): boolean {
+  return mutations.some((mutation) => {
+    if (mutation.type === 'characterData') {
+      // 文案变化（"Mark as watched" ↔ "Watched"）的 target 是文本节点，
+      // 需经父元素判定归属。
+      return mutation.target.parentElement !== null && nodeTouchesState(mutation.target.parentElement)
+    }
+    if (mutation.type === 'attributes') {
+      return nodeTouchesState(mutation.target)
+    }
+    for (const node of mutation.addedNodes) {
+      if (nodeTouchesState(node)) return true
+    }
+    for (const node of mutation.removedNodes) {
+      if (nodeTouchesState(node)) return true
+    }
+    return false
+  })
+}
+
+async function rescanIMDbState(): Promise<void> {
+  if (!activeIdentity) return
+  try {
+    await baseIMDbDetailHandler(activeIdentity)
+  } catch (error: unknown) {
+    console.warn('[UMM] IMDb state rescan failed:', error)
+  }
+}
+
+/** 启动观察（重复调用先停旧观察器，SPA 切换标题时由再次 dispatch 触发）。 */
+export function startIMDbStateObserver(identity: UrlIdentity): void {
+  stopIMDbStateObserver()
+  activeIdentity = identity
+  rescanThrottled = throttle(() => {
+    void rescanIMDbState()
+  }, 400)
+
+  stateObserver = new MutationObserver((mutations) => {
+    if (mutationsTouchState(mutations)) rescanThrottled?.()
+  })
+  stateObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    characterData: true,
+  })
+  // SPA 导航会反复 start→stop，beforeunload 只绑一次，避免监听器累积
+  if (!unloadListenerBound) {
+    unloadListenerBound = true
+    window.addEventListener('beforeunload', stopIMDbStateObserver, { once: true })
+  }
+}
+
+export function stopIMDbStateObserver(): void {
+  stateObserver?.disconnect()
+  stateObserver = null
+  rescanThrottled = null
+  activeIdentity = null
+}
+
+/**
+ * IMDb 详情页入口：首轮全量处理 + 动态状态观察（水合补扫 / 用户操作同步）。
+ */
+export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void> {
+  if (!identity) return
+  await baseIMDbDetailHandler(identity)
+  startIMDbStateObserver(identity)
+}
