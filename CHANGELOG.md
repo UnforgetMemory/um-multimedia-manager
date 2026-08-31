@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.2] - 2026-08-31
+
+### 新增功能
+
+- **豆瓣搜索年份 chip**：从搜索标题尾部提取消除歧义的年份（半/全角括号，1800–2100 范围校验，缺字段防御），在封面正下方居中渲染为独立 chip 并采用等宽数字——长标题两行省略时年份不再被截断；meta 元数据行字号降至 xs 档
+
+### 测试
+
+- 新增 `title-year.spec.ts` 11 用例：半/全角括号、括号内空格、标题中段年份保留、非年份括号、越界年份、缺 title 防御等
+
 ## [5.14.1] - 2026-08-30
 
 ### 修复与优化
