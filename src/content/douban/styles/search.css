@@ -111,6 +111,7 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  gap: 8px;
 }
 
 .umm-search-card-cover-area--music {
@@ -220,9 +221,38 @@
   word-break: break-word;
 }
 
+/* Year chip — trailing title year extracted so line-clamp can't hide it */
+.umm-search-year-row {
+  display: flex;
+  justify-content: center;
+}
+
+.umm-search-year {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  border-radius: 4px;
+  background: var(--umm-bg);
+  border: 1px solid var(--umm-border);
+  color: var(--umm-text-secondary);
+  user-select: none;
+  white-space: nowrap;
+}
+
+:host(.umm-theme--dark) .umm-search-year {
+  background: var(--umm-bg-secondary);
+  border-color: var(--umm-border);
+  color: var(--umm-text-secondary);
+}
+
 /* ---- Metadata lines ---- */
 .umm-search-meta {
-  font-size: var(--umm-font-sm, 0.8rem);
+  font-size: var(--umm-font-xs, 0.75rem);
   line-height: 1.5;
   color: var(--umm-text-secondary);
   display: -webkit-box;

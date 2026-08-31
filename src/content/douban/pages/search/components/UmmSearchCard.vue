@@ -10,6 +10,7 @@ import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { UmmStatusBadgeWrapper } from '@/content/douban/components/UmmStatusBadgeWrapper'
 import { UmmRating } from '@/content/douban/components/UmmRating'
 import { ASPECT_RATIO, MEDIA_FORMATS, FORMAT_LABELS, FORMAT_COLORS } from '@/content/douban/shared/media-formats'
+import { splitTitleYear } from '@/content/douban/shared/title-year'
 
 /** 规范化 IMDb ID → 小写 tt-xxx；非法值返回 null */
 function normalizeImdbId(id: string | undefined | null): string | null {
@@ -49,6 +50,9 @@ const mediaFormat = computed(() => {
   }
   return null
 })
+
+/** Split the trailing year out of the title so it stays visible when the title truncates */
+const titleParts = computed(() => splitTitleYear(props.item.title))
 </script>
 
 <template>
@@ -71,10 +75,13 @@ const mediaFormat = computed(() => {
       <div v-if="isMusic && mediaFormat" class="umm-search-media-row">
         <span class="umm-search-media-chip" :class="FORMAT_COLORS[mediaFormat] || ''">{{ mediaFormat }}</span>
       </div>
+      <div v-if="titleParts.year" class="umm-search-year-row">
+        <span class="umm-search-year">{{ titleParts.year }}</span>
+      </div>
     </div>
     <div class="umm-search-card-body">
       <div class="umm-search-card-title-row">
-        <span class="umm-search-card-title">{{ item.title }}</span>
+        <span class="umm-search-card-title">{{ titleParts.title }}</span>
         <UmmStatusBadgeWrapper
           :status="badgeStatus"
           :rating="badgeRating"
