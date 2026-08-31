@@ -15,24 +15,31 @@ export async function scanIMDbPageStatus(): Promise<{ status: string; rating: nu
   let rating = 0
   let done = false
 
-  // 检测用户评分
+  // 未评分状态渲染 hero-rating-bar__user-rating__unrated 节点（CTA "Rate <title>"），
+  // 已评分才移除它并显示分数。以其缺失为门控：不依赖 aria-label 文本
+  // （IMDb 会本地化），也不受片名含数字（如 "1883"）影响。
   const ratingButton = document.querySelector('[data-testid="hero-rating-bar__user-rating"] button')
-  if (ratingButton) {
+  const unrated = ratingButton?.querySelector('[data-testid="hero-rating-bar__user-rating__unrated"]')
+  if (ratingButton && !unrated) {
     const text = `${ratingButton.getAttribute('aria-label') || ''} ${ratingButton.textContent || ''}`
     const match = text.match(/(\d+(?:\.\d+)?)(?:\/10)?/)
     if (match) {
       rating = Utils.clampRating10(parseFloat(match[1]))
-      done = text.includes('Your rating') || /^\d/.test((ratingButton.textContent || '').trim())
+      done = true
     }
   }
 
-  // 如果没有评分，检查观看按钮
+  // 无评分则检查观看按钮。未观看 CTA 文案是 "Mark as watched"
+  // （aria-label 也是 "Mark <title> as watched"），同样含 watched 字样，
+  // 必须排除，否则未观看页面被判已看。已观看 = aria-pressed="true"
+  // 或非 CTA 的 watched 文案。
   if (!done) {
     const watchedButton = document.querySelector('[data-testid^="watched-button-"]')
     if (watchedButton) {
-      done =
-        watchedButton.getAttribute('aria-pressed') === 'true' ||
-        /watched/i.test(watchedButton.textContent || '')
+      const pressed = watchedButton.getAttribute('aria-pressed') === 'true'
+      const label = (watchedButton.textContent || '').trim()
+      const isMarkCta = /mark\s+.+?\s+as\s+watched/i.test(label) || /^mark\s+as\s+watched$/i.test(label)
+      done = pressed || (label !== '' && /watched/i.test(label) && !isMarkCta)
     }
   }
 
@@ -75,11 +82,15 @@ export async function renderIMDbStatusChip(
   chip.dataset.ummOwner = `imdb-${identity.type}`
 
   if (existingChip) {
-    // 替换现有标签
+    // 就地替换旧标签
     existingChip.replaceWith(chip)
   } else {
-    // 插入到锚点元素之后
-    anchor.insertAdjacentElement('afterend', chip)
+    // 插到元信息行之后：h1 下一兄弟是元信息行 <ul class="ipc-inline-list">
+    // （TV Series · 年份 · 分级 · 时长）。直接插 h1 后会把该行挤到 chip 下方、
+    // 打断标题区布局（.localref 快照：chip 夹在标题与元信息行之间）。
+    const metaRow = anchor.nextElementSibling
+    const target = metaRow?.matches('ul.ipc-inline-list') ? metaRow : anchor
+    target.insertAdjacentElement('afterend', chip)
   }
 }
 
