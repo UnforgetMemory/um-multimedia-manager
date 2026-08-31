@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.3] - 2026-08-31
+
+### 修复与优化
+
+- **IMDb 状态误判**：未观看页面的 CTA 文案（"Mark as watched"）不再被当作已看；未评分不再因片名含数字被误读为评分；修复由此产生的误写已看记录
+- **IMDb 状态 chip 布局**：chip 改插到标题元信息行之后，不再打断标题区排版
+- **IMDb 动态状态同步**：观看按钮 / 用户评分水合或用户操作变化时自动重扫并同步 chip 与本地记录，消除「已看(本地)」残存
+
+### 测试
+
+- 新增 `imdb-scan.spec.ts` 9 用例与 `imdb-dynamic.spec.ts` 8 用例：离线快照等价夹具、CTA 排除、locale 无关评分门控、动态观察三通道与无关变更过滤
+
 ## [5.14.2] - 2026-08-31
 
 ### 新增功能
