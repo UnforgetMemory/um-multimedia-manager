@@ -7,7 +7,7 @@
  *
  * Test scope:
  *  1. collectBackupSettings excludes WebDAV credential keys
- *  2. collectBackupSettings includes all 12 EXPORT_SETTINGS_KEYS
+ *  2. collectBackupSettings includes all EXPORT_SETTINGS_KEYS
  *  3. SETTINGS_DATASET_KEY === '__settings__'
  *  4. calculateSettingsHash is deterministic (same input → same hash)
  *
@@ -47,6 +47,7 @@ function mockSettings(overrides?: Partial<AppSettings>): AppSettings {
     grayColor: 'zinc',
     debugEnabled: true,
     logLevel: 'debug',
+    sehuatangHideViewed: true,
     ...overrides,
   }
 }
@@ -74,7 +75,7 @@ test.describe('collectBackupSettings', () => {
     expect(result).not.toHaveProperty('webdavPassword')
   })
 
-  test('includes all 12 EXPORT_SETTINGS_KEYS when present in cache', () => {
+  test('includes all EXPORT_SETTINGS_KEYS when present in cache', () => {
     settingsCache.get = () => mockSettings()
     const result = collectBackupSettings()
     for (const key of EXPORT_SETTINGS_KEYS) {

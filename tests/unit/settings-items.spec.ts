@@ -67,8 +67,11 @@ test.beforeAll(async () => {
   cacheMod = await import('@/features/settings/cache')
 })
 
+const ORIGINAL_CHROME = (globalThis as { chrome?: unknown }).chrome
+
 test.afterAll(() => {
-  ;(globalThis as { chrome?: unknown }).chrome = undefined
+  // 恢复原值而非抹除：同 worker 内其他 spec 可能先设过 chrome。
+  ;(globalThis as { chrome?: unknown }).chrome = ORIGINAL_CHROME
 })
 
 function seed(entries: Record<string, unknown>): void {
@@ -177,5 +180,29 @@ test.describe('SettingsCache（API 保持）', () => {
     // 非设置键不得混入缓存（否则会随 L1.5 快照持久化脏形状）
     area.emit('some:foreign:key', { junk: true })
     expect(Object.keys(cache.get())).not.toContain('some:foreign:key')
+  })
+})
+
+// ==================== sehuatangHideViewed item ====================
+
+test.describe('sehuatangHideViewed（隐藏已看持久化）', () => {
+  test('fallback=false；flat-key 双向兼容 roundtrip；无 $ 元数据', async () => {
+    area.map.clear()
+    const item = items.settingsItems().sehuatangHideViewed
+    expect(await item.getValue()).toBe(false)
+
+    await item.setValue(true)
+    // legacy 原生 get 可直接读回
+    expect((await area.get('sehuatangHideViewed')).sehuatangHideViewed).toBe(true)
+    // item 层读回
+    expect(await item.getValue()).toBe(true)
+    // v1 不产生迁移元数据
+    expect([...area.map.keys()].filter((k) => k.endsWith('$'))).toEqual([])
+  })
+
+  test('resolveAppSettings 包含该字段（默认 false）', async () => {
+    area.map.clear()
+    const s = await items.resolveAppSettings()
+    expect(s.sehuatangHideViewed).toBe(false)
   })
 })

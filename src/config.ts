@@ -27,6 +27,7 @@ export const STORAGE_KEYS = {
   GRAY_COLOR: 'grayColor',
   DEBUG_ENABLED: 'debugEnabled',
   LOG_LEVEL: 'logLevel',
+  SEHUATANG_HIDE_VIEWED: 'sehuatangHideViewed',
 } as const;
 
 // 类型定义

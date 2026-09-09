@@ -40,8 +40,8 @@ export const SETTINGS_DATASET_KEY = '__settings__'
 
 /**
  * Collect the non-sensitive settings (ADR-016 decision 1: reuses
- * EXPORT_SETTINGS_KEYS, 12 items including neodbToken, excludes WebDAV
- * credentials) into a plain JSON object.
+ * EXPORT_SETTINGS_KEYS — every key except WebDAV credentials; neodbToken
+ * is exportable per ADR-016) into a plain JSON object.
  */
 export function collectBackupSettings(): Record<string, unknown> {
   const appSettings = settingsCache.get()

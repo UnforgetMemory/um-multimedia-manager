@@ -36,6 +36,7 @@ export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
   'debugEnabled',
   'logLevel',
   'neodbToken',
+  'sehuatangHideViewed',
 ]
 
 /**

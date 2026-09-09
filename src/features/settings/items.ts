@@ -137,6 +137,7 @@ function defineSettingsItems() {
 
     debugEnabled: defineSettingsItem(STORAGE_KEYS.DEBUG_ENABLED, { fallback: false, version: 1 }),
     logLevel: defineSettingsItem<LogLevel>(STORAGE_KEYS.LOG_LEVEL, { fallback: 'info', version: 1 }),
+    sehuatangHideViewed: defineSettingsItem(STORAGE_KEYS.SEHUATANG_HIDE_VIEWED, { fallback: false, version: 1 }),
   } satisfies {
     [K in keyof ResolvedAppSettings]: { defaultValue: ResolvedAppSettings[K] }
   }

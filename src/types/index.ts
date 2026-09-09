@@ -75,6 +75,7 @@ export interface AppSettings extends WebDAVSettings, NeoDBSettings, DebugSetting
   appearance?: 'auto' | 'light' | 'dark'
   accentColor?: string
   grayColor?: string
+  sehuatangHideViewed?: boolean
 }
 
 // ==================== Export / Import ====================
