@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.15.0] - 2026-09-09
+
+### 新增功能
+
+- **色花堂列表体验重建**：面包屑/主题分类选项卡/返回/发新帖重建为双行头部，底部「灵动岛」窗口化分页悬浮栏（窗口化页码 + 跳转 + 计数器）；封面模糊遮罩悬停防抖揭示、卡片入场级联、复制反馈动效（均遵循系统减弱动态效果设置）
+- **色花堂已看体系**：整页一次批量已看检查（消除逐卡消息）；磁力点击/一键复制统一标记路径（单次批量落库 + 失败逐条兜底 + 读回自检）；FC2 混排番号兼容提取（修复历史已看标记丢失），无番号帖子以 TID 键兜底获得完整已看/隐藏能力；「隐藏已看」开关跨页持久化；保存失败跨页诊断提示
+- **首帧主题背景预载**：document_start 早期脚本在首帧前涂刷主题表面背景并全程保鲜（含系统配色切换），消除主题跳变闪烁
+
+### 修复与优化
+
+- **成人记录历史/统计过滤**：TID 兜底键不再混入番号历史总阅与统计视图
+- **dev 监视器崩溃根治**：agent 记忆目录写入触发 Vite EBUSY 崩溃，改经 WXT watchOptions 正确忽略（vite.server.watch 会被 WXT 覆盖）
+
+### 变更（内部重构）
+
+- 新增 Layer 3 overlay 令牌体系（COLOR_OVERLAY_* 常量 + --usl-* 双主题变量链），legacy UI 组件样式统一接入令牌链
+- 豆瓣主题解析（resolveTheme/subscribeTheme）共享化，供非豆瓣入口复用
+- 新增 `npm run dev:build` 确定性开发构建（静态 manifest 注册 content scripts，无 dev 服务器依赖）
+
+### 测试
+
+- 新增 6 个 spec：sehuatang 控件/动效/提取/分页、成人记录 DB 层（fake-indexeddb 端到端）、全局样式令牌门禁
+
 ## [5.14.3] - 2026-08-31
 
 ### 修复与优化
