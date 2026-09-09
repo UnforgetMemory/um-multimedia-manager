@@ -7,7 +7,7 @@
 
 import type { AdultAvId, StoreRecord, StoreRecordSnapshot, MessagePayloadMap } from '@/types'
 import { mediaDB, type MediaDatabase } from '@/features/database/models'
-import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
+import { JAV_IDS_STORE_NAME, normalizeAvId, isTidTrackKey } from '@/features/adult-av/models'
 import { broadcast } from '@/utils/event-bus'
 import type { SendResponse } from '@/utils/error-message'
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
@@ -165,6 +165,9 @@ export async function handleAdultAvGetAll(
 ) {
   const { source } = payload || {}
   let entries = await mediaDB.getAll(JAV_IDS_STORE_NAME)
+  // 消费侧过滤站点内跟踪键（TID-<tid>）：历史总阅/统计/查询面板只呈现
+  // 真实番号记录；TID 键仅服务色花堂站点内的已看/隐藏命中与备份恢复。
+  entries = entries.filter(e => !isTidTrackKey(e.key))
   if (source) {
     entries = entries.filter(e => e.key.startsWith(`${source}::`))
   }

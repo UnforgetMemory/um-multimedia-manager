@@ -3,6 +3,8 @@ export type Locale = 'en-US' | 'zh-CN' | 'zh-HK' | 'zh-TW'
 const locales: Record<Locale, Record<string, string>> = {
   'en-US': {
     Language: 'Language',
+    'Menu Title': 'Menu',
+    'Magnet Save Failed': 'Failed to save watched record',
     'Hide Viewed': 'Hide Viewed',
     'Manual Add': 'Manual Add',
     'Check Viewed Status': 'Check Viewed Status',
@@ -23,7 +25,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy All Magnets': 'Copy All Magnets',
     'Copy Done': 'Copied {{count}} magnet links!',
     'No New Magnets': 'No new magnet links found.',
-    'Header Info': 'Hidden: {{hidden}} | History: {{total}}',
+    'Header Info': 'Watched: {{watched}} | Hidden: {{hidden}} | History: {{total}}',
     'JavDB Detected': 'JavDB: {{count}} items dimmed.',
     // Status chip labels
     'status.done': '✅ Watched',
@@ -131,6 +133,8 @@ const locales: Record<Locale, Record<string, string>> = {
   },
   'zh-CN': {
     Language: '语言（简体）',
+    'Menu Title': '菜单',
+    'Magnet Save Failed': '保存观看记录失败',
     'Hide Viewed': '隐藏已阅',
     'Manual Add': '手动添加记录',
     'Check Viewed Status': '查询已阅状态',
@@ -151,7 +155,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy All Magnets': '一键复制磁力',
     'Copy Done': '已复制 {{count}} 个磁力链接!',
     'No New Magnets': '未发现新的磁力链接',
-    'Header Info': '本页隐藏: {{hidden}} | 历史总阅: {{total}}',
+    'Header Info': '本页已看: {{watched}} | 本页隐藏: {{hidden}} | 历史总阅: {{total}}',
     'JavDB Detected': 'JavDB检测: 已淡化 {{count}} 个已阅条目。',
     // Status chip labels
     'status.done': '✅ 已看',
@@ -259,6 +263,8 @@ const locales: Record<Locale, Record<string, string>> = {
   },
   'zh-HK': {
     Language: '語言（繁體）',
+    'Menu Title': '選單',
+    'Magnet Save Failed': '儲存觀看記錄失敗',
     'Hide Viewed': '隱藏已閱',
     'Manual Add': '手動添加記錄',
     'Check Viewed Status': '查詢已閱狀態',
@@ -279,7 +285,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy All Magnets': '一鍵複製磁力',
     'Copy Done': '已複製 {{count}} 個磁力鏈接!',
     'No New Magnets': '未發現新的磁力鏈接',
-    'Header Info': '本頁隱藏: {{hidden}} | 歷史總閱: {{total}}',
+    'Header Info': '本頁已看: {{watched}} | 本頁隱藏: {{hidden}} | 歷史總閱: {{total}}',
     'JavDB Detected': 'JavDB檢測: 已淡化 {{count}} 個已閱條目。',
     // Status chip labels
     'status.done': '✅ 已看',
@@ -387,6 +393,8 @@ const locales: Record<Locale, Record<string, string>> = {
   },
   'zh-TW': {
     Language: '語言（繁體）',
+    'Menu Title': '選單',
+    'Magnet Save Failed': '儲存觀看記錄失敗',
     'Hide Viewed': '隱藏已閱',
     'Manual Add': '手動新增記錄',
     'Check Viewed Status': '查詢已閱狀態',
@@ -407,7 +415,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy All Magnets': '一鍵複製磁力',
     'Copy Done': '已複製 {{count}} 個磁力連結!',
     'No New Magnets': '未發現新的磁力連結',
-    'Header Info': '本頁隱藏: {{hidden}} | 歷史總閱: {{total}}',
+    'Header Info': '本頁已看: {{watched}} | 本頁隱藏: {{hidden}} | 歷史總閱: {{total}}',
     'JavDB Detected': 'JavDB偵測: 已淡化 {{count}} 個已閱條目。',
     // Status chip labels
     'status.done': '✅ 已看',

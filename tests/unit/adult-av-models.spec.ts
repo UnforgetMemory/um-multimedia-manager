@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { normalizeAvId, extractBaseId } from '@/features/adult-av/models'
+import { normalizeAvId, extractBaseId, isTidTrackKey } from '@/features/adult-av/models'
 
 /**
  * adult-av key normalization (2026-08-08).
@@ -67,5 +67,23 @@ test.describe('extractBaseId', () => {
 
   test('digit-suffix not stripped (-1 is a version, not -U/-C)', () => {
     expect(extractBaseId('ABC-123-1')).toBe('ABC-123-1')
+  })
+})
+
+test.describe('isTidTrackKey — 站点内跟踪键判定（消费侧过滤）', () => {
+  test('source::TID-<数字> → true（任意 source）', () => {
+    expect(isTidTrackKey('sehuatang::TID-3664524')).toBe(true)
+    expect(isTidTrackKey('javdb::TID-1')).toBe(true)
+  })
+
+  test('真实番号键 → false', () => {
+    expect(isTidTrackKey('sehuatang::SSIS-001')).toBe(false)
+    expect(isTidTrackKey('sehuatang::FC2PPV-44580')).toBe(false)
+  })
+
+  test('形态不完整 → false（TID 必须为键尾且全数字）', () => {
+    expect(isTidTrackKey('TID-3664524')).toBe(false)
+    expect(isTidTrackKey('sehuatang::TID-abc')).toBe(false)
+    expect(isTidTrackKey('sehuatang::TID-3664524X')).toBe(false)
   })
 })

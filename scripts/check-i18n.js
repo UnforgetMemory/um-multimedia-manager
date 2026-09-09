@@ -58,6 +58,30 @@ function extractContentKeys() {
   return keys
 }
 
+// Per-locale block-aware key extraction: split the file by locale block markers
+// and check every locale carries the identical key set (union == intersection).
+function extractContentBlocks() {
+  const content = readFileSync(CONTENT_LOCALES, 'utf-8')
+  const LOCALES = ['en-US', 'zh-CN', 'zh-HK', 'zh-TW']
+  const blocks = new Map()
+  const markers = LOCALES.map((l) => ({ locale: l, at: content.indexOf(`'${l}': {`) }))
+    .filter((m) => m.at >= 0)
+    .sort((a, b) => a.at - b.at)
+  for (let i = 0; i < markers.length; i++) {
+    const start = markers[i].at
+    const end = i + 1 < markers.length ? markers[i + 1].at : content.length
+    const slice = content.slice(start, end)
+    const keys = new Set()
+    const regex = /['"]([^'"]+)['"]\s*:/g
+    let match
+    while ((match = regex.exec(slice)) !== null) {
+      if (!LOCALES.includes(match[1])) keys.add(match[1])
+    }
+    blocks.set(markers[i].locale, keys)
+  }
+  return blocks
+}
+
 // Get all locale files
 function getLocaleFiles() {
   const files = readdirSync(LOCALES_DIR)
@@ -139,7 +163,22 @@ function check() {
   console.log('\n📝 Content Script i18n')
   const contentKeys = extractContentKeys()
   console.log(`   Keys: ${contentKeys.size}`)
-  console.log(`   Status: Separate implementation (expected)`)
+  const blocks = extractContentBlocks()
+  let contentMismatch = false
+  for (const [locale, keys] of blocks) {
+    const missing = [...contentKeys].filter((k) => !keys.has(k))
+    const status = missing.length === 0 ? '✅' : '❌'
+    console.log(`   ${status} ${locale}: ${keys.size}/${contentKeys.size}`)
+    if (missing.length > 0) {
+      contentMismatch = true
+      console.log(`     Missing: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ' …' : ''}`)
+    }
+  }
+  if (contentMismatch) {
+    console.log('\n❌ Content locales are NOT symmetric (every locale must carry the same key set).')
+    process.exit(1)
+  }
+  console.log('   Status: Block-wise complete (symmetric key sets) ✓')
   
   // Summary
   console.log('\n' + '─'.repeat(60))

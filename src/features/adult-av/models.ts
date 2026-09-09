@@ -1,7 +1,20 @@
 export const JAV_IDS_STORE_NAME = 'jav_ids' as const
 
+const TID_TRACK_KEY_RE = /::TID-\d+$/
+
 export function normalizeAvId(input: string): string {
   return input.toUpperCase().trim().replace(/\s+/g, '-')
+}
+
+/**
+ * Site-local tracking keys: TID-<tid> fallback keys for sehuatang threads
+ * without an extractable AV id. They share jav_ids (prefix distinguishes
+ * them) but MUST be filtered on the consumer side — history count/stats/
+ * lookup panels must not present them as real codes (backup/export keeps
+ * them for site restore).
+ */
+export function isTidTrackKey(key: string): boolean {
+  return TID_TRACK_KEY_RE.test(key)
 }
 
 /**
