@@ -8,6 +8,7 @@
     "dev": "wxt",
     "build": "wxt build && node scripts/fix-paths.js",
     "build:dev": "set UMM_DEV=1 && wxt build --mode development && node scripts/fix-paths.js --dir dist-dev/chrome-mv3-dev",
+    "dev:build": "wxt build --mode development && node scripts/fix-paths.js --dir dist/chrome-mv3-dev",
     "zip": "wxt zip",
     "preview": "wxt preview",
     "type-check": "vue-tsc --noEmit",

@@ -36,15 +36,29 @@ export default defineConfig({
     '@': './src',
   },
   publicDir: 'icons',
+  // WXT 会整体覆盖 vite 的 config.server.watch（core/builders/vite/index.mjs
+  // WXT 会整体覆盖 vite 的 config.server.watch（core/builders/vite/index.mjs
+  // 只读取自身的 watchOptions 配置面），因此监视忽略必须声明在这里，函数
+  // 形式跨 chokidar 版本稳健。.um.agents 是 agent 运行时/记忆区（编辑工具
+  // 以临时文件原子写入）——Vite 监视其中的 .tmp 会 EBUSY 崩溃 dev 进程；
+  // tmp-fixture 是视觉探针产物，只会 spam chokidar。
+  watchOptions: {
+    ignored: [(path: string) => path.includes('.um.agents') || path.includes('tmp-fixture')],
+  },
   // WXT appends the browser-mv suffix: 'dist' → dist/chrome-mv3,
   // 'dist-dev' → dist-dev/chrome-mv3.
   outDir: isDevBuild ? 'dist-dev' : 'dist',
-  manifest: (env) => ({
-    name: isDevBuild || env.command === 'serve' ? DEV_NAME : PROD_NAME,
-    version: isDevBuild ? `${VERSION}.${devVersionSegment(new Date())}` : VERSION,
+  manifest: (env) => {
+    // Dev-flavored = serve(HMR) / UMM_DEV build / 传统 dev 构建
+    // (--mode development)：统一带 (DEV) 名 + 基版本.HHMM 时分段，
+    // 见 src/utils/dev-version.ts）+ 完整时间戳 version_name。
+    const devFlavored = isDevBuild || env.command === 'serve' || env.mode === 'development'
+    return {
+    name: devFlavored ? DEV_NAME : PROD_NAME,
+    version: devFlavored ? `${VERSION}.${devVersionSegment(new Date())}` : VERSION,
     // chrome://extensions displays version_name instead of version when
     // present — carry the full timestamp there for dev builds only.
-    ...(isDevBuild ? { version_name: devVersionName() } : {}),
+    ...(devFlavored ? { version_name: devVersionName() } : {}),
     // Runtime floor: Promise.withResolvers (requestQueue.ts) is Chrome 119+.
     // Declaring it prevents a broken install on older Chrome instead of
     // failing at runtime (ADR-009 / optimization-blueprint E3).
@@ -113,22 +127,13 @@ export default defineConfig({
       page: 'options.html',
       open_in_tab: true,
     },
-  }),
+    }
+  },
   entrypointsDir: 'entrypoints',
   srcDir: 'src',
   vite: () => ({
     plugins: [tailwindcss()],
     base: '',
-    server: {
-      watch: {
-        // Scratch dirs written during dev sessions: agent memory files use
-        // atomic-write temp files that crashed chokidar with EBUSY (kill the
-        // dev server); visual-probe artifacts spam chokidar. Neither is part
-        // of the module graph — never watch them. (Function form: chokidar
-        // v4+ dropped glob support in `ignored`.)
-        ignored: (path: string) => path.includes('.um.agents') || path.includes('tmp-fixture'),
-      },
-    },
     build: {
       target: 'es2022',
       // Disable Vite's modulepreload tags in popup.html/options.html — Chrome's
