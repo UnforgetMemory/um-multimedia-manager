@@ -106,14 +106,41 @@ const SPOT_CHECKS = [
   ['COLOR_ORIGINAL_END', 'indigo-700'],
   ['COLOR_RATING_TEXT', 'neutral-950'],
   ['COLOR_RATING_TEXT_DARK', 'neutral-25'],
+  // Overlay surfaces / text / borders / accent (sehuatang overlay tiers)
+  ['COLOR_OVERLAY_SURFACE', 'neutral-50'],
+  ['COLOR_OVERLAY_SURFACE_RAISED', 'neutral-00'],
+  ['COLOR_OVERLAY_SURFACE_HOVER', 'neutral-100'],
+  ['COLOR_OVERLAY_SURFACE_DARK', 'vibrancy-0'],
+  ['COLOR_OVERLAY_SURFACE_RAISED_DARK', 'neutral-850'],
+  ['COLOR_OVERLAY_SURFACE_HOVER_DARK', 'neutral-800'],
+  ['COLOR_OVERLAY_BORDER', 'neutral-200'],
+  ['COLOR_OVERLAY_BORDER_STRONG', 'neutral-250'],
+  ['COLOR_OVERLAY_BORDER_DARK', 'white-a10'],
+  ['COLOR_OVERLAY_BORDER_STRONG_DARK', 'white-a12'],
+  ['COLOR_OVERLAY_TEXT_PRIMARY', 'neutral-900'],
+  ['COLOR_OVERLAY_TEXT_SECONDARY', 'neutral-600'],
+  ['COLOR_OVERLAY_TEXT_MUTED', 'neutral-550'],
+  ['COLOR_OVERLAY_TEXT_PRIMARY_DARK', 'neutral-100'],
+  ['COLOR_OVERLAY_TEXT_SECONDARY_DARK', 'neutral-400'],
+  ['COLOR_OVERLAY_TEXT_MUTED_DARK', 'neutral-400'],
+  ['COLOR_OVERLAY_ACCENT', 'brand-600'],
+  ['COLOR_OVERLAY_ACCENT_DARK', 'brand-400'],
+  // Status small-text tiers on overlay surfaces
+  ['COLOR_STATUS_TEXT_DONE', 'green-700'],
+  ['COLOR_STATUS_TEXT_NONE', 'red-700'],
+  ['COLOR_STATUS_TEXT_DONE_DARK', 'green-300'],
+  ['COLOR_STATUS_TEXT_NONE_DARK', 'red-300'],
 ]
+// Normalize for comparison: hex compares verbatim; rgb()/rgba() compare by
+// numeric signature (tokens.ts uses rgba() commas, static uses rgb() spaces).
+const normValue = (s) => (s.startsWith('#') ? s.toLowerCase() : (s.match(/[\d.]+/g) || []).map((n) => parseFloat(n).toString()).join(','))
 for (const [name, staticName] of SPOT_CHECKS) {
   const re = new RegExp(`export const ${name} = '([^']+)'`)
   const m = tokensTs.match(re)
   const expected = staticVars.get(`--umm-static-${staticName}`)
   if (!expected) { failures.push(`spot-check: unknown static ${staticName}`); continue }
   if (!m) { failures.push(`tokens.ts: missing export ${name}`); continue }
-  if (m[1].toLowerCase() !== expected) failures.push(`tokens.ts: ${name}=${m[1]} != static ${staticName} (${expected})`)
+  if (normValue(m[1]) !== normValue(expected)) failures.push(`tokens.ts: ${name}=${m[1]} != static ${staticName} (${expected})`)
 }
 ok(`tokens.ts spot-checks (${SPOT_CHECKS.length})`)
 
@@ -282,6 +309,20 @@ if (personageLight && /--umm-rating-score:\s*var\(--umm-static-gold-(4|5|6)00\)/
   failures.push('personage.css: light --umm-rating-score must be gold-800 (gold-500 measures 2.70:1 on white)')
 }
 ok('colored-text tier guards (D2)')
+
+// ---------- 4. --usl-* light/dark key symmetry (global.ts overlay tiers) ----------
+const globalTs = read('src/entrypoints/content/styles/global.ts')
+const uslKeysIn = (block) => new Set([...block.matchAll(/--usl-([a-z0-9-]+):/g)].map((m) => `--usl-${m[1]}`))
+const lightBlock = globalTs.match(/export const THEME_VARS = `([\s\S]*?)`\n\nexport const THEME_VARS_DARK/s)?.[1] ?? ''
+const darkBlock = globalTs.match(/export const THEME_VARS_DARK = `([\s\S]*?)`\n\n\//s)?.[1] ?? ''
+const lightUsl = uslKeysIn(lightBlock)
+const darkUsl = uslKeysIn(darkBlock)
+// --usl-ink-on-fill is theme-invariant by design (white ink on colored fills).
+const THEME_INVARIANT_USL = new Set(['--usl-ink-on-fill'])
+for (const k of lightUsl) if (!darkUsl.has(k) && !THEME_INVARIANT_USL.has(k)) failures.push(`global.ts: --usl key ${k} missing dark flip (THEME_VARS_DARK)`)
+for (const k of darkUsl) if (!lightUsl.has(k) && !THEME_INVARIANT_USL.has(k)) failures.push(`global.ts: --usl key ${k} has dark flip but no light definition`)
+if (lightUsl.size === 0) failures.push('global.ts: failed to parse THEME_VARS block for --usl symmetry check')
+ok(`--usl-* light/dark key symmetry (${lightUsl.size} pairs)`)
 
 // ---------- result ----------
 if (failures.length) {

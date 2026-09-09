@@ -175,6 +175,13 @@ npm run ds:check   # scripts/check-design-tokens.cjs
 | outline-variant（弱描边）/ outline（输入框） | neutral-200 / -250 | white/10 / white/12（ADR-021 Vibrancy） | `--border` / `--input` |
 | status 三件套 fill/on/text | fill=700 档 · on=白或 amber-950 · text=700 档 | fill=400 档 · on=neutral-1000 · text=300 档 | `--color-state-{x}{,-on,-text}` |
 
+**Layer 3 overlay 令牌补充（--usl-*，2026-09-08 定档，ds:check 抽查点覆盖）**：
+- 表面：light `surface=n50 / raised=n00 / hover=n100`；dark `surface=vibrancy-0 / raised=n850 / hover=n800`。
+- 边框：subtle=light n200 / dark white-a10；**strong（输入框 outline）=light n250 / dark white-a12**（M3 outline 档，ADR-021）。
+- 文本三档：primary=on-surface（n900/n100）；**secondary 与 muted 同取 on-surface-variant（n600/n400）**，muted 靠字号/字重区分（三级档避免暗面低对比）。
+- accent（链接/焦点/hover 强调）=brand-600/brand-400；状态文字档 done/none=green·red 700/300。
+- `--usl-ink-on-fill` 为 theme-invariant 白墨（明暗同值，ds:check 豁免对称断言）。
+
 **关键纪律（M3 on-* 配对思想）**：
 1. 每个填充色与声明的 on-color 成对使用（`umm:bg-state-success umm:text-state-success-on`），禁止裸 `umm:text-white`
 2. **amber 系永不承载白色文字**——一律 amber-950 / neutral-1000 深字

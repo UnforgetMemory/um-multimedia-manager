@@ -106,3 +106,29 @@ export const COLOR_SURFACE_LIGHT = '#f7f9fc' // neutral-50
 export const COLOR_ACCENT_APPLE = '#0a84ff' // Radix/Apple interactive highlight
 export const COLOR_RATING_BG_DARK = 'rgba(38, 45, 59, 0.96)' // static neutral-800
 export const COLOR_RATING_TEXT_DARK = '#fbfcfe' // static neutral-25
+
+// ==================== Overlay Surfaces (light-DOM overlays, ADR-021 vibrancy) ====================
+export const COLOR_OVERLAY_SURFACE = '#f7f9fc' // static neutral-50
+export const COLOR_OVERLAY_SURFACE_RAISED = '#ffffff' // static neutral-00
+export const COLOR_OVERLAY_SURFACE_HOVER = '#eaeef5' // static neutral-100
+export const COLOR_OVERLAY_SURFACE_DARK = '#1c1c1e' // vibrancy-0
+export const COLOR_OVERLAY_SURFACE_RAISED_DARK = '#1f2531' // static neutral-850
+export const COLOR_OVERLAY_SURFACE_HOVER_DARK = '#262d3b' // static neutral-800
+export const COLOR_OVERLAY_BORDER = '#dbe1ea' // static neutral-200
+export const COLOR_OVERLAY_BORDER_STRONG = '#cfd6e2' // static neutral-250 (DESIGN_GUIDE outline, light)
+export const COLOR_OVERLAY_BORDER_DARK = 'rgba(255, 255, 255, 0.1)' // static white-a10
+export const COLOR_OVERLAY_BORDER_STRONG_DARK = 'rgba(255, 255, 255, 0.12)' // static white-a12 (DESIGN_GUIDE outline, dark)
+export const COLOR_OVERLAY_TEXT_PRIMARY = '#151a23' // static neutral-900
+export const COLOR_OVERLAY_TEXT_SECONDARY = '#4d5870' // static neutral-600
+export const COLOR_OVERLAY_TEXT_MUTED = '#5d6a81' // static neutral-550 (AA 5.46:1 on light)
+export const COLOR_OVERLAY_TEXT_PRIMARY_DARK = '#eaeef5' // static neutral-100
+export const COLOR_OVERLAY_TEXT_SECONDARY_DARK = '#94a0b5' // static neutral-400 (DESIGN_GUIDE on-surface-variant, dark)
+export const COLOR_OVERLAY_TEXT_MUTED_DARK = '#94a0b5' // static neutral-400 (variant tier; muted differentiated by size/weight)
+export const COLOR_OVERLAY_ACCENT = '#3a55ec' // static brand-600 (link/accent ink, light)
+export const COLOR_OVERLAY_ACCENT_DARK = '#7e9bf9' // static brand-400 (dark)
+
+// ==================== Status text on overlay surfaces (M3 D2 tiers) ====================
+export const COLOR_STATUS_TEXT_DONE = '#047857' // static green-700 (light small text, AA on white)
+export const COLOR_STATUS_TEXT_NONE = '#b91c1c' // static red-700 (light small text, AA on white)
+export const COLOR_STATUS_TEXT_DONE_DARK = '#6ee7b7' // static green-300 (dark small text)
+export const COLOR_STATUS_TEXT_NONE_DARK = '#fca5a5' // static red-300 (dark small text)

@@ -16,13 +16,13 @@ export function showCheckViewedPanel(): void {
   panel.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);padding:20px;width:350px;display:flex;flex-direction:column;gap:15px;z-index:100;cursor:move'
 
   panel.innerHTML = `
-    <h3 class="umm-panel-title" style="padding-bottom:10px;border-bottom:1px solid #333">${t('Check Viewed Title')}</h3>
-    <button id="umm-cv-close" style="position:absolute;top:10px;right:10px;background:none;border:none;color:#6f7d94;font-size:20px;cursor:pointer">&times;</button>
+    <h3 class="umm-panel-title" style="padding-bottom:10px;border-bottom:1px solid var(--usl-border, #333)">${t('Check Viewed Title')}</h3>
+    <button id="umm-cv-close" style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--usl-text-muted, #6f7d94);font-size:20px;cursor:pointer">&times;</button>
     <div class="umm-flex-row" style="align-items:center">
       <input type="text" id="umm-cv-input" placeholder="${t('Check ID Placeholder')}" class="umm-input" style="flex-grow:1" />
       <button id="umm-cv-check" class="umm-btn umm-btn--primary">${t('Check Btn')}</button>
     </div>
-    <div id="umm-cv-result" style="margin-top:15px;padding-top:15px;border-top:1px solid #333"></div>
+    <div id="umm-cv-result" style="margin-top:15px;padding-top:15px;border-top:1px solid var(--usl-border, #333)"></div>
   `
 
   document.body.appendChild(panel)
@@ -52,8 +52,18 @@ export function showCheckViewedPanel(): void {
     const row = (label: string, value: string, cls?: string) => {
       const div = document.createElement('div')
       div.style.cssText = 'display:flex;justify-content:space-between;padding:5px 0'
-      const color = cls === 'viewed' ? '#047857' : cls === 'not-viewed' ? '#b91c1c' : '#151a23'
-      div.innerHTML = `<span style="font-weight:bold;color:#5d6a81">${label}</span><span style="color:${color}">${value}</span>`
+      // 状态色走 --usl 语义令牌链（双主题动态适配），fallback 保底旧值。
+      const color = cls === 'viewed' ? 'var(--usl-text-done, #047857)' : cls === 'not-viewed' ? 'var(--usl-text-none, #b91c1c)' : 'var(--usl-text-primary, #151a23)'
+      const labelColor = 'var(--usl-text-muted, #5d6a81)'
+      // textContent 构建（值来自 i18n/DB 数字，仍按纵深防御不拼 HTML）。
+      const labelSpan = document.createElement('span')
+      labelSpan.style.cssText = `font-weight:bold;color:${labelColor}`
+      labelSpan.textContent = label
+      const valueSpan = document.createElement('span')
+      valueSpan.style.cssText = `color:${color}`
+      valueSpan.textContent = value
+      div.appendChild(labelSpan)
+      div.appendChild(valueSpan)
       resultDiv.appendChild(div)
     }
 

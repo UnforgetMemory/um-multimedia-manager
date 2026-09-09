@@ -33,6 +33,16 @@ import {
   COLOR_ORIGINAL_SHADOW_DARK,
   COLOR_NEOGLOW_BASE_DARK, COLOR_NEOGLOW_SHADOW_1_DARK, COLOR_NEOGLOW_SHADOW_2_DARK, COLOR_NEOGLOW_SHADOW_3_DARK,
   COLOR_RATING_BG_DARK, COLOR_RATING_TEXT_DARK,
+  COLOR_OVERLAY_SURFACE, COLOR_OVERLAY_SURFACE_RAISED, COLOR_OVERLAY_SURFACE_HOVER,
+  COLOR_OVERLAY_BORDER, COLOR_OVERLAY_BORDER_STRONG,
+  COLOR_OVERLAY_TEXT_PRIMARY, COLOR_OVERLAY_TEXT_SECONDARY, COLOR_OVERLAY_TEXT_MUTED,
+  COLOR_OVERLAY_ACCENT,
+  COLOR_OVERLAY_SURFACE_DARK, COLOR_OVERLAY_SURFACE_RAISED_DARK, COLOR_OVERLAY_SURFACE_HOVER_DARK,
+  COLOR_OVERLAY_BORDER_DARK, COLOR_OVERLAY_BORDER_STRONG_DARK,
+  COLOR_OVERLAY_TEXT_PRIMARY_DARK, COLOR_OVERLAY_TEXT_SECONDARY_DARK, COLOR_OVERLAY_TEXT_MUTED_DARK,
+  COLOR_OVERLAY_ACCENT_DARK,
+  COLOR_STATUS_TEXT_DONE, COLOR_STATUS_TEXT_NONE,
+  COLOR_STATUS_TEXT_DONE_DARK, COLOR_STATUS_TEXT_NONE_DARK,
 } from './tokens'
 
 /* Watermark glow vars — decorative, follows theme */
@@ -54,7 +64,7 @@ html[data-umm-theme="dark"] {
 /* ============================================================
    Semantic role sheet — single source; components reference --usl-* only
    ============================================================ */
-const THEME_VARS = `
+export const THEME_VARS = `
 html {
   /* Default ink on colored fills */
   --usl-ink-on-fill: #ffffff;
@@ -98,13 +108,25 @@ html {
   --usl-shadow-neodb-minus: 0 2px 4px ${COLOR_MINUS_SHADOW};
   --usl-shadow-neodb-plus: 0 2px 4px ${COLOR_PLUS_SHADOW};
   --usl-shadow-neodb-original: 0 2px 4px ${COLOR_ORIGINAL_SHADOW};
+  /* Overlay surfaces (light-DOM overlay shells: sehuatang etc.) */
+  --usl-surface: ${COLOR_OVERLAY_SURFACE};
+  --usl-surface-raised: ${COLOR_OVERLAY_SURFACE_RAISED};
+  --usl-surface-hover: ${COLOR_OVERLAY_SURFACE_HOVER};
+  --usl-border: ${COLOR_OVERLAY_BORDER};
+  --usl-border-strong: ${COLOR_OVERLAY_BORDER_STRONG};
+  --usl-text-primary: ${COLOR_OVERLAY_TEXT_PRIMARY};
+  --usl-text-secondary: ${COLOR_OVERLAY_TEXT_SECONDARY};
+  --usl-text-muted: ${COLOR_OVERLAY_TEXT_MUTED};
+  --usl-accent: ${COLOR_OVERLAY_ACCENT};
+  /* Status small-text tiers on overlay surfaces (M3 D2) */
+  --usl-text-done: ${COLOR_STATUS_TEXT_DONE};
+  --usl-text-none: ${COLOR_STATUS_TEXT_NONE};
 }
 `
 
-const THEME_VARS_DARK = `
+export const THEME_VARS_DARK = `
 html[data-umm-theme="dark"] {
-  --usl-fill-primary: ${COLOR_PRIMARY_START_DARK};
-  --usl-shadow-primary: 0 2px 4px ${COLOR_PRIMARY_SHADOW_DARK};
+  --usl-fill-primary: ${COLOR_PRIMARY_START_DARK};  --usl-shadow-primary: 0 2px 4px ${COLOR_PRIMARY_SHADOW_DARK};
   --usl-fill-wish: ${COLOR_WISH_FILL_DARK};
   --usl-ink-wish: ${COLOR_WISH_INK_DARK};
   --usl-border-wish: ${COLOR_WISH_BORDER_DARK};
@@ -139,6 +161,18 @@ html[data-umm-theme="dark"] {
   --usl-ink-neodb-open: #ffffff;
   --usl-neodb-border: rgba(240, 246, 252, 0.12);
   --usl-neodb-open-hover-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* Overlay surfaces — dark flips */
+  --usl-surface: ${COLOR_OVERLAY_SURFACE_DARK};
+  --usl-surface-raised: ${COLOR_OVERLAY_SURFACE_RAISED_DARK};
+  --usl-surface-hover: ${COLOR_OVERLAY_SURFACE_HOVER_DARK};
+  --usl-border: ${COLOR_OVERLAY_BORDER_DARK};
+  --usl-border-strong: ${COLOR_OVERLAY_BORDER_STRONG_DARK};
+  --usl-text-primary: ${COLOR_OVERLAY_TEXT_PRIMARY_DARK};
+  --usl-text-secondary: ${COLOR_OVERLAY_TEXT_SECONDARY_DARK};
+  --usl-text-muted: ${COLOR_OVERLAY_TEXT_MUTED_DARK};
+  --usl-accent: ${COLOR_OVERLAY_ACCENT_DARK};
+  --usl-text-done: ${COLOR_STATUS_TEXT_DONE_DARK};
+  --usl-text-none: ${COLOR_STATUS_TEXT_NONE_DARK};
 }
 `
 
@@ -459,12 +493,13 @@ const HOMEPAGE_BADGE_STYLES = `
 /**
  * Shared UI component styles (for content/ui/*.ts panel/modal)
  */
-const UI_COMPONENT_STYLES = `
+export const UI_COMPONENT_STYLES = `
 .umm-panel {
-  background: var(--umm-bg, #ffffff);
-  border: 1px solid var(--umm-border, #e3e8f0);
+  background: var(--usl-surface-raised, var(--umm-bg, #ffffff));
+  border: 1px solid var(--usl-border, var(--umm-border, #e3e8f0));
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .umm-overlay {
   position: fixed;
@@ -473,28 +508,30 @@ const UI_COMPONENT_STYLES = `
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 300;
+  /* Must clear the sehuatang floating pill (z 2147483000) — modals top everything. */
+  z-index: 2147483001;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 .umm-panel-title {
   margin: 0;
-  color: var(--umm-link, #3a55ec);
+  color: var(--usl-accent, var(--umm-link, #3a55ec));
   text-align: center;
 }
 .umm-input {
-  background: var(--umm-bg-secondary, #f7f9fc);
-  border: 1px solid var(--umm-border, #e3e8f0);
-  color: var(--umm-text-primary, #151a23);
+  background: var(--usl-surface, var(--umm-bg-secondary, #f7f9fc));
+  border: 1px solid var(--usl-border-strong, var(--umm-border, #e3e8f0));
+  color: var(--usl-text-primary, var(--umm-text-primary, #151a23));
   padding: 10px;
   border-radius: 6px;
   outline: none;
   width: 100%;
   box-sizing: border-box;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .umm-input:focus {
-  border-color: var(--umm-link, #3a55ec);
+  border-color: var(--usl-accent, var(--umm-link, #3a55ec));
 }
 .umm-btn {
   padding: 8px 16px;
@@ -504,16 +541,16 @@ const UI_COMPONENT_STYLES = `
   font-weight: bold;
 }
 .umm-btn--primary {
-  background: var(--umm-link, #3a55ec);
-  color: var(--umm-bg, #ffffff);
+  background: var(--usl-fill-primary, var(--umm-link, #3a55ec));
+  color: var(--usl-ink-on-fill, var(--umm-bg, #ffffff));
 }
 .umm-btn--secondary {
-  background: var(--umm-bg-secondary, #f7f9fc);
-  color: var(--umm-text-secondary, #4d5870);
+  background: var(--usl-surface-hover, var(--umm-bg-secondary, #f7f9fc));
+  color: var(--usl-text-secondary, var(--umm-text-secondary, #4d5870));
 }
 .umm-label-text {
   font-size: 0.9rem;
-  color: var(--umm-text-muted, #94a0b5);
+  color: var(--usl-text-muted, var(--umm-text-muted, #94a0b5));
 }
 .umm-flex-col {
   display: flex;
@@ -537,7 +574,7 @@ const UI_COMPONENT_STYLES = `
  */
 const FOCUS_VISIBLE_STYLES = `
 :focus-visible {
-  outline: 2px solid var(--umm-link, #3a55ec);
+  outline: 2px solid var(--usl-accent, var(--umm-link, #3a55ec));
   outline-offset: 2px;
   border-radius: 4px;
 }

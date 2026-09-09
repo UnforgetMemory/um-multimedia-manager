@@ -15,7 +15,7 @@ import { COLOR_SURFACE_DARK, COLOR_SURFACE_LIGHT } from '@/entrypoints/content/s
 export const THEME_KEY = 'umm:appearance'
 
 /** mode ('dark'|'light'|'auto') → concrete theme; auto follows the OS. */
-function resolveTheme(mode: string): 'dark' | 'light' {
+export function resolveTheme(mode: string): 'dark' | 'light' {
   if (mode === 'dark' || mode === 'light') return mode
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
@@ -74,22 +74,15 @@ export function startThemeSync(host: HTMLElement): () => void {
 }
 
 /**
- * ALWAYS-ON data-umm-theme sync for the PAGE (light DOM).
- *
- * applyOverlayTheme runs only inside the overlay lifecycle, so pages without
- * an overlay — and states after overlay dismissal — never received (or went
- * stale on) the attribute that every `[data-umm-theme="dark"]` rule in
- * global.ts depends on. This standalone sync keeps the attribute (and the
- * html background) live for the whole document lifetime: storage changes
- * AND OS scheme flips (auto).
+ * Shared theme subscription: resolveTheme + storage + OS-scheme (auto)
+ * freshness. Subscribers receive the concrete theme on first paint, after
+ * storage resolves, and on every storage/OS change; the returned disposer
+ * removes all listeners. Shared by Douban (startThemeAttrSync) and the
+ * sehuatang early script — one resolution rule, zero drift.
  */
-export function startThemeAttrSync(): () => void {
+export function subscribeTheme(onTheme: (theme: 'dark' | 'light') => void): () => void {
   let mode = 'auto'
-  const apply = () => {
-    const theme = resolveTheme(mode)
-    document.documentElement.setAttribute('data-umm-theme', theme)
-    applyHtmlBackground(theme)
-  }
+  const apply = () => onTheme(resolveTheme(mode))
   apply() // synchronous first paint — refine after storage resolves
   try {
     chrome.storage.local.get([THEME_KEY], (result) => {
@@ -112,4 +105,21 @@ export function startThemeAttrSync(): () => void {
     chrome.storage.onChanged.removeListener(storageHandler)
     mq.removeEventListener?.('change', mqHandler)
   }
+}
+
+/**
+ * ALWAYS-ON data-umm-theme sync for the PAGE (light DOM).
+ *
+ * applyOverlayTheme runs only inside the overlay lifecycle, so pages without
+ * an overlay — and states after overlay dismissal — never received (or went
+ * stale on) the attribute that every `[data-umm-theme="dark"]` rule in
+ * global.ts depends on. This standalone sync keeps the attribute (and the
+ * html background) live for the whole document lifetime: storage changes
+ * AND OS scheme flips (auto).
+ */
+export function startThemeAttrSync(options?: { background?: boolean }): () => void {
+  return subscribeTheme((theme) => {
+    document.documentElement.setAttribute('data-umm-theme', theme)
+    if (options?.background !== false) applyHtmlBackground(theme)
+  })
 }
