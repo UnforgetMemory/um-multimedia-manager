@@ -34,6 +34,10 @@ export function uslVarsForHost(): string {
 /** 网格与卡片（原 sehuatang.ts injectStyles）。导出供样式 spec 断言。 */
 export const GRID_CSS = `
 .umm-sht-shell { display: flex; flex-direction: column; min-height: 100%; background: var(--usl-surface); transition: background-color 0.3s ease; }
+/* 底部「灵动岛」悬浮栏仅列表页挂载（app.ts 的 mountSehuatangControls）；
+   遮挡补偿 padding 只作用列表页（.umm-sht-shell--list），首页/搜索页不多留白。
+   72px = 标准浮岛高度 + 上下安全间距（实测浮岛占位；safe-area-inset 兼容 iOS 手势区）。 */
+.umm-sht-shell--list { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 .umm-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: clamp(14px, 2vw, 25px); padding: clamp(14px, 2.5vw, 28px); background: var(--usl-surface); transition: background-color 0.3s ease; }
 .umm-card { background: var(--usl-surface-raised); border-radius: 12px; border: 1px solid var(--usl-border); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.25); transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease; }
 .umm-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0,0,0,0.32); }
@@ -125,7 +129,57 @@ export const EFFECTS_CSS = `
 `
 
 /**
- * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效。
+ * 搜索页（pg_search）结果卡片（无封面/无磁力，纯文本条目）。
+ *
+ * 与列表页 .umm-card 同款视觉语言：hover 浮起、阴影、令牌背景、.umm-viewed
+ * dimmer；卡片结构差异：左对齐文本布局（无 16/10 封面占位），标题用
+ * h3 > a 直链。「所在版块」字段（"求片问答悬赏区" 等）不提取不渲染——
+ * 与原需求「无用的分区的优化自动隐藏」一致。
+ */
+export const SEARCH_CSS = `
+.umm-sht-search-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: clamp(14px, 2vw, 25px); padding: clamp(14px, 2.5vw, 28px); }
+.umm-sht-search-card { padding: clamp(12px, 1.6vw, 18px); }
+.umm-sht-search-body { display: flex; flex-direction: column; gap: 8px; }
+.umm-sht-search-title { margin: 0; font-size: clamp(0.95rem, 0.85rem + 0.35vw, 1.05rem); font-weight: 600; line-height: 1.4; }
+.umm-sht-search-title a { color: var(--usl-text-primary); text-decoration: none; transition: color 0.15s ease; }
+.umm-sht-search-title a:hover { color: var(--usl-accent); }
+.umm-sht-search-meta { margin: 0; color: var(--usl-text-muted); font-size: clamp(0.72rem, 0.68rem + 0.2vw, 0.8rem); }
+.umm-sht-search-preview { margin: 0; color: var(--usl-text-secondary); font-size: clamp(0.78rem, 0.73rem + 0.22vw, 0.86rem); font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.umm-sht-search-foot { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--usl-text-muted); font-size: clamp(0.7rem, 0.65rem + 0.2vw, 0.78rem); }
+.umm-sht-search-when { font-variant-numeric: tabular-nums; }
+.umm-sht-search-author { color: var(--usl-text-secondary); }
+.umm-sht-search-actions { display: flex; align-items: center; gap: 8px; }
+.umm-sht-search-pager { padding: clamp(10px, 1.4vw, 18px) clamp(14px, 2.5vw, 28px); display: flex; justify-content: center; }
+`
+
+/**
+ * 首页（pg_index）分区网格（list-style 分组 + 子版块卡片）。
+ *
+ * 与列表页 .umm-card 同款视觉语言（hover 浮起、阴影、令牌背景），但更轻量
+ * （无封面、无磁力、不可 dimmer——子版块是导航，不是观看记录载体）。
+ * 卡片 a 链接充当整卡可点击区（覆盖图标/名称/meta/最后发表），省去逐行
+ * 监听器。
+ */
+export const HOME_CSS = `
+.umm-sht-home-section { display: flex; flex-direction: column; gap: var(--sht-gap, 12px); padding: clamp(10px, 1.4vw, 18px) clamp(14px, 2.5vw, 28px) 0; }
+.umm-sht-home-cat { display: flex; align-items: center; gap: 10px; font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.1rem); font-weight: 700; color: var(--usl-text-primary); padding: 4px 2px; border-bottom: 1px solid var(--usl-border); }
+.umm-sht-home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: clamp(10px, 1.4vw, 16px); }
+.umm-sht-home-card { padding: 0; }
+.umm-sht-home-card .umm-sht-home-link { display: grid; grid-template-columns: 44px 1fr; gap: clamp(10px, 1.4vw, 14px); align-items: flex-start; padding: clamp(10px, 1.4vw, 14px); color: inherit; text-decoration: none; }
+.umm-sht-home-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; background: var(--usl-surface-hover); overflow: hidden; flex-shrink: 0; }
+.umm-sht-home-icon img { width: 28px; height: 28px; object-fit: contain; }
+.umm-sht-home-icon.is-new { background: var(--usl-fill-wish); }
+.umm-sht-home-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.umm-sht-home-name { color: var(--usl-text-primary); font-size: clamp(0.85rem, 0.8rem + 0.25vw, 0.95rem); font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s ease; }
+.umm-sht-home-link:hover .umm-sht-home-name { color: var(--usl-accent); }
+.umm-sht-home-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--usl-text-muted); font-size: clamp(0.7rem, 0.65rem + 0.2vw, 0.78rem); }
+.umm-sht-home-pill { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; background: var(--usl-fill-primary); color: var(--usl-ink-on-fill); font-weight: 700; font-size: clamp(0.68rem, 0.63rem + 0.2vw, 0.74rem); }
+.umm-sht-home-last { color: var(--usl-text-muted); font-size: clamp(0.68rem, 0.63rem + 0.2vw, 0.76rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.umm-sht-home-actions { display: flex; align-items: center; gap: 8px; }
+`
+
+/**
+ * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效 + 首页 + 搜索。
  * 菜单面板样式不进本表——菜单是 light-DOM .umm-overlay 组件（z 高于 overlay
  * host），样式由 global.ts 组件表与 sehuatang-menu.ts 自带注入负责。
  */
@@ -137,4 +191,8 @@ ${GRID_CSS}
 ${CONTROLS_CSS}
 /* === effects === */
 ${EFFECTS_CSS}
+/* === home (pg_index) === */
+${HOME_CSS}
+/* === search (pg_search) === */
+${SEARCH_CSS}
 `

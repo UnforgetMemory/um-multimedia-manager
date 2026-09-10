@@ -131,6 +131,19 @@ const locales: Record<Locale, Record<string, string>> = {
     'mukaku.match_found': 'Matched local record via Mukaku',
     'mukaku.no_match': 'No local match via Mukaku',
     'mukaku.no_id': 'Cannot get linked IDs',
+    // Sehuatang index (home) page
+    'sht.index_title': 'Sehuatang Home',
+    'sht.index_stats': 'Today: {{today}} | Yesterday: {{yesterday}} | Posts: {{posts}} | Members: {{members}}',
+    'sht.forum_threads': 'Threads: {{count}}',
+    'sht.forum_posts': 'Posts: {{count}}',
+    'sht.forum_today': 'Today: {{count}}',
+    'sht.forum_last': 'Last post: {{when}}',
+    'sht.forum_never': 'Never',
+    // Sehuatang search page
+    'sht.search_title': 'Search Results',
+    'sht.search_results_count': 'Found {{count}} results for "{{keyword}}"',
+    'sht.search_replies_views': '{{replies}} replies · {{views}} views',
+    'sht.search_by': 'by {{author}}',
   },
   'zh-CN': {
     Language: '语言（简体）',
@@ -262,6 +275,19 @@ const locales: Record<Locale, Record<string, string>> = {
     'mukaku.match_found': '通过 Mukaku 链路匹配到本地记录',
     'mukaku.no_match': 'Mukaku 链路未匹配到本地记录',
     'mukaku.no_id': '无法获取关联 ID',
+    // Sehuatang index (home) page
+    'sht.index_title': '色花堂首页',
+    'sht.index_stats': '今日: {{today}} | 昨日: {{yesterday}} | 帖子: {{posts}} | 会员: {{members}}',
+    'sht.forum_threads': '主题: {{count}}',
+    'sht.forum_posts': '帖数: {{count}}',
+    'sht.forum_today': '今日: {{count}}',
+    'sht.forum_last': '最后: {{when}}',
+    'sht.forum_never': '从未',
+    // Sehuatang search page
+    'sht.search_title': '搜索结果',
+    'sht.search_results_count': '找到 "{{keyword}}" 相关内容 {{count}} 个',
+    'sht.search_replies_views': '{{replies}} 个回复 · {{views}} 次查看',
+    'sht.search_by': '由 {{author}} 发布',
   },
   'zh-HK': {
     Language: '語言（繁體）',
@@ -393,6 +419,19 @@ const locales: Record<Locale, Record<string, string>> = {
     'mukaku.match_found': '通過 Mukaku 鏈路匹配到本地記錄',
     'mukaku.no_match': 'Mukaku 鏈路未匹配到本地記錄',
     'mukaku.no_id': '無法獲取關聯 ID',
+    // Sehuatang index (home) page
+    'sht.index_title': '色花堂首頁',
+    'sht.index_stats': '今日: {{today}} | 昨日: {{yesterday}} | 帖子: {{posts}} | 會員: {{members}}',
+    'sht.forum_threads': '主題: {{count}}',
+    'sht.forum_posts': '帖數: {{count}}',
+    'sht.forum_today': '今日: {{count}}',
+    'sht.forum_last': '最後: {{when}}',
+    'sht.forum_never': '從未',
+    // Sehuatang search page
+    'sht.search_title': '搜尋結果',
+    'sht.search_results_count': '找到 "{{keyword}}" 相關內容 {{count}} 個',
+    'sht.search_replies_views': '{{replies}} 個回覆 · {{views}} 次查看',
+    'sht.search_by': '由 {{author}} 發布',
   },
   'zh-TW': {
     Language: '語言（繁體）',
@@ -524,6 +563,19 @@ const locales: Record<Locale, Record<string, string>> = {
     'mukaku.match_found': '通過 Mukaku 鏈路匹配到本地記錄',
     'mukaku.no_match': 'Mukaku 鏈路未匹配到本地記錄',
     'mukaku.no_id': '無法獲取關聯 ID',
+    // Sehuatang index (home) page
+    'sht.index_title': '色花堂首頁',
+    'sht.index_stats': '今日: {{today}} | 昨日: {{yesterday}} | 帖子: {{posts}} | 會員: {{members}}',
+    'sht.forum_threads': '主題: {{count}}',
+    'sht.forum_posts': '帖數: {{count}}',
+    'sht.forum_today': '今日: {{count}}',
+    'sht.forum_last': '最後: {{when}}',
+    'sht.forum_never': '從未',
+    // Sehuatang search page
+    'sht.search_title': '搜尋結果',
+    'sht.search_results_count': '找到 "{{keyword}}" 相關內容 {{count}} 個',
+    'sht.search_replies_views': '{{replies}} 個回覆 · {{views}} 次查看',
+    'sht.search_by': '由 {{author}} 發佈',
   },
 }
 

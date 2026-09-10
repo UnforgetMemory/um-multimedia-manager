@@ -67,6 +67,28 @@ export function paintSehuatangBackground(doc: Document, theme: 'dark' | 'light')
 // 保留独立同步器——避免重复 storage 监听。
 // ---------------------------------------------------------------------------
 
+/**
+ * 入场级联收窄到首屏可见卡：rAF 内批量读 rect、统一写类名（读写不交错）。
+ * 列表页 / 首页 / 搜索页三处编排共用；stepMs = 卡片入场延迟步进
+ * （列表页 45ms，首页/搜索页 25ms）。
+ */
+export function runVisibleEntrance(root: HTMLElement, stepMs = 25): void {
+  requestAnimationFrame(() => {
+    const cards = Array.from(root.querySelectorAll('.umm-card:not(.umm-sht-enter)')) as HTMLElement[]
+    if (cards.length === 0) return
+    const viewportH = window.innerHeight
+    const visible: HTMLElement[] = []
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect()
+      if (rect.top < viewportH && rect.bottom > 0) visible.push(card)
+    }
+    visible.forEach((card, idx) => {
+      card.classList.add('umm-sht-enter')
+      card.style.animationDelay = `${idx * stepMs}ms`
+    })
+  })
+}
+
 // ---------------------------------------------------------------------------
 // 提取（纯函数，Element → 数据）
 // ---------------------------------------------------------------------------

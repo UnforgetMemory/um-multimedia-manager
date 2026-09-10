@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { isForumDisplayUrl, isThreadUrl, extractThreadTidFromUrl } from '@/content/sehuatang/url'
+import {
+  isForumDisplayUrl,
+  isThreadUrl,
+  isIndexUrl,
+  isSearchUrl,
+  classifyPage,
+  isOverlayPage,
+  extractThreadTidFromUrl,
+} from '@/content/sehuatang/url'
 
 /**
  * 色花堂 URL 判型（document_start 早期入口建壳 / document_idle 主入口
@@ -77,5 +85,89 @@ test.describe('isThreadUrl — 帖子页判型（与列表页互斥）', () => {
   test('列表页不命中（两条分支互斥，不会同时建壳又记录）', () => {
     expect(isThreadUrl('https://www.sehuatang.net/forum-103-1.html')).toBe(false)
     expect(isThreadUrl('https://www.sehuatang.net/forum.php?mod=forumdisplay&fid=103')).toBe(false)
+  })
+})
+
+test.describe('isIndexUrl — 首页判型', () => {
+  test('站点根 / index.php / forum.php 无 mod 命中', () => {
+    expect(isIndexUrl('https://www.sehuatang.net/')).toBe(true)
+    expect(isIndexUrl('https://www.sehuatang.net/index.php')).toBe(true)
+    expect(isIndexUrl('https://www.sehuatang.net/forum.php')).toBe(true)
+    expect(isIndexUrl('https://www.sehuatang.net/forum.php?mobile=no')).toBe(true)
+    // mod 空值显式分支（url.ts: mod === ''）
+    expect(isIndexUrl('https://www.sehuatang.net/forum.php?mod=')).toBe(true)
+  })
+
+  test('分类聚合页 forum.php?gid= 排除（无 category_ 容器，建壳即 dismiss 闪烁）', () => {
+    expect(isIndexUrl('https://www.sehuatang.net/forum.php?gid=1')).toBe(false)
+    expect(isIndexUrl('https://www.sehuatang.net/forum.php?gid=36&mobile=no')).toBe(false)
+  })
+
+  test('非首页不命中（列表 / 帖子 / 搜索 / portal）', () => {
+    expect(isIndexUrl('https://www.sehuatang.net/forum-103-1.html')).toBe(false)
+    expect(isIndexUrl('https://www.sehuatang.net/thread-3664524-1-1.html')).toBe(false)
+    expect(isIndexUrl('https://www.sehuatang.net/search.php?mod=forum')).toBe(false)
+    expect(isIndexUrl('https://www.sehuatang.net/portal.php')).toBe(false)
+  })
+
+  test('非法 URL 防御 → false', () => {
+    expect(isIndexUrl('not-a-url')).toBe(false)
+    expect(isIndexUrl('')).toBe(false)
+  })
+})
+
+test.describe('isSearchUrl — 搜索页判型（仅论坛帖）', () => {
+  test('search.php?mod=forum 命中（任意关键词/排序/页码）', () => {
+    expect(isSearchUrl('https://www.sehuatang.net/search.php?mod=forum&searchid=0&kw=test')).toBe(true)
+    expect(isSearchUrl('https://www.sehuatang.net/search.php?mod=forum&orderby=lastpost&page=3')).toBe(true)
+  })
+
+  test('mod=user / mod=curuser / 缺 mod / 大写 mod 不命中', () => {
+    expect(isSearchUrl('https://www.sehuatang.net/search.php?mod=user&kw=test')).toBe(false)
+    expect(isSearchUrl('https://www.sehuatang.net/search.php?kw=test')).toBe(false)
+    expect(isSearchUrl('https://www.sehuatang.net/search.php?mod=curuser')).toBe(false)
+    // 防御：Discuz 恒小写 mod，大写不命中（严格相等，不静默宽容）
+    expect(isSearchUrl('https://www.sehuatang.net/search.php?mod=FORUM')).toBe(false)
+  })
+
+  test('非 search.php 路径不命中', () => {
+    expect(isSearchUrl('https://www.sehuatang.net/forum.php?mod=forumdisplay&fid=103')).toBe(false)
+    expect(isSearchUrl('https://www.sehuatang.net/')).toBe(false)
+  })
+})
+
+test.describe('classifyPage — 四向分流（早期入口与主入口决策一致）', () => {
+  test('帖子 > 列表 > 搜索 > 首页 优先级', () => {
+    // thread 优先（即便 URL 同时匹配 forum.php?mod=viewthread）
+    expect(classifyPage('https://www.sehuatang.net/forum.php?mod=viewthread&tid=1')).toBe('thread')
+    // list 其次
+    expect(classifyPage('https://www.sehuatang.net/forum-103-1.html')).toBe('forumdisplay')
+    // search
+    expect(classifyPage('https://www.sehuatang.net/search.php?mod=forum&kw=x')).toBe('search')
+    // index（站点根 + index.php 形态）
+    expect(classifyPage('https://www.sehuatang.net/')).toBe('index')
+    expect(classifyPage('https://www.sehuatang.net/index.php')).toBe('index')
+  })
+
+  test('分类聚合页（gid）与大写 mod → other', () => {
+    // gid 聚合页无 category_ 容器，不得判 index（否则建壳即 dismiss 闪烁）
+    expect(classifyPage('https://www.sehuatang.net/forum.php?gid=1')).toBe('other')
+    // 大写 mod 防御（Discuz 恒小写）
+    expect(classifyPage('https://www.sehuatang.net/search.php?mod=FORUM')).toBe('other')
+  })
+
+  test('非受支持 URL → other', () => {
+    expect(classifyPage('https://www.sehuatang.net/portal.php')).toBe('other')
+    expect(classifyPage('https://www.sehuatang.net/home.php')).toBe('other')
+  })
+})
+
+test.describe('isOverlayPage — overlay 接管判定（早期入口建壳依据）', () => {
+  test('列表/搜索/首页均需建壳；帖子不建壳（静默记录路径）', () => {
+    expect(isOverlayPage('forumdisplay')).toBe(true)
+    expect(isOverlayPage('search')).toBe(true)
+    expect(isOverlayPage('index')).toBe(true)
+    expect(isOverlayPage('thread')).toBe(false)
+    expect(isOverlayPage('other')).toBe(false)
   })
 })

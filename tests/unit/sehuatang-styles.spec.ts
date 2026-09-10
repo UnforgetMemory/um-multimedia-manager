@@ -4,6 +4,8 @@ import {
   GRID_CSS,
   CONTROLS_CSS,
   EFFECTS_CSS,
+  HOME_CSS,
+  SEARCH_CSS,
   uslVarsForHost,
 } from '@/content/sehuatang/styles'
 
@@ -38,6 +40,11 @@ test.describe('GRID_CSS — 网格与卡片', () => {
     expect(GRID_CSS).toContain('umm-sht-skel-pulse')
     expect(GRID_CSS).toContain('prefers-reduced-motion')
   })
+
+  test('灵动岛遮挡补偿仅作用列表页（--list 修饰类，首页/搜索页不多留白）', () => {
+    expect(GRID_CSS).toContain('.umm-sht-shell--list')
+    expect(GRID_CSS).toContain('padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px))')
+  })
 })
 
 /** 任意 hex 字面量（3/4/6/8 位），非枚举具体旧值。 */
@@ -69,9 +76,11 @@ test.describe('令牌基准 — 全段零调色板色值（通用守卫）', () 
     ['GRID_CSS', GRID_CSS],
     ['CONTROLS_CSS', CONTROLS_CSS],
     ['EFFECTS_CSS', EFFECTS_CSS],
+    ['HOME_CSS', HOME_CSS],
+    ['SEARCH_CSS', SEARCH_CSS],
   ]
 
-  test('三段组件 CSS 均无任何 hex 字面量', () => {
+  test('五段组件 CSS 均无任何 hex 字面量', () => {
     for (const [name, css] of segments) {
       expect(css, `${name} 含 hex 字面量`).not.toMatch(PALETTE_HEX)
     }
@@ -133,5 +142,48 @@ test.describe('SEHUATANG_OVERLAY_CSS — 组合完整性', () => {
     expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sehuatang-header')
     expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-floatbar')
     expect(SEHUATANG_OVERLAY_CSS).toContain('umm-sht-card-in')
+  })
+
+  test('首页 + 搜索段都已并入（覆盖扩展后的全量 CSS）', () => {
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-home-section')
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-home-card')
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-search-grid')
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-search-card')
+  })
+})
+
+test.describe('HOME_CSS — 首页分区网格', () => {
+  test('分区标题 + 卡片网格 + 入口 class 齐备', () => {
+    expect(HOME_CSS).toContain('.umm-sht-home-section')
+    expect(HOME_CSS).toContain('.umm-sht-home-cat')
+    expect(HOME_CSS).toContain('.umm-sht-home-grid')
+    expect(HOME_CSS).toContain('.umm-sht-home-card')
+    expect(HOME_CSS).toContain('.umm-sht-home-icon')
+    expect(HOME_CSS).toContain('.umm-sht-home-pill')
+    // 整卡可点击区（卡片 a 链接充当整卡热区，设计关键类）
+    expect(HOME_CSS).toContain('.umm-sht-home-link')
+  })
+
+  test('消费 --usl-* 令牌（无裸色）', () => {
+    expect(HOME_CSS).toContain('var(--usl-text-primary)')
+    expect(HOME_CSS).toContain('var(--usl-fill-primary)')
+    expect(HOME_CSS).toContain('var(--usl-accent)')
+  })
+})
+
+test.describe('SEARCH_CSS — 搜索结果卡片', () => {
+  test('结果卡片 + 站点摘要位 + 元信息 + 分页容器布局', () => {
+    expect(SEARCH_CSS).toContain('.umm-sht-search-card')
+    expect(SEARCH_CSS).toContain('.umm-sht-search-title')
+    expect(SEARCH_CSS).toContain('.umm-sht-search-meta')
+    // 摘要位（隐藏提示/内容预览透传，两行截断）
+    expect(SEARCH_CSS).toContain('.umm-sht-search-preview')
+    // 复用 buildPager 的容器（CHANGELOG 强调的复用契约）
+    expect(SEARCH_CSS).toContain('.umm-sht-search-pager')
+  })
+
+  test('消费 --usl-* 令牌（与 HOME 对称）', () => {
+    expect(SEARCH_CSS).toContain('var(--usl-text-')
+    expect(SEARCH_CSS).toContain('var(--usl-accent)')
   })
 })

@@ -28,7 +28,7 @@ import { escapeHtml } from '@/utils/escape-html'
 import { throttle } from '@/utils'
 import { onEvent } from '@/utils/event-bus'
 import { FloatingToast } from '@/entrypoints/content/utils/toast'
-import { mountSehuatangControls, countSehuatangCardStates, markCardsViewed, setGridHideViewed, dimCardsVisually } from '@/entrypoints/content/handlers/sehuatang-controls'
+import { mountSehuatangControls, countSehuatangCardStates, markCardsViewed, setGridHideViewed, dimCardsVisually, runVisibleEntrance } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu'
 import { initImageReveal, runCardEntrance } from '@/entrypoints/content/handlers/sehuatang-effects'
 import { partitionInitialVisible, parseThreadRow, collectNewThreadRows, collectThreadTrackKeys, shouldDimOnNavigate, type SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
@@ -242,24 +242,6 @@ function mountCards(grid: HTMLElement, threads: SehuatangThread[], loader: Detai
   grid.appendChild(fragment)
   for (const card of cards) loader.watch(card)
   return cards
-}
-
-/** 入场级联收窄到首屏可见卡：rAF 内批量读 rect、统一写类名（读写不交错）。 */
-function runVisibleEntrance(grid: HTMLElement): void {
-  requestAnimationFrame(() => {
-    const cards = Array.from(grid.querySelectorAll('.umm-card:not(.umm-sht-enter)')) as HTMLElement[]
-    if (cards.length === 0) return
-    const viewportH = window.innerHeight
-    const visible: HTMLElement[] = []
-    for (const card of cards) {
-      const rect = card.getBoundingClientRect()
-      if (rect.top < viewportH && rect.bottom > 0) visible.push(card)
-    }
-    visible.forEach((card, idx) => {
-      card.classList.add('umm-sht-enter')
-      card.style.animationDelay = `${idx * 45}ms`
-    })
-  })
 }
 
 /** 卡片候选判定键（data-avid 主键 + data-tid 兜底键）——非空即纳入。 */
@@ -579,8 +561,10 @@ export async function runSehuatangOverlayApp(): Promise<void> {
   threadList.style.display = 'none'
 
   // overlay 内容根：壳（header + 网格）单帧挂载，替换 loading 骨架。
+  // --list 修饰类：底部「灵动岛」浮岛仅列表页挂载，遮挡补偿 padding
+  // （GRID_CSS 的 padding-bottom）只作用列表页，首页/搜索页不多留白。
   const shell = document.createElement('div')
-  shell.className = 'umm-sht-shell'
+  shell.className = 'umm-sht-shell umm-sht-shell--list'
   const grid = document.createElement('div')
   grid.className = 'umm-preview-grid'
   shell.appendChild(grid)
@@ -624,7 +608,7 @@ export async function runSehuatangOverlayApp(): Promise<void> {
     hiddenAtMount = partitioned.hiddenCount
     grid.replaceChildren()
     mountCards(grid, partitioned.visible, loader)
-    runVisibleEntrance(grid)
+    runVisibleEntrance(grid, 45)
     updateHeaderInfo(headerEl, grid)
     startPaginationSync(grid, headerEl, loader)
     activeUnsubscribeEvents = subscribeRecordUpdates(grid, headerEl)
@@ -634,7 +618,7 @@ export async function runSehuatangOverlayApp(): Promise<void> {
     mountSehuatangControls(document, headerEl, { floatbarParent: shell })
     mountCards(grid, threads, loader)
     overlay.mountContent(shell)
-    runVisibleEntrance(grid)
+    runVisibleEntrance(grid, 45)
     updateHeaderInfo(headerEl, grid)
     startPaginationSync(grid, headerEl, loader)
     activeUnsubscribeEvents = subscribeRecordUpdates(grid, headerEl)
