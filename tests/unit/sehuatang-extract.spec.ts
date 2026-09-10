@@ -311,10 +311,15 @@ test.describe('collectNewThreadRows — MutationRecord 新行收集（静态地�
 })
 
 test.describe('shouldDimOnNavigate — 点击跳转即 dimmer 的适用面', () => {
-  test('仅提取到 TID → 适用（无番号，无自然落库路径）', () => {
+  test('仅提取到 TID + 无磁力 → 适用（无番号，无自然落库路径）', () => {
     expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: false, hasMagnet: false })).toBe(true)
-    // 即使有磁力也适用：TID 键本就走「点进帖子」的语义
-    expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: true, hasMagnet: true })).toBe(true)
+    expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: true, hasMagnet: false })).toBe(true)
+  })
+
+  test('磁力在场一律不适用（含仅 TID 键）——复制磁力才是自然落库路径', () => {
+    // 回归锚点：仅 TID 键 + 有磁力，用户还没点复制磁力就点击跳转，不得提前 dim。
+    expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: true, hasMagnet: true })).toBe(false)
+    expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: false, hasMagnet: true })).toBe(false)
   })
 
   test('番号 + 详情已结束 + 无磁力 → 适用', () => {

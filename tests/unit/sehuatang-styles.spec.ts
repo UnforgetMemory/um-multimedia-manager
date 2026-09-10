@@ -73,6 +73,22 @@ test.describe('CONTROLS_CSS — 令牌基准（原 controls spec 迁移）', () 
   })
 })
 
+test.describe('CONTROLS_CSS — header 布局健壮化 + 搜索框', () => {
+  test('row 可换行 + tabs 单行滚动带（多分区不再堆叠撑高 sticky header）', () => {
+    expect(CONTROLS_CSS).toMatch(/\.umm-sht-row \{[^}]*flex-wrap: wrap/)
+    expect(CONTROLS_CSS).toMatch(/\.umm-header-info \{[^}]*font-weight: 500/)
+    expect(CONTROLS_CSS).toMatch(/\.umm-sht-tabs \{[^}]*overflow-x: auto/)
+    // tabs 由「换行堆叠」改为「单行滚动带」：不再 flex-wrap
+    expect(CONTROLS_CSS).not.toMatch(/\.umm-sht-tabs \{[^}]*flex-wrap/)
+  })
+
+  test('搜索框 class 齐备（原生 #scbar 搜索条的 overlay 重建）', () => {
+    expect(CONTROLS_CSS).toContain('.umm-sht-searchbox')
+    expect(CONTROLS_CSS).toContain('.umm-sht-search-input')
+    expect(CONTROLS_CSS).toContain('.umm-sht-search-btn')
+  })
+})
+
 test.describe('令牌基准 — 全段零调色板色值（通用守卫）', () => {
   const segments: Array<[string, string]> = [
     ['GRID_CSS', GRID_CSS],

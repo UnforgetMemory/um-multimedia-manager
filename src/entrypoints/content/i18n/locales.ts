@@ -147,6 +147,9 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': 'All caught up',
     'sht.empty_watched_hint': 'To show them, turn off "Hide Viewed" in the menu',
+    // Sehuatang search box (overlay rebuild of native #scbar)
+    'sht.search_placeholder': 'Search threads…',
+    'sht.search_go': 'Search',
   },
   'zh-CN': {
     Language: '语言（简体）',
@@ -294,6 +297,9 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': '全部已看过',
     'sht.empty_watched_hint': '如需显示，请在菜单中关闭「隐藏已阅」',
+    // Sehuatang search box (overlay rebuild of native #scbar)
+    'sht.search_placeholder': '搜索帖子…',
+    'sht.search_go': '搜索',
   },
   'zh-HK': {
     Language: '語言（繁體）',
@@ -441,6 +447,9 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': '全部已看過',
     'sht.empty_watched_hint': '如需顯示，請在選單中關閉「隱藏已閱」',
+    // Sehuatang search box (overlay rebuild of native #scbar)
+    'sht.search_placeholder': '搜尋帖子…',
+    'sht.search_go': '搜尋',
   },
   'zh-TW': {
     Language: '語言（繁體）',
@@ -588,6 +597,9 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': '全部已看過',
     'sht.empty_watched_hint': '如需顯示，請在選單中關閉「隱藏已閱」',
+    // Sehuatang search box (overlay rebuild of native #scbar)
+    'sht.search_placeholder': '搜尋帖子…',
+    'sht.search_go': '搜尋',
   },
 }
 

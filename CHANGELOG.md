@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 新增功能
 
+- **色花堂搜索组件重建**：overlay 取代原生 `#scbar` 后搜索入口一度缺失，现于导航行（选项卡与操作组之间）重建搜索框——回车或 🔍 按钮发起跳转；GET 契约按站点结果页链接形态推导（`search.php?mod=forum&srchtxt=<encoded>&searchsubmit=yes`），action 优先读原生 `#scbar_form`（缺失时回退 Discuz 通用形态），关键词空白静默 no-op，仅放行 http(s) 目标；首页 overlay 操作组同款接入；四语言 placeholder/按钮文案
+
 - **色花堂列表页「全部已看过」空态**：hide ON 且本页条目全部被隐藏时（初始不渲染的整页已看，或运行时切换后渲染卡全为已看），网格区域呈现 eye-off 大插图 + 双行提示（「全部已看过 / 如需显示，请在菜单中关闭隐藏已阅」，四语言）；空态挂撤随 `updateHeaderInfo` 刷新——初始挂载 / AJAX 分页 / 菜单切换与运行时标记三处状态变更的汇合点，新未看卡到达或切回 hide OFF 即自动撤销；隐藏语义三态严格区分（初始隐藏=不渲染、运行时隐藏=`display:none`、运行时标记=只 dim 不隐藏不计入），空版块（grid 空且无隐藏事实）不误报；视觉全量 `--usl-*` 令牌（明暗双主题自适应 + reduced-motion 守卫），`role="status"` 供读屏播报
 - **色花堂风控页（年龄门）识别与重建**：任意路径可返回的风控文档（`.localref/风控校验.html` 形态：`div.domain` 大字标题 + 双语 `a.enter-btn` 进入按钮 + 警告块）不再以原生白底样式裸奔——主入口以 DOM 双标记检测（`div.domain` + `a.enter-btn[href]` 双 AND；URL 判型对它失效，故优先级最高，帖子页静默记录也让位），重建为主题化 overlay 面板（域名大字 / 主+次进入按钮 / 警告块，`--usl-*` 令牌明暗双主题）；**进入按钮点击委托回原 DOM 按钮**——站点 JS 把 `.enter-btn` click 绑定为「写 safeid cookie + 重载当前页」，是通过风控的唯一途径，绝不复刻 cookie 逻辑（原元素缺失才退化 href 导航）；命中早期入口 matches 的路径直接接壳（与列表/搜索/首页同款零 FOUC），其余路径经共享 `createOverlay` 自建；主入口 matches 扩为 4 域全路径通配（判型内化到 main，非托管页零副作用）
 - **色花堂首页 overlay 重建**：首页（`/`、`/index.php`、`/forum.php` 无 `mod`）从原生 Discuz 分区表格改为现代 card grid——按「分区标题 + 子版块卡片」结构组织，站点全部分区（分区名从 DOM 动态提取，以站点实际分区为准）的所有子版块以同款 `umm-card` 视觉呈现；卡片显示今日新增徽标（`forum_new.gif` 二态判定）、主题/帖数、最后发表（外链版块透传「链接到外部地址」原文）；导航层纯读，不触已看库
@@ -16,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **色花堂搜索页 dimmer 跨页打通**：搜索结果条目无磁力/详情子请求，dimmer 是唯一反馈；走 avId + TID 双键命中（与列表页 `collectThreadTrackKeys` 同款、字段语义对齐）——列表页写入的记录，搜索结果中能立即看到淡化（单向：搜索页只读不落库）
 
 ### 修复与优化
+
+- **色花堂 dimmer 误触发修复**：仅 TID 且带磁力的卡片，点击标题跳转对应 tid 时不再直接进入 dim 待定态——`shouldDimOnNavigate` 现以「磁力在场一律不适用」为先（复制磁力才是自然落库路径）；适用面收窄为 ①仅 TID 且无磁力 ②有番号且详情已结束仍无磁力，回归测试锚定 TID+磁力 → 不触发（含详情已结束/未结束两变体）
+- **色花堂 header 布局健壮化**：双行 header 全面换行友好化——行容器 `flex-wrap: wrap` + `min-width: 0`（长面包屑/长统计信息不再撑破）；`umm-header-info` 去 nowrap 并加字重 500（统计文本过细不再易读性受损）；多分区选项卡由纵向堆叠改为**单行横向滚动条**（`overflow-x: auto` + 细滚动条，分区再多也不抬高 sticky header 高度）；首页操作组同步允许换行，消除组件重叠与间距缺失
+- **色花堂 overlay dark 色系调优（Radix 基准）**：dark 主题下高饱和蓝引发视觉刺痛，全量降饱和——`--usl-fill-primary` `#3a55ec`→`#3e63dd`（indigo-9，白字对比 5.21:1）；`--usl-accent` `#7e9bf9`→`#9ba8f0`（indigo-11 低饱和文本强调）；次级/弱化文本分别提亮至 `#a9b4c6`（raised 面上 ≈7.3:1，治「文本过细过亮」的读感模糊）与 `#8b98ad`（≈5.2:1，恢复真实层级差）；明色主题不动，令牌与豆瓣 overlay 共享全局单源
 
 - **底栏「灵动岛」遮挡修补**：列表页 `.umm-sht-shell--list` 加上 `padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px))`，网格最后一行卡片不再被底部分页悬浮栏压住（72 px = 浮岛高度 + 上下安全间距；safe-area-inset 兼容 iOS 底部手势区）；首页/搜索页无浮岛，不多留白
 - **搜索页 tidKey 链路修复（umreview round 4）**：标题链接改取 `anchor.href` 属性（浏览器自动绝对化）——相对 URL 不再断链 `extractThreadTidFromUrl` 的 `new URL`，TID 双键与卡片锚点恢复；搜索结果字段语义与列表页 `SehuatangThread` 对齐（`tid` = `TID-<tid>` 键），`collectThreadTrackKeys` 直接消费，avId 条目不再丢失 TID 兜底键

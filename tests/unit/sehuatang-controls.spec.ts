@@ -10,6 +10,8 @@ import {
   buildTabsBar,
   buildPager,
   buildActions,
+  buildSearchUrl,
+  buildSearchBox,
   mountSehuatangControls,
   paintSehuatangBackground,
   countSehuatangCardStates,
@@ -310,7 +312,8 @@ test.describe('mountSehuatangControls 编排', () => {
     expect(rowNav.className).toContain('umm-sht-row--nav')
     expect(rowNav.querySelector('.umm-sht-tabs')).not.toBeNull()
     expect(header.querySelectorAll('a.umm-sht-action')).toHaveLength(1)
-    expect(header.querySelectorAll('button.umm-sht-action')).toHaveLength(2)
+    // 按钮 = 🔍 搜索（overlay 搜索框重建）+ 发新帖 + ☰ 菜单。
+    expect(header.querySelectorAll('button.umm-sht-action')).toHaveLength(3)
     // 操作组内次要动作置前（返回/发新帖在复制磁力之前；☰ 菜单殿后）。
     const navActions = header.querySelector('.umm-sht-row--nav')!.lastElementChild!
     const actionNodes = Array.from(navActions.children)
@@ -327,7 +330,8 @@ test.describe('mountSehuatangControls 编排', () => {
     const doc = dom.window.document
     let clicked = false
     ;(doc.getElementById('newspecial') as HTMLElement).click = () => { clicked = true }
-    const postBtn = header.querySelector('button.umm-sht-action') as HTMLButtonElement
+    // 首个 button.umm-sht-action 已是 🔍 搜索按钮，发新帖按文案精确选取。
+    const postBtn = Array.from(header.querySelectorAll('button.umm-sht-action')).find((b) => b.textContent === '发新帖') as HTMLButtonElement
     postBtn.click()
     expect(clicked).toBe(true)
   })
@@ -714,5 +718,84 @@ test.describe('dimCardsVisually — 仅页面状态标记（点击跳转，不�
 
   test('空数组 → 0（无副作用）', () => {
     expect(dimCardsVisually([])).toBe(0)
+  })
+})
+
+test.describe('buildSearchUrl — 搜索 GET 契约（纯函数）', () => {
+  test('原生 scbar action + 关键词 → srchtxt 追加 + searchsubmit 原地覆盖（无重复键）', () => {
+    const url = buildSearchUrl(
+      'https://www.sehuatang.net/search.php?searchsubmit=yes',
+      BASE_URL,
+      '自行打包',
+    )
+    expect(url).toBe(
+      'https://www.sehuatang.net/search.php?searchsubmit=yes&mod=forum&srchtxt=%E8%87%AA%E8%A1%8C%E6%89%93%E5%8C%85',
+    )
+  })
+
+  test('空 action 回退 Discuz 通用形态（相对 base 解析）', () => {
+    const url = buildSearchUrl('', BASE_URL, 'ABC-123')
+    // 参数顺序遵循 URLSearchParams 原地更新语义（fallback 串自带 mod/searchsubmit，
+    // srchtxt 追加在末尾）；GET 查询参数顺序无语义影响。
+    expect(url).toBe('https://www.sehuatang.net/search.php?mod=forum&searchsubmit=yes&srchtxt=ABC-123')
+  })
+
+  test('空白关键词 → null；非 http(s) 协议 → null', () => {
+    expect(buildSearchUrl('', BASE_URL, '   ')).toBeNull()
+    expect(buildSearchUrl('javascript:alert(1)', BASE_URL, 'x')).toBeNull()
+    expect(buildSearchUrl('data:text/html,x', BASE_URL, 'x')).toBeNull()
+  })
+})
+
+test.describe('buildSearchBox — 搜索框重建（原生 #scbar 的 overlay 替身）', () => {
+  function docWith(): Document {
+    const dom = new JSDOM(
+      '<form id="scbar_form" action="https://www.sehuatang.net/search.php?searchsubmit=yes"></form>',
+      { url: BASE_URL },
+    )
+    return dom.window.document
+  }
+
+  test('结构：input + 🔍 按钮 + placeholder/aria-label', () => {
+    const doc = docWith()
+    const box = buildSearchBox(doc)
+    expect(box.className).toBe('umm-sht-searchbox')
+    const input = box.querySelector('.umm-sht-search-input') as HTMLInputElement
+    const btn = box.querySelector('.umm-sht-search-btn') as HTMLButtonElement
+    expect(input).not.toBeNull()
+    expect(btn).not.toBeNull()
+    expect(input.placeholder.length).toBeGreaterThan(0)
+    expect(input.getAttribute('aria-label')).toBe(input.placeholder)
+    expect(btn.textContent).toBe('🔍')
+  })
+
+  test('Enter 与按钮触发 navigate（注入 spy）；URL 含 srchtxt + mod=forum', () => {
+    const doc = docWith()
+    const seen: string[] = []
+    const box = buildSearchBox(doc, { navigate: (url) => seen.push(url) })
+    const input = box.querySelector('.umm-sht-search-input') as HTMLInputElement
+    const btn = box.querySelector('.umm-sht-search-btn') as HTMLButtonElement
+
+    input.value = ' 自行打包 '
+    input.dispatchEvent(new doc.defaultView!.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toContain('search.php')
+    expect(seen[0]).toContain('mod=forum')
+    expect(seen[0]).toContain('srchtxt=%E8%87%AA%E8%A1%8C%E6%89%93%E5%8C%85')
+
+    btn.click()
+    expect(seen).toHaveLength(2)
+  })
+
+  test('空白关键词 → 不触发 navigate（静默 no-op）', () => {
+    const doc = docWith()
+    const seen: string[] = []
+    const box = buildSearchBox(doc, { navigate: (url) => seen.push(url) })
+    const input = box.querySelector('.umm-sht-search-input') as HTMLInputElement
+    const btn = box.querySelector('.umm-sht-search-btn') as HTMLButtonElement
+    input.value = '   '
+    btn.click()
+    input.dispatchEvent(new doc.defaultView!.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(seen).toEqual([])
   })
 })

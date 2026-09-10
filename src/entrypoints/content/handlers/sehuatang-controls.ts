@@ -19,6 +19,7 @@
  */
 
 import { COLOR_OVERLAY_SURFACE, COLOR_OVERLAY_SURFACE_DARK } from '@/entrypoints/content/styles/tokens'
+import { t } from '@/entrypoints/content/i18n'
 import { windowPages, resolveJumpUrl, clampPage, type PaginationData, type PagerLink } from './sehuatang-paging'
 
 export type { PaginationData, PagerLink } from './sehuatang-paging'
@@ -292,6 +293,65 @@ export function buildPager(doc: Document, data: PaginationData): HTMLElement | n
   return bar
 }
 
+/**
+ * 搜索 URL 构建（纯函数，JSDOM/Node 可测）：Discuz 搜索的 GET 契约，
+ * 形态与站点原生结果页链接一致（search.php?mod=forum&srchtxt=…&searchsubmit=yes）。
+ * action 优先取原生 #scbar_form 的端点（调用方传入），空串回退通用形态；
+ * URLSearchParams.set 保证参数幂等（action 自带 searchsubmit=yes 时原地覆盖，
+ * 不产生重复键）；协议白名单仅 http(s)（非可信输入防御，与磁力/封面同纪律）。
+ * 返回 null = 关键词空白或解析失败（调用方静默 no-op）。
+ */
+export function buildSearchUrl(action: string, base: string, keyword: string): string | null {
+  const kw = keyword.trim()
+  if (!kw) return null
+  try {
+    const u = new URL(action || 'search.php?mod=forum&searchsubmit=yes', base || undefined)
+    if (!/^https?:$/.test(u.protocol)) return null
+    u.searchParams.set('mod', 'forum')
+    u.searchParams.set('srchtxt', kw)
+    u.searchParams.set('searchsubmit', 'yes')
+    return u.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 搜索框（原生 #scbar 搜索条被 overlay 取代后的重建；列表页 header 与首页
+ * header 共用）。Enter 或按钮 → buildSearchUrl 同页导航，结果页由搜索
+ * overlay 接管（app-search）。关键词空白 / 端点解析失败 → 静默 no-op。
+ * navigate 可注入（JSDOM 无导航实现，测试传 spy；生产默认同页跳转）。
+ */
+export function buildSearchBox(
+  doc: Document,
+  opts?: { navigate?: (url: string) => void },
+): HTMLElement {
+  const box = el(doc, 'div', 'umm-sht-searchbox')
+  const input = el(doc, 'input', 'umm-sht-search-input') as HTMLInputElement
+  input.type = 'text'
+  input.placeholder = t('sht.search_placeholder')
+  input.setAttribute('aria-label', t('sht.search_placeholder'))
+  const navigate = opts?.navigate ?? ((url: string) => {
+    const view = doc.defaultView
+    if (view) view.location.href = url
+  })
+  const go = () => {
+    const action = doc.getElementById('scbar_form')?.getAttribute('action') ?? ''
+    const url = buildSearchUrl(action, doc.location?.href ?? '', input.value)
+    if (url) navigate(url)
+  }
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') go()
+  })
+  const btn = el(doc, 'button', 'umm-sht-action umm-sht-search-btn', '🔍') as HTMLButtonElement
+  btn.type = 'button'
+  btn.title = t('sht.search_go')
+  btn.addEventListener('click', go)
+  box.appendChild(input)
+  box.appendChild(btn)
+  return box
+}
+
 /** 「返 回」链接 + 「发新帖」按钮（发新帖点击 → 原版元素 click()，触发站点 showWindow）。 */
 export function buildActions(doc: Document, back: HTMLAnchorElement | null, post: HTMLElement | null): HTMLElement[] {
   const buttons: HTMLElement[] = []
@@ -488,6 +548,9 @@ export function mountSehuatangControls(
 
   const rowNav = el(doc, 'div', 'umm-sht-row umm-sht-row--nav')
   if (tabsBar) rowNav.appendChild(tabsBar)
+  // 搜索框：原生 #scbar 搜索条被 overlay 取代后在此重建（tabs 与 actions 之间；
+  // tabs flex:1 占据弹性空间，搜索 + 操作组靠右，窄屏整行换行）。
+  rowNav.appendChild(buildSearchBox(doc))
   if (actions) {
     // 次要动作（返回/发新帖）置前，主要动作（复制磁力）保持靠右的主次分层。
     for (const btn of buildActions(doc, topBack, topPost).reverse()) {

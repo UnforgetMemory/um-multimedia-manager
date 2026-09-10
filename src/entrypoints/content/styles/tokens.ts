@@ -19,7 +19,7 @@
 export const COLOR_PRIMARY_START = '#4f6ef7' // static brand-500
 export const COLOR_PRIMARY_END = '#3a55ec' // static brand-600
 export const COLOR_PRIMARY_SHADOW = 'rgba(58, 85, 236, 0.3)'
-export const COLOR_PRIMARY_START_DARK = '#3a55ec' // static brand-600 (AA with white)
+export const COLOR_PRIMARY_START_DARK = '#3e63dd' // static Radix indigo-9 (dark fill; 白字 5.21:1，低饱和治 dark 蓝刺眼)
 export const COLOR_PRIMARY_SHADOW_DARK = 'rgba(126, 155, 249, 0.3)'
 
 // ==================== Success Green (Done) ====================
@@ -122,10 +122,10 @@ export const COLOR_OVERLAY_TEXT_PRIMARY = '#151a23' // static neutral-900
 export const COLOR_OVERLAY_TEXT_SECONDARY = '#4d5870' // static neutral-600
 export const COLOR_OVERLAY_TEXT_MUTED = '#5d6a81' // static neutral-550 (AA 5.46:1 on light)
 export const COLOR_OVERLAY_TEXT_PRIMARY_DARK = '#eaeef5' // static neutral-100
-export const COLOR_OVERLAY_TEXT_SECONDARY_DARK = '#94a0b5' // static neutral-400 (DESIGN_GUIDE on-surface-variant, dark)
-export const COLOR_OVERLAY_TEXT_MUTED_DARK = '#94a0b5' // static neutral-400 (variant tier; muted differentiated by size/weight)
+export const COLOR_OVERLAY_TEXT_SECONDARY_DARK = '#a9b4c6' // static neutral-350 (raised ~7.3:1；治暗面次要文本过淡过细)
+export const COLOR_OVERLAY_TEXT_MUTED_DARK = '#8b98ad' // static neutral-450 (raised ~5.2:1；与 secondary 拉开真实色阶层级)
 export const COLOR_OVERLAY_ACCENT = '#3a55ec' // static brand-600 (link/accent ink, light)
-export const COLOR_OVERLAY_ACCENT_DARK = '#7e9bf9' // static brand-400 (dark)
+export const COLOR_OVERLAY_ACCENT_DARK = '#9ba8f0' // static Radix indigo-11 dark (低饱和文本级 accent，治 dark 蓝刺眼)
 
 // ==================== Status text on overlay surfaces (M3 D2 tiers) ====================
 export const COLOR_STATUS_TEXT_DONE = '#047857' // static green-700 (light small text, AA on white)

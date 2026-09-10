@@ -123,9 +123,11 @@ const TID_ONLY_KEY_RE = /^TID-\d+$/
 /**
  * 「点击跳转即 dimmer」的适用判定（纯函数，入参 = 卡片可观测状态）。
  *
- * 适用面（并集）：
- *   ① 仅提取到 TID 的条目 —— 没有番号，走「复制磁力」这条自动落库路径不自然；
- *   ② 详情子请求**已结束**但仍无磁力的条目 —— 没有磁力可复制。
+ * 适用面（并集，且必须无磁力）：
+ *   ① 仅提取到 TID 且无磁力的条目 —— 无番号即无番号表落库路径；
+ *   ② 有番号但详情子请求**已结束**仍无磁力的条目 —— 没有磁力可复制。
+ * **磁力在场一律不适用**（回归锚点：仅 TID 键 + 有磁力的卡片，用户还没点
+ * 复制磁力就点击跳转，不得提前 dim——复制磁力才是它的自然落库路径）。
  * 「未结束」的条目刻意排除：此刻还不知道最终有没有磁力，不应提前下判断。
  *
  * 命中者只做**页面状态**变更（加 dimmer），不做数据变更——跳转后的帖子页
@@ -141,8 +143,9 @@ export function shouldDimOnNavigate(state: {
 }): boolean {
   const { trackId, detailSettled, hasMagnet } = state
   if (!trackId) return false
+  if (hasMagnet) return false
   if (TID_ONLY_KEY_RE.test(trackId)) return true
-  return detailSettled && !hasMagnet
+  return detailSettled
 }
 
 /**

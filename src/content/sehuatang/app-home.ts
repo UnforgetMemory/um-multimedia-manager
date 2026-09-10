@@ -26,7 +26,7 @@ import { initI18n, t } from '@/entrypoints/content/i18n'
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu'
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel'
 import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-panel'
-import { runVisibleEntrance } from '@/entrypoints/content/handlers/sehuatang-controls'
+import { runVisibleEntrance, buildSearchBox } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { escapeHtml } from '@/utils/escape-html'
 import { attachSehuatangOverlay } from './overlay'
 import { toSafeAbsoluteUrl } from './url'
@@ -110,6 +110,9 @@ function buildHeader(stats: ReturnType<typeof extractIndexStats>): HTMLElement {
   }
 
   const actions = el('div', 'umm-sht-home-actions')
+
+  // 搜索框：原生 #scbar 搜索条被 overlay 取代后的重建（首页导航层，搜索最前置）。
+  actions.appendChild(buildSearchBox(document))
 
   const menuBtn = el('button', 'umm-sht-action')
   menuBtn.textContent = '☰'
