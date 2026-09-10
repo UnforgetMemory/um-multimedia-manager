@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.15.1] - 2026-09-10
+
+### 变更（内部重构）
+
+- **环境统一到 Node 24 LTS**：新增 `.nvmrc` / `.node-version`（内容 `24`），`package.json` `engines` 收紧为 `>=24 <25` / `npm >=11`；CI（`ci.yml` / `release.yml`）改用 `actions/setup-node` 的 `node-version-file: '.nvmrc'`（版本单一事实源）；官方 actions 升到最新大版本（`checkout@v7` / `setup-node@v7` / `action-gh-release@v3`），消除 Node 20 弃用告警
+- **依赖全面升级**：范围内依赖更新至最新（`vite` 8.2.2 / `vue` 3.5.42 / `vue-i18n` 11.4.10 / `vue-router` 5.3.1 / `vue-tsc` 3.3.11 / `@playwright/test` 1.63.0 / `reka-ui` 2.10.4 / `dompurify` 3.4.15 / `tsx` 4.23.13 / `sharp` 0.35.4 / `@types/chrome` 0.2.9）；`@types/node` 由 26.x 对齐到 **24.13.4**，与运行时 Node 24 一致（Node 24 引入的类型此前无法校验）
+- **新语法 / 新 API 跟进**（运行时基线 = Chrome 119）：`tsconfig.target` ES2022 → **ES2024**；`handleAdultAvBatchAdd` 的手写 Map 累加分组改 **`Map.groupBy`**（派生与分组分离，`normalizeAvId` 只算一次）；`detail-loader` 与 PT `Semaphore` 的 deferred 改 **`Promise.withResolvers`**；3 处模板 ref 改用 Vue 3.5 **`useTemplateRef`**
+- 暂缓项（已评估，非疏漏）：**TypeScript 7.0.2 不兼容** —— TS 7 为原生编译器，包 `exports` 不再暴露 `typescript/lib/tsc`，`vue-tsc` 直接报 `ERR_PACKAGE_PATH_NOT_EXPORTED`，故保持 `^6.0.3`；**`adm-zip` 上游无修复版本**（GHSA-vwc7-r8mq-g2x9，`latest` 0.6.0 即在受影响区间，npm 建议的「修复」是降级到 0.5.8），该包仅作 devDependency 用于 3 个本地脚本
+- 文档：README / README.en 的环境要求更新为 Node 24 LTS + Chrome >= 119（原文 Chrome >= 88 已过时）；AGENTS.md 新增「环境」段（Node 24 强制原因、TS 7 暂缓、Chrome 119 运行时基线边界）
+- 配置一致性：`wxt.config.ts` 的 Vite `build.target` 由 `es2022` 对齐到 **`es2024`**，与 `tsconfig.target` 恢复单一事实源（此前两者语义分裂；运行时 API `Map.groupBy` / `Promise.withResolvers` 不受 target 影响，实质边界由 `minimum_chrome_version` 决定）
+
 ## [5.15.0] - 2026-09-10
 
 ### 新增功能
