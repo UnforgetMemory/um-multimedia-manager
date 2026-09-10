@@ -23,6 +23,8 @@ export interface MigrationStoreNames {
   TTL_CACHE: string
   PT_ID_CACHE: string
   JAV_IDS: string
+  USAV_IDS: string
+  SEHUATANG_IDS: string
 }
 
 export interface MigrateDeps {
@@ -279,6 +281,22 @@ export function migrateSchema(
         // rewrite is skipped.
         console.warn('[DB] v13 migration partial/failed:', err)
       }
+    }
+  }
+
+  // v13→v14: 成人番号三表拆分（ADR-025）——新增 usav_ids（美/欧厂牌番号）
+  // 与 sehuatang_ids（帖子浏览记录，TID 键）。用户裁决：存量 jav_ids 混合键
+  // 不搬迁，读侧三表合并查询永久兼容；此处只建表，零数据移动（风险面最小）。
+  if (oldVersion < 14) {
+    if (!db.objectStoreNames.contains(STORE_NAMES.USAV_IDS)) {
+      const usavStore = db.createObjectStore(STORE_NAMES.USAV_IDS)
+      usavStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+      console.log('[DB] Added usav_ids store')
+    }
+    if (!db.objectStoreNames.contains(STORE_NAMES.SEHUATANG_IDS)) {
+      const shtStore = db.createObjectStore(STORE_NAMES.SEHUATANG_IDS)
+      shtStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+      console.log('[DB] Added sehuatang_ids store')
     }
   }
 

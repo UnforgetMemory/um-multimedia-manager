@@ -29,6 +29,7 @@ import type {
 } from './index'
 import type { ShelfItemResponse } from '@/features/neodb/api'
 import type { MediaTypeId } from '@/domain/platform/MediaType'
+import type { SehuatangDetailCacheEntry } from '@/features/sehuatang-cache/models'
 
 // ==================== Toast ====================
 
@@ -61,12 +62,15 @@ export type MessageType =
   | 'ADULT_AV_ADD'
   | 'ADULT_AV_BATCH_ADD'
   | 'ADULT_AV_GET_ALL'
+  | 'ADULT_AV_STATS'
   | 'DOWNLOAD_FILE'
   | 'WEBDAV_TEST'
   | 'WEBDAV_UPLOAD'
   | 'WEBDAV_DOWNLOAD'
   | 'WEBDAV_SYNC'
   | 'NEODB_PUSH_RATING'
+  | 'SEHUATANG_CACHE_GET_BATCH'
+  | 'SEHUATANG_CACHE_PUT'
 
 export interface MessagePayloadMap {
   SHOW_TOAST: { type: ToastType; title: string; message?: string }
@@ -93,6 +97,7 @@ export interface MessagePayloadMap {
   ADULT_AV_ADD: { source: string; id: string; rating?: number; url?: string }
   ADULT_AV_BATCH_ADD: { source: string; items: AdultAvIdInput[] }
   ADULT_AV_GET_ALL: { source?: string }
+  ADULT_AV_STATS: Record<never, never>
   DOWNLOAD_FILE: { url: string; filename: string }
   /** Superset of both caller dialects: options page sends short keys
    *  (url/username/password), other senders send webdav* keys;
@@ -111,6 +116,9 @@ export interface MessagePayloadMap {
   WEBDAV_DOWNLOAD: void
   WEBDAV_SYNC: void
   NEODB_PUSH_RATING: { record: { providerId: string; type: MediaTypeId; provider: Provider; status?: number; rating?: number; comment?: string } }
+  SEHUATANG_CACHE_GET_BATCH: { tids: string[] }
+  /** Wire shape omits cachedAt — the background handler stamps it on write. */
+  SEHUATANG_CACHE_PUT: { entries: Array<{ tid: string; imageUrl: string | null; magnetLink: string | null }> }
 }
 
 /** Wire envelope for a known message: payload present unless declared `void`. */
@@ -167,6 +175,7 @@ export interface ResponseMessageMap {
   ADULT_AV_ADD: { success: true } | { success: false; error: string }
   ADULT_AV_BATCH_ADD: { success: true; addedCount: number } | { success: false; error: string }
   ADULT_AV_GET_ALL: { success: true; items: AdultAvId[] } | { success: false; error: string }
+  ADULT_AV_STATS: { success: true; jp: number; us: number; tid: number } | { success: false; error: string }
   DOWNLOAD_FILE: { success: true } | { success: false; error?: string }
   WEBDAV_TEST: { success: true; ok: boolean; message: string } | { success: false; message: string }
   WEBDAV_UPLOAD:
@@ -181,6 +190,12 @@ export interface ResponseMessageMap {
   NEODB_PUSH_RATING:
     | { success: true; shelfItem: ShelfItemResponse | null; catalogUuid: string }
     | { success: false; message: string }
+  SEHUATANG_CACHE_GET_BATCH:
+    | { success: true; data: { entries: Record<string, SehuatangDetailCacheEntry> } }
+    | { success: false; error: string }
+  SEHUATANG_CACHE_PUT:
+    | { success: true; data: { saved: number } }
+    | { success: false; error: string }
 }
 
 /** Response for one message type (kept for the planned typed dispatcher). */
@@ -218,12 +233,15 @@ export interface SuccessDataMap {
   ADULT_AV_ADD: Record<never, never>
   ADULT_AV_BATCH_ADD: { addedCount: number }
   ADULT_AV_GET_ALL: { items: AdultAvId[] }
+  ADULT_AV_STATS: { jp: number; us: number; tid: number }
   DOWNLOAD_FILE: Record<never, never>
   WEBDAV_TEST: { ok: boolean; message: string }
   WEBDAV_UPLOAD: { totalUploaded: number; timestamp: string; direction: 'upload'; message: string }
   WEBDAV_DOWNLOAD: { totalDownloaded: number; timestamp: string; direction: 'download'; message: string }
   WEBDAV_SYNC: { direction: 'merge'; message: string; uploaded: number; downloaded: number; skipped: number; timestamp: string }
   NEODB_PUSH_RATING: { shelfItem: ShelfItemResponse | null; catalogUuid: string }
+  SEHUATANG_CACHE_GET_BATCH: { data: { entries: Record<string, SehuatangDetailCacheEntry> } }
+  SEHUATANG_CACHE_PUT: { data: { saved: number } }
 }
 
 /** Success member of a message response — what `db/api.send` resolves to. */

@@ -83,7 +83,7 @@ function createV12Database(): Promise<void> {
 }
 
 test.describe('DB v13 migration (upgrade transaction)', () => {
-  test('opens at v13 from a v12 DB, normalizes keys, copies jav_ids without aborting', async () => {
+  test('opens at current version (v14) from a v12 DB, normalizes keys, copies jav_ids without aborting', async () => {
     freshIndexedDB()
     await createV12Database()
 
@@ -114,6 +114,84 @@ test.describe('DB v13 migration (upgrade transaction)', () => {
     ])
     expect(got.get('movie::BV1xx')?.schemaVersion).toBe(2)
     expect(got.has('missing::key')).toBe(false)
+
+    mdb.close()
+  })
+})
+
+/** Seed a v13-shaped DB: jav_ids holds legacy mixed keys (jp + us + TID). */
+function createV13Database(): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 13)
+    req.onupgradeneeded = (ev) => {
+      const db = (ev.target as IDBOpenDBRequest).result
+      for (const name of [
+        STORE_NAMES.DOUBAN,
+        STORE_NAMES.IMDB,
+        STORE_NAMES.NEODB,
+        STORE_NAMES.TMDB,
+        STORE_NAMES.BILIBILI,
+        STORE_NAMES.YOUTUBE,
+        STORE_NAMES.BANGUMI,
+        STORE_NAMES.TTL_CACHE,
+        STORE_NAMES.PT_ID_CACHE,
+        STORE_NAMES.JAV_IDS,
+      ]) {
+        if (!db.objectStoreNames.contains(name)) {
+          const store = db.createObjectStore(name)
+          store.createIndex('status', 'status', { unique: false })
+          store.createIndex('updatedAt', 'updatedAt', { unique: false })
+        }
+      }
+    }
+    req.onsuccess = () => {
+      const db = req.result
+      const tx = db.transaction([STORE_NAMES.JAV_IDS], 'readwrite')
+      const jav = tx.objectStore(STORE_NAMES.JAV_IDS)
+      const rec = (status: number) => ({ url: '', status, rating: 0, updatedAt: '2025-01-01T00:00:00.000Z' })
+      jav.put(rec(2), 'sehuatang::SSIS-001') // 日系
+      jav.put(rec(2), 'sehuatang::BIGTITSROUNDASSES.23.06.10') // 美欧（旧版混存落错表）
+      jav.put(rec(2), 'sehuatang::TID-3664524') // TID 兜底残留
+      tx.oncomplete = () => {
+        db.close()
+        resolve()
+      }
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    }
+    req.onerror = () => reject(req.error)
+  })
+}
+
+test.describe('DB v14 migration (ADR-025 三表拆分)', () => {
+  test('v13 → v14 建 usav_ids/sehuatang_ids；存量 jav_ids 不搬迁（读侧合并兜底）', async () => {
+    freshIndexedDB()
+    await createV13Database()
+
+    const mdb = new MediaDatabase()
+    await mdb.init()
+
+    // 新表存在且为空 —— 用户裁决 Q2：零数据移动（风险面最小）
+    expect(await mdb.getAll(STORE_NAMES.USAV_IDS)).toEqual([])
+    expect(await mdb.getAll(STORE_NAMES.SEHUATANG_IDS)).toEqual([])
+
+    // 存量混合键原样保留在 jav_ids（不搬迁；由读侧三表合并永久兼容）
+    const jav = await mdb.getAll(STORE_NAMES.JAV_IDS)
+    expect(jav.map((e) => e.key).sort()).toEqual([
+      'sehuatang::BIGTITSROUNDASSES.23.06.10',
+      'sehuatang::SSIS-001',
+      'sehuatang::TID-3664524',
+    ])
+
+    // 迁移后 schema 完整：新表可正常写入
+    await mdb.put(STORE_NAMES.SEHUATANG_IDS, 'sehuatang::TID-999', {
+      url: '',
+      status: 2,
+      rating: 0,
+      updatedAt: new Date().toISOString(),
+      linkedIds: {},
+    })
+    expect((await mdb.get(STORE_NAMES.SEHUATANG_IDS, 'sehuatang::TID-999'))?.status).toBe(2)
 
     mdb.close()
   })

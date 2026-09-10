@@ -32,7 +32,7 @@ export type { StoreRecordSnapshot }
 export type StoreRecord = StoreRecordSnapshot
 
 /** Valid record store names */
-export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'bilibili_records' | 'youtube_records' | 'bangumi_records' | 'jav_ids'
+export type RecordStoreName = 'douban_records' | 'imdb_records' | 'neodb_records' | 'tmdb_records' | 'bilibili_records' | 'youtube_records' | 'bangumi_records' | 'jav_ids' | 'usav_ids' | 'sehuatang_ids'
 
 // ==================== URL Identity ====================
 

@@ -27,6 +27,8 @@ const ALLOWED_DB_STORES = new Set<string>([
   STORE_NAMES.TTL_CACHE,
   STORE_NAMES.PT_ID_CACHE,
   STORE_NAMES.JAV_IDS,
+  STORE_NAMES.USAV_IDS,
+  STORE_NAMES.SEHUATANG_IDS,
 ])
 
 function isAllowedStore(storeName: string): boolean {

@@ -27,7 +27,7 @@ import type { WriteResult } from '@/features/optimistic-lock/types'
 import { migrateSchema } from './migrate'
 
 export const DB_NAME = 'umm-media-db'
-export const DB_VERSION = 13
+export const DB_VERSION = 14
 
 export const STORE_NAMES = {
   DOUBAN: 'douban_records',
@@ -40,6 +40,8 @@ export const STORE_NAMES = {
   TTL_CACHE: 'ttl_cache',
   PT_ID_CACHE: 'pt_id_cache',
   JAV_IDS: 'jav_ids',
+  USAV_IDS: 'usav_ids',
+  SEHUATANG_IDS: 'sehuatang_ids',
 } as const
 
 /** All per-platform record store names */
@@ -53,8 +55,15 @@ export const RECORD_STORES: readonly string[] = [
   STORE_NAMES.BANGUMI,
 ]
 
-/** All per-platform record stores PLUS jav_ids (adult records) for backup/export */
-export const BACKUP_STORES: readonly string[] = [...RECORD_STORES, STORE_NAMES.JAV_IDS]
+/** Adult watched-record stores (ADR-025 三表拆分：日系 / 美欧 / 帖子浏览) */
+export const ADULT_STORES: readonly string[] = [
+  STORE_NAMES.JAV_IDS,
+  STORE_NAMES.USAV_IDS,
+  STORE_NAMES.SEHUATANG_IDS,
+]
+
+/** All per-platform record stores PLUS adult stores (backup/export) */
+export const BACKUP_STORES: readonly string[] = [...RECORD_STORES, ...ADULT_STORES]
 
 /**
  * Public semantic contract for the watched-status gate (status === 2 or legacy 'done').
@@ -599,7 +608,7 @@ export class MediaDatabase {
   }
   // ==================== Bulk Operations ====================
 
-  /** Get all records from all record stores + jav_ids (for export). */
+  /** Get all records from all record stores + adult stores (for export). */
   async getAllStores(): Promise<Record<string, Record<string, StoreRecord>>> {
     const result: Record<string, Record<string, StoreRecord>> = {}
 
@@ -612,14 +621,16 @@ export class MediaDatabase {
       result[storeName] = map
     }
 
-    // Include jav_ids store (not in RECORD_STORES but needs export support)
-    const javEntries = await this.getAll(STORE_NAMES.JAV_IDS)
-    if (javEntries.length > 0) {
-      const javMap: Record<string, StoreRecord> = {}
-      for (const entry of javEntries) {
-        javMap[entry.key] = entry.record
+    // Include adult stores (not in RECORD_STORES but need export support)
+    for (const storeName of ADULT_STORES) {
+      const entries = await this.getAll(storeName)
+      if (entries.length > 0) {
+        const map: Record<string, StoreRecord> = {}
+        for (const entry of entries) {
+          map[entry.key] = entry.record
+        }
+        result[storeName] = map
       }
-      result[STORE_NAMES.JAV_IDS] = javMap
     }
 
     return result

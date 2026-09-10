@@ -25,7 +25,7 @@ import { handleWebDAVTest, handleWebDAVUpload, handleWebDAVDownload, handleWebDA
 import { handleNeoDBPushRating } from './background/handlers/neodb'
 import { handleGetSettings, handleUpdateSettings, handleExportData, handleImportData, handleGetStatistics, handleGetAllRecords, handleGetMigrationStatus } from './background/handlers/data'
 import { handleShowToast } from './background/handlers/toast'
-import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll } from './background/handlers/adult-av'
+import { handleAdultAvCheck, handleAdultAvCheckBatch, handleAdultAvAdd, handleAdultAvBatchAdd, handleAdultAvGetAll, handleAdultAvStats } from './background/handlers/adult-av'
 import {
   handleDbGet, handleDbPut, handleDbDelete, handleDbGetAll, handleDbGetBulk,
   handleDbGetWatchedIds, handleDbSyncPageRecord,
@@ -34,6 +34,7 @@ import {
 } from './background/handlers/db'
 import { registerCacheManager } from './background/handlers/cache-invalidation'
 import { handleDownloadFile } from './background/handlers/download'
+import { handleSehuatangCacheGetBatch, handleSehuatangCachePut } from './background/handlers/sehuatang-cache'
 import * as NeoDB from '@/features/neodb/api'
 import { settingsCache } from '@/features/settings/cache'
 import { RecordRepositoryAdapter, type DbAdapterForRepo } from '@/features/database/record-repository-adapter'
@@ -241,6 +242,17 @@ export default defineBackground({
         return
       }
 
+      // SEHUATANG_CACHE_* bypass the DB-ready gate — standalone cache DB,
+      // not routed through DataScheduler (ADR-024 D2).
+      if (message.type === 'SEHUATANG_CACHE_GET_BATCH') {
+        await handleSehuatangCacheGetBatch(message.payload, sendResponse)
+        return
+      }
+      if (message.type === 'SEHUATANG_CACHE_PUT') {
+        await handleSehuatangCachePut(message.payload, sendResponse)
+        return
+      }
+
       // Queue message if DB not ready
       if (!dbReady && !dbInitFailed) {
         if (pendingMessages.length >= MAX_QUEUE_SIZE) {
@@ -378,6 +390,9 @@ export default defineBackground({
             break
           case 'ADULT_AV_GET_ALL':
             await dataScheduler.schedule(() => handleAdultAvGetAll(message.payload, sendResponse), { priority: 'LOW' })
+            break
+          case 'ADULT_AV_STATS':
+            await dataScheduler.schedule(() => handleAdultAvStats(message.payload, sendResponse), { priority: 'LOW' })
             break
 
           // ==================== File Download (MAIN world) ====================

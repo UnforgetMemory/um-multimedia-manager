@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { IDBFactory } from 'fake-indexeddb'
 import { handleAdultAvBatchAdd } from '@/entrypoints/background/handlers/adult-av'
-import { JAV_IDS_STORE_NAME } from '@/features/adult-av/models'
+import { JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME, SEHUATANG_IDS_STORE_NAME } from '@/features/adult-av/models'
 import type { StoreRecord, AdultAvIdInput } from '@/types'
 import type { MediaDatabase } from '@/features/database/models'
 
@@ -134,14 +134,38 @@ test.describe('handleAdultAvBatchAdd (S5 N+1 elimination)', () => {
     expect(response()).toEqual({ success: true, addedCount: 1 })
   })
 
-  test('no valid items → no batchPut, addedCount 0', async () => {
+  test('no valid items → no read/write transaction at all, addedCount 0', async () => {
     const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map())
     const { promise, response } = runHandler(db, 'javdb', [{ url: 'https://a.example' }, { id: '' }])
     await promise
-    expect(batchGetCalls).toHaveLength(1)
-    expect(batchGetCalls[0].keys).toEqual([])
+    // ADR-025: 写入按分类器分组——无有效项 → 无分组 → 不产生读事务（旧实现
+    // 会为整个批次发一次空 batchGet；分组后空批次不再触碰 DB）。
+    expect(batchGetCalls).toHaveLength(0)
     expect(batchPutCalls).toHaveLength(0)
 
     expect(response()).toEqual({ success: true, addedCount: 0 })
+  })
+
+  test('ADR-025 分类分组：日系/美欧/TID 三类 → 三表各自一次 batchGet + batchPut', async () => {
+    const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map())
+    const { promise, response } = runHandler(db, 'sehuatang', [
+      { id: 'SSIS-001' },                              // 日系 → jav_ids
+      { id: 'BigTitsRoundAsses.23.06.10' },            // 美欧 → usav_ids
+      { id: 'TID-3664524' },                           // 帖子兜底 → sehuatang_ids
+    ])
+    await promise
+
+    const storesRead = batchGetCalls.map((c) => c.storeName).sort()
+    expect(storesRead).toEqual([SEHUATANG_IDS_STORE_NAME, USAV_IDS_STORE_NAME, JAV_IDS_STORE_NAME].sort())
+    const storesWritten = batchPutCalls.map((c) => c.storeName).sort()
+    expect(storesWritten).toEqual([SEHUATANG_IDS_STORE_NAME, USAV_IDS_STORE_NAME, JAV_IDS_STORE_NAME].sort())
+
+    const byStore = new Map(batchPutCalls.map((c) => [c.storeName, c.records.map((r) => r.key)]))
+    expect(byStore.get(JAV_IDS_STORE_NAME)).toEqual(['sehuatang::SSIS-001'])
+    expect(byStore.get(USAV_IDS_STORE_NAME)).toEqual(['sehuatang::BIGTITSROUNDASSES.23.06.10'])
+    expect(byStore.get(SEHUATANG_IDS_STORE_NAME)).toEqual(['sehuatang::TID-3664524'])
+    expect(batchPutCalls.every((c) => c.records.every((r) => r.record.status === 2))).toBe(true)
+
+    expect(response()).toEqual({ success: true, addedCount: 3 })
   })
 })

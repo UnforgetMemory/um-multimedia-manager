@@ -51,6 +51,19 @@ export const AdultAvStore = {
     await sendMsg('ADULT_AV_ADD', { source, id, rating, url })
   },
 
+  /**
+   * 三段已看统计（ADR-025 D5 各自按表计数）：日系 / 美欧 / 帖子。
+   * 失败降级为全 0（统计是展示层，不阻塞任何渲染路径）。
+   */
+  async stats(): Promise<{ jp: number; us: number; tid: number }> {
+    try {
+      const res = await sendMsg('ADULT_AV_STATS', {})
+      return { jp: res.jp ?? 0, us: res.us ?? 0, tid: res.tid ?? 0 }
+    } catch {
+      return { jp: 0, us: 0, tid: 0 }
+    }
+  },
+
   async batchAdd(source: string, items: AdultAvIdInput[]): Promise<number> {
     const res = await sendMsg('ADULT_AV_BATCH_ADD', { source, items })
     return res.addedCount || 0
