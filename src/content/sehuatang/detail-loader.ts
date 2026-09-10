@@ -93,9 +93,12 @@ export function createDetailLoader(onDetail: (card: HTMLElement, detail: CardDet
     const fresh = cards.filter((c) => !inflight.has(c) && c.getAttribute(DETAIL_FLAG) !== 'done')
     if (fresh.length === 0) return
 
-    const resolvers = resolversByCard
     for (const card of fresh) {
-      inflight.set(card, new Promise<void>((resolve) => resolvers.set(card, resolve)))
+      // Promise.withResolvers（ES2024；Chrome 119+ / Node 22+）：句柄与 promise
+      // 一次取出，取代 `new Promise((resolve) => resolvers.set(...))` 的嵌套捕获。
+      const { promise, resolve } = Promise.withResolvers<void>()
+      inflight.set(card, promise)
+      resolversByCard.set(card, resolve)
       card.setAttribute(DETAIL_FLAG, 'loading')
     }
     const finish = (card: HTMLElement) => {
@@ -103,8 +106,8 @@ export function createDetailLoader(onDetail: (card: HTMLElement, detail: CardDet
       // 已摘除的卡（翻页/重入致 DOM 替换）不计入进度，避免 copy-all 进度虚高。
       if (card.isConnected) loaded++
       inflight.delete(card)
-      resolvers.get(card)?.()
-      resolvers.delete(card)
+      resolversByCard.get(card)?.()
+      resolversByCard.delete(card)
     }
 
     // 1. 缓存批量查询（单条消息；缓存层失败降级为空 miss，不抛错）。

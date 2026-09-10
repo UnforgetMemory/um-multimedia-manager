@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onUnmounted } from 'vue'
+import { ref, nextTick, onUnmounted, useTemplateRef } from 'vue'
 import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/utils/search-normalizer'
 
 /**
@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<{
 })
 
 const searchQuery = ref(props.initialQuery)
-const searchInputEl = ref<HTMLInputElement | null>(null)
+const searchInputEl = useTemplateRef<HTMLInputElement>('searchInputEl')
 const isSearching = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2024",
     "useDefineForClassFields": true,
     "module": "ESNext",
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
@@ -27,7 +27,7 @@
     
     /* TypeScript 6.0 compatibility */
     "rootDir": ".",
-    
+
     /* Path Aliases - relative to tsconfig.json */
     "paths": {
       "@/*": ["./src/*"]

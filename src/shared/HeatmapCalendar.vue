@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount, Teleport } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount, Teleport, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardHeader, CardContent } from '@/shared/ui/card'
 import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
@@ -19,7 +19,7 @@ const rangeOptions = computed(() => [
   { id: '150', label: t('common.daysCount', { n: 150 }) },
   { id: '365', label: t('common.daysCount', { n: 365 }) },
 ])
-const scrollEl = ref<HTMLElement | null>(null)
+const scrollEl = useTemplateRef<HTMLElement>('scrollEl')
 
 function scrollToLatest() {
   nextTick(() => {

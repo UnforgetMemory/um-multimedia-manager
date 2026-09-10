@@ -41,7 +41,6 @@ export default defineConfig({
   },
   publicDir: 'icons',
   // WXT 会整体覆盖 vite 的 config.server.watch（core/builders/vite/index.mjs
-  // WXT 会整体覆盖 vite 的 config.server.watch（core/builders/vite/index.mjs
   // 只读取自身的 watchOptions 配置面），因此监视忽略必须声明在这里，函数
   // 形式跨 chokidar 版本稳健。.um.agents 是 agent 运行时/记忆区（编辑工具
   // 以临时文件原子写入）——Vite 监视其中的 .tmp 会 EBUSY 崩溃 dev 进程；
@@ -139,7 +138,9 @@ export default defineConfig({
     plugins: [tailwindcss()],
     base: '',
     build: {
-      target: 'es2022',
+      // 与 tsconfig target 对齐（单一事实源）：ES2024 语法糖（如 using）由
+      // esbuild 转译而非直出，故不会产出 Chrome 119 基线无法解析的代码。
+      target: 'es2024',
       // Disable Vite's modulepreload tags in popup.html/options.html — Chrome's
       // preload scanner flags extension-page preloads of non-web-accessible
       // chunks as "cross-world extension resource mismatch" noise. Extension

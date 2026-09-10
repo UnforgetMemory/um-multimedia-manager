@@ -79,14 +79,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useTemplateRef } from 'vue'
 import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 
 const props = defineProps<{ data: import('./trailer-data').TrailerPageData }>()
 const d = props.data
 
 const totalCount = d.items.length
-const videoRef = ref<HTMLVideoElement | null>(null)
+const videoRef = useTemplateRef<HTMLVideoElement>('videoRef')
 
 // Extract native links text from the page's aside.links
 const nativeLinks = document.querySelectorAll<HTMLAnchorElement>('.aside .links a')

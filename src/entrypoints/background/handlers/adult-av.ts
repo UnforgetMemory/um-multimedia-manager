@@ -163,16 +163,14 @@ export async function handleAdultAvBatchAdd(
   }
 
   const valid = items.filter((i) => i.id)
-  // 分类分组：每个目标表一组 key，独立 batchGet/batchPut。
-  const groups = new Map<string, Array<{ key: string; item: (typeof valid)[number] }>>()
-  for (const item of valid) {
+  // 先派生写入键与目标表（normalizeAvId 只算一次），再按表分组——每组独立
+  // batchGet/batchPut。Map.groupBy 为 ES2024（Chrome 117+ / Node 22+），与
+  // manifest 的 minimum_chrome_version=119 基线兼容。
+  const derived = valid.map((item) => {
     const cleanId = normalizeAvId(item.id)
-    const storeName = storeForAvIdKind(classifyAvId(cleanId))
-    const key = `${source}::${cleanId}`
-    const group = groups.get(storeName) ?? []
-    group.push({ key, item })
-    groups.set(storeName, group)
-  }
+    return { key: `${source}::${cleanId}`, storeName: storeForAvIdKind(classifyAvId(cleanId)), item }
+  })
+  const groups = Map.groupBy(derived, (entry) => entry.storeName)
 
   let addedCount = 0
   const writtenKeys: Array<{ storeName: string; key: string }> = []

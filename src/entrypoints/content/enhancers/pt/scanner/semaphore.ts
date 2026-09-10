@@ -15,9 +15,11 @@ export class Semaphore {
       this.permits--
       return
     }
-    return new Promise<void>((resolve) => {
-      this.queue.push(resolve)
-    })
+    // 排队等待释放：Promise.withResolvers（ES2024）让 resolve 句柄与 promise
+    // 一次取出并存入等待队列，无需在 executor 内向外逃逸 resolve。
+    const { promise, resolve } = Promise.withResolvers<void>()
+    this.queue.push(resolve)
+    return promise
   }
 
   release(): void {
