@@ -13,6 +13,9 @@
  *   5. 封面/磁力 = IntersectionObserver 懒加载（detail-loader：缓存 → fetch），
  *      卡片入视口才产生请求；图片 lazy + decoding=async；
  *   6. 入场级联仅首屏可见卡（rAF + 批量读 rect 后统一写，读写不交错）。
+ *   7. 「全部已看过」空态：hide ON 且无可见条目 → eye-off 大插图 + 关闭提示
+ *      （empty-state.ts）；挂/撤随 updateHeaderInfo 每次刷新——初始挂载 /
+ *      AJAX 分页 / 菜单切换与运行时标记三处状态变更的汇合点。
  *
  * 查询纪律：UI 元素一律经 shell/grid/header 闭包引用或容器内 querySelector，
  * 禁止 document 级全文档扫描（原页面 DOM 巨大且与我们无关）。
@@ -33,6 +36,7 @@ import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu
 import { initImageReveal, runCardEntrance } from '@/entrypoints/content/handlers/sehuatang-effects'
 import { partitionInitialVisible, parseThreadRow, collectNewThreadRows, collectThreadTrackKeys, shouldDimOnNavigate, type SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
 import { attachSehuatangOverlay } from './overlay'
+import { syncEmptyHiddenState } from './empty-state'
 import { createDetailLoader, DETAIL_FLAG, type CardDetail, type DetailLoader } from './detail-loader'
 
 // 页面生命周期状态：每次 handler 运行重置。
@@ -42,6 +46,8 @@ let statsCache: AvStats | null = null
 let statsLoading = false
 // 初始进程被隐藏（不渲染）的已看数——「本页隐藏」统计源；运行时标记永不隐藏。
 let hiddenAtMount = 0
+// 空态挂载点（shell 引用）：updateHeaderInfo 刷新时按需挂/撤「全部已看过」空态。
+let emptyShellRef: HTMLElement | null = null
 
 // 保存失败诊断标记（sessionStorage 按源跨页存活）：复制后立即切页也能在
 // 下一个页面呈现失败原因，解决「证据随页面销毁」的不可见失败。
@@ -121,6 +127,10 @@ function bumpStats(ids: string[]): void {
 /** 头部统计 + 复制全部按钮态（懒加载时代：按钮不再等详情全量到达，
  * 有未看卡即可点——点击后对未加载项并发补抓）。 */
 function updateHeaderInfo(headerEl: HTMLElement, grid: HTMLElement) {
+  // 「全部已看过」空态同步：初始挂载 / AJAX 分页 / 菜单切换与运行时标记
+  // 三处状态变更都汇入本函数，这里是空态挂撤的唯一刷新点（节流统计之外
+  // 同步执行，空态挂撤无延迟）。
+  syncEmptyHiddenState(emptyShellRef, grid, hiddenAtMount)
   throttledRefreshStats(headerEl, grid)
   const btnEl = headerEl.querySelector('.umm-copy-btn') as HTMLButtonElement | null
   if (btnEl && !btnEl.hasAttribute('data-umm-copying')) {
@@ -552,6 +562,7 @@ export async function runSehuatangOverlayApp(): Promise<void> {
   statsCache = null
   statsLoading = false
   hiddenAtMount = 0
+  emptyShellRef = null
   visuallyMarked = new WeakSet<HTMLElement>()
 
   // 隐藏已看设置读取与 UI 构建并行（storage 读不阻塞结构搭建）。
@@ -568,6 +579,8 @@ export async function runSehuatangOverlayApp(): Promise<void> {
   const grid = document.createElement('div')
   grid.className = 'umm-preview-grid'
   shell.appendChild(grid)
+  // 空态挂载点登记：此后每次 updateHeaderInfo 刷新都会按需挂/撤空态。
+  emptyShellRef = shell
 
   // 封面模糊遮罩 + hover 揭示（防抖），事件委托覆盖异步加载的图片。
   initImageReveal(grid)

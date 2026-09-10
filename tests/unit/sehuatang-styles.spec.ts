@@ -7,6 +7,7 @@ import {
   HOME_CSS,
   SEARCH_CSS,
   RISK_CSS,
+  EMPTY_CSS,
   uslVarsForHost,
 } from '@/content/sehuatang/styles'
 
@@ -80,9 +81,10 @@ test.describe('令牌基准 — 全段零调色板色值（通用守卫）', () 
     ['HOME_CSS', HOME_CSS],
     ['SEARCH_CSS', SEARCH_CSS],
     ['RISK_CSS', RISK_CSS],
+    ['EMPTY_CSS', EMPTY_CSS],
   ]
 
-  test('六段组件 CSS 均无任何 hex 字面量', () => {
+  test('七段组件 CSS 均无任何 hex 字面量', () => {
     for (const [name, css] of segments) {
       expect(css, `${name} 含 hex 字面量`).not.toMatch(PALETTE_HEX)
     }
@@ -156,6 +158,26 @@ test.describe('SEHUATANG_OVERLAY_CSS — 组合完整性', () => {
   test('风控段已并入（年龄门重建 CSS 随 overlay 表注入）', () => {
     expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-shell--risk')
     expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-risk-enter')
+  })
+
+  test('空态段已并入（全部已看过 empty state 随 overlay 表注入）', () => {
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-empty')
+    expect(SEHUATANG_OVERLAY_CSS).toContain('umm-sht-empty-in')
+  })
+})
+
+test.describe('EMPTY_CSS — 全部已看过空态', () => {
+  test('空态布局 + 插图尺寸 + 双行文案 + reduced-motion 守卫 class 齐备', () => {
+    expect(EMPTY_CSS).toContain('.umm-sht-empty')
+    expect(EMPTY_CSS).toContain('.umm-sht-empty-title')
+    expect(EMPTY_CSS).toContain('.umm-sht-empty-hint')
+    expect(EMPTY_CSS).toContain('umm-sht-empty-in')
+    expect(EMPTY_CSS).toContain('prefers-reduced-motion')
+  })
+
+  test('消费 --usl-* 令牌（无裸色）', () => {
+    expect(EMPTY_CSS).toContain('var(--usl-text-primary)')
+    expect(EMPTY_CSS).toContain('var(--usl-text-muted)')
   })
 })
 

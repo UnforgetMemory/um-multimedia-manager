@@ -198,7 +198,21 @@ export const RISK_CSS = `
 `
 
 /**
- * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效 + 首页 + 搜索 + 风控。
+ * 列表页「全部已看过」空态（hide ON 且无可见条目）：flex:1 撑满 shell 剩余
+ * 高度并居中（shell min-height 100%），eye-off 大插图 + 标题/提示双行。
+ * 入场动画与骨架/浮岛同款 reduced-motion 守卫。
+ */
+export const EMPTY_CSS = `
+.umm-sht-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: clamp(32px, 6vw, 72px) clamp(16px, 3vw, 32px); text-align: center; animation: umm-sht-empty-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.umm-sht-empty svg { width: clamp(104px, 22vw, 148px); height: auto; }
+.umm-sht-empty-title { margin: 0; color: var(--usl-text-primary); font-size: clamp(1rem, 0.94rem + 0.3vw, 1.15rem); font-weight: 700; }
+.umm-sht-empty-hint { margin: 0; color: var(--usl-text-muted); font-size: clamp(0.78rem, 0.74rem + 0.2vw, 0.88rem); }
+@keyframes umm-sht-empty-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .umm-sht-empty { animation: none; } }
+`
+
+/**
+ * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效 + 首页 + 搜索 + 风控 + 空态。
  * 菜单面板样式不进本表——菜单是 light-DOM .umm-overlay 组件（z 高于 overlay
  * host），样式由 global.ts 组件表与 sehuatang-menu.ts 自带注入负责。
  */
@@ -216,4 +230,6 @@ ${HOME_CSS}
 ${SEARCH_CSS}
 /* === risk (age gate) === */
 ${RISK_CSS}
+/* === empty (all watched) === */
+${EMPTY_CSS}
 `

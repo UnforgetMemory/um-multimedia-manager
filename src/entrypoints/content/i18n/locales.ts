@@ -144,6 +144,9 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_results_count': 'Found {{count}} results for "{{keyword}}"',
     'sht.search_replies_views': '{{replies}} replies · {{views}} views',
     'sht.search_by': 'by {{author}}',
+    // Sehuatang list page empty state (all watched)
+    'sht.empty_watched_title': 'All caught up',
+    'sht.empty_watched_hint': 'To show them, turn off "Hide Viewed" in the menu',
   },
   'zh-CN': {
     Language: '语言（简体）',
@@ -288,6 +291,9 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_results_count': '找到 "{{keyword}}" 相关内容 {{count}} 个',
     'sht.search_replies_views': '{{replies}} 个回复 · {{views}} 次查看',
     'sht.search_by': '由 {{author}} 发布',
+    // Sehuatang list page empty state (all watched)
+    'sht.empty_watched_title': '全部已看过',
+    'sht.empty_watched_hint': '如需显示，请在菜单中关闭「隐藏已阅」',
   },
   'zh-HK': {
     Language: '語言（繁體）',
@@ -432,6 +438,9 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_results_count': '找到 "{{keyword}}" 相關內容 {{count}} 個',
     'sht.search_replies_views': '{{replies}} 個回覆 · {{views}} 次查看',
     'sht.search_by': '由 {{author}} 發布',
+    // Sehuatang list page empty state (all watched)
+    'sht.empty_watched_title': '全部已看過',
+    'sht.empty_watched_hint': '如需顯示，請在選單中關閉「隱藏已閱」',
   },
   'zh-TW': {
     Language: '語言（繁體）',
@@ -576,6 +585,9 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_results_count': '找到 "{{keyword}}" 相關內容 {{count}} 個',
     'sht.search_replies_views': '{{replies}} 個回覆 · {{views}} 次查看',
     'sht.search_by': '由 {{author}} 發佈',
+    // Sehuatang list page empty state (all watched)
+    'sht.empty_watched_title': '全部已看過',
+    'sht.empty_watched_hint': '如需顯示，請在選單中關閉「隱藏已閱」',
   },
 }
 
