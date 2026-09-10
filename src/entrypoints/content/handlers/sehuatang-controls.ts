@@ -8,10 +8,11 @@
  *   4. 分页（#fd_page_bottom）→ 底部「灵动岛」悬浮栏，现代窗口化页码
  *
  * 设计联调（DESIGN_GUIDE Layer 3 规范）：
- *   - 全部颜色消费 global.ts 注入的 --usl-* 语义令牌（表面/文本/边框/accent
- *     双主题由 html[data-umm-theme="dark"] 翻转），本文件零调色板 hex。
+ *   - 全部颜色消费 --usl-* 语义令牌（light DOM 由 global.ts 注入 html
+ *     [data-umm-theme]；shadow overlay 由 styles.ts 重宿主到 :host），
+ *     本文件零调色板 hex。
  *   - 自适应：clamp 流式间距/字号（--sht-* 容器级变量）+ 窄屏换行/横向滚动。
- *   - 主题源 = 扩展设置 umm:appearance（syncSehuatangTheme，auto 跟随系统）。
+ *   - 主题源 = 扩展设置 umm:appearance（auto 跟随系统）。
  *   - accent = 项目品牌色（--usl-fill-primary / --usl-accent），不再用站点 teal。
  *
  * 分页逻辑（窗口化/推导/跳转）提取自 ./sehuatang-paging（纯函数，可测）。
@@ -270,7 +271,8 @@ export function buildPager(doc: Document, data: PaginationData): HTMLElement | n
 }
 
 /** 「返 回」链接 + 「发新帖」按钮（发新帖点击 → 原版元素 click()，触发站点 showWindow）。 */
-export function buildActions(doc: Document, back: HTMLAnchorElement | null, post: HTMLElement | null): HTMLElement[] {  const buttons: HTMLElement[] = []
+export function buildActions(doc: Document, back: HTMLAnchorElement | null, post: HTMLElement | null): HTMLElement[] {
+  const buttons: HTMLElement[] = []
   if (back) {
     const label = (back.textContent ?? '').replace(/\u00a0/g, ' ').trim() || '返回'
     const a = el(doc, 'a', 'umm-sht-action', label)
@@ -298,6 +300,22 @@ export function buildActions(doc: Document, back: HTMLAnchorElement | null, post
 export function countSehuatangCardStates(grid: HTMLElement | null): { watched: number } {
   if (!grid) return { watched: 0 }
   return { watched: grid.querySelectorAll('.umm-card.umm-viewed').length }
+}
+
+/**
+ * 「隐藏已看」运行时 toggle（命令式一次性显隐，非持久 CSS 规则）：
+ * ON → 当前已渲染的已看卡片立即 display:none 并返回隐藏数；OFF → 复原。
+ * 网格类 umm-sht-hide-viewed 仅作状态标记（菜单激活态），不挂 CSS 规则——
+ * 运行时标记（磁力点击/复制）「只 dim 不隐藏」的既定语义因此不受牵连。
+ */
+export function setGridHideViewed(grid: HTMLElement, hide: boolean): number {
+  grid.classList.toggle('umm-sht-hide-viewed', hide)
+  let hidden = 0
+  for (const card of Array.from(grid.querySelectorAll('.umm-card.umm-viewed'))) {
+    ;(card as HTMLElement).style.display = hide ? 'none' : ''
+    if (hide) hidden++
+  }
+  return hidden
 }
 
 /** 已看落库接口（生产实现 = AdultAvStore，测试注入 fake）。 */
@@ -374,57 +392,28 @@ export function markCardsViewed(
   onMarked?.()
 }
 
-// ---------------------------------------------------------------------------
-// 样式（独立 style 元素；零调色板 hex，全 --usl-* 令牌 + clamp 自适应）
-// ---------------------------------------------------------------------------
+/**
+ * 仅页面状态标记（**不落库**）：点击跳转时同步加 dimmer，类落下即生效。
+ *
+ * 用于「只提取到 TID」或「详情已结束但无磁力」的条目——这两类没有自然的
+ * 复制磁力落库路径，用户会直接点进帖子；数据变更交给目标帖子页的静默记录
+ * 逻辑（sehuatang-main.content），此处重复落库属冗余。
+ * 幂等：已带 .umm-viewed 的卡片跳过（不重复触发统计刷新）。
+ */
+export function dimCardsVisually(cards: HTMLElement[]): number {
+  let marked = 0
+  for (const card of cards) {
+    if (card.classList.contains('umm-viewed')) continue
+    card.classList.add('umm-viewed')
+    marked++
+  }
+  return marked
+}
 
-function injectControlsStyles(doc: Document): void {
-  if (doc.getElementById('umm-sht-controls-styles')) return
-  const style = doc.createElement('style')
-  style.id = 'umm-sht-controls-styles'
-  style.textContent = `
-.umm-sehuatang-header, .umm-sht-floatbar {
-  --sht-pad-x: clamp(14px, 2.5vw, 32px);
-  --sht-pad-y: clamp(10px, 1.4vw, 18px);
-  --sht-gap: clamp(8px, 1.2vw, 16px);
-  --sht-font-caption: clamp(0.72rem, 0.68rem + 0.2vw, 0.875rem);
-  --sht-font-body: clamp(0.8rem, 0.75rem + 0.25vw, 0.9375rem);
-}
-.umm-sehuatang-header { position: sticky; top: 0; z-index: 50; display: flex; flex-direction: column; gap: var(--sht-gap); padding: var(--sht-pad-y) var(--sht-pad-x); background: var(--usl-surface); border-bottom: 1px solid var(--usl-border); color: var(--usl-text-primary); transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
-.umm-sht-row { display: flex; align-items: center; gap: var(--sht-gap); }
-.umm-sht-row--context { justify-content: space-between; }
-.umm-sht-row--nav { justify-content: space-between; flex-wrap: wrap; }
-.umm-header-info { color: var(--usl-text-muted); font-size: var(--sht-font-caption); white-space: nowrap; }
-.umm-sht-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: var(--sht-font-caption); }
-.umm-sht-crumb { color: var(--usl-accent); text-decoration: none; transition: color 0.15s ease; }
-.umm-sht-crumb:hover { color: var(--usl-text-primary); text-decoration: underline; }
-.umm-sht-crumb--current { color: var(--usl-text-secondary); font-weight: 600; }
-.umm-sht-crumb-sep { color: var(--usl-text-muted); opacity: 0.6; }
-.umm-sht-tabs { display: flex; flex-wrap: wrap; gap: 8px; overflow-x: auto; }
-.umm-sht-tab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); text-decoration: none; font-size: var(--sht-font-body); transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
-.umm-sht-tab:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
-.umm-sht-tab--active { background: var(--usl-fill-primary); border-color: transparent; color: var(--usl-ink-on-fill); font-weight: 700; }
-.umm-sht-tab-count { font-size: var(--sht-font-caption); color: var(--usl-text-muted); background: var(--usl-surface-hover); border-radius: 999px; padding: 1px 8px; transition: background-color 0.15s ease, color 0.15s ease; }
-.umm-sht-tab--active .umm-sht-tab-count { color: var(--usl-ink-on-fill); background: rgba(255, 255, 255, 0.22); }
-.umm-copy-btn { background: var(--usl-fill-primary); color: var(--usl-ink-on-fill); border: none; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: var(--sht-font-body); box-shadow: var(--usl-shadow-primary); transition: opacity 0.15s ease, background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; }
-.umm-copy-btn:not(:disabled):hover { opacity: 0.92; }
-.umm-copy-btn:disabled { background: var(--usl-surface-hover); color: var(--usl-text-muted); box-shadow: none; cursor: default; }
-.umm-sht-action { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); font-size: var(--sht-font-body); cursor: pointer; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
-.umm-sht-action:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
-.umm-sht-pager { display: flex; align-items: center; gap: 6px; font-size: var(--sht-font-body); color: var(--usl-text-secondary); }
-.umm-sht-pg-nav, .umm-sht-pg-page { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
-.umm-sht-pg-nav:hover, .umm-sht-pg-page:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
-.umm-sht-pg-nav--disabled { opacity: 0.4; pointer-events: none; }
-.umm-sht-pg-page--current { background: var(--usl-fill-primary); border-color: transparent; color: var(--usl-ink-on-fill); font-weight: 700; }
-.umm-sht-pg-gap { color: var(--usl-text-muted); padding: 0 2px; }
-.umm-sht-pg-jump { width: 46px; height: 30px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface); color: var(--usl-text-primary); text-align: center; font-size: var(--sht-font-body); transition: border-color 0.15s ease, background-color 0.3s ease, color 0.3s ease; }
-.umm-sht-pg-jump:focus { outline: none; border-color: var(--usl-accent); }
-.umm-sht-pg-total { color: var(--usl-text-muted); font-size: var(--sht-font-caption); white-space: nowrap; }
-.umm-sht-floatbar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px clamp(10px, 1.6vw, 14px); border-radius: 999px; background: color-mix(in srgb, var(--usl-surface) 88%, transparent); border: 1px solid var(--usl-border); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); backdrop-filter: blur(12px); z-index: 2147483000; max-width: 96vw; overflow-x: auto; transition: background-color 0.3s ease, border-color 0.3s ease; }
-.umm-sht-floatbar .umm-sht-pager { flex-wrap: nowrap; }
-`
-  doc.head.appendChild(style)
-}
+// ---------------------------------------------------------------------------
+// 样式已收编：组件 CSS 唯一事实源 = src/content/sehuatang/styles.ts
+// （Shadow DOM 编译期常量，含运行时 hide-viewed 规则），本模块不再注入样式。
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // 编排
@@ -432,17 +421,20 @@ function injectControlsStyles(doc: Document): void {
 
 /**
  * 编排入口：守卫（仅 forumdisplay 列表页）→ 提取 → 隐藏原版 → 双行 header 重建。
- * headerEl 为 sehuatang.ts injectHeader() 返回的注入头部：
+ * headerEl 为 overlay 内容根内的注入头部：
  *   row--context = 面包屑（左）+ 统计信息（右）
  *   row--nav     = 选项卡（左）+ 操作组（右：返回/发新帖/复制磁力/菜单）
- * 底部浮动栏（灵动岛）挂到 body。
+ * 底部浮动栏（灵动岛）默认挂 doc.body（legacy light-DOM 路径），shadow 模式
+ * 经 opts.floatbarParent 挂入 overlay 内容根。
  */
-export function mountSehuatangControls(doc: Document, headerEl: HTMLElement): void {
+export function mountSehuatangControls(
+  doc: Document,
+  headerEl: HTMLElement,
+  opts?: { floatbarParent?: HTMLElement },
+): void {
   if (headerEl.getAttribute('data-umm-sht-mounted') === '1') return
   if (!doc.getElementById('thread_types')) return
   headerEl.setAttribute('data-umm-sht-mounted', '1')
-
-  injectControlsStyles(doc)
 
   // 提取必须先于隐藏（display:none 不影响 DOM 查询，但保持顺序清晰）。
   const breadcrumb = extractBreadcrumb(doc.querySelector('#pt .z'))
@@ -492,6 +484,6 @@ export function mountSehuatangControls(doc: Document, headerEl: HTMLElement): vo
     pill.id = 'umm-sht-floatbar'
     if (bottomBar) pill.appendChild(bottomBar)
     for (const btn of floatActions) pill.appendChild(btn)
-    doc.body.appendChild(pill)
+    ;(opts?.floatbarParent ?? doc.body).appendChild(pill)
   }
 }

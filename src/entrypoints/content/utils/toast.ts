@@ -46,7 +46,9 @@ function ensureContainer(): HTMLElement {
     position: fixed;
     bottom: 24px;
     right: 24px;
-    z-index: 500;
+    /* 顶层反馈纪律：高于 shadow overlay host（色花堂 2147483000）与全局
+       弹层 .umm-overlay（2147483001）——toast 是瞬时反馈，必须在一切之上。 */
+    z-index: 2147483002;
     display: flex;
     flex-direction: column;
     gap: 12px;

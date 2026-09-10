@@ -106,12 +106,11 @@ test.describe('initImageReveal — 模糊遮罩揭示与防抖（作用域=图�
     expect((img.closest('.umm-card') as HTMLElement).classList.contains('umm-sht-revealed')).toBe(true)
   })
 
-  test('幂等：重复初始化不重复挂监听（标志位 + 样式单例）', () => {
+  test('幂等：重复初始化不重复挂监听（标志位）', () => {
     const { dom, container } = gridDom(TWO_CARDS)
     initImageReveal(container, 20)
     initImageReveal(container, 20)
     expect(container.getAttribute('data-umm-sht-reveal')).toBe('1')
-    expect(dom.window.document.querySelectorAll('#umm-sht-effects-styles')).toHaveLength(1)
   })
 
   test('揭示后再进入图片区：保持揭示不闪烁（已揭示不重新计时）', async () => {
@@ -137,13 +136,11 @@ test.describe('runCardEntrance — 卡片入场级联', () => {
     for (const card of cards) {
       expect(card.classList.contains('umm-sht-enter')).toBe(true)
     }
-    expect(dom.window.document.getElementById('umm-sht-effects-styles')).not.toBeNull()
   })
 
-  test('无卡片 → 不抛错；样式仍注入', () => {
-    const { dom, container } = gridDom('')
+  test('无卡片 → 不抛错', () => {
+    const { container } = gridDom('')
     expect(() => runCardEntrance(container)).not.toThrow()
-    expect(dom.window.document.getElementById('umm-sht-effects-styles')).not.toBeNull()
   })
 
   test('newOnly：AJAX 分页追加时不重播已入场卡片（延迟保持不变）', () => {

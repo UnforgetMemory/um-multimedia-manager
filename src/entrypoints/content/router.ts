@@ -17,7 +17,6 @@ import { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './h
 import { extractBangumiSubjectId } from './handlers/bangumi-extract'
 import { extractBrowserPathType } from './handlers/bangumi-list-extract'
 import { handlePTDetailPage } from './handlers/pt-detail'
-import { handleSehuatangListPage } from './handlers/sehuatang'
 import { handleJavDBPage } from './handlers/javdb'
 
 // PTDimmer singleton — reused across SPA navigations to avoid leaking observers
@@ -150,15 +149,6 @@ const ROUTES: RouteRule[] = [
     match: (url) => url.includes('javdb.com'),
     handler: async () => {
       await handleJavDBPage()
-    },
-  },
-
-  // 色花堂论坛列表页
-  {
-    match: (url) =>
-      (url.includes('sehuatang.net/forum') || url.includes('sehuatang.org/forum')),
-    handler: async () => {
-      await handleSehuatangListPage()
     },
   },
 ]

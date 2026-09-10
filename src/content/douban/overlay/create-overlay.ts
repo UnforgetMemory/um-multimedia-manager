@@ -22,8 +22,8 @@ function getPageStyleId(overlayId: string): string {
 
 /** Page-level CSS to lock body and style overlay (injected into document root).
  *  Backgrounds mirror --umm-color-surface per theme (see SHADOW_CSS note). */
-function getPageCSS(overlayId: string): string {
-  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:200!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:${COLOR_SURFACE_DARK}!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:${COLOR_SURFACE_LIGHT}!important;color-scheme:light!important}body{overflow:hidden!important}`
+function getPageCSS(overlayId: string, zIndex: number): string {
+  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:${zIndex}!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:${COLOR_SURFACE_DARK}!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:${COLOR_SURFACE_LIGHT}!important;color-scheme:light!important}body{overflow:hidden!important}`
 }
 
 export interface OverlayOptions {
@@ -33,6 +33,9 @@ export interface OverlayOptions {
   subtitle: string
   /** Whether to expose window.__ummDismissDetailMask() (detail page only) */
   exposeDismiss?: boolean
+  /** Page-level host z-index (default 200; sehuatang needs a higher tier to
+   *  cover Discuz fixed chrome yet stay below global .umm-overlay panels). */
+  zIndex?: number
 }
 
 /**
@@ -40,14 +43,14 @@ export interface OverlayOptions {
  * Must be called at document_start.
  */
 export function createOverlay(options: OverlayOptions): HTMLElement {
-  const { overlayId, subtitle, exposeDismiss = false } = options
+  const { overlayId, subtitle, exposeDismiss = false, zIndex = 200 } = options
   // document_start guarantee: documentElement exists before any script runs.
   const doc = document.documentElement
 
   // 1. Inject page-level body lock CSS
   const pageStyle = document.createElement('style')
   pageStyle.id = getPageStyleId(overlayId)
-  pageStyle.textContent = getPageCSS(overlayId)
+  pageStyle.textContent = getPageCSS(overlayId, zIndex)
   doc.appendChild(pageStyle)
 
   // 2. Create overlay element with shadow DOM

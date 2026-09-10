@@ -13,7 +13,9 @@ import {
   mountSehuatangControls,
   paintSehuatangBackground,
   countSehuatangCardStates,
+  setGridHideViewed,
   markCardsViewed,
+  dimCardsVisually,
   type PaginationData,
 } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { openSehuatangMenu, type SehuatangMenuAction } from '@/entrypoints/content/handlers/sehuatang-menu'
@@ -317,14 +319,6 @@ test.describe('mountSehuatangControls 编排', () => {
     const pill = doc.getElementById('umm-sht-floatbar')!
     expect(pill.querySelector('.umm-sht-pager')).not.toBeNull()
     expect(pill.querySelectorAll('.umm-sht-action')).toHaveLength(2)
-    expect(doc.getElementById('umm-sht-controls-styles')).not.toBeNull()
-
-    // 令牌基准断言：样式消费 --usl-* 语义令牌，零调色板 hex。
-    const css = doc.getElementById('umm-sht-controls-styles')!.textContent!
-    expect(css).toContain('var(--usl-surface')
-    expect(css).toContain('var(--usl-fill-primary)')
-    expect(css).not.toContain('#1e1e1e')
-    expect(css).not.toContain('#03dac6')
   })
 
   test('发新帖按钮 → 原版元素 click()（触发站点 showWindow 的接线点）', () => {
@@ -348,7 +342,7 @@ test.describe('mountSehuatangControls 编排', () => {
     expect((doc.querySelector('#pt') as HTMLElement).style.display).toBe('')
   })
 
-  test('幂等：重复调用不重复挂载（header 标志位 + 样式/悬浮栏单例）', () => {
+  test('幂等：重复调用不重复挂载（header 标志位 + 悬浮栏单例）', () => {
     const { dom, header } = mountedDom()
     mountSehuatangControls(dom.window.document, header)
     mountSehuatangControls(dom.window.document, header)
@@ -358,7 +352,6 @@ test.describe('mountSehuatangControls 编排', () => {
     expect(header.querySelectorAll('.umm-sht-row--context')).toHaveLength(1)
     expect(header.querySelectorAll('.umm-sht-row--nav')).toHaveLength(1)
     expect(doc.querySelectorAll('#umm-sht-floatbar')).toHaveLength(1)
-    expect(doc.querySelectorAll('#umm-sht-controls-styles')).toHaveLength(1)
   })
 })
 
@@ -557,6 +550,39 @@ test.describe('countSehuatangCardStates — 已看统计（本页已看=dimmer �
   })
 })
 
+test.describe('setGridHideViewed — 命令式隐藏已看 toggle（运行时即时生效）', () => {
+  function gridWithCards(): HTMLElement {
+    const dom = new JSDOM(
+      '<body><div class="umm-preview-grid"><div class="umm-card umm-viewed"></div><div class="umm-card"></div><div class="umm-card umm-viewed"></div></div></body>',
+      { url: BASE_URL },
+    )
+    return dom.window.document.querySelector('.umm-preview-grid') as HTMLElement
+  }
+
+  test('ON：已看卡立即 display:none + 网格类标记 + 返回隐藏数；OFF：复原', () => {
+    const grid = gridWithCards()
+    const hidden = setGridHideViewed(grid, true)
+    expect(hidden).toBe(2)
+    expect(grid.classList.contains('umm-sht-hide-viewed')).toBe(true)
+    const cards = Array.from(grid.querySelectorAll('.umm-card')) as HTMLElement[]
+    expect(cards[0]!.style.display).toBe('none')
+    expect(cards[1]!.style.display).toBe('')
+    expect(cards[2]!.style.display).toBe('none')
+
+    const restored = setGridHideViewed(grid, false)
+    expect(restored).toBe(0)
+    expect(grid.classList.contains('umm-sht-hide-viewed')).toBe(false)
+    expect(cards[0]!.style.display).toBe('')
+  })
+
+  test('无已看卡时 ON：隐藏数 0，类标记仍落（状态标记与显隐解耦）', () => {
+    const dom = new JSDOM('<body><div class="umm-preview-grid"><div class="umm-card"></div></div></body>', { url: BASE_URL })
+    const grid = dom.window.document.querySelector('.umm-preview-grid') as HTMLElement
+    expect(setGridHideViewed(grid, true)).toBe(0)
+    expect(grid.classList.contains('umm-sht-hide-viewed')).toBe(true)
+  })
+})
+
 test.describe('markCardsViewed — 统一已看标记路径（磁力/一键复制共用）', () => {
   function cardsFromHtml(html: string): HTMLElement[] {
     const dom = new JSDOM(`<body><div class="umm-preview-grid">${html}</div></body>`, { url: BASE_URL })
@@ -658,5 +684,35 @@ test.describe('markCardsViewed — 统一已看标记路径（磁力/一键复�
     markCardsViewed(cards2, 'sehuatang', storeHit, undefined, undefined, (e) => { hitError = String(e) })
     await sleep()
     expect(hitError).toBe('')
+  })
+})
+
+test.describe('dimCardsVisually — 仅页面状态标记（点击跳转，不落库）', () => {
+  function cardsFromHtml(html: string): HTMLElement[] {
+    const dom = new JSDOM(`<body><div class="umm-preview-grid">${html}</div></body>`, { url: BASE_URL })
+    return Array.from(dom.window.document.querySelectorAll('.umm-card')) as HTMLElement[]
+  }
+
+  test('同步落类：返回新增数，且不产生任何 store/消息调用', () => {
+    const cards = cardsFromHtml(
+      '<div class="umm-card" data-avid="TID-3664524"></div>' +
+      '<div class="umm-card" data-avid="ABC-123"></div>',
+    )
+    const marked = dimCardsVisually(cards)
+    expect(marked).toBe(2)
+    expect(cards.every((c) => c.classList.contains('umm-viewed'))).toBe(true)
+  })
+
+  test('幂等：已带 umm-viewed 的卡片不重复计数', () => {
+    const cards = cardsFromHtml(
+      '<div class="umm-card umm-viewed" data-avid="TID-1"></div>' +
+      '<div class="umm-card" data-avid="TID-2"></div>',
+    )
+    expect(dimCardsVisually(cards)).toBe(1)
+    expect(dimCardsVisually(cards)).toBe(0)
+  })
+
+  test('空数组 → 0（无副作用）', () => {
+    expect(dimCardsVisually([])).toBe(0)
   })
 })

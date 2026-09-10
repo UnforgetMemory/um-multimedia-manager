@@ -22,7 +22,11 @@ async function detectLocale(): Promise<Locale> {
   // Fall back to browser language
   const lang = navigator.language
   if (lang.startsWith('zh')) {
-    if (lang.includes('TW') || lang.includes('HK')) return lang.includes('TW') ? 'zh-TW' : 'zh-HK'
+    if (lang.includes('TW')) return 'zh-TW'
+    if (lang.includes('HK')) return 'zh-HK'
+    // 无地区后缀 / 仅 Hant 标记的传统中文（macOS・iOS 常见 zh-Hant）→ 繁体，
+    // 否则会误落到 zh-CN（简体）。
+    if (lang.includes('Hant')) return 'zh-TW'
     return 'zh-CN'
   }
   return 'en-US'

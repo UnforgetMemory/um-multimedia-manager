@@ -72,10 +72,8 @@ export default defineContentScript({
     '*://www.haidan.cc/videos.php*',
     '*://www.haidan.cc/details.php*',
     '*://web5.mukaku.com/*',
-    '*://www.sehuatang.net/forum*',
-    '*://www.sehuatang.org/forum*',
-    '*://sehuatang.net/forum*',
-    '*://sehuatang.org/forum*',
+    // Sehuatang 已由 sehuatang-early.content + sehuatang-main.content
+    // 双入口接管（ADR-024 Shadow DOM overlay），legacy 管线不再注入。
     '*://ptsbao.club/torrents.php*',
     '*://*.ptsbao.club/torrents.php*',
     '*://ptsbao.club/details.php*',

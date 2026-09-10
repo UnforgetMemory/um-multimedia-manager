@@ -2,10 +2,14 @@ import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
 import {
   extractAvIdFromTitle,
+  extractUsAvIdFromTitle,
   partitionInitialVisible,
   parseThreadRow,
   collectNewThreadRows,
+  collectThreadTrackKeys,
+  resolveThreadWatchKey,
   extractThreadIdFromUrl,
+  shouldDimOnNavigate,
 } from '@/entrypoints/content/handlers/sehuatang-extract'
 
 /**
@@ -57,8 +61,108 @@ test.describe('extractAvIdFromTitle', () => {
   })
 })
 
+test.describe('extractUsAvIdFromTitle — 美/欧厂牌番号（Studio.YY.MM.DD）', () => {
+  test('真实样例回归锚点：BigTitsRoundAsses.23.06.10 / MommyGotBoobs.21.03.09', () => {
+    expect(extractUsAvIdFromTitle('BigTitsRoundAsses.23.06.10')).toBe('BIGTITSROUNDASSES.23.06.10')
+    expect(extractUsAvIdFromTitle('MommyGotBoobs.21.03.09')).toBe('MOMMYGOTBOOBS.21.03.09')
+  })
+
+  test('小写归一 + 包围文本 + 厂牌内部点分段', () => {
+    expect(extractUsAvIdFromTitle('bigtitsroundasses.23.06.10')).toBe('BIGTITSROUNDASSES.23.06.10')
+    expect(extractUsAvIdFromTitle('[欧美] BigTitsRoundAsses.23.06.10 高清 1080p')).toBe('BIGTITSROUNDASSES.23.06.10')
+    expect(extractUsAvIdFromTitle('Blacked.Raw.23.01.15 标题')).toBe('BLACKED.RAW.23.01.15')
+  })
+
+  test('日期段校验：非法月/日 → null（挡版本号类误报）', () => {
+    expect(extractUsAvIdFromTitle('Studio.23.13.01')).toBeNull()
+    expect(extractUsAvIdFromTitle('Studio.23.06.32')).toBeNull()
+    expect(extractUsAvIdFromTitle('Studio.23.00.10')).toBeNull()
+  })
+
+  test('已知取舍（固化）：末两段合法的版本串仍被误判为番号', () => {
+    // 月/日只校验最后两段：v2.23.06.10 的末两段是 06/10（合法）→ 命中，
+    // 而 Studio.23.13.01 的末两段 13 月越界 → 被挡。此误报面为有意保留
+    // （与 x265-10bit 同类）。若将来收紧正则，必须同步改本断言与源码注释。
+    expect(extractUsAvIdFromTitle('v2.23.06.10')).toBe('V2.23.06.10')
+    expect(extractUsAvIdFromTitle('Studio.23.13.01')).toBeNull()
+  })
+
+  test('纯日期无厂牌前缀 → null（2023.06.10 数字段起始不命中）', () => {
+    expect(extractUsAvIdFromTitle('2023.06.10 合集')).toBeNull()
+  })
+
+  test('日系优先：同标题含两类形态时返回日系番号', () => {
+    expect(extractAvIdFromTitle('SSIS-001 BigTitsRoundAsses.23.06.10')).toBe('SSIS-001')
+  })
+
+  test('extractAvIdFromTitle 集成：美系兜底（日系无命中时）', () => {
+    expect(extractAvIdFromTitle('[欧美] MommyGotBoobs.21.03.09 标题')).toBe('MOMMYGOTBOOBS.21.03.09')
+    expect(extractAvIdFromTitle('Studio.23.13.01 非法日期')).toBeNull()
+  })
+
+  test('parseThreadRow 集成：美系标题行 → avId/trackId = 美系番号（不再回退 TID）', () => {
+    const dom = new JSDOM(
+      '<body><table><tbody id="normalthread_88"><tr><th><a class="s xst" href="https://www.sehuatang.net/thread-88-1-1.html">[欧美] BigTitsRoundAsses.23.06.10 标题</a></th></tr><tr><td class="by"><em><span>2026-9-8</span></em></td></tr></tbody></table></body>',
+      { url: 'https://www.sehuatang.net/forum-103-1.html' },
+    )
+    const thread = parseThreadRow(dom.window.document.querySelector('tbody')!)!
+    expect(thread.avId).toBe('BIGTITSROUNDASSES.23.06.10')
+    expect(thread.trackId).toBe('BIGTITSROUNDASSES.23.06.10')
+    // 美系行同样携带 TID 兜底键（双键 dimmer 可用）
+    expect(thread.tid).toBe('TID-88')
+  })
+})
+
+test.describe('resolveThreadWatchKey — 帖子页静默记录键（番号优先 / TID 兜底）', () => {
+  const THREAD_URL = 'https://www.sehuatang.net/thread-3664524-1-1.html'
+
+  test('标题含番号 → 番号（分类落 jav_ids/usav_ids）', () => {
+    expect(resolveThreadWatchKey('【新作】SSIS-001 新人', THREAD_URL)).toBe('SSIS-001')
+    expect(resolveThreadWatchKey('[欧美] BigTitsRoundAsses.23.06.10 标题', THREAD_URL)).toBe('BIGTITSROUNDASSES.23.06.10')
+  })
+
+  test('提取失败 → TID 兜底（落 sehuatang_ids 帖子浏览记录）', () => {
+    expect(resolveThreadWatchKey('这是一个没有番号的标题', THREAD_URL)).toBe('TID-3664524')
+  })
+
+  test('动态 viewthread URL 同样可取 TID 兜底', () => {
+    expect(resolveThreadWatchKey('无番号标题', 'https://www.sehuatang.net/forum.php?mod=viewthread&tid=99')).toBe('TID-99')
+  })
+
+  test('无番号且 URL 无 tid → null（不落垃圾键）', () => {
+    expect(resolveThreadWatchKey('无番号标题', 'https://www.sehuatang.net/forum-103-1.html')).toBeNull()
+  })
+
+  test('与列表行 parseThreadRow 同优先级：两处写键一致', () => {
+    const dom = new JSDOM(
+      '<body><table><tbody id="normalthread_3664524"><tr><th><a class="s xst" href="https://www.sehuatang.net/thread-3664524-1-1.html">【新作】SSIS-001 标题</a></th></tr></tbody></table></body>',
+      { url: 'https://www.sehuatang.net/forum-103-1.html' },
+    )
+    const row = parseThreadRow(dom.window.document.querySelector('tbody')!)!
+    expect(resolveThreadWatchKey(row.title, row.url)).toBe(row.trackId)
+  })
+})
+
+test.describe('collectThreadTrackKeys — 双键候选集合（dimmer 兜底链输入）', () => {
+  test('番号 + TID 双键全部收集、去重大写', () => {
+    const keys = collectThreadTrackKeys([
+      { avId: 'SSIS-001', tid: 'TID-1', trackId: 'SSIS-001' },
+      { avId: null, tid: 'TID-2', trackId: 'TID-2' },
+    ])
+    expect(new Set(keys)).toEqual(new Set(['SSIS-001', 'TID-1', 'TID-2']))
+  })
+
+  test('全空线程 → 空集合', () => {
+    expect(collectThreadTrackKeys([{ avId: null, tid: null, trackId: null }])).toEqual([])
+  })
+
+  test('重复键只保留一份', () => {
+    expect(collectThreadTrackKeys([{ avId: 'A-1', tid: 'A-1', trackId: 'A-1' }])).toEqual(['A-1'])
+  })
+})
+
 test.describe('partitionInitialVisible — 初始进程已看分离（初始只隐藏/非初始只 dim）', () => {
-  interface T { trackId: string | null }
+  interface T { trackId: string | null; tid?: string | null }
 
   test('空已看集合 → 全部可见，隐藏 0', () => {
     const threads: T[] = [{ trackId: 'ABC-123' }, { trackId: 'TID-9' }, { trackId: 'SSIS-001' }]
@@ -87,6 +191,25 @@ test.describe('partitionInitialVisible — 初始进程已看分离（初始只�
     expect(visible).toEqual([])
     expect(hiddenCount).toBe(2)
   })
+
+  test('双键兜底：番号未命中但 TID 命中 → 仍判定已看（sehuatang_ids 记录生效）', () => {
+    // 同一帖子：列表标题有番号（trackId = 番号），但帖子页访问时标题无番号
+    // → 记录落在 sehuatang_ids 的 TID 键；双键命中保证 dimmer 不失效。
+    const threads: T[] = [
+      { trackId: 'SSIS-001', tid: 'TID-100' },
+      { trackId: 'SSIS-002', tid: 'TID-200' },
+    ]
+    const { visible, hiddenCount } = partitionInitialVisible(threads, new Set(['TID-100']))
+    expect(hiddenCount).toBe(1)
+    expect(visible.map((t) => t.trackId)).toEqual(['SSIS-002'])
+  })
+
+  test('双键大小写不敏感：TID 键小写输入同样命中', () => {
+    const threads: T[] = [{ trackId: 'SSIS-003', tid: 'TID-300' }]
+    const { visible, hiddenCount } = partitionInitialVisible(threads, new Set(['tid-300']))
+    expect(visible).toEqual([])
+    expect(hiddenCount).toBe(1)
+  })
 })
 
 test.describe('parseThreadRow — 帖子行 → 线程数据（AJAX 分页行解析）', () => {
@@ -96,13 +219,14 @@ test.describe('parseThreadRow — 帖子行 → 线程数据（AJAX 分页行解
       <tr><td class="by"><em><span>2026-9-5</span></em></td></tr>
     </tbody>`
 
-  test('完整行 → url/title/avId/trackId/日期齐备', () => {
+  test('完整行 → url/title/avId/tid/trackId/日期齐备', () => {
     const dom = new JSDOM(`<body><table>${ROW_HTML}</table></body>`, { url: 'https://www.sehuatang.net/forum-103-1.html' })
     const row = dom.window.document.querySelector('tbody')!
     expect(parseThreadRow(row)).toEqual({
       url: 'https://www.sehuatang.net/thread-3664524-1-1.html',
       title: '【新作】SSIS-001 标题',
       avId: 'SSIS-001',
+      tid: 'TID-3664524',
       trackId: 'SSIS-001',
       releaseDate: '2026-9-5',
     })
@@ -115,6 +239,7 @@ test.describe('parseThreadRow — 帖子行 → 线程数据（AJAX 分页行解
     )
     const thread = parseThreadRow(dom.window.document.querySelector('tbody')!)!
     expect(thread.avId).toBeNull()
+    expect(thread.tid).toBe('TID-77')
     expect(thread.trackId).toBe('TID-77')
   })
 
@@ -182,5 +307,37 @@ test.describe('collectNewThreadRows — MutationRecord 新行收集（静态地�
     const tb = dom.window.document.createElement('tbody')
     tb.id = 'separator_9'
     expect(collectNewThreadRows([rec(tb)], new Set<string>())).toEqual([])
+  })
+})
+
+test.describe('shouldDimOnNavigate — 点击跳转即 dimmer 的适用面', () => {
+  test('仅提取到 TID → 适用（无番号，无自然落库路径）', () => {
+    expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: false, hasMagnet: false })).toBe(true)
+    // 即使有磁力也适用：TID 键本就走「点进帖子」的语义
+    expect(shouldDimOnNavigate({ trackId: 'TID-3664524', detailSettled: true, hasMagnet: true })).toBe(true)
+  })
+
+  test('番号 + 详情已结束 + 无磁力 → 适用', () => {
+    expect(shouldDimOnNavigate({ trackId: 'ABC-123', detailSettled: true, hasMagnet: false })).toBe(true)
+    expect(shouldDimOnNavigate({ trackId: 'BIGTITSROUNDASSES.23.06.10', detailSettled: true, hasMagnet: false })).toBe(true)
+  })
+
+  test('详情子请求未结束 → 不适用（此刻还不能断言无磁力）', () => {
+    expect(shouldDimOnNavigate({ trackId: 'ABC-123', detailSettled: false, hasMagnet: false })).toBe(false)
+  })
+
+  test('番号 + 有磁力 → 不适用（走复制磁力落库路径）', () => {
+    expect(shouldDimOnNavigate({ trackId: 'ABC-123', detailSettled: true, hasMagnet: true })).toBe(false)
+    expect(shouldDimOnNavigate({ trackId: 'ABC-123', detailSettled: false, hasMagnet: true })).toBe(false)
+  })
+
+  test('无任何跟踪键 → 不适用', () => {
+    expect(shouldDimOnNavigate({ trackId: null, detailSettled: true, hasMagnet: false })).toBe(false)
+    expect(shouldDimOnNavigate({ trackId: '', detailSettled: true, hasMagnet: false })).toBe(false)
+  })
+
+  test('TID 形态严格匹配：TID-abc / 内嵌 TID- 不算仅 TID', () => {
+    expect(shouldDimOnNavigate({ trackId: 'TID-abc', detailSettled: false, hasMagnet: false })).toBe(false)
+    expect(shouldDimOnNavigate({ trackId: 'ABC-TID-1', detailSettled: false, hasMagnet: false })).toBe(false)
   })
 })
