@@ -4,7 +4,7 @@
  *
  * Usage: node scripts/fix-paths.js [--dir <dist-dir>]
  *   --dir  build output directory (default: dist/chrome-mv3).
- *          Pass dist-dev/chrome-mv3 for `npm run build:dev` artifacts.
+ *          `npm run dev:build` passes dist/chrome-mv3-dev.
  */
 
 import { readFileSync, writeFileSync } from 'fs'

@@ -92,6 +92,8 @@ Desktop.ini
 
 # ----- AI Assistant directories -----
 .agents/
+# WorkBuddy agent 记忆/运行区（会话外无价值，不入库；.um.agents 由其自带 .gitignore 自管）
+.workbuddy/
 .claude/
 .cursor/
 .windsurf/
@@ -233,7 +235,9 @@ nohup.out
 typecheck.err
 .npm-audit-cache/
 
-# ----- Dev build output (npm run build:dev → dist-dev/chrome-mv3) -----
+# ----- Dev build output (npm run dev:build → dist/chrome-mv3-dev) -----
+# 注意 dist/chrome-mv3-dev 已被上面的 dist/ 覆盖；dist-dev/ 仅供
+# UMM_DEV=1 手动隔离构建使用（无 npm script 入口）。
 dist-dev/
 
 tmp-fixture/

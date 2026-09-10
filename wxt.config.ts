@@ -12,10 +12,14 @@ const PROD_NAME = 'UMManager - 多媒体管理器'
 const DEV_NAME = `${PROD_NAME} (DEV)`
 
 /**
- * Is this a dev build (npm run build:dev)?
- * WXT CLI sets UMM_DEV=1 via the package.json script; the env var is checked
- * here because defineConfig only accepts a static object — manifest alone
- * can be a function, but the outDir and other top-level fields cannot.
+ * Opt-in "isolated dev build" flag: when UMM_DEV is set (e.g. a manual
+ * `UMM_DEV=1 npx wxt build`), the build goes to dist-dev/ instead of dist/
+ * so it can't clobber the production artifact. The canonical dev build is
+ * `npm run dev:build` (no watch/HMR) and does NOT need this flag — it is
+ * distinguished by `--mode development` alone.
+ * The env var is checked here because defineConfig only accepts a static
+ * object — manifest alone can be a function, but the outDir and other
+ * top-level fields cannot.
  */
 const isDevBuild = !!process.env.UMM_DEV
 

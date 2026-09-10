@@ -86,9 +86,9 @@ npm run build
 需要 Node.js >= 22 和 npm >= 10。
 
 ```bash
-npm run dev          # 开发模式（热更新）
+npm run dev          # 开发模式（wxt serve + 热更新）
+npm run dev:build    # Dev 编译（无热更新/无 dev 服务器，全量构建到 dist/chrome-mv3-dev，带 (DEV) 标记）
 npm run build        # 生产构建（含 fix-paths 后置步骤）
-npm run build:dev    # Dev 构建（独立输出目录 dist-dev/chrome-mv3-dev，带 (DEV) 标记）
 npm run type-check   # TypeScript 类型检查（质量门禁）
 npm run test:unit    # Playwright 单元测试
 npm test             # 运行全部 Playwright 测试
@@ -97,6 +97,10 @@ npm run i18n:check   # 检查 i18n 键完整性
 npm run ds:check     # 设计令牌一致性检查
 npm run package:patch # 版本号递增（patch）+ 构建 + 打包
 ```
+
+日常联调请用 `npm run dev:build`：它是全量确定性编译，manifest 里 content scripts 是**静态注册**的，
+不依赖 dev 服务器进程，改码后重新加载扩展即可。`npm run dev` 的热更新对内容脚本注入不可靠
+（服务器进程一丢就零注入），只在调 UI 时用。
 
 ## 贡献
 

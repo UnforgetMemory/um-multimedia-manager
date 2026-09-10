@@ -104,12 +104,13 @@ flowchart TB
 
     subgraph Content["Content Script"]
         ROUTER["URL Router"]
-        HANDLERS["Platform Handlers<br/>imdb · neodb · tmdb · bangumi<br/>javdb · sehuatang · mukaku · pt-detail"]
+        HANDLERS["Platform Handlers<br/>imdb · neodb · tmdb · bangumi<br/>javdb · mukaku · pt-detail"]
         ENHANCERS["Enhancers<br/>PT dimmer"]
+        OVERLAYS["Shadow DOM Overlays<br/>douban-early · douban-main<br/>sehuatang-early · sehuatang-main"]
     end
 
     subgraph Storage["IndexedDB (umm-media-db)"]
-        DB["douban_records · imdb_records<br/>neodb_records · tmdb_records<br/>bilibili_records · youtube_records<br/>bangumi_records · jav_ids<br/>ttl_cache · pt_id_cache"]
+        DB["douban_records · imdb_records<br/>neodb_records · tmdb_records<br/>bilibili_records · youtube_records<br/>bangumi_records<br/>jav_ids · usav_ids · sehuatang_ids<br/>ttl_cache · pt_id_cache"]
     end
 
     subgraph External["External Services"]
@@ -141,10 +142,11 @@ flowchart TB
 ### Key Components
 
 - **Background Service Worker** (`src/entrypoints/background.ts` + `src/entrypoints/background/handlers/`) — Central message router. All IndexedDB access, WebDAV sync, NeoDB API calls, file downloads, and alarm-based periodic tasks flow through this layer. Handlers are split by domain (db, webdav, neodb, data, toast, adult-av, download).
-- **Content Script** (`src/entrypoints/content.ts` + `src/entrypoints/content/`) — Injected into matched pages. The URL router dispatches to the correct platform handler (IMDb, NeoDB, TMDB, Bangumi, JavDB, Sehuatang, Mukaku, PT detail pages). Enhancers add PT dimming.
+- **Content Script** (`src/entrypoints/content.ts` + `src/entrypoints/content/`) — Injected into matched pages. The URL router dispatches to the correct platform handler (IMDb, NeoDB, TMDB, Bangumi, JavDB, Mukaku, PT detail pages). Enhancers add PT dimming. Douban and Sehuatang are excluded: they are owned by their own Shadow DOM overlay entries (see below).
 - **Options Page** (`src/entrypoints/options/`) — Full Vue 3 app with sidebar layout. Six tabs: Overview (stats, heatmap, charts), Rating (browse & filter), Linked (cross-platform records), Sync (WebDAV + import/export), Settings (NeoDB token, preferences), and Appearance (theme, font scaling).
 - **Popup Dashboard** (`src/entrypoints/popup/`) — Compact Vue 3 dashboard showing key statistics. Acts as a launch point to the options page.
 - **Douban Content** (`src/content/douban/`) — Page-specific Vue apps rendered inside a Shadow DOM overlay for 32 Douban page types (movie/music/book/game detail, search, homepage, genre, doulists, user profiles, and more). Each page type gets its own component tree, data/config modules, and stylesheet.
+- **Sehuatang Content** (`src/content/sehuatang/` + `src/entrypoints/sehuatang-early.content/` + `src/entrypoints/sehuatang-main.content/`) — Shadow DOM overlay for the Sehuatang forum list, independent of the legacy content pipeline: the early entry builds the shell at `document_start`, the main entry takes over at `document_idle` (thread pages are silently recorded, no UI). Detail data (cover/magnet) is lazily fetched through a standalone, rebuildable cache DB (`umm-sehuatang-cache`, TTL 7d / LRU 500).
 - **PT Dimmer** (`src/entrypoints/content/enhancers/pt/`) — Modular dimmer system with per-site config, TTL cache, and NexusPHP/M-Team support. Scans PT pages, matches against watched IDs, and dims rows.
 - **Video Overlay** (`src/entrypoints/content/ui/`) — Shared video overlay used by the Bilibili and YouTube content scripts (`video-overlay.ts` plus pure/tracker/styles helpers), alongside the check-viewed, doulist-replace, and manual-add panel modules.
 - **Domain Layer** (`src/domain/`) — DDD-style domain entities: `Identity`, `Platform`, `MediaType`, `StoreRecord`, `Rating`, `Status`, and their repositories.
@@ -285,8 +287,8 @@ Starts the WXT dev server with hot module replacement. Load the unpacked extensi
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start dev server with HMR |
+| `npm run dev:build` | Dev compile to `dist/chrome-mv3-dev/` with a `(DEV)` marker (no HMR, no dev server) |
 | `npm run build` | Build for production (Chrome MV3) |
-| `npm run build:dev` | Dev build to `dist-dev/chrome-mv3-dev/` with a `(DEV)` marker |
 | `npm run zip` | Build and create `.zip` for distribution |
 | `npm run type-check` | TypeScript type checking via vue-tsc |
 | `npm test` | Run Playwright tests (Chromium) |
@@ -351,7 +353,6 @@ um-multimedia-manager/
 │   │   │   │   ├── mukaku/          # Mukaku BT site dimmer (config/dom/api/cache/handler)
 │   │   │   │   ├── pt-detail.ts     # PT detail page ID extraction
 │   │   │   │   ├── javdb.ts         # JavDB
-│   │   │   │   ├── sehuatang.ts     # Sehuatang
 │   │   │   │   └── create-detail-handler.ts  # Shared detail-handler factory
 │   │   │   ├── enhancers/           # Content page enhancements
 │   │   │   │   └── pt/              # PT dimmer system
