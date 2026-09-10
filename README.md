@@ -83,7 +83,9 @@ npm run build
 
 ## 开发
 
-需要 Node.js >= 22 和 npm >= 10。
+需要 **Node.js 24 LTS** 与 **npm >= 11**。Node 版本由仓库根目录的 `.nvmrc` / `.node-version` 锁定，`nvm use`（或 `fnm use`）即可切换；`package.json` 的 `engines` 为 `>=24 <25`。
+
+> 注意：Node 22 会在加载 jsdom 时崩溃（`ERR_VM_MODULE_LINK_FAILURE`）导致单元测试全灭，请勿用旧版 Node 跑 `test:unit`。
 
 ```bash
 npm run dev          # 开发模式（wxt serve + 热更新）

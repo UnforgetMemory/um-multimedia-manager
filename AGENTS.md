@@ -20,6 +20,16 @@ npm run zip             # 构建 + 打包 Chrome 商店包
 
 无 lint/format 命令。质量门禁：`type-check` → `build`。
 
+## 环境
+
+- **Node 24 LTS（强制）**：版本由 `.nvmrc` / `.node-version` 锁定，`package.json` `engines` = `>=24 <25`，CI 用 `actions/setup-node` 的 `node-version-file: '.nvmrc'`（单一事实源）。
+  Node 22 加载 jsdom 会崩（`ERR_VM_MODULE_LINK_FAILURE`）→ `test:unit` 全灭；本机跑单测请确保 `node -v` 为 24.x。
+- **TypeScript 6.x（TS 7 暂缓）**：TS 7 是原生编译器，包 `exports` 不再暴露 `typescript/lib/tsc`，`vue-tsc` 直接 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
+  升级 TS 前必须先确认 vue-tsc 支持；当前锁 `^6.0.3`（`npm outdated` 会持续显示 7.x，属**预期**）。
+- **运行时基线 = Chrome 119**（manifest `minimum_chrome_version`）：可安全使用 ES2024 运行时 API（`Map.groupBy` 117+、`Promise.withResolvers` 119+）；
+  **显式资源管理 `using` 需 Chrome 134**，超出基线，勿用。
+- 构建产物 `dist/`（生产 `chrome-mv3` + `firefox-mv2`）与 `dist/chrome-mv3-dev` 均在 gitignore 内。
+
 ## 架构
 
 ### 入口（entrypoints/，WXT 文件式入口）

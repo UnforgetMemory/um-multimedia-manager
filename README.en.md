@@ -159,9 +159,9 @@ flowchart TB
 
 ### Requirements
 
-- **Node.js** >= 22
-- **npm** >= 10
-- **Chrome** >= 88
+- **Node.js** 24 LTS (pinned by `.nvmrc` / `.node-version`; `package.json` `engines` is `>=24 <25` — run `nvm use` / `fnm use`)
+- **npm** >= 11
+- **Chrome** >= 119 (declared as `minimum_chrome_version` in the manifest)
 
 ### Build from Source
 

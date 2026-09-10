@@ -21,10 +21,11 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          # 单一事实源：Node 版本由 .nvmrc 决定（本地 nvm/fnm 与 CI 一致）
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
       - run: npm run type-check
@@ -37,10 +38,10 @@ jobs:
       matrix:
         browser: [chrome, firefox]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
       - run: npx wxt build -b ${{ matrix.browser }}
