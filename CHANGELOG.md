@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 新增功能
+
+- **色花堂首页 overlay 重建**：首页（`/`、`/index.php`、`/forum.php` 无 `mod`）从原生 Discuz 分区表格改为现代 card grid——按「分区标题 + 子版块卡片」结构组织，站点全部分区（分区名从 DOM 动态提取，以站点实际分区为准）的所有子版块以同款 `umm-card` 视觉呈现；卡片显示今日新增徽标（`forum_new.gif` 二态判定）、主题/帖数、最后发表（外链版块透传「链接到外部地址」原文）；导航层纯读，不触已看库
+- **色花堂搜索页 overlay 重建**：搜索结果（`search.php?mod=forum`）从原生 `<li class="pbw">` 列表改为现代 card grid——每条卡片呈现标题、回复/查看数（支持「N万」计数）、站点摘要位原文（隐藏提示或内容预览透传）、时间/作者；底部分页复用列表页 `buildPager` 组件（搜索页 `.pg` 结构与列表页同源，跳转模板由站点原 DOM 提供）；按需求**自动隐藏「所在版块」字段**（「求片问答悬赏区」「资源出售区」等与记录管理无关的分区噪音不再干扰阅读）
+- **色花堂搜索页 dimmer 跨页打通**：搜索结果条目无磁力/详情子请求，dimmer 是唯一反馈；走 avId + TID 双键命中（与列表页 `collectThreadTrackKeys` 同款、字段语义对齐）——列表页写入的记录，搜索结果中能立即看到淡化（单向：搜索页只读不落库）
+
+### 修复与优化
+
+- **底栏「灵动岛」遮挡修补**：列表页 `.umm-sht-shell--list` 加上 `padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px))`，网格最后一行卡片不再被底部分页悬浮栏压住（72 px = 浮岛高度 + 上下安全间距；safe-area-inset 兼容 iOS 底部手势区）；首页/搜索页无浮岛，不多留白
+- **搜索页 tidKey 链路修复（umreview round 4）**：标题链接改取 `anchor.href` 属性（浏览器自动绝对化）——相对 URL 不再断链 `extractThreadTidFromUrl` 的 `new URL`，TID 双键与卡片锚点恢复；搜索结果字段语义与列表页 `SehuatangThread` 对齐（`tid` = `TID-<tid>` 键），`collectThreadTrackKeys` 直接消费，avId 条目不再丢失 TID 兜底键
+- **首页构建健壮化（umreview round 4）**：图标态由提取层一次解出（`iconSrc`/`hasNew`），编排层零 DOM 重扫（消除选择器字符串拼接与 O(n) 全文档重扫）；构建过程 try/catch，异常时 `dismiss()` 还原原页；子版块链接/图标先相对解析再过 http(s) 白名单（相对 URL 不再静默失效）；`forum.php?gid=N`（分类聚合页）排除出首页判型；早期入口背景涂刷仅限 overlay 页（thread/`mod=user` 等非托管页视觉不再被改变）；入场级联抽共享 `runVisibleEntrance`（列表/首页/搜索三处复用）
+
 ## [5.15.1] - 2026-09-10
 
 ### 变更（内部重构）

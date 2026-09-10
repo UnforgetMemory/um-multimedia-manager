@@ -39,7 +39,7 @@ npm run zip             # 构建 + 打包 Chrome 商店包
 | `background.ts` + `background/handlers/` | Service Worker：消息路由 + IndexedDB 单例 + DataScheduler。**所有 DB 访问必经此处** |
 | `content.ts` + `content/` | legacy 注入系统：非 Douban / 非 Sehuatang 站点（IMDb/NeoDB/Mukaku/PT/JavDB/TMDB） |
 | `douban-early.content/` + `douban-main.content/` | 新 Douban 注入：document_start 建 Shadow DOM overlay，document_idle 挂载 Vue app |
-| `sehuatang-early.content/` + `sehuatang-main.content/` | 新 Sehuatang 注入（ADR-024）：early 建壳 + 首帧背景（`forumdisplay`），main 接管 overlay 编排（列表页）/ 静默记录（帖子页）。**不经 legacy 管线** |
+| `sehuatang-early.content/` + `sehuatang-main.content/` | 新 Sehuatang 注入（ADR-024）：early 建壳 + 首帧背景（列表页/搜索页/首页均建壳），main 接管 overlay 编排——列表页（`runSehuatangOverlayApp`）/ 搜索页（`runSehuatangSearchApp`，仅 dimmer 不落库）/ 首页（`runSehuatangIndexApp`，导航层不触已看库）；帖子详情页走静默记录，不建 overlay、不注入 UI。**不经 legacy 管线** |
 | `popup/` `options/` | Vue SPA（统计/设置） |
 | `bilibili.content/` `bilibili-homepage.content/` `youtube-homepage.content/` | 单站内容脚本 |
 
@@ -47,7 +47,7 @@ npm run zip             # 构建 + 打包 Chrome 商店包
 
 1. **legacy**（`content.ts` → `content/router.ts` → `handlers/`）：服务所有非 Douban、非 Sehuatang 站点。Douban 域名在 content.ts 的 `excludeMatches` 排除；Sehuatang 的 matches 已从 content.ts 整体移除（由双入口接管），路由表亦无对应项。
 2. **新 Douban**（`douban-early/douban-main` → `src/content/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `content/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
-3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/content/sehuatang/`）：URL 判型唯一源 `src/content/sehuatang/url.ts`；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
+3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/content/sehuatang/`）：URL 判型唯一源 `src/content/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；三个独立编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
 
 ### 领域层（domain/，纯 TS 无框架依赖）
 
