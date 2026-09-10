@@ -5,12 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.15.0] - 2026-09-09
+## [Unreleased]
+
+## [5.15.0] - 2026-09-10
 
 ### 新增功能
 
+- **色花堂 Shadow DOM overlay 重建（ADR-024）**：列表页改由 document_start 建壳 + document_idle 接管的双入口托管（`sehuatang-early.content` / `sehuatang-main.content`），独立于 legacy 注入管线；详情数据（封面/磁力）走独立 IndexedDB 缓存库 `umm-sehuatang-cache`（TTL 7 天 / LRU 500，可重建故不随备份），IntersectionObserver 懒加载 + 同 URL 归并 + 并发 4 / 8s 超时；首屏骨架卡 → 已看检查到达后单帧换真卡
 - **色花堂列表体验重建**：面包屑/主题分类选项卡/返回/发新帖重建为双行头部，底部「灵动岛」窗口化分页悬浮栏（窗口化页码 + 跳转 + 计数器）；封面模糊遮罩悬停防抖揭示、卡片入场级联、复制反馈动效（均遵循系统减弱动态效果设置）
 - **色花堂已看体系**：整页一次批量已看检查（消除逐卡消息）；磁力点击/一键复制统一标记路径（单次批量落库 + 失败逐条兜底 + 读回自检）；FC2 混排番号兼容提取（修复历史已看标记丢失），无番号帖子以 TID 键兜底获得完整已看/隐藏能力；「隐藏已看」开关跨页持久化；保存失败跨页诊断提示
+- **色花堂帖子页静默记录**：访问帖子详情页自动记录已看——标题可提取番号 → 落番号表；提取失败 → TID 兜底落 `sehuatang_ids`；不建 overlay、不注入 UI
+- **色花堂列表「点击跳转即淡化」**：仅提取到 TID、或详情子请求已结束但仍无磁力的条目（无「复制磁力」这条自然落库路径），点击标题/封面即**同步**加 dimmer——只做页面状态变更不落库，数据变更交给目的地帖子页的既有静默记录逻辑，避免冗余写入；会话内视觉标记对 `record:updated` 的全量重算免疫（否则会被其他卡片落库触发的重算抹掉），但 `record:deleted` 会让其失效（显式删除必须生效）
+- **分离已看统计**：色花堂 overlay 头部以「日系已看 / 欧美已看 / 帖子已看」三段替代单一历史总阅（新消息 `ADULT_AV_STATS` 按表计数）
+- **成人记录三表拆分（ADR-025）**：`jav_ids`（日系番号）/ `usav_ids`（美欧厂牌 `Studio.YY.MM.DD` 形态）/ `sehuatang_ids`（帖子浏览记录，`TID-<tid>` 键）物理分表，写入侧由分类器单点判定，三表互不冲突；主库 schema v14 仅建两张新表（存量混合键不搬迁，读侧三表合并永久兼容）
+- **美/欧厂牌番号识别（us-av-id）**：`Studio.YY.MM.DD` 点分日期形态（含厂牌内部分段 `Blacked.Raw`）纳入提取，月/日合法校验（校验末两段）；日系优先、美系兜底、均无回退 TID
 - **首帧主题背景预载**：document_start 早期脚本在首帧前涂刷主题表面背景并全程保鲜（含系统配色切换），消除主题跳变闪烁
 
 ### 修复与优化
@@ -20,13 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 变更（内部重构）
 
+- **双键兜底已看判定**：列表卡片同时持有番号键与 TID 键，任一命中即 dimmer/隐藏——同一帖子「列表标题有番号、帖子页标题无番号」时兜底链不再失效
+- 三表纳入备份/导出白名单（`BACKUP_STORES` 扩至 10 表），`sehuatang_ids` 为用户数据必须随备份
+- 色花堂 overlay 样式收编为编译期 TS 常量（`src/content/sehuatang/styles.ts`），usl 变量表经 `uslVarsForHost()` 重宿主到 `:host`；legacy 侧的 `handlers/sehuatang.ts` 整体退役（原页面行结构不再被替换）
 - 新增 Layer 3 overlay 令牌体系（COLOR_OVERLAY_* 常量 + --usl-* 双主题变量链），legacy UI 组件样式统一接入令牌链
 - 豆瓣主题解析（resolveTheme/subscribeTheme）共享化，供非豆瓣入口复用
-- 新增 `npm run dev:build` 确定性开发构建（静态 manifest 注册 content scripts，无 dev 服务器依赖）
+- **构建脚本收敛**：删除与 `dev:build` 重复的 `build:dev`，保留唯一的无热更新 Dev 编译入口 `npm run dev:build`（→ `dist/chrome-mv3-dev`，静态 manifest 注册 content scripts、无 dev 服务器依赖）；同步修正 README / README.en / .gitignore / wxt.config / fix-paths 中对已删脚本的引用
+- **i18n**：新增 `Copy Magnet` 键（四语言，磁力按钮 tooltip 走 `t()`）；首帧 loading 副标题与浏览器语言解析补齐 `zh-Hant`（macOS/iOS 无地区后缀的繁体）——此前会误落到简体
+- **缓存写入防御**：`SEHUATANG_CACHE_PUT` 增加批量上限（200 条，超限拒绝而非静默截断）、tid 长度上限与字段长度上限（8192，超长降级为 null）；内容侧对服务端拒绝响应记 `console.warn`，不再静默丢弃
 
 ### 测试
 
-- 新增 6 个 spec：sehuatang 控件/动效/提取/分页、成人记录 DB 层（fake-indexeddb 端到端）、全局样式令牌门禁
+- 新增 6 个 spec（首轮）：sehuatang 控件/动效/提取/分页、成人记录 DB 层（fake-indexeddb 端到端）、全局样式令牌门禁
+- 新增/扩展（overlay + 三表）：`adult-av-stats`（三段按表计数 + TID 残留过滤）、`adult-av-handlers`（CHECK 三表 L1/L2 + baseId 回退 + GET_ALL 两表合并与 TID 过滤）、`adult-av-batch`（分类分组三表写入）、`sehuatang-url`（帖子页判型 / TID 提取）、`sehuatang-extract`（双键 partition / resolveThreadWatchKey / collectThreadTrackKeys / shouldDimOnNavigate / 美系月日取舍锚点）、`sehuatang-cache`（TTL / LRU / 幂等）、`sehuatang-cache-handler`（写入校验上限与字段归一化）、`sehuatang-styles`（全段零 hex/函数式色彩/命名色通用守卫 + rgba 豁免登记）、`backup-stores`（10 表白名单）、`db-migration`（v13→v14 建表不搬迁）
 
 ## [5.14.3] - 2026-08-31
 
