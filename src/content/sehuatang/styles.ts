@@ -179,7 +179,26 @@ export const HOME_CSS = `
 `
 
 /**
- * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效 + 首页 + 搜索。
+ * 风控页（年龄门）——任意路径可返回的站点的风控文档，视觉重建（点击委托
+ * 原按钮，见 app-risk.ts）。居中单列面板：域名大字 + 主/次进入按钮 +
+ * 分隔线 + 警告块。文本全部透传站点原文（中英双语由站点提供，零 i18n 键）。
+ */
+export const RISK_CSS = `
+.umm-sht-shell--risk { align-items: center; justify-content: center; padding: clamp(20px, 4vw, 48px) clamp(16px, 3vw, 32px); }
+.umm-sht-risk-panel { width: 100%; max-width: 560px; display: flex; flex-direction: column; }
+.umm-sht-risk-domain { text-align: center; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem); font-weight: 900; letter-spacing: 0.04em; color: var(--usl-text-primary); padding: 4px 0 20px; }
+.umm-sht-risk-enter { display: block; width: 100%; margin: 0 0 12px; padding: 15px 20px; border-radius: 12px; border: 1px solid transparent; font-size: clamp(1rem, 0.95rem + 0.25vw, 1.15rem); font-weight: 600; line-height: 1.4; text-align: center; cursor: pointer; font-family: inherit; transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
+.umm-sht-risk-enter--primary { background: var(--usl-fill-primary); color: var(--usl-ink-on-fill); box-shadow: var(--usl-shadow-primary); }
+.umm-sht-risk-enter--primary:hover { opacity: 0.92; }
+.umm-sht-risk-enter--secondary { background: var(--usl-surface-raised); color: var(--usl-text-secondary); border-color: var(--usl-border-strong); }
+.umm-sht-risk-enter--secondary:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
+.umm-sht-risk-line { height: 1px; background: var(--usl-border); margin: 14px 0; }
+.umm-sht-risk-warn-title { margin: 0; text-align: center; font-size: 1rem; font-weight: 700; color: var(--usl-text-primary); padding: 2px 0 8px; }
+.umm-sht-risk-warn { margin: 0; padding: 4px 0; text-align: center; line-height: 1.9; font-size: clamp(0.8rem, 0.76rem + 0.2vw, 0.9rem); color: var(--usl-text-secondary); }
+`
+
+/**
+ * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效 + 首页 + 搜索 + 风控。
  * 菜单面板样式不进本表——菜单是 light-DOM .umm-overlay 组件（z 高于 overlay
  * host），样式由 global.ts 组件表与 sehuatang-menu.ts 自带注入负责。
  */
@@ -195,4 +214,6 @@ ${EFFECTS_CSS}
 ${HOME_CSS}
 /* === search (pg_search) === */
 ${SEARCH_CSS}
+/* === risk (age gate) === */
+${RISK_CSS}
 `

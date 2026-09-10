@@ -6,6 +6,7 @@ import {
   EFFECTS_CSS,
   HOME_CSS,
   SEARCH_CSS,
+  RISK_CSS,
   uslVarsForHost,
 } from '@/content/sehuatang/styles'
 
@@ -78,9 +79,10 @@ test.describe('令牌基准 — 全段零调色板色值（通用守卫）', () 
     ['EFFECTS_CSS', EFFECTS_CSS],
     ['HOME_CSS', HOME_CSS],
     ['SEARCH_CSS', SEARCH_CSS],
+    ['RISK_CSS', RISK_CSS],
   ]
 
-  test('五段组件 CSS 均无任何 hex 字面量', () => {
+  test('六段组件 CSS 均无任何 hex 字面量', () => {
     for (const [name, css] of segments) {
       expect(css, `${name} 含 hex 字面量`).not.toMatch(PALETTE_HEX)
     }
@@ -150,6 +152,11 @@ test.describe('SEHUATANG_OVERLAY_CSS — 组合完整性', () => {
     expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-search-grid')
     expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-search-card')
   })
+
+  test('风控段已并入（年龄门重建 CSS 随 overlay 表注入）', () => {
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-shell--risk')
+    expect(SEHUATANG_OVERLAY_CSS).toContain('.umm-sht-risk-enter')
+  })
 })
 
 test.describe('HOME_CSS — 首页分区网格', () => {
@@ -185,5 +192,26 @@ test.describe('SEARCH_CSS — 搜索结果卡片', () => {
   test('消费 --usl-* 令牌（与 HOME 对称）', () => {
     expect(SEARCH_CSS).toContain('var(--usl-text-')
     expect(SEARCH_CSS).toContain('var(--usl-accent)')
+  })
+})
+
+test.describe('RISK_CSS — 风控页（年龄门）', () => {
+  test('居中面板 + 域名大字 + 主/次进入按钮 + 分隔线 + 警告块 class 齐备', () => {
+    expect(RISK_CSS).toContain('.umm-sht-shell--risk')
+    expect(RISK_CSS).toContain('.umm-sht-risk-panel')
+    expect(RISK_CSS).toContain('.umm-sht-risk-domain')
+    expect(RISK_CSS).toContain('.umm-sht-risk-enter--primary')
+    expect(RISK_CSS).toContain('.umm-sht-risk-enter--secondary')
+    expect(RISK_CSS).toContain('.umm-sht-risk-line')
+    expect(RISK_CSS).toContain('.umm-sht-risk-warn-title')
+    expect(RISK_CSS).toContain('.umm-sht-risk-warn')
+  })
+
+  test('消费 --usl-* 令牌（按钮主/次面 + 文本层级，无裸色）', () => {
+    expect(RISK_CSS).toContain('var(--usl-fill-primary)')
+    expect(RISK_CSS).toContain('var(--usl-ink-on-fill)')
+    expect(RISK_CSS).toContain('var(--usl-surface-raised)')
+    expect(RISK_CSS).toContain('var(--usl-border-strong)')
+    expect(RISK_CSS).toContain('var(--usl-text-secondary)')
   })
 })

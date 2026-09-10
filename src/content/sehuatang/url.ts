@@ -124,3 +124,21 @@ export function classifyPage(url: string): SehuatangPageKind {
 export function isOverlayPage(kind: SehuatangPageKind): boolean {
   return kind === 'forumdisplay' || kind === 'search' || kind === 'index'
 }
+
+/**
+ * 相对 URL → 绝对化后再过 http(s) 协议白名单（自 app-home 内联工具收编，
+ * 首页子版块链接/图标与风控页进入按钮兜底导航共用）。
+ * 夹具/站点里的链接多为相对 URL（forum-2-1.html）——只做 `^https?://` 一刀切
+ * 会把有效链接全打回 ''（卡片静默失效）；先解析再白名单两全。解析失败或
+ * 非 http(s) 协议（javascript: 等）→ ''。
+ * 注：基址取 location.href，浏览器侧专用（node 单测环境无 location）。
+ */
+export function toSafeAbsoluteUrl(raw: string | null): string {
+  if (!raw) return ''
+  try {
+    const u = new URL(raw, location.href)
+    return /^https?:$/.test(u.protocol) ? u.href : ''
+  } catch {
+    return ''
+  }
+}

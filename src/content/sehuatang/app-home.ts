@@ -29,6 +29,7 @@ import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-pane
 import { runVisibleEntrance } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { escapeHtml } from '@/utils/escape-html'
 import { attachSehuatangOverlay } from './overlay'
+import { toSafeAbsoluteUrl } from './url'
 import {
   extractIndexCategories,
   extractIndexStats,
@@ -41,21 +42,6 @@ function el(tag: string, className: string, text?: string): HTMLElement {
   node.className = className
   if (text !== undefined) node.textContent = text
   return node
-}
-
-/**
- * 相对 URL → 绝对化后再过 http(s) 协议白名单（子版块链接 / 图标共用）。
- * 夹具里的站点链接多为相对 URL（forum-2-1.html）——只做 `^https?://` 一刀切
- * 会把在线页的有效链接全打回 '#'（卡片静默失效）；先解析再白名单两全。
- */
-function toSafeAbsoluteUrl(raw: string | null): string {
-  if (!raw) return ''
-  try {
-    const u = new URL(raw, location.href)
-    return /^https?:$/.test(u.protocol) ? u.href : ''
-  } catch {
-    return ''
-  }
 }
 
 function buildSubForumCard(forum: SehuatangSubForum): HTMLElement {
