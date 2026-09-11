@@ -26,7 +26,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy Magnet': 'Copy magnet link',
     'Copy Done': 'Copied {{count}} magnet links!',
     'No New Magnets': 'No new magnet links found.',
-    'Header Info': 'Page: {{watched}} watched / {{hidden}} hidden | JP: {{jp}} | US: {{us}} | Posts: {{tid}}',
+    'sht.page_box': 'Page: {{watched}} watched / {{hidden}} hidden',
     'JavDB Detected': 'JavDB: {{count}} items dimmed.',
     // Status chip labels
     'status.done': '✅ Watched',
@@ -143,6 +143,10 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_title': 'Search Results',
     'sht.search_results_count': 'Found {{count}} results for "{{keyword}}"',
     'sht.search_replies_views': '{{replies}} replies · {{views}} views',
+    'sht.page_watched': 'Page watched: {{watched}}',
+    'sht.global_stats': 'JP: {{jp}} | US: {{us}} | Posts: {{tid}}',
+    'sht.island_switch': 'Search / Pages',
+    'sht.home': 'Home',
     'sht.search_by': 'by {{author}}',
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': 'All caught up',
@@ -150,6 +154,12 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang search box (overlay rebuild of native #scbar)
     'sht.search_placeholder': 'Search threads…',
     'sht.search_go': 'Search',
+    // Sehuatang search page empty states (no results / all noise-filtered) + filtered note
+    'sht.search_empty_title': 'No results found',
+    'sht.search_empty_hint': 'Try different keywords or check the spelling',
+    'sht.search_empty_filtered_title': 'All results filtered',
+    'sht.search_empty_filtered_hint': 'Threads from unrelated sections are hidden automatically',
+    'sht.search_filtered_note': ' — filtered {{count}} from unrelated sections',
   },
   'zh-CN': {
     Language: '语言（简体）',
@@ -176,7 +186,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy Magnet': '复制磁力链接',
     'Copy Done': '已复制 {{count}} 个磁力链接!',
     'No New Magnets': '未发现新的磁力链接',
-    'Header Info': '本页已看: {{watched}} | 本页隐藏: {{hidden}} | 日系: {{jp}} | 欧美: {{us}} | 帖子: {{tid}}',
+    'sht.page_box': '本页已看: {{watched}} | 本页隐藏: {{hidden}}',
     'JavDB Detected': 'JavDB检测: 已淡化 {{count}} 个已阅条目。',
     // Status chip labels
     'status.done': '✅ 已看',
@@ -293,6 +303,10 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_title': '搜索结果',
     'sht.search_results_count': '找到 "{{keyword}}" 相关内容 {{count}} 个',
     'sht.search_replies_views': '{{replies}} 个回复 · {{views}} 次查看',
+    'sht.page_watched': '本页已看: {{watched}}',
+    'sht.global_stats': '日系: {{jp}} | 欧美: {{us}} | 帖子: {{tid}}',
+    'sht.island_switch': '搜索 / 分页',
+    'sht.home': '首页',
     'sht.search_by': '由 {{author}} 发布',
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': '全部已看过',
@@ -300,6 +314,12 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang search box (overlay rebuild of native #scbar)
     'sht.search_placeholder': '搜索帖子…',
     'sht.search_go': '搜索',
+    // Sehuatang search page empty states (no results / all noise-filtered) + filtered note
+    'sht.search_empty_title': '没有搜索结果',
+    'sht.search_empty_hint': '换个关键词试试，或检查拼写',
+    'sht.search_empty_filtered_title': '结果均来自无关分区',
+    'sht.search_empty_filtered_hint': '无关分区的帖子已自动过滤',
+    'sht.search_filtered_note': '，已过滤 {{count}} 条无关分区结果',
   },
   'zh-HK': {
     Language: '語言（繁體）',
@@ -326,7 +346,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy Magnet': '複製磁力連結',
     'Copy Done': '已複製 {{count}} 個磁力鏈接!',
     'No New Magnets': '未發現新的磁力鏈接',
-    'Header Info': '本頁已看: {{watched}} | 本頁隱藏: {{hidden}} | 日系: {{jp}} | 歐美: {{us}} | 帖子: {{tid}}',
+    'sht.page_box': '本頁已看: {{watched}} | 本頁隱藏: {{hidden}}',
     'JavDB Detected': 'JavDB檢測: 已淡化 {{count}} 個已閱條目。',
     // Status chip labels
     'status.done': '✅ 已看',
@@ -443,6 +463,10 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_title': '搜尋結果',
     'sht.search_results_count': '找到 "{{keyword}}" 相關內容 {{count}} 個',
     'sht.search_replies_views': '{{replies}} 個回覆 · {{views}} 次查看',
+    'sht.page_watched': '本頁已看: {{watched}}',
+    'sht.global_stats': '日系: {{jp}} | 歐美: {{us}} | 帖子: {{tid}}',
+    'sht.island_switch': '搜尋 / 分頁',
+    'sht.home': '主頁',
     'sht.search_by': '由 {{author}} 發布',
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': '全部已看過',
@@ -450,6 +474,12 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang search box (overlay rebuild of native #scbar)
     'sht.search_placeholder': '搜尋帖子…',
     'sht.search_go': '搜尋',
+    // Sehuatang search page empty states (no results / all noise-filtered) + filtered note
+    'sht.search_empty_title': '沒有搜尋結果',
+    'sht.search_empty_hint': '換個關鍵詞試試，或檢查拼寫',
+    'sht.search_empty_filtered_title': '結果均來自無關分區',
+    'sht.search_empty_filtered_hint': '無關分區的帖子已自動過濾',
+    'sht.search_filtered_note': '，已過濾 {{count}} 條無關分區結果',
   },
   'zh-TW': {
     Language: '語言（繁體）',
@@ -476,7 +506,7 @@ const locales: Record<Locale, Record<string, string>> = {
     'Copy Magnet': '複製磁力鏈結',
     'Copy Done': '已複製 {{count}} 個磁力連結!',
     'No New Magnets': '未發現新的磁力連結',
-    'Header Info': '本頁已看: {{watched}} | 本頁隱藏: {{hidden}} | 日系: {{jp}} | 歐美: {{us}} | 帖子: {{tid}}',
+    'sht.page_box': '本頁已看: {{watched}} | 本頁隱藏: {{hidden}}',
     'JavDB Detected': 'JavDB偵測: 已淡化 {{count}} 個已閱條目。',
     // Status chip labels
     'status.done': '✅ 已看',
@@ -593,6 +623,10 @@ const locales: Record<Locale, Record<string, string>> = {
     'sht.search_title': '搜尋結果',
     'sht.search_results_count': '找到 "{{keyword}}" 相關內容 {{count}} 個',
     'sht.search_replies_views': '{{replies}} 個回覆 · {{views}} 次查看',
+    'sht.page_watched': '本頁已看: {{watched}}',
+    'sht.global_stats': '日系: {{jp}} | 歐美: {{us}} | 帖子: {{tid}}',
+    'sht.island_switch': '搜尋 / 分頁',
+    'sht.home': '主頁',
     'sht.search_by': '由 {{author}} 發佈',
     // Sehuatang list page empty state (all watched)
     'sht.empty_watched_title': '全部已看過',
@@ -600,6 +634,12 @@ const locales: Record<Locale, Record<string, string>> = {
     // Sehuatang search box (overlay rebuild of native #scbar)
     'sht.search_placeholder': '搜尋帖子…',
     'sht.search_go': '搜尋',
+    // Sehuatang search page empty states (no results / all noise-filtered) + filtered note
+    'sht.search_empty_title': '沒有搜尋結果',
+    'sht.search_empty_hint': '換個關鍵詞試試，或檢查拼寫',
+    'sht.search_empty_filtered_title': '結果均來自無關分區',
+    'sht.search_empty_filtered_hint': '無關分區的帖子已自動過濾',
+    'sht.search_filtered_note': '，已過濾 {{count}} 條無關分區結果',
   },
 }
 

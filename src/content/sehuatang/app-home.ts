@@ -16,17 +16,20 @@
  *   6. 卡片：图标（站点自带的 `forum_new.gif` / `forum.gif` 二态区分）、
  *      子版块名、今日新增徽标、主题/帖数/最后发表；
  *   7. 入场级联：rAF + 批量读 rect 后统一写类名（首屏可见卡才有延迟，
- *      共享 sehuatang-controls.runVisibleEntrance）。
+ *      共享 sehuatang-controls.runVisibleEntrance）；
+ *   8. 底部「灵动岛」（buildFloatbar）：仅搜索入口——首页是导航层，无分页、
+ *      无动作场景（搜索框不入 header，岛是全站唯一搜索入口）。
  *
  * 视觉契约：消费现有 --usl-* 令牌（与列表页同款），不写裸色值；卡片结构
  * 复用 .umm-card 基础类（与列表页同款 hover/grid 行为）。
  */
 
+import { AdultAvStore } from '@/features/adult-av'
 import { initI18n, t } from '@/entrypoints/content/i18n'
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu'
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel'
 import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-panel'
-import { runVisibleEntrance, buildSearchBox } from '@/entrypoints/content/handlers/sehuatang-controls'
+import { runVisibleEntrance, buildFloatbar } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { escapeHtml } from '@/utils/escape-html'
 import { attachSehuatangOverlay } from './overlay'
 import { toSafeAbsoluteUrl } from './url'
@@ -96,24 +99,26 @@ function buildCategorySection(category: SehuatangCategory): HTMLElement {
 
 function buildHeader(stats: ReturnType<typeof extractIndexStats>): HTMLElement {
   const header = el('div', 'umm-sehuatang-header')
-  const info = el('div', 'umm-header-info')
-  header.appendChild(info)
+
+  // 上行：站点统计（左，.umm-sht-context）｜ 右上角统计区——首页是导航层，
+  // 无「本页已看/本页隐藏」概念（用户裁决），故仅全局三段一个 box。
+  const rowContext = el('div', 'umm-sht-row umm-sht-row--context')
+  const context = el('div', 'umm-sht-context')
   if (stats) {
-    info.textContent = t('sht.index_stats', {
+    context.textContent = t('sht.index_stats', {
       today: stats.today,
       yesterday: stats.yesterday,
       posts: stats.posts,
       members: stats.members,
     })
   } else {
-    info.textContent = t('sht.index_title')
+    context.textContent = t('sht.index_title')
   }
+  rowContext.appendChild(context)
 
-  const actions = el('div', 'umm-sht-home-actions')
-
-  // 搜索框：原生 #scbar 搜索条被 overlay 取代后的重建（首页导航层，搜索最前置）。
-  actions.appendChild(buildSearchBox(document))
-
+  // 顶部居中簇（header top center）：仅 ☰ 菜单——row--context 三列网格的
+  // 中列（首页即当前页，不加 🏠 自链按钮）。
+  const center = el('div', 'umm-sht-center')
   const menuBtn = el('button', 'umm-sht-action')
   menuBtn.textContent = '☰'
   menuBtn.setAttribute('aria-haspopup', 'dialog')
@@ -124,8 +129,13 @@ function buildHeader(stats: ReturnType<typeof extractIndexStats>): HTMLElement {
       { label: t('Check Viewed Status'), onClick: () => showCheckViewedPanel() },
     ])
   }
-  actions.appendChild(menuBtn)
-  header.appendChild(actions)
+  center.appendChild(menuBtn)
+  rowContext.appendChild(center)
+
+  const statArea = el('div', 'umm-sht-stat-area')
+  statArea.appendChild(el('div', 'umm-sht-stats'))
+  rowContext.appendChild(statArea)
+  header.appendChild(rowContext)
   return header
 }
 
@@ -159,15 +169,35 @@ export async function runSehuatangIndexApp(): Promise<void> {
     // 隐藏原内容（DOM 保留，规避站点 SPA 行为）。
     hideOriginalContent()
 
-    // 重建 overlay 内容根。
-    const shell = el('div', 'umm-sht-shell')
+    // 重建 overlay 内容根（--island：挂岛页面，底部遮挡补偿 padding 生效）。
+    const shell = el('div', 'umm-sht-shell umm-sht-shell--island')
     shell.appendChild(buildHeader(stats))
 
     for (const category of categories) {
       shell.appendChild(buildCategorySection(category))
     }
+
+    // 底部「灵动岛」：首页导航层仅搜索入口（无分页/动作场景）。
+    const island = buildFloatbar(document, { search: true })
+    if (island) shell.appendChild(island.pill)
+
     overlay.mountContent(shell)
     runVisibleEntrance(shell)
+    // 下行统计行：UMM 全局三段（挂载完成后拉取——await 保证渲染完成时序
+    // 确定，不阻塞 overlay 首帧；失败降级保持空态，与列表页同纪律）。
+    const statsLine = shell.querySelector('.umm-sht-stats') as HTMLElement | null
+    if (statsLine) {
+      try {
+        const s = await AdultAvStore.stats()
+        if (statsLine.isConnected) {
+          statsLine.textContent = t('sht.global_stats', {
+            jp: String(s.jp),
+            us: String(s.us),
+            tid: String(s.tid),
+          })
+        }
+      } catch { /* 降级：统计不可用不阻断页面 */ }
+    }
     // 样式已就位（attachSehuatangOverlay 已注入完整 overlay CSS，包含 HOME_CSS）。
     console.log(`[UMM] Sehuatang index rendered: ${categories.length} categories, ${categories.reduce((n, c) => n + c.forums.length, 0)} sub-forums`)
   } catch (error) {

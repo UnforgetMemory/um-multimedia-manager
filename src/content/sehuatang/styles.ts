@@ -34,15 +34,21 @@ export function uslVarsForHost(): string {
 /** 网格与卡片（原 sehuatang.ts injectStyles）。导出供样式 spec 断言。 */
 export const GRID_CSS = `
 .umm-sht-shell { display: flex; flex-direction: column; min-height: 100%; background: var(--usl-surface); transition: background-color 0.3s ease; }
-/* 底部「灵动岛」悬浮栏仅列表页挂载（app.ts 的 mountSehuatangControls）；
-   遮挡补偿 padding 只作用列表页（.umm-sht-shell--list），首页/搜索页不多留白。
-   72px = 标准浮岛高度 + 上下安全间距（实测浮岛占位；safe-area-inset 兼容 iOS 手势区）。 */
-.umm-sht-shell--list { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+/* 底部「灵动岛」悬浮栏（buildFloatbar 统一合成）挂载于列表/首页/搜索页；
+   遮挡补偿 padding 作用任何挂岛页面（.umm-sht-shell--island），风控页无岛
+   不多留白。72px = 标准浮岛高度 + 上下安全间距（实测浮岛占位；
+   safe-area-inset 兼容 iOS 手势区）。 */
+.umm-sht-shell--island { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 .umm-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: clamp(14px, 2vw, 25px); padding: clamp(14px, 2.5vw, 28px); background: var(--usl-surface); transition: background-color 0.3s ease; }
-.umm-card { background: var(--usl-surface-raised); border-radius: 12px; border: 1px solid var(--usl-border); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.25); transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease; }
+.umm-card { background: var(--usl-surface-raised); border-radius: 12px; border: 1px solid var(--usl-border); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.25); transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, opacity 0.18s ease; }
 .umm-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0,0,0,0.32); }
-.umm-card.umm-viewed { opacity: 0.5; transition: opacity 0.3s ease; }
+/* dimmer 只改 opacity（过渡并入基类过渡表——原写法用 transition 整条覆盖，
+   会顺带杀死悬停位移/阴影动效，且切换时过渡表突变）；180ms 比 300ms 跟手感更好。 */
+.umm-card.umm-viewed { opacity: 0.5; }
 .umm-card.umm-viewed:hover { opacity: 1; }
+/* 批量上色免过渡（withDimBatch 单帧挂类）：几十张卡同帧落类不各播过渡，
+   避免「首屏 dim 慢」的长尾动画；撤销后单卡过渡照旧。 */
+.umm-sht-dim-batch .umm-card, .umm-sht-dim-batch .umm-card .umm-card-image img { transition: none; }
 .umm-card-image { aspect-ratio: 16/10; background: var(--usl-surface-hover); overflow: hidden; }
 .umm-card-image img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
 .umm-card-content { padding: clamp(10px, 1.4vw, 15px); display: flex; flex-direction: column; flex-grow: 1; gap: 4px; }
@@ -66,48 +72,98 @@ export const GRID_CSS = `
 export const CONTROLS_CSS = `
 .umm-sehuatang-header, .umm-sht-floatbar {
   --sht-pad-x: clamp(14px, 2.5vw, 32px);
-  --sht-pad-y: clamp(10px, 1.4vw, 18px);
-  --sht-gap: clamp(8px, 1.2vw, 16px);
+  /* 紧凑化：纵向留白与区域间距收紧（header 双行 + 岛内组件共用基准），
+     上下行间距与组件间隙同源 --sht-gap，消除区域间观感差异。 */
+  --sht-pad-y: clamp(6px, 0.9vw, 12px);
+  --sht-gap: clamp(6px, 1vw, 12px);
   --sht-font-caption: clamp(0.72rem, 0.68rem + 0.2vw, 0.875rem);
   --sht-font-body: clamp(0.8rem, 0.75rem + 0.25vw, 0.9375rem);
 }
 .umm-sehuatang-header { position: sticky; top: 0; z-index: 50; display: flex; flex-direction: column; gap: var(--sht-gap); padding: var(--sht-pad-y) var(--sht-pad-x); background: var(--usl-surface); border-bottom: 1px solid var(--usl-border); color: var(--usl-text-primary); transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
 .umm-sht-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sht-gap); min-width: 0; }
-.umm-sht-row--context { justify-content: space-between; }
+/* 上行三列网格：[左 1fr | 中 auto（top center 簇：🏠 + ☰）| 右 1fr]——
+   真正的水平居中（space-between 只是等距近似）；子项 min-width:0 允许长
+   文本换行不断列，末列靠右。 */
+.umm-sht-row--context { display: grid; grid-template-columns: 1fr auto 1fr; }
+.umm-sht-row--context > * { min-width: 0; }
+.umm-sht-row--context > :last-child { justify-self: end; }
+/* 顶部居中簇（首页 / 菜单按钮；三列网格的中列）。 */
+.umm-sht-center { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .umm-sht-row--nav { justify-content: space-between; }
-.umm-header-info { color: var(--usl-text-muted); font-size: var(--sht-font-caption); font-weight: 500; min-width: 0; }
+/* 右上角统计区：两个 box div —— 本页状态（.umm-header-info）+ 全局三段
+   （.umm-sht-stats）；margin-left:auto 把整组推到 header 右上角（窄屏随
+   row 的 flex-wrap 整组换行）。 */
+.umm-sht-stat-area { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-left: auto; min-width: 0; }
+.umm-header-info, .umm-sht-stats { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--usl-border); background: var(--usl-surface-raised); color: var(--usl-text-muted); font-size: var(--sht-font-caption); font-weight: 500; white-space: nowrap; }
+/* 左侧上下文文本（搜索页结果计数 + 过滤注记 / 首页站点统计；非 box）。 */
+.umm-sht-context { color: var(--usl-text-muted); font-size: var(--sht-font-caption); font-weight: 500; min-width: 0; }
 .umm-sht-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: var(--sht-font-caption); min-width: 0; }
 .umm-sht-crumb { color: var(--usl-accent); text-decoration: none; transition: color 0.15s ease; }
 .umm-sht-crumb:hover { color: var(--usl-text-primary); text-decoration: underline; }
 .umm-sht-crumb--current { color: var(--usl-text-secondary); font-weight: 600; }
 .umm-sht-crumb-sep { color: var(--usl-text-muted); opacity: 0.6; }
 .umm-sht-tabs { display: flex; flex: 1 1 auto; min-width: 0; gap: 8px; overflow-x: auto; scrollbar-width: thin; }
-.umm-sht-tab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); text-decoration: none; font-size: var(--sht-font-body); transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.umm-sht-tab { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); text-decoration: none; font-size: var(--sht-font-body); transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
 .umm-sht-tab:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
 .umm-sht-tab--active { background: var(--usl-fill-primary); border-color: transparent; color: var(--usl-ink-on-fill); font-weight: 700; }
 .umm-sht-tab-count { font-size: var(--sht-font-caption); color: var(--usl-text-muted); background: var(--usl-surface-hover); border-radius: 999px; padding: 1px 8px; transition: background-color 0.15s ease, color 0.15s ease; }
 .umm-sht-tab--active .umm-sht-tab-count { color: var(--usl-ink-on-fill); background: rgba(255, 255, 255, 0.22); }
-.umm-copy-btn { background: var(--usl-fill-primary); color: var(--usl-ink-on-fill); border: none; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: var(--sht-font-body); box-shadow: var(--usl-shadow-primary); transition: opacity 0.15s ease, background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; }
+.umm-copy-btn { background: var(--usl-fill-primary); color: var(--usl-ink-on-fill); border: none; padding: 5px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: var(--sht-font-body); box-shadow: var(--usl-shadow-primary); transition: opacity 0.15s ease, background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; }
 .umm-copy-btn:not(:disabled):hover { opacity: 0.92; }
 .umm-copy-btn:disabled { background: var(--usl-surface-hover); color: var(--usl-text-muted); box-shadow: none; cursor: default; }
-.umm-sht-action { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); font-size: var(--sht-font-body); cursor: pointer; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
+.umm-sht-action { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); font-size: var(--sht-font-body); cursor: pointer; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
 .umm-sht-action:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
 .umm-sht-searchbox { display: flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; }
-.umm-sht-search-input { width: clamp(110px, 15vw, 220px); height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface); color: var(--usl-text-primary); font-size: var(--sht-font-body); transition: border-color 0.15s ease, background-color 0.3s ease, color 0.3s ease; }
+.umm-sht-search-input { width: clamp(110px, 15vw, 220px); height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface); color: var(--usl-text-primary); font-size: var(--sht-font-body); transition: border-color 0.15s ease, background-color 0.3s ease, color 0.3s ease; }
 .umm-sht-search-input::placeholder { color: var(--usl-text-muted); }
 .umm-sht-search-input:focus { outline: none; border-color: var(--usl-accent); }
 .umm-sht-search-btn { padding: 0 10px; }
 .umm-sht-pager { display: flex; align-items: center; gap: 6px; font-size: var(--sht-font-body); color: var(--usl-text-secondary); }
-.umm-sht-pg-nav, .umm-sht-pg-page { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
+.umm-sht-pg-nav, .umm-sht-pg-page { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.3s ease; }
 .umm-sht-pg-nav:hover, .umm-sht-pg-page:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
 .umm-sht-pg-nav--disabled { opacity: 0.4; pointer-events: none; }
 .umm-sht-pg-page--current { background: var(--usl-fill-primary); border-color: transparent; color: var(--usl-ink-on-fill); font-weight: 700; }
 .umm-sht-pg-gap { color: var(--usl-text-muted); padding: 0 2px; }
-.umm-sht-pg-jump { width: 46px; height: 30px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface); color: var(--usl-text-primary); text-align: center; font-size: var(--sht-font-body); transition: border-color 0.15s ease, background-color 0.3s ease, color 0.3s ease; }
+.umm-sht-pg-jump { width: 46px; height: 28px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface); color: var(--usl-text-primary); text-align: center; font-size: var(--sht-font-body); transition: border-color 0.15s ease, background-color 0.3s ease, color 0.3s ease; }
 .umm-sht-pg-jump:focus { outline: none; border-color: var(--usl-accent); }
 .umm-sht-pg-total { color: var(--usl-text-muted); font-size: var(--sht-font-caption); white-space: nowrap; }
-.umm-sht-floatbar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px clamp(10px, 1.6vw, 14px); border-radius: 999px; background: color-mix(in srgb, var(--usl-surface) 88%, transparent); border: 1px solid var(--usl-border); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); backdrop-filter: blur(12px); z-index: 2147483000; max-width: 96vw; overflow-x: auto; transition: background-color 0.3s ease, border-color 0.3s ease; }
-.umm-sht-floatbar .umm-sht-pager { flex-wrap: nowrap; }
+/* overflow-x: clip（而非 auto）——auto 会把 overflow-y 隐式提升为 auto，令岛
+   变成双向滚动容器、裁切摩天轮上下滚动的两舱；clip 不触发提升，纵向溢出不裁切
+   （横向兜底仍为裁切，窄屏页数压缩由 ≤640px 规则负责）。 */
+.umm-sht-floatbar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px clamp(10px, 1.5vw, 14px); border-radius: 999px; background: color-mix(in srgb, var(--usl-surface) 88%, transparent); border: 1px solid var(--usl-border); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); backdrop-filter: blur(12px); z-index: 2147483000; max-width: 96vw; overflow-x: clip; transition: background-color 0.3s ease, border-color 0.3s ease; }
+/* 岛内控件统一胶囊圆角：与胶囊形岛体外形收敛（消除「方控件嵌圆岛」的不协调）。 */
+.umm-sht-floatbar .umm-sht-action, .umm-sht-floatbar .umm-sht-search-input, .umm-sht-floatbar .umm-sht-pg-nav, .umm-sht-floatbar .umm-sht-pg-page, .umm-sht-floatbar .umm-sht-pg-jump { border-radius: 999px; }
+/* 岛内分页组收紧（页码串更长，窄屏优先保页码与 ‹ › 图标）。 */
+.umm-sht-floatbar .umm-sht-pager { flex-wrap: nowrap; gap: 4px; }
+/* 岛内键盘焦点环（岛悬浮于内容之上，默认 outline 易被裁切）。 */
+.umm-sht-floatbar :focus-visible { outline: 2px solid var(--usl-accent); outline-offset: 2px; }
+/* 岛内搜索框：静息收窄（搜索 + 分页同排 96vw 预算内不溢出）；focus 动效
+   自适应——宽度平滑展开至输入舒适区，blur 收回。 */
+.umm-sht-floatbar .umm-sht-search-input { width: clamp(96px, 12vw, 160px); transition: width 0.25s ease, border-color 0.15s ease, background-color 0.3s ease; }
+.umm-sht-floatbar .umm-sht-search-input:focus { width: clamp(140px, 26vw, 240px); }
+/* 摩天轮舞台：搜索舱恒上、分页舱恒下（data-umm-slot 唯一决定位置）——切换时
+   一舱滚出、另一舱滚入，单次赋值即完成方向正确的过渡；隐藏舱 absolute 不占位，
+   并置 visibility:hidden（不可聚焦/读屏不可达；延迟到淡出结束才生效，不打断动画）。
+   min-width 让两舱宽度差异收敛、切换时岛宽跳变变小。 */
+.umm-sht-island-stage { position: relative; display: flex; align-items: center; justify-content: center; min-width: clamp(172px, 26vw, 240px); }
+.umm-sht-island-stage > * { transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.34, 1.3, 0.64, 1); }
+.umm-sht-island-stage > [data-umm-slot="active"] { position: relative; visibility: visible; opacity: 1; transform: translateY(0) scale(1); transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.34, 1.3, 0.64, 1), visibility 0s linear 0s; }
+/* 隐藏舱用 inset:0 铺满同一舱位 + 内部 flex 居中——几何与激活舱完全一致
+   （relative ↔ absolute 不可动画，若用 left/top 锚定会在切换瞬间跳位）。 */
+.umm-sht-island-stage > [data-umm-slot="hidden-up"] { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transform: translateY(-140%) scale(0.9); pointer-events: none; transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.34, 1.3, 0.64, 1), visibility 0s linear 0.38s; }
+.umm-sht-island-stage > [data-umm-slot="hidden-down"] { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transform: translateY(140%) scale(0.9); pointer-events: none; transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.34, 1.3, 0.64, 1), visibility 0s linear 0.38s; }
+/* 轮替控件：⇅ 一键在两舱之间轮替。 */
+.umm-sht-island-switch { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border-radius: 999px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface-raised); color: var(--usl-text-secondary); font-size: var(--sht-font-body); cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; }
+.umm-sht-island-switch:hover { border-color: var(--usl-accent); color: var(--usl-text-primary); }
+@media (prefers-reduced-motion: reduce) {
+  .umm-sht-island-stage > * { transition: none; }
+}
+/* 窄屏防溢出：计数器与跳转输入是岛内最宽的非关键项，≤640px 隐藏（页码 +
+   ‹ › 上下页图标保留，导航能力不降级）；横向裁切（overflow-x: clip）仅作
+   最后兜底，不引入滚动条。 */
+@media (max-width: 640px) {
+  .umm-sht-floatbar .umm-sht-pg-total, .umm-sht-floatbar .umm-sht-pg-jump { display: none; }
+}
 `
 
 /** 动效（原 sehuatang-effects.ts injectEffectsStyles）：模糊揭示 + 已看灰度 + 入场级联 + 悬浮栏入场。 */
@@ -118,6 +174,9 @@ export const EFFECTS_CSS = `
 .umm-card.umm-sht-revealed .umm-card-image img { filter: blur(0) saturate(1); transform: scale(1); }
 .umm-card.umm-sht-revealed:hover .umm-card-image img { transform: scale(1.05); }
 .umm-card.umm-viewed .umm-card-image img { filter: grayscale(55%) saturate(0.45) blur(14px); }
+/* 已看态图片过渡缩短（0.5s → 0.22s）：blur/grayscale 的 filter 插值是 dim 动画
+   最贵的一段，缩短后批量上色与单卡 dim 都更跟手（揭示动效仍走 0.5s 基类）。 */
+.umm-card.umm-viewed .umm-card-image img { transition-duration: 0.22s; }
 .umm-card.umm-viewed.umm-sht-revealed .umm-card-image img { filter: grayscale(0%) saturate(1); }
 .umm-card-image::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(18, 20, 26, 0.45), rgba(18, 20, 26, 0.72)); opacity: 1; transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; }
 .umm-card.umm-sht-revealed .umm-card-image::after { opacity: 0; }
@@ -153,8 +212,6 @@ export const SEARCH_CSS = `
 .umm-sht-search-foot { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--usl-text-muted); font-size: clamp(0.7rem, 0.65rem + 0.2vw, 0.78rem); }
 .umm-sht-search-when { font-variant-numeric: tabular-nums; }
 .umm-sht-search-author { color: var(--usl-text-secondary); }
-.umm-sht-search-actions { display: flex; align-items: center; gap: 8px; }
-.umm-sht-search-pager { padding: clamp(10px, 1.4vw, 18px) clamp(14px, 2.5vw, 28px); display: flex; justify-content: center; }
 `
 
 /**
@@ -180,7 +237,6 @@ export const HOME_CSS = `
 .umm-sht-home-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--usl-text-muted); font-size: clamp(0.7rem, 0.65rem + 0.2vw, 0.78rem); }
 .umm-sht-home-pill { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; background: var(--usl-fill-primary); color: var(--usl-ink-on-fill); font-weight: 700; font-size: clamp(0.68rem, 0.63rem + 0.2vw, 0.74rem); }
 .umm-sht-home-last { color: var(--usl-text-muted); font-size: clamp(0.68rem, 0.63rem + 0.2vw, 0.76rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.umm-sht-home-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 `
 
 /**

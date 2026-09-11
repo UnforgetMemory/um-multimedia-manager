@@ -12,6 +12,8 @@ import {
   buildActions,
   buildSearchUrl,
   buildSearchBox,
+  buildFloatbar,
+  withDimBatch,
   mountSehuatangControls,
   paintSehuatangBackground,
   countSehuatangCardStates,
@@ -212,6 +214,9 @@ test.describe('构建器（JSDOM smoke）', () => {
     const first = bar.firstElementChild!
     expect(first.className).toContain('umm-sht-pg-nav--disabled')
     expect(first.getAttribute('href')).toBeNull()
+    // 上下页图标按钮（‹ ›）带 aria-label（图标化去文字后读屏/悬浮文案兜底）。
+    expect(first.getAttribute('aria-label')).toBe('上一页')
+    expect(bar.querySelector('a.umm-sht-pg-nav')!.getAttribute('aria-label')).toBe('下一页')
     expect(bar.querySelector('.umm-sht-pg-page--current')!.textContent).toBe('1')
     expect(bar.querySelector('.umm-sht-pg-page--current')!.getAttribute('aria-current')).toBe('page')
     expect(bar.querySelector('.umm-sht-pg-gap')!.textContent).toBe('…')
@@ -281,7 +286,8 @@ test.describe('mountSehuatangControls 编排', () => {
     </div>
     <div id="hdr" class="umm-sehuatang-header">
       <div class="umm-header-info">info</div>
-      <div><button class="umm-copy-btn">copy</button><button class="umm-sht-action">☰</button></div>
+      <div class="umm-sht-center"><a class="umm-sht-action umm-sht-home-btn" href="forum.php">🏠</a><button class="umm-sht-action">☰</button></div>
+      <div><button class="umm-copy-btn">copy</button></div>
     </div>`
 
   function mountedDom(html: string = FULL_HTML) {
@@ -290,7 +296,7 @@ test.describe('mountSehuatangControls 编排', () => {
     return { dom, header }
   }
 
-  test('原版元素全部隐藏；双行 header 结构（上下文行 + 导航行）；底部灵动岛齐备', () => {
+  test('原版元素全部隐藏；双行 header 结构（上下文行 + 导航行）；顶部居中簇；底部灵动岛齐备', () => {
     const { dom, header } = mountedDom()
     mountSehuatangControls(dom.window.document, header)
     const doc = dom.window.document
@@ -301,7 +307,7 @@ test.describe('mountSehuatangControls 编排', () => {
     const bottomPgs = doc.getElementById('fd_page_bottom')!.closest('.pgs') as HTMLElement
     expect(bottomPgs.style.display).toBe('none')
 
-    // 双行结构：上行 = 面包屑 + 统计信息；下行 = 选项卡 + 操作组。
+    // 双行结构：上行 = 面包屑 + 居中簇 + 统计信息（三列）；下行 = 选项卡 + 操作组。
     const rows = Array.from(header.children)
     expect(rows).toHaveLength(2)
     const rowContext = rows[0] as HTMLElement
@@ -309,19 +315,31 @@ test.describe('mountSehuatangControls 编排', () => {
     expect(rowContext.className).toContain('umm-sht-row--context')
     expect(rowContext.querySelector('.umm-sht-breadcrumb')).not.toBeNull()
     expect(rowContext.querySelector('.umm-header-info')).not.toBeNull()
+    // 中列 = 顶部居中簇（🏠 首页 + ☰ 菜单，从 actions 中拆出）
+    const center = rowContext.querySelector('.umm-sht-center') as HTMLElement
+    expect(center).not.toBeNull()
+    expect(Array.from(center.children).map((n) => n.textContent)).toEqual(['🏠', '☰'])
     expect(rowNav.className).toContain('umm-sht-row--nav')
     expect(rowNav.querySelector('.umm-sht-tabs')).not.toBeNull()
-    expect(header.querySelectorAll('a.umm-sht-action')).toHaveLength(1)
-    // 按钮 = 🔍 搜索（overlay 搜索框重建）+ 发新帖 + ☰ 菜单。
-    expect(header.querySelectorAll('button.umm-sht-action')).toHaveLength(3)
-    // 操作组内次要动作置前（返回/发新帖在复制磁力之前；☰ 菜单殿后）。
+    expect(header.querySelectorAll('a.umm-sht-action')).toHaveLength(2) // 返回 + 🏠
+    // 按钮 = 发新帖 + ☰（搜索框在岛内；🏠 为链接不计入）
+    expect(header.querySelectorAll('button.umm-sht-action')).toHaveLength(2)
+    // 操作组 = 返回 / 发新帖 / 复制磁力（☰ 已上移居中簇，不再殿后）。
     const navActions = header.querySelector('.umm-sht-row--nav')!.lastElementChild!
     const actionNodes = Array.from(navActions.children)
-    expect(actionNodes.map((n) => (n as HTMLElement).className)).toEqual(['umm-sht-action', 'umm-sht-action', 'umm-copy-btn', 'umm-sht-action'])
+    expect(actionNodes.map((n) => (n as HTMLElement).className)).toEqual(['umm-sht-action', 'umm-sht-action', 'umm-copy-btn'])
 
+    // 底部灵动岛（buildFloatbar 统一合成 + 摩天轮轮替）：有分页 → 默认展示
+    // 分页舱（策略性优先），搜索舱悬于上方待轮替，⇅ 一键切换。
     const pill = doc.getElementById('umm-sht-floatbar')!
     expect(pill.querySelector('.umm-sht-pager')).not.toBeNull()
-    expect(pill.querySelectorAll('.umm-sht-action')).toHaveLength(2)
+    expect(pill.querySelector('.umm-sht-searchbox')).not.toBeNull()
+    expect(pill.querySelector('.umm-sht-island-stage')).not.toBeNull()
+    expect(pill.querySelector('.umm-sht-pager')!.getAttribute('data-umm-slot')).toBe('active')
+    expect(pill.querySelector('.umm-sht-searchbox')!.getAttribute('data-umm-slot')).toBe('hidden-up')
+    expect(pill.querySelector('.umm-sht-island-switch')).not.toBeNull()
+    expect(pill.querySelectorAll('.umm-sht-action')).toHaveLength(1) // 仅 🔍（搜索舱内）
+    expect(pill.querySelector('a.umm-sht-action')).toBeNull()
   })
 
   test('发新帖按钮 → 原版元素 click()（触发站点 showWindow 的接线点）', () => {
@@ -330,7 +348,7 @@ test.describe('mountSehuatangControls 编排', () => {
     const doc = dom.window.document
     let clicked = false
     ;(doc.getElementById('newspecial') as HTMLElement).click = () => { clicked = true }
-    // 首个 button.umm-sht-action 已是 🔍 搜索按钮，发新帖按文案精确选取。
+    // 搜索框已移岛，header 按钮序为 [发新帖, ☰]——仍按文案精确选取（结构漂移防御）。
     const postBtn = Array.from(header.querySelectorAll('button.umm-sht-action')).find((b) => b.textContent === '发新帖') as HTMLButtonElement
     postBtn.click()
     expect(clicked).toBe(true)
@@ -344,6 +362,70 @@ test.describe('mountSehuatangControls 编排', () => {
     expect(header.getAttribute('data-umm-sht-mounted')).toBeNull()
     expect(doc.getElementById('umm-sht-floatbar')).toBeNull()
     expect((doc.querySelector('#pt') as HTMLElement).style.display).toBe('')
+  })
+
+  test('岛内摩天轮轮替：⇅ 点击 → 搜索舱升起为 active、分页舱沉为 hidden-down（可反向切回）', () => {
+    const { dom, header } = mountedDom()
+    mountSehuatangControls(dom.window.document, header)
+    const pill = dom.window.document.getElementById('umm-sht-floatbar')!
+    const switchBtn = pill.querySelector('.umm-sht-island-switch') as HTMLButtonElement
+
+    switchBtn.click()
+    expect(pill.querySelector('.umm-sht-searchbox')!.getAttribute('data-umm-slot')).toBe('active')
+    expect(pill.querySelector('.umm-sht-pager')!.getAttribute('data-umm-slot')).toBe('hidden-down')
+    // 隐藏舱同时 aria-hidden（不可见即不可达：读屏/键盘不进隐藏舱）
+    expect(pill.querySelector('.umm-sht-searchbox')!.getAttribute('aria-hidden')).toBe('false')
+    expect(pill.querySelector('.umm-sht-pager')!.getAttribute('aria-hidden')).toBe('true')
+
+    switchBtn.click()
+    expect(pill.querySelector('.umm-sht-pager')!.getAttribute('data-umm-slot')).toBe('active')
+    expect(pill.querySelector('.umm-sht-searchbox')!.getAttribute('data-umm-slot')).toBe('hidden-up')
+    expect(pill.querySelector('.umm-sht-pager')!.getAttribute('aria-hidden')).toBe('false')
+    expect(pill.querySelector('.umm-sht-searchbox')!.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  test('buildFloatbar：仅搜索/仅分页 → 无舞台无轮替控件；全空 → null；不可切换时 show no-op', () => {
+    const dom = new JSDOM('<body></body>', { url: BASE_URL })
+    const doc = dom.window.document
+    expect(buildFloatbar(doc)).toBeNull()
+
+    const onlySearch = buildFloatbar(doc, { search: true })!
+    expect(onlySearch.mode).toBe('search')
+    expect(onlySearch.pill.querySelector('.umm-sht-island-stage')).toBeNull()
+    expect(onlySearch.pill.querySelector('.umm-sht-island-switch')).toBeNull()
+    expect(onlySearch.pill.querySelector('.umm-sht-searchbox')).not.toBeNull()
+
+    const pagerData: PaginationData = { current: 1, total: 3, prevHref: '', nextHref: '', pages: [], jumpTemplate: '' }
+    const onlyPager = buildFloatbar(doc, { pager: buildPager(doc, pagerData) })!
+    expect(onlyPager.mode).toBe('pager')
+    expect(onlyPager.pill.querySelector('.umm-sht-island-stage')).toBeNull()
+    onlyPager.show('search')
+    expect(onlyPager.mode).toBe('pager') // 不可切换时 no-op
+  })
+
+  test('withDimBatch：批量期间挂免过渡类（rAF 后撤销）；嵌套调用只排一次撤销', () => {
+    const dom = new JSDOM('<body><div class="umm-preview-grid"></div></body>', { url: BASE_URL })
+    const grid = dom.window.document.querySelector('.umm-preview-grid') as HTMLElement
+    const g = globalThis as unknown as { requestAnimationFrame?: unknown }
+    const saved = g.requestAnimationFrame
+    const callbacks: Array<() => void> = []
+    g.requestAnimationFrame = (cb: () => void) => { callbacks.push(cb); return callbacks.length }
+    try {
+      let classNameInside = ''
+      withDimBatch(grid, () => { classNameInside = grid.className })
+      // 批量期间（含 apply 内）已挂免过渡类；rAF 前仍在
+      expect(classNameInside).toContain('umm-sht-dim-batch')
+      expect(grid.classList.contains('umm-sht-dim-batch')).toBe(true)
+      expect(callbacks).toHaveLength(1)
+      // 嵌套：内层不重复挂类、不重复排撤销
+      withDimBatch(grid, () => {})
+      expect(callbacks).toHaveLength(1)
+      callbacks.forEach((cb) => cb())
+      expect(grid.classList.contains('umm-sht-dim-batch')).toBe(false)
+    } finally {
+      if (saved === undefined) delete g.requestAnimationFrame
+      else g.requestAnimationFrame = saved
+    }
   })
 
   test('幂等：重复调用不重复挂载（header 标志位 + 悬浮栏单例）', () => {

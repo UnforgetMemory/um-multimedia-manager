@@ -31,7 +31,7 @@ import { escapeHtml } from '@/utils/escape-html'
 import { throttle } from '@/utils'
 import { onEvent } from '@/utils/event-bus'
 import { FloatingToast } from '@/entrypoints/content/utils/toast'
-import { mountSehuatangControls, countSehuatangCardStates, markCardsViewed, setGridHideViewed, dimCardsVisually, runVisibleEntrance } from '@/entrypoints/content/handlers/sehuatang-controls'
+import { mountSehuatangControls, countSehuatangCardStates, markCardsViewed, setGridHideViewed, dimCardsVisually, runVisibleEntrance, buildHomeLink, withDimBatch } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu'
 import { initImageReveal, runCardEntrance } from '@/entrypoints/content/handlers/sehuatang-effects'
 import { partitionInitialVisible, parseThreadRow, collectNewThreadRows, collectThreadTrackKeys, shouldDimOnNavigate, type SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
@@ -85,23 +85,31 @@ let activeUnsubscribeEvents: (() => void) | null = null
  */
 let visuallyMarked = new WeakSet<HTMLElement>()
 
-/** 统计刷新（节流 trailing 250ms，合并高频触发；历史数走缓存）。 */
+/** 统计刷新（节流 trailing 120ms，合并高频触发；历史数走缓存）。
+ *  120ms 是「点击 dim 后『本页已看』数字几乎无感跟进」与「合并连续触发」的折中
+ *  （原 250ms 在连续复制/分页场景有明显数字滞后）。 */
 const throttledRefreshStats = throttle((headerEl: HTMLElement, grid: HTMLElement) => {
   refreshHeaderStats(headerEl, grid)
-}, 250)
+}, 120)
 
 function refreshHeaderStats(headerEl: HTMLElement, grid: HTMLElement) {
   const infoEl = headerEl.querySelector('.umm-header-info') as HTMLElement | null
   if (!infoEl) return
+  const statsEl = headerEl.querySelector('.umm-sht-stats') as HTMLElement | null
   const { watched } = countSehuatangCardStates(grid)
   const render = () => {
-    infoEl.textContent = t('Header Info', {
+    // 两个 box 分写：本页状态（已看/隐藏）与全局三段（日系/欧美/帖子）。
+    infoEl.textContent = t('sht.page_box', {
       watched: String(watched),
       hidden: String(hiddenAtMount),
-      jp: String(statsCache?.jp ?? 0),
-      us: String(statsCache?.us ?? 0),
-      tid: String(statsCache?.tid ?? 0),
     })
+    if (statsEl) {
+      statsEl.textContent = t('sht.global_stats', {
+        jp: String(statsCache?.jp ?? 0),
+        us: String(statsCache?.us ?? 0),
+        tid: String(statsCache?.tid ?? 0),
+      })
+    }
   }
   render()
   if (statsCache === null && !statsLoading) {
@@ -270,12 +278,20 @@ function cardTrackKeys(card: HTMLElement): string[] {
  *      否则删除不生效，且「本页已看」与三段统计自相矛盾。
  */
 function applyWatchedClasses(grid: HTMLElement, watchedIds: Set<string>, preserveVisualMarks = true): void {
-  for (const card of Array.from(grid.querySelectorAll('.umm-card[data-avid], .umm-card[data-tid]')) as HTMLElement[]) {
-    const visual = preserveVisualMarks && visuallyMarked.has(card)
-    const watched = visual || cardTrackKeys(card).some((key) => watchedIds.has(key.toUpperCase()))
-    card.classList.toggle('umm-viewed', watched)
-    if (!watched) visuallyMarked.delete(card)
-  }
+  // 批量免过渡（withDimBatch）：几十张卡同帧落类不再各播 0.18s/0.22s 过渡
+  // （首屏 dim 观感「慢」的主因）；键判定内联，避免逐卡分配临时数组。
+  withDimBatch(grid, () => {
+    for (const card of Array.from(grid.querySelectorAll('.umm-card[data-avid], .umm-card[data-tid]')) as HTMLElement[]) {
+      const visual = preserveVisualMarks && visuallyMarked.has(card)
+      const avid = card.getAttribute('data-avid')
+      const tid = card.getAttribute('data-tid')
+      const watched = visual
+        || (avid !== null && avid !== '' && watchedIds.has(avid.toUpperCase()))
+        || (tid !== null && tid !== '' && watchedIds.has(tid.toUpperCase()))
+      card.classList.toggle('umm-viewed', watched)
+      if (!watched) visuallyMarked.delete(card)
+    }
+  })
 }
 
 /**
@@ -419,9 +435,18 @@ function buildHeader(shell: HTMLElement, grid: HTMLElement, loader: DetailLoader
   const header = document.createElement('div')
   header.className = 'umm-sehuatang-header'
 
+  // 右上角统计区：两个 box div——本页状态（.umm-header-info）+ 全局三段
+  // （.umm-sht-stats）；整组由 row--context 的 margin-left:auto 推至右上角
+  // （mount 时整组入行）。置于 actions 之前：mount 以 lastElementChild 取 actions。
+  const statArea = document.createElement('div')
+  statArea.className = 'umm-sht-stat-area'
   const info = document.createElement('div')
   info.className = 'umm-header-info'
-  header.appendChild(info)
+  const statsBox = document.createElement('div')
+  statsBox.className = 'umm-sht-stats'
+  statArea.appendChild(info)
+  statArea.appendChild(statsBox)
+  header.appendChild(statArea)
 
   const actions = document.createElement('div')
   actions.style.cssText = 'display:flex; gap:8px; align-items:center'
@@ -512,8 +537,14 @@ function buildHeader(shell: HTMLElement, grid: HTMLElement, loader: DetailLoader
       },
     ])
   }
-  actions.appendChild(menuBtn)
+  // 顶部居中簇（header top center）：🏠 首页 + ☰ 菜单——row--context 三列
+  // 网格的中列；其余动作（返回/发新帖/复制磁力）留在 nav 行右对齐。
+  const center = document.createElement('div')
+  center.className = 'umm-sht-center'
+  center.appendChild(buildHomeLink(document))
+  center.appendChild(menuBtn)
 
+  header.appendChild(center)
   header.appendChild(actions)
   shell.insertBefore(header, shell.firstChild)
   return header
@@ -572,10 +603,11 @@ export async function runSehuatangOverlayApp(): Promise<void> {
   threadList.style.display = 'none'
 
   // overlay 内容根：壳（header + 网格）单帧挂载，替换 loading 骨架。
-  // --list 修饰类：底部「灵动岛」浮岛仅列表页挂载，遮挡补偿 padding
-  // （GRID_CSS 的 padding-bottom）只作用列表页，首页/搜索页不多留白。
+  // --island 修饰类：列表页挂载「灵动岛」（搜索+分页+动作，buildFloatbar
+  // 统一合成），遮挡补偿 padding（GRID_CSS 的 padding-bottom）作用任何挂岛
+  // 页面；风控页无岛不多留白。
   const shell = document.createElement('div')
-  shell.className = 'umm-sht-shell umm-sht-shell--list'
+  shell.className = 'umm-sht-shell umm-sht-shell--island'
   const grid = document.createElement('div')
   grid.className = 'umm-preview-grid'
   shell.appendChild(grid)
