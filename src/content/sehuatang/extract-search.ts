@@ -46,6 +46,26 @@ export interface SehuatangSearchResult {
   postedAt: string | null
   /** 站点摘要位原文（多数条目 = 「内容隐藏需要…」提示，老帖 = 内容预览），无 → null。 */
   preview: string | null
+  /**
+   * 所在分区 id（解析自「版块链接」`forum-<id>-<page>.html`），无 → null。
+   * **仅作无关分区噪音过滤依据（isSearchNoiseForum），不渲染**——「版块链接」
+   * 本身是用户已识别的无用分区噪音。
+   */
+  forumId: number | null
+}
+
+/**
+ * 无关分区噪音清单（搜索结果过滤用）。
+ *
+ * 事实源：.localref 搜索夹具逐条核实——forum-143 =「求片问答悬赏区」（用户
+ * 裁决：与记录管理无关的无意义内容）；同夹具中 forum-95 =「综合讨论区」为
+ * 正常分区，**不在此列**。扩展点：后续再识别出无关分区 → 在此追加 id。
+ */
+export const SEARCH_NOISE_FORUM_IDS: ReadonlySet<number> = new Set([143])
+
+/** 噪音分区判定（纯函数，JSDOM 可测）：null 恒为正常（无分区信息不过滤）。 */
+export function isSearchNoiseForum(forumId: number | null): boolean {
+  return forumId !== null && SEARCH_NOISE_FORUM_IDS.has(forumId)
 }
 
 /** 计数解析：「507」/「1.2万」→ 数值（万 → ×10000 取整）；非数字 → null。 */
@@ -118,6 +138,15 @@ export function parseSearchResultRow(li: Element): SehuatangSearchResult | null 
     }
   }
 
+  // 所在分区 id：夹具核实「版块链接」与时间/作者同段（`forum-<id>-<page>.html`）。
+  // 取 li 内首个命中即可（结果条目只有一个分区归属）。
+  let forumId: number | null = null
+  const forumLink = li.querySelector('a[href*="forum-"]')
+  if (forumLink) {
+    const fm = /forum-(\d+)-\d+\.html/i.exec(forumLink.getAttribute('href') ?? '')
+    if (fm) forumId = Number.parseInt(fm[1]!, 10)
+  }
+
   return {
     tid,
     title,
@@ -129,6 +158,7 @@ export function parseSearchResultRow(li: Element): SehuatangSearchResult | null 
     author,
     postedAt,
     preview,
+    forumId,
   }
 }
 

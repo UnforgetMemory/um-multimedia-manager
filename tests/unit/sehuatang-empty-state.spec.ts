@@ -114,4 +114,16 @@ test.describe('buildEmptyState — 结构与文案', () => {
     expect(node.querySelector('.umm-sht-empty-title')?.textContent).toBe('全部已看过')
     expect(node.querySelector('.umm-sht-empty-hint')?.textContent).toContain('隐藏已阅')
   })
+
+  test('自定义文案（搜索页复用：无结果 / 全过滤）→ 标题与提示替换，默认文案不再出现', () => {
+    const doc = new JSDOM().window.document
+    const node = buildEmptyState(doc, { title: '没有搜索结果', hint: '换个关键词试试' })
+    expect(node.querySelector('.umm-sht-empty-title')?.textContent).toBe('没有搜索结果')
+    expect(node.querySelector('.umm-sht-empty-hint')?.textContent).toBe('换个关键词试试')
+    expect(node.querySelector('svg')).not.toBeNull()
+    expect(node.getAttribute('role')).toBe('status')
+    const filtered = buildEmptyState(doc, { title: '结果均来自无关分区', hint: '无关分区的帖子已自动过滤' })
+    expect(filtered.querySelector('.umm-sht-empty-title')?.textContent).toBe('结果均来自无关分区')
+    expect(filtered.querySelector('.umm-sht-empty-hint')?.textContent).toBe('无关分区的帖子已自动过滤')
+  })
 })

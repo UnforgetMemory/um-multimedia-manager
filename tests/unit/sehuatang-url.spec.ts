@@ -7,6 +7,7 @@ import {
   classifyPage,
   isOverlayPage,
   extractThreadTidFromUrl,
+  extractSearchKeyword,
 } from '@/content/sehuatang/url'
 
 /**
@@ -169,5 +170,35 @@ test.describe('isOverlayPage — overlay 接管判定（早期入口建壳依据
     expect(isOverlayPage('index')).toBe(true)
     expect(isOverlayPage('thread')).toBe(false)
     expect(isOverlayPage('other')).toBe(false)
+  })
+})
+
+test.describe('extractSearchKeyword — 搜索词回填（kw 优先 / srchtxt 兜底）', () => {
+  test('结果页 kw（夹具实态 URL）→ 自动解码百分号编码', () => {
+    // .localref 搜索夹具 `saved from url` 头的真实形态
+    const url = 'https://www.sehuatang.net/search.php?mod=forum&searchid=0&searchmd5=fb704cb5d4ecc619b41ae1eefcb881c8&orderby=lastpost&ascdesc=desc&searchsubmit=yes&kw=%E8%87%AA%E8%A1%8C%E6%89%93%E5%8C%85'
+    expect(extractSearchKeyword(url)).toBe('自行打包')
+  })
+
+  test('srchtxt 兜底（站点表单 / 本扩展 buildSearchUrl 生成形态）', () => {
+    expect(extractSearchKeyword('https://www.sehuatang.net/search.php?mod=forum&srchtxt=ABC-123&searchsubmit=yes')).toBe('ABC-123')
+  })
+
+  test('两者同时在场 → kw 优先', () => {
+    expect(extractSearchKeyword('https://www.sehuatang.net/search.php?mod=forum&srchtxt=old&kw=new')).toBe('new')
+  })
+
+  test('kw 为空值（kw= / kw=空格）→ 回退 srchtxt（|| 语义而非 ??）', () => {
+    expect(extractSearchKeyword('https://www.sehuatang.net/search.php?mod=forum&kw=&srchtxt=fallback')).toBe('fallback')
+    expect(extractSearchKeyword('https://www.sehuatang.net/search.php?mod=forum&kw=%20&srchtxt=fallback')).toBe('fallback')
+  })
+
+  test('无参数 / 仅空白 → 空串（调用方退化到 h2 关键词）', () => {
+    expect(extractSearchKeyword('https://www.sehuatang.net/search.php?mod=forum&searchsubmit=yes')).toBe('')
+    expect(extractSearchKeyword('https://www.sehuatang.net/search.php?mod=forum&kw=%20%20')).toBe('')
+  })
+
+  test('非法 URL → 空串（不抛错）', () => {
+    expect(extractSearchKeyword('not a url')).toBe('')
   })
 })

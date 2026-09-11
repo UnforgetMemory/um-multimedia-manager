@@ -126,6 +126,27 @@ export function isOverlayPage(kind: SehuatangPageKind): boolean {
 }
 
 /**
+ * 从搜索页 URL 提取关键词（搜索组件回填用）。
+ *
+ * 站点实态（.localref 搜索夹具 `saved from url` 头核实）：**结果页 URL 用
+ * `kw`**（`search.php?mod=forum&…&searchsubmit=yes&kw=自行打包`）；而站点搜索
+ * 表单/高级筛选链接与本扩展 buildSearchUrl 生成的是 `srchtxt`。两者都真实
+ * 存在 → **kw 优先、srchtxt 兜底**（URLSearchParams 自动解码百分号编码；
+ * 空值 `kw=` 视为缺省，同样回退 srchtxt——`||` 而非 `??`）。
+ * 解析失败 / 两者皆无 / 仅空白 → ''（调用方可再退化到页面「结果:」h2 关键词）。
+ */
+export function extractSearchKeyword(url: string): string {
+  try {
+    const u = new URL(url)
+    const kw = u.searchParams.get('kw')?.trim() ?? ''
+    const srchtxt = u.searchParams.get('srchtxt')?.trim() ?? ''
+    return kw || srchtxt
+  } catch {
+    return ''
+  }
+}
+
+/**
  * 相对 URL → 绝对化后再过 http(s) 协议白名单（自 app-home 内联工具收编，
  * 首页子版块链接/图标与风控页进入按钮兜底导航共用）。
  * 夹具/站点里的链接多为相对 URL（forum-2-1.html）——只做 `^https?://` 一刀切
