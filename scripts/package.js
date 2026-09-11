@@ -184,15 +184,19 @@ async function main() {
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n', 'utf-8')
     console.log('✓ Updated package.json')
     
-    // 同步 wxt.config.ts 的 manifest version（版本单一事实来源: package.json + wxt.config.ts）
+    // 同步 wxt.config.ts 的 VERSION 常量（版本单一事实来源: package.json + wxt.config.ts）
     // 注意: manifest.json 已不存在 — 版本由 wxt.config.ts 在构建时生成
+    // 匹配的是 `const VERSION = '<ver>'` 常量声明，而非 manifest 对象的
+    // `version:` 属性——后者是更早期的写法，改写成常量后此处一度失配并
+    // 静默跳过同步，导致 wxt.config.ts 与 package.json 版本漂移。
     const wxtConfig = readFileSync(wxtConfigPath, 'utf-8')
-    if (!wxtConfig.includes(`version: '${currentVersion}'`)) {
+    const wxtVersionPattern = `const VERSION = '${currentVersion}'`
+    if (!wxtConfig.includes(wxtVersionPattern)) {
       console.warn('⚠ wxt.config.ts does not contain the current version string; skipping sync')
     } else {
       const updatedWxt = wxtConfig.replace(
-        `version: '${currentVersion}'`,
-        `version: '${newVersion}'`,
+        wxtVersionPattern,
+        `const VERSION = '${newVersion}'`,
       )
       writeFileSync(wxtConfigPath, updatedWxt, 'utf-8')
       console.log('✓ Updated wxt.config.ts')
