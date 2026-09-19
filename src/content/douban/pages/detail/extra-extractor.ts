@@ -5,6 +5,7 @@
  * short comments, and book/music-specific sections.
  */
 import DOMPurify from 'dompurify'
+import { upgradeDoubanImageSrc } from '@/content/douban/shared/image-size'
 import type {
   CelebItem, PhotoItem, RecItem, ShortComment,
   BlockquoteItem, EditionItem,
@@ -103,7 +104,7 @@ export function extractRecItemsDom(): RecItem[] {
     if (!idMatch) return
     recItems.push({
       title: linkEl?.textContent?.trim() || img?.alt || '',
-      poster: (img?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/'),
+      poster: upgradeDoubanImageSrc(img?.src || ''),
       rating: rate,
       link: href,
       subjectId: idMatch[1],

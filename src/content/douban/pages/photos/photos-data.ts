@@ -4,6 +4,7 @@
  * Extracts photo items, pagination info, and page metadata from the native
  * Douban photos gallery page DOM. Called once at mount time from beforeMount().
  */
+import { upgradeDoubanImageSrc } from '@/content/douban/shared/image-size'
 
 export interface PhotoItem {
   id: string
@@ -112,7 +113,7 @@ function extractPhotos(): PhotoItem[] {
     if (!src || src.startsWith('data:')) {
       src = img?.getAttribute('data-src') || img?.getAttribute('src') || ''
     }
-            src = src.replace(/\/view\/photo\/[^/]+\/public\//, '/view/photo/xl/public/')
+            src = upgradeDoubanImageSrc(src)
 
     // Link to individual photo page
     const link = coverA?.href || ''
@@ -189,7 +190,7 @@ export function extractPhotosPageData(): PhotosPageData | null {
       if (!src || src.startsWith('data:')) {
         src = img.getAttribute('src') || ''
       }
-      src = src.replace(/\/view\/photo\/[^/]+\/public\//, '/view/photo/xl/public/')
+      src = upgradeDoubanImageSrc(src)
 
       photos.push({ id: photoId, src, link: href, caption: '', commentCount: '' })
     })

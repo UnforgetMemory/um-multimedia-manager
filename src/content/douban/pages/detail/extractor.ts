@@ -7,6 +7,7 @@
 import DOMPurify from 'dompurify'
 import { UrlResolverBuilder } from '@/shared/identity'
 import type { UrlIdentity } from '@/types'
+import { upgradeDoubanImageSrc } from '@/content/douban/shared/image-size'
 import type { RatingBar, MetaRow, AwardItem } from './types'
 
 /**
@@ -76,7 +77,7 @@ export function extractPosterRating(): {
   bigstarNum: string
 } {
   const posterImg = document.querySelector('#mainpic img') as HTMLImageElement | null
-  const posterSrc = (posterImg?.src || '').replace(/s_ratio_poster/g, 'xl').replace(/\/([slm])(?:pic)?\//g, '/xl/')
+  const posterSrc = upgradeDoubanImageSrc(posterImg?.src || '')
   const posterAlt = posterImg?.alt || ''
   const posterLink = (document.querySelector('#mainpic a') as HTMLAnchorElement)?.href || ''
 
