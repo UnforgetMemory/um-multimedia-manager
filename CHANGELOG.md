@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.16.1] - 2026-09-19
+
+### 修复与优化
+
+- **豆瓣 CDN 图片尺寸 xl→x**：大量豆瓣 CDN 图片不再支持 `xl` 尺寸，详情页海报/推荐封面与剧照图库升图目标改为 `x`；升图逻辑收敛为 `content/douban/shared/image-size.ts` 的 `DOUBAN_IMAGE_SIZE` 单一常量，后期只需改一行
+
 ## [5.16.0] - 2026-09-11
 
 ### 新增功能
