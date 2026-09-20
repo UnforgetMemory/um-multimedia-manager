@@ -109,6 +109,7 @@ export default defineConfig({
       '*://piggo.me/*',
       '*://www.bilibili.com/*',
       '*://search.bilibili.com/*',
+      '*://space.bilibili.com/*',
       '*://www.themoviedb.org/*',
       '*://bgm.tv/*',
       '*://bangumi.tv/*',
