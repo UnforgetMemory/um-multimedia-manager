@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.17.0] - 2026-09-20
+
+### 新增功能
+
+- **B站 listing dimmer 多页适配**：`bilibili-homepage` 覆盖 `space.bilibili.com` 个人空间（主页 / 合集列表 / 合集详情 / 投稿视频）与 `search.bilibili.com`；卡片识别优先 `data-bsb-bvid`（空间页），搜索页 href 兜底（含协议相对 `//www.bilibili.com/video/BV…`）；查询改为批量 `DB_GET_BULK`（`movie::` decision-3 键）；SPA 路由观察（pushState/replaceState/popstate + 轮询）；`wxt.config.ts` host_permissions 增加 space 域
+- **dimmer 样式手术式收窄**：注入 CSS 只作用 `.bili-video-card.umm-viewed` 与 JS 打点的 `.umm-bili-dim-shell`，**禁止**全局 cover `position:relative` 与 `:has` 外壳规则——实测会把搜索页 absolute thumbnail 打成 relative，造成卡片白块/布局错位；徽章仅在 computed `static` 的 anchor 上设 relative；外壳 dim 与卡片 dim **互斥**（shell XOR card，避免 opacity 嵌套相乘）
+
+### 测试
+
+- 新增 `bilibili-listing` 纯函数契约与 `bilibili-listing-layout` Chromium 布局用例（几何 / absolute thumb 回归 / 互斥 dim）
+
 ## [5.16.1] - 2026-09-19
 
 ### 修复与优化
