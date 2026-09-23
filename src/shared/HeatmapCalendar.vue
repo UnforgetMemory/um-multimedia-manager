@@ -4,6 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { Card, CardHeader, CardContent } from '@/shared/ui/card'
 import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
 import { dateKey } from '@/utils'
+import {
+  CELL_MIN_PX,
+  GRID_PAD_PX,
+  clampTipX,
+  pickRangeDaysForWidth,
+  type HeatmapRangeId,
+} from '@/utils/heatmap-range'
 
 const { t, locale } = useI18n()
 
@@ -13,7 +20,7 @@ const props = defineProps<{
 }>()
 
 /** Time range selector (days) — labels localized via common.daysCount */
-const rangeDays = ref<'90' | '150' | '365'>('90')
+const rangeDays = ref<HeatmapRangeId>('90')
 const rangeOptions = computed(() => [
   { id: '90', label: t('common.daysCount', { n: 90 }) },
   { id: '150', label: t('common.daysCount', { n: 150 }) },
@@ -27,7 +34,17 @@ function scrollToLatest() {
     if (el) el.scrollLeft = el.scrollWidth
   })
 }
-onMounted(scrollToLatest)
+
+/** Initial tier from container width; manual pick wins afterwards (no resize re-pick). */
+function applySmartDefaultRange() {
+  const width = scrollEl.value?.clientWidth ?? 0
+  if (width > 0) rangeDays.value = pickRangeDaysForWidth(width)
+}
+
+onMounted(() => {
+  applySmartDefaultRange()
+  scrollToLatest()
+})
 watch([rangeDays, () => props.records.length], scrollToLatest)
 
 const dayLabels = computed(() => [
@@ -93,7 +110,9 @@ const todayKey = dateKey(new Date())
 
 // ---- Shared tooltip (one glass bubble for the whole grid) ----
 const tip = ref({ show: false, x: 0, y: 0, below: false, date: '', text: '', color: 'var(--muted)' })
+const tipEl = useTemplateRef<HTMLElement>('tipEl')
 let hideTimer: ReturnType<typeof setTimeout> | null = null
+let tipSeq = 0
 
 function onTipOver(e: MouseEvent): void {
   const el = (e.target as HTMLElement).closest('.heatmap-cell') as HTMLElement | null
@@ -101,19 +120,34 @@ function onTipOver(e: MouseEvent): void {
   const count = Number(el.dataset.tipCount ?? 0)
   const r = el.getBoundingClientRect()
   const below = r.top < 96 // not enough headroom above → flip under the cell
+  const centerX = r.left + r.width / 2
+  const y = below ? r.bottom + 6 : r.top - 6
+  const date = el.dataset.tipDate
+  const text = count === 0 ? t('common.noActivity') : t('common.countActivity', count)
+  const color = el.dataset.tipColor ?? 'var(--muted)'
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-  tip.value = {
-    show: true,
-    x: r.left + r.width / 2,
-    y: below ? r.bottom + 6 : r.top - 6,
-    below,
-    date: el.dataset.tipDate,
-    text: count === 0 ? t('common.noActivity') : t('common.countActivity', count),
-    color: el.dataset.tipColor ?? 'var(--muted)',
-  }
+
+  const seq = ++tipSeq
+  // Size first (hidden), then reveal clamped — no edge flash or clipped bubble
+  tip.value = { show: false, x: centerX, y, below, date, text, color }
+  void nextTick(() => {
+    if (seq !== tipSeq) return
+    const w = tipEl.value?.offsetWidth ?? 0
+    tip.value = {
+      show: true,
+      x: w > 0 ? clampTipX(centerX, w, window.innerWidth) : centerX,
+      y,
+      below,
+      date,
+      text,
+      color,
+    }
+  })
 }
 
 function hideTip(): void {
+  // Cancel any pending reveal so a leave cannot be undone by nextTick
+  tipSeq++
   // small delay so crossing the 4px gaps between cells doesn't flicker
   if (hideTimer) clearTimeout(hideTimer)
   hideTimer = setTimeout(() => { tip.value.show = false }, 60)
@@ -155,7 +189,7 @@ const legendLevels = [0, 2, 4, 6, 8] as const
         @mouseover="onTipOver" @mouseleave="hideTip" @scroll="hideTip">
         <div class="heatmap-grid" :style="{
           '--weeks': calendarData.weeks.length,
-          minWidth: `calc(${calendarData.weeks.length} * 16px + 40px)`,
+          minWidth: `calc(${calendarData.weeks.length} * ${CELL_MIN_PX}px + ${GRID_PAD_PX}px)`,
           maxWidth: `calc(${calendarData.weeks.length} * 26px + 42px)`,
         }">
           <!-- Month timeline (row 1) -->
@@ -191,7 +225,7 @@ const legendLevels = [0, 2, 4, 6, 8] as const
 
       <!-- Shared glass tooltip (single instance, teleported to dodge clipping) -->
       <Teleport to="body">
-        <div class="heatmap-tip" :class="{ 'is-visible': tip.show, below: tip.below }" :aria-hidden="!tip.show" :style="{ left: `${tip.x}px`, top: `${tip.y}px` }">
+        <div ref="tipEl" class="heatmap-tip" :class="{ 'is-visible': tip.show, below: tip.below }" :aria-hidden="!tip.show" :style="{ left: `${tip.x}px`, top: `${tip.y}px` }">
           <span class="heatmap-tip-dot" :style="{ background: tip.color }" />
           <span class="heatmap-tip-date">{{ tip.date }}</span>
           <span class="heatmap-tip-count">{{ tip.text }}</span>
@@ -231,15 +265,13 @@ const legendLevels = [0, 2, 4, 6, 8] as const
   font-size: 11px;
   line-height: 1;
   white-space: nowrap;
+  max-width: calc(100vw - 16px);
   opacity: 0;
   transition: opacity var(--umm-static-duration-fast, 200ms) ease;
   transform: translate(-50%, calc(-100% - 6px));
 }
 .heatmap-tip.is-visible {
   opacity: 1;
-}
-.heatmap-tip.below {
-  transform: translate(-50%, 6px);
 }
 /* anchor point = cell edge; flip class moves the bubble under the cell */
 .heatmap-tip.below {
@@ -263,14 +295,19 @@ const legendLevels = [0, 2, 4, 6, 8] as const
   animation: umm-mount-fade var(--umm-static-duration-enter, 500ms) var(--umm-static-ease-emphasized, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 /* Fluid GitHub-style grid: label column + N week columns that share the
-   card width; capped so cells never balloon on wide cards; centered. */
+   card width; capped so cells never balloon on wide cards; centered.
+   border-box + inline pad keeps cells off the card content edges without
+   inflating the min-width formula used by pickRangeDaysForWidth. */
 .heatmap-grid {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 18px repeat(var(--weeks), minmax(0, 1fr));
   grid-template-rows: 16px repeat(7, auto);
   gap: 4px;
   width: 100%;
   margin: 0 auto;
+  padding-inline: 8px;
+  padding-bottom: 8px;
 }
 .heatmap-month {
   position: relative;
