@@ -32,6 +32,8 @@ const RATE_LIMIT_RETRY_BACKOFF_MS = 10_000
 
 export class DataScheduler {
   readonly queue = new PriorityQueue()
+  /** Long-running lane (export/stats/WebDAV) — serial, isolated from interactive. */
+  readonly bulkQueue = new PriorityQueue()
   readonly rateLimiter = new RateLimiter()
   readonly retryPolicy = new RetryPolicy()
   readonly monitor = new SchedulerMonitor()
@@ -39,6 +41,7 @@ export class DataScheduler {
   readonly cacheManager?: CacheManager
 
   private processing = false
+  private bulkProcessing = false
   private taskCounter = 0
   private readonly rateLimitBackoffMs: number
 
@@ -62,6 +65,7 @@ export class DataScheduler {
     const priority = options?.priority ?? DEFAULT_PRIORITY
     const timeout = options?.timeout ?? DEFAULT_TASK_TIMEOUT
     const cacheKey = options?.cacheKey
+    const lane = options?.lane ?? 'interactive'
     const taskId = `task_${++this.taskCounter}_${Date.now()}`
 
     // Cache check (before enqueuing)
@@ -114,13 +118,15 @@ export class DataScheduler {
         reject,
       }
 
-      if (!this.queue.enqueue(task as QueuedTask)) {
-        reject(new Error(`Queue full (max ${this.queue.size()})`))
+      const target = lane === 'bulk' ? this.bulkQueue : this.queue
+      if (!target.enqueue(task as QueuedTask)) {
+        reject(new Error(`Queue full (max ${target.size()})`))
         return
       }
 
-      this.monitor.setQueueDepth(this.queue.size())
-      this.scheduleProcessLoop()
+      this.monitor.setQueueDepth(this.queue.size() + this.bulkQueue.size())
+      if (lane === 'bulk') this.scheduleBulkLoop()
+      else this.scheduleProcessLoop()
     })
   }
 
@@ -131,7 +137,16 @@ export class DataScheduler {
 
   /** Discard all queued tasks and cached data. Metrics survive unless cleared. */
   clear(): void {
-    this.queue.clear()
+    // Reject rather than drop: a vanished promise hangs the caller forever.
+    const drain = (q: PriorityQueue) => {
+      for (;;) {
+        const t = q.dequeue()
+        if (!t) break
+        t.reject(new Error('Scheduler cleared'))
+      }
+    }
+    drain(this.queue)
+    drain(this.bulkQueue)
     this.cacheManager?.invalidate('scheduler')
   }
 
@@ -147,12 +162,18 @@ export class DataScheduler {
     this.processing = true
 
     // Use microtask / macrotask scheduling to avoid stack buildup
-    Promise.resolve().then(() => this.processLoop())
+    Promise.resolve().then(() => this.processLoop(this.queue, 'interactive'))
   }
 
-  private async processLoop(): Promise<void> {
+  private scheduleBulkLoop(): void {
+    if (this.bulkProcessing) return
+    this.bulkProcessing = true
+    Promise.resolve().then(() => this.processLoop(this.bulkQueue, 'bulk'))
+  }
+
+  private async processLoop(queue: PriorityQueue, lane: 'interactive' | 'bulk'): Promise<void> {
     try {
-      while (!this.queue.isEmpty()) {
+      while (!queue.isEmpty()) {
         // Rate-limit check — blocks until a token is available
         try {
           await this.rateLimiter.acquire()
@@ -163,14 +184,21 @@ export class DataScheduler {
           continue
         }
 
-        const task = this.queue.dequeue() as QueuedTask | null
+        const task = queue.dequeue() as QueuedTask | null
         if (!task) continue
 
         await this.executeTask(task)
-        this.monitor.setQueueDepth(this.queue.size())
+        this.monitor.setQueueDepth(this.queue.size() + this.bulkQueue.size())
       }
     } finally {
-      this.processing = false
+      if (lane === 'bulk') this.bulkProcessing = false
+      else this.processing = false
+      // Lost-wakeup: an enqueue can land after isEmpty() but before the flag
+      // flip — without this restart the item sits until the next schedule().
+      if (!queue.isEmpty()) {
+        if (lane === 'bulk') this.scheduleBulkLoop()
+        else this.scheduleProcessLoop()
+      }
     }
   }
 

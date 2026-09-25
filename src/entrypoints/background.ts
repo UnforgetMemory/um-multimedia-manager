@@ -332,20 +332,20 @@ export default defineBackground({
             // Full-library scan (getAllStores, 8 stores) routinely exceeds the
             // 8s default — a mid-scan task kill leaves orphaned IDB
             // transactions and surfaces a bogus error. 60s matches IMPORT/WEBDAV.
-            await dataScheduler.schedule(() => handleExportData(message.payload, sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleExportData(message.payload, sendResponse), { priority: 'MEDIUM', timeout: 60_000, lane: 'bulk' })
             break
           case 'IMPORT_DATA':
-            await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleImportData(message.payload, sendResponse), { priority: 'HIGH', timeout: 60_000, lane: 'bulk' })
             break
 
           // ==================== Statistics ====================
           case 'GET_STATISTICS':
-            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleGetStatistics(sendResponse), { priority: 'MEDIUM', timeout: 60_000, lane: 'bulk' })
             break
 
           // ==================== Popup Data ====================
           case 'GET_ALL_RECORDS':
-            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleGetAllRecords(sendResponse), { priority: 'MEDIUM', timeout: 60_000, lane: 'bulk' })
             break
 
           // ==================== Utility ====================
@@ -361,13 +361,13 @@ export default defineBackground({
             await dataScheduler.schedule(() => handleWebDAVTest(message.payload, sendResponse), { priority: 'MEDIUM' })
             break
           case 'WEBDAV_UPLOAD':
-            await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), { priority: 'MEDIUM', timeout: 60_000, lane: 'bulk' })
             break
           case 'WEBDAV_DOWNLOAD':
-            await dataScheduler.schedule(() => handleWebDAVDownload(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleWebDAVDownload(sendResponse), { priority: 'MEDIUM', timeout: 60_000, lane: 'bulk' })
             break
           case 'WEBDAV_SYNC':
-            await dataScheduler.schedule(() => handleWebDAVSync(sendResponse), { priority: 'MEDIUM', timeout: 60_000 })
+            await dataScheduler.schedule(() => handleWebDAVSync(sendResponse), { priority: 'MEDIUM', timeout: 60_000, lane: 'bulk' })
             break
 
           // ==================== NeoDB Push ====================

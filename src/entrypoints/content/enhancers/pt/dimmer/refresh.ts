@@ -20,6 +20,19 @@ export function clearResolvedAttributes(el: MarkerElement): void {
   el.removeAttribute('data-umm-mteam-resolved')
 }
 
+/**
+ * Whether a single-key `record:updated`/`record:deleted` event can affect
+ * this row. `key === '*'` (bulk import) always re-checks. A composite key
+ * `movie::1292052` re-checks rows whose markup mentions the provider id.
+ * Rows we cannot prove unrelated are re-checked (fail-open for correctness).
+ */
+export function rowMightMatchKey(rowHtml: string, key: string): boolean {
+  if (key === '*' || key === '') return true
+  const id = key.includes('::') ? key.slice(key.lastIndexOf('::') + 2) : key
+  if (!id) return true
+  return rowHtml.includes(id)
+}
+
 /** 注入的计时器表面（生产环境为 window.setTimeout / window.clearTimeout）。 */
 export interface TimerAdapter {
   setTimeout(callback: () => void, ms: number): number

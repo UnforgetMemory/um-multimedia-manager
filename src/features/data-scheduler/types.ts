@@ -51,6 +51,12 @@ export interface ScheduleOptions {
   invalidateCache?: boolean
   /** Store name for cache key prefixing (optional, for namespacing) */
   storeName?: string
+  /**
+   * Execution lane. `bulk` runs on a separate serial queue so long jobs
+   * (export/stats/WebDAV) cannot block interactive DB_GET/DB_PUT.
+   * Default: `interactive`.
+   */
+  lane?: 'interactive' | 'bulk'
 }
 
 // ==================== Rate Limiter ====================

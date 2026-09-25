@@ -1,11 +1,5 @@
 /**
- * 请求队列工具
- * 
- * 功能：
- * - 并发控制（限制同时进行的请求数量）
- * - 最小/最大延迟（随机抖动防封）
- * - FIFO 队列管理
- * - 状态回调
+ * Request queue: concurrency cap + jittered delay + FIFO.
  */
 
 import { sleep } from '@/utils'
@@ -19,13 +13,14 @@ export interface RequestQueueOptions {
 
 interface QueueItem {
   key: string
-  task: () => Promise<any>
-  resolve: (value: any) => void
-  reject: (reason: any) => void
+  /** Completes (or rejects) the caller's promise; never throws. */
+  run: () => Promise<void>
 }
 
 export class RequestQueue {
   private queue: QueueItem[] = []
+  /** Index of the next live item; consumed prefix is compacted lazily. */
+  private head = 0
   private activeCount = 0
   private totalCount = 0
   private options: RequestQueueOptions
@@ -34,73 +29,72 @@ export class RequestQueue {
     this.options = options
   }
 
-  /**
-   * 将任务加入队列
-   */
   async enqueue<T>(key: string, task: () => Promise<T>): Promise<T> {
     const { promise, resolve, reject } = Promise.withResolvers<T>()
-    this.queue.push({ key, task, resolve, reject })
+    this.queue.push({
+      key,
+      run: async () => {
+        try {
+          await this.randomDelay()
+          resolve(await task())
+        } catch (error: unknown) {
+          reject(error)
+        }
+      },
+    })
     this.totalCount++
     this.processQueue()
     return promise
   }
 
-  /**
-   * 处理队列（支持真正的并发）
-   */
+  private get queuedLength(): number {
+    return this.queue.length - this.head
+  }
+
+  private takeNext(): QueueItem | null {
+    if (this.head >= this.queue.length) return null
+    const item = this.queue[this.head]
+    this.head++
+    if (this.head >= 64 && this.head * 2 >= this.queue.length) {
+      this.queue = this.queue.slice(this.head)
+      this.head = 0
+    }
+    return item
+  }
+
   private processQueue(): void {
-    // 当活跃任务数小于最大并发数，且队列中有任务时
-    while (this.activeCount < this.options.maxConcurrent && this.queue.length > 0) {
-      const item = this.queue.shift()
+    while (this.activeCount < this.options.maxConcurrent && this.queuedLength > 0) {
+      const item = this.takeNext()
       if (!item) break
 
       this.activeCount++
       this.notifyStateChange(item.key)
-
-      // 异步执行任务（不阻塞循环）
-      this.executeTask(item)
+      void this.executeTask(item)
     }
   }
 
-  /**
-   * 执行单个任务
-   */
   private async executeTask(item: QueueItem): Promise<void> {
     try {
-      // 执行前等待随机延迟
-      await this.randomDelay()
-
-      const result = await item.task()
-      item.resolve(result)
-    } catch (error: unknown) {
-      item.reject(error)
+      await item.run()
     } finally {
       this.activeCount--
       this.notifyStateChange(null)
-      
-      // 继续处理下一个任务
       this.processQueue()
     }
   }
 
-  /**
-   * 随机延迟（在 minDelay 和 maxDelay 之间）
-   */
   private async randomDelay(): Promise<void> {
     const delay =
       this.options.minDelayMs +
       Math.random() * (this.options.maxDelayMs - this.options.minDelayMs)
-    
+
     return sleep(delay)
   }
 
-  /**
-   * 通知状态变化
-   */
   private notifyStateChange(currentKey: string | null): void {
     if (this.options.onStateChange) {
       this.options.onStateChange({
-        queued: this.queue.length,
+        queued: this.queuedLength,
         active: this.activeCount,
         currentKey,
         total: this.totalCount,
@@ -108,27 +102,18 @@ export class RequestQueue {
     }
   }
 
-  /**
-   * 获取当前队列状态
-   */
   getState(): { queued: number; active: number; total: number } {
     return {
-      queued: this.queue.length,
+      queued: this.queuedLength,
       active: this.activeCount,
       total: this.totalCount,
     }
   }
 
-  /**
-   * 检查队列是否空闲（无排队、无活跃任务）
-   */
   isIdle(): boolean {
-    return this.queue.length === 0 && this.activeCount === 0
+    return this.queuedLength === 0 && this.activeCount === 0
   }
 
-  /**
-   * 重置 totalCount（在队列完成后调用，为下一批任务做准备）
-   */
   resetTotal(): void {
     this.totalCount = 0
   }

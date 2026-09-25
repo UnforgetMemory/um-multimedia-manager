@@ -1,7 +1,7 @@
 
 import { MTeamHandler } from './mteam'
 import { NexusPHPHandler } from './nexusphp'
-import { clearResolvedAttributes, createDebouncedScheduler } from './refresh'
+import { clearResolvedAttributes, createDebouncedScheduler, rowMightMatchKey } from './refresh'
 import { resetPtBulkMemo } from './cache'
 import { sleep, throttle } from '@/utils'
 import { waitForElement } from '../../../utils/dom'
@@ -222,22 +222,36 @@ export class PTDimmer {
    */
   private onRecordChange(data: unknown): void {
     if (this.disposed || !this.activeHandler) return
-    const d = data as { storeName?: unknown } | null
+    const d = data as { storeName?: unknown; key?: unknown } | null
     const storeName = typeof d?.storeName === 'string' ? d.storeName : undefined
     if (storeName !== 'douban_records' && storeName !== 'imdb_records') return
-    this.debug('[Cache] Record change — clearing resolved markers, refreshing within 300ms')
-    this.clearResolvedMarkers()
+    const key = typeof d?.key === 'string' ? d.key : '*'
+    this.debug('[Cache] Record change — clearing resolved markers for key', key)
+    this.clearResolvedMarkers(key)
     this.mteamHandler.invalidateCache()
     // Records changed: invalidate the pt_id_cache bulk result so the next process round cannot hit the stale memo
     resetPtBulkMemo()
     this.refreshScheduler.schedule(() => void this.runActiveProcess())
   }
 
-  /** Clear resolved markers from all resolved rows so the next process round re-evaluates them. */
-  private clearResolvedMarkers(): void {
+  /**
+   * Clear resolved markers so the next process round re-evaluates them.
+   * Bulk `*` clears every resolved row. A single-key write only clears rows
+   * that mention that provider id (other rows stay resolved).
+   */
+  private clearResolvedMarkers(key = '*'): void {
     document
       .querySelectorAll('[data-umm-resolved="true"], [data-umm-mteam-resolved="true"]')
-      .forEach((el) => clearResolvedAttributes(el))
+      .forEach((el) => {
+        // Avoid outerHTML (expensive on wide tables). Ids live in text or hrefs.
+        const hrefs = Array.from(el.querySelectorAll('a[href]'))
+          .map((a) => a.getAttribute('href') ?? '')
+          .join(' ')
+        const hay = `${el.textContent ?? ''} ${hrefs}`
+        if (rowMightMatchKey(hay, key)) {
+          clearResolvedAttributes(el)
+        }
+      })
   }
 
   /** MTeam SPA fallback: auto-detect browse page via DOM when URL events don't fire */

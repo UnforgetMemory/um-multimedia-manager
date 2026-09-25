@@ -2,8 +2,11 @@
  * Priority-based FIFO queue for DataScheduler.
  *
  * Three internal arrays for HIGH / MEDIUM / LOW priority levels.
- * FIFO within each priority level.  Fully synchronous (in-memory).
+ * FIFO within each priority level. Fully synchronous (in-memory).
  * Max queue size is enforced at enqueue time.
+ *
+ * Dequeue advances a per-bucket head index (O(1)) instead of Array.shift
+ * (O(n) per call); the consumed prefix is compacted lazily.
  */
 
 import type { QueuedTask, PriorityLevel } from './types'
@@ -12,10 +15,24 @@ import { PRIORITY_ORDER, MAX_QUEUE_SIZE } from './types'
 export class PriorityQueue {
   /** One FIFO array per priority level */
   private readonly queues: QueuedTask[][] = [[], [], []]
+  /** Next live index per bucket */
+  private readonly heads: number[] = [0, 0, 0]
+
+  private liveCount(bucket: number): number {
+    return this.queues[bucket].length - this.heads[bucket]
+  }
+
+  private compact(bucket: number): void {
+    const head = this.heads[bucket]
+    if (head >= 64 && head * 2 >= this.queues[bucket].length) {
+      this.queues[bucket] = this.queues[bucket].slice(head)
+      this.heads[bucket] = 0
+    }
+  }
 
   /** Total number of tasks across all priority levels. */
   size(): number {
-    return this.queues[0].length + this.queues[1].length + this.queues[2].length
+    return this.liveCount(0) + this.liveCount(1) + this.liveCount(2)
   }
 
   /** True when there are zero queued tasks. */
@@ -40,8 +57,11 @@ export class PriorityQueue {
    */
   dequeue(): QueuedTask | null {
     for (let i = 0; i < this.queues.length; i++) {
-      if (this.queues[i].length > 0) {
-        return this.queues[i].shift() ?? null
+      if (this.liveCount(i) > 0) {
+        const task = this.queues[i][this.heads[i]]
+        this.heads[i]++
+        this.compact(i)
+        return task
       }
     }
     return null
@@ -50,8 +70,8 @@ export class PriorityQueue {
   /** Peek at the next task without removing it. */
   peek(): QueuedTask | null {
     for (let i = 0; i < this.queues.length; i++) {
-      if (this.queues[i].length > 0) {
-        return this.queues[i][0]
+      if (this.liveCount(i) > 0) {
+        return this.queues[i][this.heads[i]]
       }
     }
     return null
@@ -63,10 +83,11 @@ export class PriorityQueue {
    */
   remove(id: string): boolean {
     for (let i = 0; i < this.queues.length; i++) {
-      const idx = this.queues[i].findIndex((t) => t.id === id)
-      if (idx !== -1) {
-        this.queues[i].splice(idx, 1)
-        return true
+      for (let j = this.heads[i]; j < this.queues[i].length; j++) {
+        if (this.queues[i][j].id === id) {
+          this.queues[i].splice(j, 1)
+          return true
+        }
       }
     }
     return false
@@ -76,8 +97,8 @@ export class PriorityQueue {
   ids(): string[] {
     const result: string[] = []
     for (let i = 0; i < this.queues.length; i++) {
-      for (const task of this.queues[i]) {
-        result.push(task.id)
+      for (let j = this.heads[i]; j < this.queues[i].length; j++) {
+        result.push(this.queues[i][j].id)
       }
     }
     return result
@@ -85,7 +106,7 @@ export class PriorityQueue {
 
   /** Count of tasks at a specific priority level. */
   countByPriority(priority: PriorityLevel): number {
-    return this.queues[PRIORITY_ORDER[priority]].length
+    return this.liveCount(PRIORITY_ORDER[priority])
   }
 
   /** Remove every queued task. */
@@ -93,5 +114,8 @@ export class PriorityQueue {
     this.queues[0] = []
     this.queues[1] = []
     this.queues[2] = []
+    this.heads[0] = 0
+    this.heads[1] = 0
+    this.heads[2] = 0
   }
 }
