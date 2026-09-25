@@ -70,7 +70,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
   → sendResponse({ success, data/error })
 ```
 
-消息类型与契约定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope` + `ResponseMessageMap`/`SuccessDataMap`，经 `types/index.ts` barrel 再导出）——新增消息类型必须四处同步：MessageType + MessagePayloadMap + background.ts switch + ResponseMessageMap/SuccessDataMap。后台 → 内容脚本广播走 `src/utils/event-bus.ts`（EVENT_BUS）。
+消息类型与契约定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope` + `ResponseMessageMap`/`SuccessDataMap`，经 `types/index.ts` barrel 再导出）——新增消息类型必须四处同步：MessageType + MessagePayloadMap + background.ts switch + ResponseMessageMap/SuccessDataMap。后台 → 内容脚本广播走 `src/libraries/utils/event-bus.ts`（EVENT_BUS）。
 
 ### 数据系统
 
@@ -80,11 +80,11 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 
 ## 关键约定
 
-- 路径别名 `@/` → `./src/`；组件库 shadcn/vue 在 `src/shared/ui/`（23 个组件目录）
+- 路径别名 `@/` → `./src/`；组件库 shadcn/vue 在 `src/libraries/ui/`（23 个组件目录）
 - **Composition API + `<script setup>` + TypeScript**；禁止 `as any`/`@ts-ignore`
 - 内容脚本禁止直接触 IndexedDB——一律走 `chrome.runtime.sendMessage`
-- i18n 双系统：`src/shared/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
-- 共享工具：`src/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/content/douban/shared/`（retry/usePaginator/douban-extract）
+- i18n 双系统：`src/libraries/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
+- 共享工具：`src/libraries/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/content/douban/shared/`（retry/usePaginator/douban-extract）
 - 版本号在 `package.json` + `wxt.config.ts`（`npm run package:*` 同时更新）
 - 单元测试：Playwright（tests/unit/，**tests/ 源码被 git 跟踪**；仅 playwright-report/test-results 等产物被 ignore）
 - 设置存储：`src/features/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型

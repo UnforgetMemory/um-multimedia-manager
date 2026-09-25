@@ -77,7 +77,7 @@ umpp P0 以 5 个正交只读 subagent 完成取证（架构分层 / UI-CSS / �
 | D3 RC + overrides | ⬜ **未落地** | `package.json` 无 `overrides`；`vue` 装 3.5.43 |
 | D4 双轨发布 | ✅ 生效 | `main` 未触碰；工作仅在 `dev-2026-09-25` |
 | D5 契约冻结 | ✅ 落地 | `tests/unit/contract-freeze.spec.ts`（20 用例）+ 变异测试验证 |
-| D6 七层骨架 + 守卫 | 🟡 守卫已落地，骨架未重构 | `scripts/check-architecture.cjs` + `npm run arch:check` 接入 CI `Static Gates`；守卫违规基线已清零 |
+| D6 七层骨架 + 守卫 | 🟡 骨架迁移进行中（L1 libraries 完成） | 守卫已落地（`arch:check` exit 0，CI `Static Gates` 阻断）；L1 把 `utils`/`config.ts`/`shared{ui,styles,locales,plugins,identity,toast}` 迁入 `src/libraries/`（89 文件，门禁全绿）；L2 engine / L3 provider / L4 store / L5 feature / L6 scenario 待办 |
 | D7 前缀统一 | ⬜ 未落地 | `--usl-*` / `--sht-*` 均在原处 |
 | D8 Vite+ `vp check` | ⬜ 未落地 | 未引入 `vite-plus` |
 
