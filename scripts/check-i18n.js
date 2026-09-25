@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const LOCALES_DIR = join(__dirname, '../src/shared/locales')
-const CONTENT_LOCALES = join(__dirname, '../src/entrypoints/content/i18n/locales.ts')
+const CONTENT_LOCALES_DIR = join(__dirname, '../src/entrypoints/content/i18n/locales')
 
 const isStrict = process.argv.includes('--strict')
 
@@ -39,45 +39,45 @@ function extractKeys(filePath) {
   return keys
 }
 
-// Extract keys from content script locales
-function extractContentKeys() {
-  const content = readFileSync(CONTENT_LOCALES, 'utf-8')
+/**
+ * 内容脚本 locale 文件（聚合目录：一文件一语言；index.ts 为聚合入口，跳过）。
+ * 2026-09-25 起由单一 646 行 locales.ts 拆为目录，故这里改为逐文件读取——
+ * 原先「按 `'<locale>': {` 块标记切分单文件」的脆弱逻辑随之退役。
+ */
+function getContentLocaleFiles() {
+  return readdirSync(CONTENT_LOCALES_DIR)
+    .filter(f => f.endsWith('.ts') && f !== 'index.ts')
+    .map(f => join(CONTENT_LOCALES_DIR, f))
+}
+
+/** 单文件键集。locale 文件内部已无 locale 标识符，故无需排除名单。 */
+function extractKeysFromContentFile(filePath) {
+  const content = readFileSync(filePath, 'utf-8')
   const keys = new Set()
-  
-  // Match 'key': pattern in all locale blocks
   const regex = /['"]([^'"]+)['"]\s*:/g
   let match
   while ((match = regex.exec(content)) !== null) {
-    const key = match[1]
-    // Skip locale identifiers and non-key patterns
-    if (!['en-US', 'zh-CN', 'zh-TW', 'zh-HK'].includes(key)) {
-      keys.add(key)
-    }
+    keys.add(match[1])
   }
-  
   return keys
 }
 
-// Per-locale block-aware key extraction: split the file by locale block markers
-// and check every locale carries the identical key set (union == intersection).
+// Extract keys from content script locales (union across per-locale files)
+function extractContentKeys() {
+  const keys = new Set()
+  for (const file of getContentLocaleFiles()) {
+    for (const k of extractKeysFromContentFile(file)) keys.add(k)
+  }
+  return keys
+}
+
+// Per-locale block-aware key extraction: every locale file must carry the
+// identical key set (union == intersection).
 function extractContentBlocks() {
-  const content = readFileSync(CONTENT_LOCALES, 'utf-8')
-  const LOCALES = ['en-US', 'zh-CN', 'zh-HK', 'zh-TW']
   const blocks = new Map()
-  const markers = LOCALES.map((l) => ({ locale: l, at: content.indexOf(`'${l}': {`) }))
-    .filter((m) => m.at >= 0)
-    .sort((a, b) => a.at - b.at)
-  for (let i = 0; i < markers.length; i++) {
-    const start = markers[i].at
-    const end = i + 1 < markers.length ? markers[i + 1].at : content.length
-    const slice = content.slice(start, end)
-    const keys = new Set()
-    const regex = /['"]([^'"]+)['"]\s*:/g
-    let match
-    while ((match = regex.exec(slice)) !== null) {
-      if (!LOCALES.includes(match[1])) keys.add(match[1])
-    }
-    blocks.set(markers[i].locale, keys)
+  for (const file of getContentLocaleFiles()) {
+    const locale = file.split(/[\\/]/).pop().replace(/\.ts$/, '')
+    blocks.set(locale, extractKeysFromContentFile(file))
   }
   return blocks
 }

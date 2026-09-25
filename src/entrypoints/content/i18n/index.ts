@@ -1,7 +1,13 @@
 import locales, { type Locale } from './locales'
+import { STORAGE_KEYS } from '@/config'
 
 const STORAGE_KEY = 'umm:locale'
-const EXT_LANGUAGE_KEY = 'language'
+/**
+ * 扩展语言设置的物理存储键，必须与 `AppSettings.language` 一致。
+ * 经 `STORAGE_KEYS`（单一事实源，ADR-017）引用而非写裸字面量——此前这里是
+ * `'language'` 的副本，与设置层存在漂移风险。
+ */
+const EXT_LANGUAGE_KEY = STORAGE_KEYS.LANGUAGE
 
 let currentLocale: Locale = 'zh-CN'
 
