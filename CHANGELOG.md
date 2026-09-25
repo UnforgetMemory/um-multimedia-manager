@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 变更（内部重构）
+
+- **架构分层守卫**：新增 `npm run arch:check`（`scripts/check-architecture.cjs`），强制七层依赖方向单向向下（app → feature → store → scenario → provider → engine → libraries），带 6 项检查（层映射完备 / 向上依赖 / libraries 纯度 / domain 纯度 / 内容脚本禁令 / 解析-策略分离契约）与 9 条非阻断警告；守卫自身经双向断言验证（合法通过 / 违规被拒）
+- **分层违规修正**（首次运行守卫即清零 4 项历史违规）：`StatCard.vue` 归位 `shared/ui/stat-card/`；`extractImdbIdFromText` 下沉 `src/utils/imdb-id.ts`；备份 ZIP 版本常量提取到 `src/utils/dataset-version.ts` 且版本兼容校验改由 WebDAV 导入链路负责（解析与策略分离，行为等价）；Bangumi 列表页改经数据库门面访问
+- **行为契约冻结**：新增 `tests/unit/contract-freeze.spec.ts`，以类型级断言锁定消息协议（33 项 `MessageType` + 三张映射表双向严格对齐）与番号三表分类器，并以完整快照锁定 IndexedDB v14 schema（fresh 12 store + 各自索引集合）
+- **CI 静态门禁**：新增 `Static Gates` job（架构分层 / 设计令牌 / i18n 完整性），`Build` 依赖其通过——门禁失败即阻断构建
+
 ## [5.17.2] - 2026-09-25
 
 ### 新增功能
