@@ -14,8 +14,10 @@
  * 暗色主题自动适配；已评分条目附带 .umm-rating 评分徽章（如 "8.5/10"）。
  */
 
-import { STORE_NAMES } from '@/features/database/models'
-import { dbGetAll, dbGetBulk } from '@/features/database/api'
+// 内容脚本只允许经数据库门面（Store + store 名映射）访问消息层；
+// 深路径 `@/features/database/{models,api}` 仅限 background handlers
+// （架构守卫规则 E，见 scripts/check-architecture.cjs）。
+import { Store, STORE_NAMES } from '@/features/database'
 import { t, initI18n } from '../i18n'
 import { waitForElement } from '../utils/dom'
 import {
@@ -107,8 +109,8 @@ export async function handleBangumiListPage(): Promise<void> {
 
   // 定向读取可见条目记录 → Map<providerId, { status, rating }>
   const entries = keys.length > 0
-    ? await dbGetBulk(STORE_NAMES.BANGUMI, keys)
-    : await dbGetAll(STORE_NAMES.BANGUMI)
+    ? await Store.dbGetBulk(STORE_NAMES.BANGUMI, keys)
+    : await Store.dbGetAll(STORE_NAMES.BANGUMI)
   const statusMap = new Map<string, { status: number; rating: number }>()
   for (const { key, record } of entries) {
     const providerId = extractProviderIdFromKey(key)

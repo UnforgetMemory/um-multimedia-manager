@@ -12,7 +12,14 @@ import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
  *
  * Locks: CURRENT_DATASET_VERSION / MIN_SUPPORTED_DATASET_VERSION semantics,
  * validateDatasetVersion error codes, and the packageDataset → unpackageDataset
- * round-trip (dataVersion stamped on package, enforced on unpackage).
+ * round-trip (dataVersion stamped on package).
+ *
+ * 分层契约（2026-09-25，架构守卫规则 C 修复后）：
+ * `utils/zip-utils` 是 libraries 层，**只负责打包与解析**，不再校验版本；
+ * 版本兼容策略归调用方（WebDAV 导入链路显式调用 `validateDatasetVersion`）。
+ * 常量唯一事实源 = `src/utils/dataset-version.ts`，
+ * `@/features/migration/models` 再导出以保持既有导入路径。
+ * 末节「版本校验职责分离」用例锁定该契约。
  */
 
 /** Capture the MigrationError thrown by fn (expects exactly one). */
@@ -71,5 +78,31 @@ test.describe('dataset ZIP round-trip (packageDataset → unpackageDataset)', ()
     expect(Object.keys(data).sort()).toEqual(['movie::1', 'movie::2'])
     expect(data['movie::1']).toEqual(entries[0].record)
     expect(data['movie::2']).toEqual(entries[1].record)
+  })
+})
+
+test.describe('版本校验职责分离（zip-utils 只解析，策略归调用方）', () => {
+  test('unpackageDataset 原样返回 meta.dataVersion 供调用方判定', async () => {
+    const { blob } = await packageDataset('douban_records', [])
+    const { meta } = await unpackageDataset(blob)
+
+    // 库不自行抛错：把版本原样交给调用方（WebDAV 导入链路会调用
+    // validateDatasetVersion），保证「解析」与「策略」分离。
+    expect(meta.dataVersion).toBe(CURRENT_DATASET_VERSION)
+    expect(typeof meta.dataVersion).toBe('number')
+  })
+
+  test('调用方以 meta.dataVersion 判定：相容通过 / 未来版本抛 VERSION_TOO_NEW', async () => {
+    const { blob } = await packageDataset('douban_records', [])
+    const { meta } = await unpackageDataset(blob)
+
+    // 调用方路径（与 handleWebDAVDownload / handleWebDAVSync 一致）
+    expect(validateDatasetVersion(meta.dataVersion)).toBe(true)
+
+    // 未来版本由策略层拦截 —— 而非由 unpackageDataset 拦截
+    const err = captureMigrationError(() =>
+      validateDatasetVersion(meta.dataVersion + 1),
+    )
+    expect(err.code).toBe('VERSION_TOO_NEW')
   })
 })

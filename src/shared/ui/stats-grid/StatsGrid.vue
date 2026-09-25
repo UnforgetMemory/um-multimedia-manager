@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FunctionalComponent, SVGAttributes } from 'vue'
-import StatCard, { type Accent } from '@/shared/StatCard.vue'
+import StatCard, { type Accent } from '@/shared/ui/stat-card/StatCard.vue'
 
 interface StatItem {
   key: string

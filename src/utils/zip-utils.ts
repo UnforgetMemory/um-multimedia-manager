@@ -15,12 +15,18 @@
  * - fflate is zero-dependency, ~8KB vs jszip's ~100KB + pako polyfills
  * - flate uses native CompressionStream where available, async non-blocking
  * - API: zip/unzip return Uint8Array; Blob conversion via Response/Blob
+ *
+ * 分层契约（架构守卫规则 C）：本模块是 libraries 层，只做「打包 / 解析」，
+ * **不承担版本兼容策略**。版本常量取自 `@/utils/dataset-version`（同层纯数据）；
+ * 「导入的 dataset 版本是否可接受」由调用方（WebDAV 导入链路）用
+ * `validateDatasetVersion` 判定——解析与策略分离，避免 libraries 耦合
+ * 域错误语义（MigrationError）。
  */
 
 import { zip, unzip } from 'fflate'
 import type { StoreRecord, DatasetMeta } from '../types'
 import { calculateStoreHash } from './hash-utils'
-import { CURRENT_DATASET_VERSION, validateDatasetVersion } from '@/features/migration/models'
+import { CURRENT_DATASET_VERSION } from './dataset-version'
 
 export interface PackedDataset {
   blob: Blob
@@ -87,6 +93,10 @@ export async function packageDataset(
  * Hard size caps guard against malicious/oversized datasets (compression-bomb
  * and memory-exhaustion defence): reject the blob before parsing when larger
  * than MAX_DATASET_BYTES, and reject absurd record counts after JSON.parse.
+ *
+ * ⚠️ 本函数**不校验 `meta.dataVersion` 兼容性**（策略归调用方）——调用方须在
+ * 拿到 meta 后自行判定，例如 WebDAV 导入链路调用
+ * `validateDatasetVersion(meta.dataVersion)`，不相容时抛 MigrationError。
  */
 export async function unpackageDataset(
   blob: Blob
@@ -126,9 +136,6 @@ export async function unpackageDataset(
   if (recordCount > MAX_DATASET_RECORDS) {
     throw new Error(`Invalid dataset ZIP: ${recordCount} records exceeds ${MAX_DATASET_RECORDS} limit`)
   }
-
-  // Reject datasets from incompatible versions — MigrationError propagates to caller
-  validateDatasetVersion(meta.dataVersion)
 
   return { data, meta }
 }

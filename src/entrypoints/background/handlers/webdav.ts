@@ -7,7 +7,7 @@
 
 import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord, AppSettings } from '@/types'
 import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
-import { normalizeStoreRecord } from '@/features/migration/models'
+import { normalizeStoreRecord, validateDatasetVersion } from '@/features/migration/models'
 import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
 import { calculateStoreHash } from '@/utils/hash-utils'
@@ -324,7 +324,9 @@ export async function handleWebDAVDownload(sendResponse: SendResponse) {
       }
       try {
         const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, ds.key)
-        const { data } = await unpackageDataset(blob)
+        const { data, meta: datasetMeta } = await unpackageDataset(blob)
+        // 版本兼容性策略归调用方（zip-utils 只负责解析）：不相容时抛 MigrationError
+        validateDatasetVersion(datasetMeta.dataVersion)
         const batch: Array<{ key: string; record: StoreRecord }> = []
         for (const [key, record] of Object.entries(data)) {
           // Validate record shape before writing (external data is untrusted).
@@ -453,7 +455,9 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
         // Only remote → download
         if (!local || local.recordCount === 0) {
           const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
-          const { data } = await unpackageDataset(blob)
+          const { data, meta: datasetMeta } = await unpackageDataset(blob)
+          // 版本兼容性策略归调用方（zip-utils 只负责解析）：不相容时抛 MigrationError
+          validateDatasetVersion(datasetMeta.dataVersion)
           const batch: Array<{ key: string; record: StoreRecord }> = []
           for (const [recordKey, record] of Object.entries(data)) {
             if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
@@ -492,7 +496,9 @@ export async function handleWebDAVSync(sendResponse: SendResponse) {
           uploaded += entries.length
         } else {
           const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
-          const { data } = await unpackageDataset(blob)
+          const { data, meta: datasetMeta } = await unpackageDataset(blob)
+          // 版本兼容性策略归调用方（zip-utils 只负责解析）：不相容时抛 MigrationError
+          validateDatasetVersion(datasetMeta.dataVersion)
           const batch: Array<{ key: string; record: StoreRecord }> = []
           for (const [recordKey, record] of Object.entries(data)) {
             if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue

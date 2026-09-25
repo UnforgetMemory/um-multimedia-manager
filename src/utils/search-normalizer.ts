@@ -1,4 +1,4 @@
-import { extractImdbIdFromText } from '@/content/douban/shared/imdb-extract'
+import { extractImdbIdFromText } from '@/utils/imdb-id'
 
 /**
  * Search query normalizer for Douban search enhancement.

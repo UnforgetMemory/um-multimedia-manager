@@ -18,6 +18,13 @@
  */
 
 import type { StoreRecord, PtIdCacheEntry, MigrationStatus } from '@/types'
+// dataset（备份 ZIP）格式版本常量的唯一事实源已下沉到 libraries 层
+// （纯数据、无错误类型耦合，见 src/utils/dataset-version.ts）。
+// 此处 import 供本模块 validateDatasetVersion 使用，并再导出以保持既有
+// 消费方（webdav/data handlers 与若干 spec）的导入路径不变。
+import { CURRENT_DATASET_VERSION, MIN_SUPPORTED_DATASET_VERSION } from '@/utils/dataset-version'
+
+export { CURRENT_DATASET_VERSION, MIN_SUPPORTED_DATASET_VERSION } from '@/utils/dataset-version'
 
 // ==================== Version Constants ====================
 
@@ -36,11 +43,7 @@ export const MIN_SUPPORTED_EXPORT_VERSION = 1
 /** Current export data version */
 export const CURRENT_EXPORT_VERSION = 2
 
-/** Minimum supported dataset (backup ZIP) version */
-export const MIN_SUPPORTED_DATASET_VERSION = 1
-
-/** Current dataset (backup ZIP) version */
-export const CURRENT_DATASET_VERSION = 1
+// dataset（备份 ZIP）版本常量见上方 `@/utils/dataset-version` 的 import/再导出
 
 // ==================== Error Types ====================
 
