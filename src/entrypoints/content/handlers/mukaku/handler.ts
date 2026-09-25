@@ -8,12 +8,13 @@ import { t } from '../../i18n'
 import { warnLog, infoLog, errorLog, debugLog } from '@/utils/logger'
 import { MUKAKU_CONFIG, NETWORK_CONFIG } from './config'
 import { MukakuToastController } from './toast'
-import { extractMvId, extractLinkedIdsFromDOM, imageFileName } from './dom'
+import { extractMvId, extractLinkedIdsFromDOM, imageFileName, collectVisibleCards, PROCESSED_ATTR } from './dom'
 import { getApiUrl, extractLinkedIdsFromPayload, shouldPersistProbe, extractListEntries, getListApiUrl } from './api'
 import { probeCacheSet, probeCacheGet, probeCacheGetBulk, getWatchedIdSets, cleanupLegacyMukakuCaches } from './cache'
 import { clearProcessedMarkers, createDebouncedScheduler, isDetailContextStale, shouldRefreshForEvent } from './refresh'
 import { createSerialRunner } from './processing'
 import { resolveCardState, type CardAction } from './resolve'
+import { applyCardActions, type CardApplyInput } from './apply'
 
 /** List-API fail cooldown: no retry for 30s after a failed fetch (prevents scan-storm request floods). */
 const LIST_API_FAIL_COOLDOWN_MS = 30_000
@@ -478,54 +479,13 @@ class MukakuHandler {
   private async processVisibleCards(): Promise<void> {
     if (this.queue) this.queue.resetTotal()
 
-    const cards = document.querySelectorAll('.video-card')
+    // 收集规则（单次扫描上限 + 无链接卡停放）在 dom.collectVisibleCards（无状态、可测）。
+    const { total, unprocessed, noIdCards } = collectVisibleCards(document, MAX_CARDS_PER_SCAN)
 
-    // Collect unprocessed cards; linkless cards (search-page div.video-card, mvId
-    // lives only in Vue state) are parked in noIdCards for the list-API fallback.
-    const unprocessed: Array<{ cardEl: HTMLElement; mvId: string }> = []
-    const noIdCards: HTMLElement[] = []
-    for (const card of Array.from(cards)) {
-      // Per-scan cap: hostile pages must not drive unbounded probes/state growth (S2)
-      if (unprocessed.length + noIdCards.length >= MAX_CARDS_PER_SCAN) break
-      const cardEl = card as HTMLElement
-      if (cardEl.getAttribute('data-umm-mukaku-processed') === 'true') continue
-      const mvId = extractMvId(cardEl)
-      if (!mvId) {
-        noIdCards.push(cardEl)
-        continue
-      }
-      cardEl.setAttribute('data-umm-mukaku-processed', 'true')
-      unprocessed.push({ cardEl, mvId })
-    }
+    // 无链接卡的列表 API 图片匹配（搜索页 div.video-card，mvId 只存在于 Vue 状态）。
+    await this.resolveLinklessCards(noIdCards, unprocessed)
 
-    // List-API image matching: one getVideoList request yields the linked ids for
-    // the whole page (data.data[] carries image/doub_id/IMDB_number, verified 2026-08-07).
-    if (noIdCards.length > 0) {
-      const mapping = await this.getListMapping()
-      if (mapping) {
-        for (const cardEl of noIdCards) {
-          const imgEl = cardEl.querySelector('img')
-          const imgSrc = imgEl?.getAttribute('src') || imgEl?.getAttribute('data-src') || ''
-          const key = imageFileName(imgSrc)
-          const entry = key ? mapping.get(key) : undefined
-          if (!entry) continue
-          cardEl.setAttribute('data-umm-mukaku-processed', 'true')
-          const mvId = entry.doubanId
-          unprocessed.push({ cardEl, mvId })
-          // Mapping known (successful list-API data) → fill memory; persist only when not already held (O1)
-          if (!this.probeCache.has(mvId)) {
-            this.probeCache.set(mvId, { doubanId: entry.doubanId, imdbId: entry.imdbId })
-            void probeCacheSet(mvId, {
-              doubanId: entry.doubanId,
-              imdbId: entry.imdbId,
-              ts: Date.now(),
-            }).catch(() => {})
-          }
-        }
-      }
-    }
-
-    debugLog('[Mukaku] scan: found', cards.length, 'cards,', unprocessed.length, 'unprocessed,', noIdCards.length, 'linkless')
+    debugLog('[Mukaku] scan: found', total, 'cards,', unprocessed.length, 'unprocessed,', noIdCards.length, 'linkless')
     if (unprocessed.length === 0) return
 
     // Batch-fetch watched IDs: getWatchedIdSets has its own 30s TTL (cache hit → 0 DB
@@ -534,27 +494,8 @@ class MukakuHandler {
     const { movieDoubanIds, imdbIds } = await this.refreshWatchedIdSets()
     debugLog('[Mukaku] watched ids: douban=', movieDoubanIds.size, 'imdb=', imdbIds.size)
 
-    // Batch-prefill probe cache: one dbGetBulk for cards that would reach 'needs-probe',
-    // replacing the per-card probeCacheGet in the loop (S2: N serial DB messages → 1).
-    // Filter conditions match resolveCardState's needs-probe decision.
-    const needsProbeIds: string[] = []
-    for (const { mvId } of unprocessed) {
-      // Skip cards in session cooldown or failure cooldown; skip cards already in the in-memory probeCache
-      if (this.sessionNoAssociation.has(mvId)) continue
-      const failTs = this.probeFailCooldown.get(mvId)
-      if (failTs !== undefined && Date.now() - failTs < PROBE_FAIL_COOLDOWN_MS) continue
-      if (this.probeCache.has(mvId)) continue
-      needsProbeIds.push(mvId)
-    }
-    const bulkProbes = await probeCacheGetBulk(needsProbeIds).catch((error: unknown) => {
-      // DB bulk read failure must not abort the scan — cards fall through to network probes.
-      errorLog('[Mukaku] probe prefill failed — fall through to network:', error)
-      return new Map<string, { doubanId: string | null; imdbId: string | null; ts: number }>()
-    })
-    for (const [mvId, entry] of bulkProbes) {
-      this.probeCache.set(mvId, { doubanId: entry.doubanId, imdbId: entry.imdbId })
-    }
-    debugLog('[Mukaku] probe prefill:', bulkProbes.size, 'hits of', needsProbeIds.length)
+    // 批量预热探测缓存：一次 dbGetBulk 取代逐卡 probeCacheGet（N 条串行 DB 消息 → 1）。
+    await this.prefillProbeCache(unprocessed)
 
     // Phase 1 — resolve every card; fire all network probes CONCURRENTLY.
     // The RequestQueue enforces maxConcurrent=10 + random delay; awaiting each
@@ -578,44 +519,95 @@ class MukakuHandler {
       }
     }
 
-    // Phase 2 — apply results in card order; probes are already in flight.
+    // Phase 2 — await in-flight probes IN CARD ORDER, then hand the resolved set to
+    // the stateless applier (apply.ts) which owns the dim / skip / failure rules.
+    const applyInputs: CardApplyInput[] = []
     for (const { cardEl, mvId } of unprocessed) {
       const action = actions.get(mvId)!
-      switch (action) {
-        case 'dim':
-          cardEl.classList.add('umm-dimmed')
-          break
-        case 'skip':
-          // No association / no match: nothing to write
-          break
-        case 'needs-probe': {
-          const linkedIds = await probePromises.get(mvId)!
-          if (linkedIds === null) {
-            // Probe failed (network/timeout/invalid payload) — no cache write, no
-            // session cooldown. R4: clear the processed marker + set a short failure
-            // cooldown so the card is RE-COLLECTED and re-probed after the window
-            // (GOAL 1: failures are re-probed, never permanently skipped).
-            warnLog('[Mukaku] Probe failed for card', mvId)
-            this.probeFailCooldown.set(mvId, Date.now())
-            if (this.probeFailCooldown.size > 1000) this.probeFailCooldown.clear()
-            cardEl.removeAttribute('data-umm-mukaku-processed')
-            break
-          }
+      if (action === 'needs-probe') {
+        const linkedIds = await probePromises.get(mvId)!
+        if (linkedIds !== null) {
           debugLog('[Mukaku] probe', mvId, '→ douban:', linkedIds.doubanId, 'imdb:', linkedIds.imdbId)
-          if (linkedIds.doubanId || linkedIds.imdbId) {
-            const matched =
-              (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
-              (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId))
-            if (matched) {
-              cardEl.classList.add('umm-dimmed')
-            }
-            // not matched → nothing (no write)
-          }
-          // both ids null → nothing (cooldown was registered inside probeLinkedIds)
-          break
         }
+        applyInputs.push({ cardEl, mvId, action, linkedIds })
+      } else {
+        applyInputs.push({ cardEl, mvId, action, linkedIds: null })
       }
     }
+
+    const { failedProbeMvIds } = applyCardActions(applyInputs, {
+      watchedDouban: movieDoubanIds,
+      watchedImdb: imdbIds,
+    })
+
+    // 失败卡的短冷却由调用方登记（apply 层无状态）。标记已在 apply 层清除，故该卡
+    // 会在窗口后被重新收集并重试——失败不会被永久跳过。
+    for (const mvId of failedProbeMvIds) {
+      warnLog('[Mukaku] Probe failed for card', mvId)
+      this.probeFailCooldown.set(mvId, Date.now())
+      if (this.probeFailCooldown.size > 1000) this.probeFailCooldown.clear()
+    }
+  }
+
+  /**
+   * 无链接卡的列表 API 图片匹配：一次 getVideoList 请求即给出整页的关联 id
+   * （data.data[] 携带 image/doub_id/IMDB_number，2026-08-07 核实）。命中卡加入
+   * `unprocessed`，映射写入内存；仅当内存未持有时才持久化。
+   */
+  private async resolveLinklessCards(
+    noIdCards: HTMLElement[],
+    unprocessed: Array<{ cardEl: HTMLElement; mvId: string }>,
+  ): Promise<void> {
+    if (noIdCards.length === 0) return
+    const mapping = await this.getListMapping()
+    if (!mapping) return
+    for (const cardEl of noIdCards) {
+      const imgEl = cardEl.querySelector('img')
+      const imgSrc = imgEl?.getAttribute('src') || imgEl?.getAttribute('data-src') || ''
+      const key = imageFileName(imgSrc)
+      const entry = key ? mapping.get(key) : undefined
+      if (!entry) continue
+      cardEl.setAttribute(PROCESSED_ATTR, 'true')
+      const mvId = entry.doubanId
+      unprocessed.push({ cardEl, mvId })
+      // Mapping known (successful list-API data) → fill memory; persist only when not already held (O1)
+      if (!this.probeCache.has(mvId)) {
+        this.probeCache.set(mvId, { doubanId: entry.doubanId, imdbId: entry.imdbId })
+        void probeCacheSet(mvId, {
+          doubanId: entry.doubanId,
+          imdbId: entry.imdbId,
+          ts: Date.now(),
+        }).catch(() => {})
+      }
+    }
+  }
+
+  /**
+   * 批量预热探测缓存：对将进入 'needs-probe' 的卡只发一次 dbGetBulk，取代扫描循环内
+   * 的逐卡 probeCacheGet（N 条串行 DB 消息 → 1）。过滤条件与 resolveCardState 的
+   * needs-probe 判定一致。批量读失败不得中断扫描——卡回落到网络探测。
+   */
+  private async prefillProbeCache(
+    unprocessed: Array<{ cardEl: HTMLElement; mvId: string }>,
+  ): Promise<void> {
+    const needsProbeIds: string[] = []
+    for (const { mvId } of unprocessed) {
+      // Skip cards in session cooldown or failure cooldown; skip cards already in the in-memory probeCache
+      if (this.sessionNoAssociation.has(mvId)) continue
+      const failTs = this.probeFailCooldown.get(mvId)
+      if (failTs !== undefined && Date.now() - failTs < PROBE_FAIL_COOLDOWN_MS) continue
+      if (this.probeCache.has(mvId)) continue
+      needsProbeIds.push(mvId)
+    }
+    const bulkProbes = await probeCacheGetBulk(needsProbeIds).catch((error: unknown) => {
+      // DB bulk read failure must not abort the scan — cards fall through to network probes.
+      errorLog('[Mukaku] probe prefill failed — fall through to network:', error)
+      return new Map<string, { doubanId: string | null; imdbId: string | null; ts: number }>()
+    })
+    for (const [mvId, entry] of bulkProbes) {
+      this.probeCache.set(mvId, { doubanId: entry.doubanId, imdbId: entry.imdbId })
+    }
+    debugLog('[Mukaku] probe prefill:', bulkProbes.size, 'hits of', needsProbeIds.length)
   }
 
   /**

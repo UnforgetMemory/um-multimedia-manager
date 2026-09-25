@@ -94,3 +94,48 @@ export function extractLinkedIdsFromDOM(root: HTMLElement | Document): {
 
   return result
 }
+
+/** Card marked as already collected in this page session (idempotency marker). */
+export const PROCESSED_ATTR = 'data-umm-mukaku-processed'
+
+export interface CollectedCards {
+  /** Total `.video-card` nodes seen (pre-filter; for scan logging). */
+  total: number
+  /** Cards with an extractable mvId; already marked processed. */
+  unprocessed: Array<{ cardEl: HTMLElement; mvId: string }>
+  /** Linkless cards (search-page `div.video-card`, mvId lives only in Vue state). */
+  noIdCards: HTMLElement[]
+}
+
+/**
+ * Collect unprocessed `.video-card` nodes into two buckets (pure: no class state).
+ *
+ * Extracted from handler.processVisibleCards so the collection rules — the
+ * per-scan cap and the "linkless cards are parked for the list-API fallback"
+ * split — are testable without instantiating the handler.
+ *
+ * `limit` caps `unprocessed.length + noIdCards.length` (hostile pages must not
+ * drive unbounded probes/state growth). Cards already carrying `PROCESSED_ATTR`
+ * are skipped; matched cards are marked immediately (before any async work) so a
+ * concurrent scan cannot re-collect them.
+ */
+export function collectVisibleCards(root: ParentNode, limit: number): CollectedCards {
+  const unprocessed: Array<{ cardEl: HTMLElement; mvId: string }> = []
+  const noIdCards: HTMLElement[] = []
+  const all = Array.from(root.querySelectorAll('.video-card'))
+
+  for (const card of all) {
+    if (unprocessed.length + noIdCards.length >= limit) break
+    const cardEl = card as HTMLElement
+    if (cardEl.getAttribute(PROCESSED_ATTR) === 'true') continue
+    const mvId = extractMvId(cardEl)
+    if (!mvId) {
+      noIdCards.push(cardEl)
+      continue
+    }
+    cardEl.setAttribute(PROCESSED_ATTR, 'true')
+    unprocessed.push({ cardEl, mvId })
+  }
+
+  return { total: all.length, unprocessed, noIdCards }
+}
