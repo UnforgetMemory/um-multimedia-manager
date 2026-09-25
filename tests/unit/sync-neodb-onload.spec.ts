@@ -52,7 +52,7 @@ interface StubOptions {
 }
 
 function makeIdentity(type: string): UrlIdentity {
-  return { type, providerId: '123', url: `https://${type}.douban.com/subject/123/` }
+  return { platform: 'douban', type, providerId: '123', url: `https://${type}.douban.com/subject/123/` }
 }
 
 function stubDouban(linkedIds: Record<string, string>): StoreRecord {

@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { StoreRecord } from '@/domain/record/StoreRecord'
-import { Status } from '@/domain/record/Status'
-import { Rating } from '@/domain/record/Rating'
 
 test.describe('StoreRecord aggregate', () => {
   test('fresh creates a record with NONE status and unrated', () => {

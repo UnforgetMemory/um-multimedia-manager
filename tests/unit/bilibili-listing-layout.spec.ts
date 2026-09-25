@@ -10,7 +10,6 @@ import {
   LISTING_DIMMER_CLASS,
   LISTING_SHELL_DIM_CLASS,
   LISTING_STYLE_ID,
-  runListingDimmerPass,
   setListingBadge,
 } from '@/entrypoints/content/ui/bilibili-listing'
 

@@ -85,12 +85,13 @@ checkRefs('design-tokens.css', designTokens)
 ok('Tier-2 var() references all resolve')
 
 // ---------- 3. Tier-3 tokens.ts spot-check against static ----------
-// Expected values resolve from staticVars (single source) — no duplicated hex here.
+// SPOT_CHECKS resolve names from staticVars. DARK_OVERRIDES pin intentional
+// hex (5.16.0 dark tuning) so drift is still caught without forcing static.
 const tokensTs = read('src/entrypoints/content/styles/tokens.ts')
 const SPOT_CHECKS = [
   ['COLOR_PRIMARY_START', 'brand-500'],
   ['COLOR_PRIMARY_END', 'brand-600'],
-  ['COLOR_PRIMARY_START_DARK', 'brand-600'],
+  // COLOR_PRIMARY_START_DARK intentionally diverges (see DARK_OVERRIDES).
   ['COLOR_WISH_START', 'amber-400'],
   ['COLOR_WISH_END', 'amber-500'],
   ['COLOR_WISH_TEXT', 'wish-ink'],
@@ -121,15 +122,22 @@ const SPOT_CHECKS = [
   ['COLOR_OVERLAY_TEXT_SECONDARY', 'neutral-600'],
   ['COLOR_OVERLAY_TEXT_MUTED', 'neutral-550'],
   ['COLOR_OVERLAY_TEXT_PRIMARY_DARK', 'neutral-100'],
-  ['COLOR_OVERLAY_TEXT_SECONDARY_DARK', 'neutral-400'],
-  ['COLOR_OVERLAY_TEXT_MUTED_DARK', 'neutral-400'],
+  // TEXT_SECONDARY/MUTED_DARK and ACCENT_DARK intentionally diverge (DARK_OVERRIDES).
   ['COLOR_OVERLAY_ACCENT', 'brand-600'],
-  ['COLOR_OVERLAY_ACCENT_DARK', 'brand-400'],
   // Status small-text tiers on overlay surfaces
   ['COLOR_STATUS_TEXT_DONE', 'green-700'],
   ['COLOR_STATUS_TEXT_NONE', 'red-700'],
   ['COLOR_STATUS_TEXT_DONE_DARK', 'green-300'],
   ['COLOR_STATUS_TEXT_NONE_DARK', 'red-300'],
+]
+// Intentional dark-theme overrides (5.16.0 Radix low-saturation tuning).
+// These deliberately diverge from tokens.static.css names; pin exact hex so
+// silent drift is still caught. Do not "fix" them back to the static palette.
+const DARK_OVERRIDES = [
+  ['COLOR_PRIMARY_START_DARK', '#3e63dd', 'Radix indigo-9 dark fill; white text 5.21:1'],
+  ['COLOR_OVERLAY_TEXT_SECONDARY_DARK', '#a9b4c6', 'raised ~7.3:1 secondary ink'],
+  ['COLOR_OVERLAY_TEXT_MUTED_DARK', '#8b98ad', 'raised ~5.2:1 muted tier gap vs secondary'],
+  ['COLOR_OVERLAY_ACCENT_DARK', '#9ba8f0', 'Radix indigo-11 text-level accent'],
 ]
 // Normalize for comparison: hex compares verbatim; rgb()/rgba() compare by
 // numeric signature (tokens.ts uses rgba() commas, static uses rgb() spaces).
@@ -143,6 +151,15 @@ for (const [name, staticName] of SPOT_CHECKS) {
   if (normValue(m[1]) !== normValue(expected)) failures.push(`tokens.ts: ${name}=${m[1]} != static ${staticName} (${expected})`)
 }
 ok(`tokens.ts spot-checks (${SPOT_CHECKS.length})`)
+for (const [name, expectedHex, why] of DARK_OVERRIDES) {
+  const re = new RegExp(`export const ${name} = '([^']+)'`)
+  const m = tokensTs.match(re)
+  if (!m) { failures.push(`tokens.ts: missing export ${name}`); continue }
+  if (normValue(m[1]) !== normValue(expectedHex)) {
+    failures.push(`tokens.ts: ${name}=${m[1]} != intentional dark override ${expectedHex} (${why})`)
+  }
+}
+ok(`tokens.ts dark overrides pinned (${DARK_OVERRIDES.length})`)
 
 // Semantic map guard: wish must be amber family, never blue (ADR-018 D3 regression guard)
 if (/COLOR_WISH_START\s*=\s*'#(3b82f6|2563eb|1d4ed8)'/i.test(tokensTs)) {

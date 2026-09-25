@@ -37,7 +37,7 @@ function loadReferenceHtml(): string {
 /** Build a JSDOM from the reference HTML with an override URL. */
 function domAt(url: string): { window: Window; document: Document } {
   const dom = new JSDOM(loadReferenceHtml(), { url, runScripts: 'outside-only' })
-  return { window: dom.window, document: dom.window.document }
+  return { window: dom.window as unknown as Window, document: dom.window.document }
 }
 
 /**
@@ -63,7 +63,7 @@ function mutateToVoteSort(doc: Document): void {
 function mutateToGrouped(doc: Document): void {
   const creationsUl = doc.querySelector('ul.creations')
   if (!creationsUl) return
-  const items = Array.from(creationsUl.querySelectorAll('li.creation'))
+  const items = Array.from(creationsUl.querySelectorAll('li.creation')) as unknown as HTMLLIElement[]
   creationsUl.innerHTML = ''
   const groups: Array<[string, HTMLLIElement[]]> = [
     ['看过', items.slice(0, 3)],

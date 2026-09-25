@@ -26,7 +26,7 @@ function makeRow(href: string | null, id: string): Element {
   return { href, id } as unknown as Element
 }
 
-const hrefOf = (row: Element): string | null => (row as { href: string | null }).href
+const hrefOf = (row: Element): string | null => (row as unknown as { href: string | null }).href
 
 const idOf = (row: Element): string => (row as { id: string }).id
 

@@ -107,7 +107,7 @@ test.describe('initImageReveal — 模糊遮罩揭示与防抖（作用域=图�
   })
 
   test('幂等：重复初始化不重复挂监听（标志位）', () => {
-    const { dom, container } = gridDom(TWO_CARDS)
+    const { container } = gridDom(TWO_CARDS)
     initImageReveal(container, 20)
     initImageReveal(container, 20)
     expect(container.getAttribute('data-umm-sht-reveal')).toBe('1')
@@ -129,7 +129,7 @@ test.describe('initImageReveal — 模糊遮罩揭示与防抖（作用域=图�
 
 test.describe('runCardEntrance — 卡片入场级联', () => {
   test('逐卡追加入场类名并递增 animation-delay', () => {
-    const { dom, container } = gridDom('<div class="umm-card">1</div><div class="umm-card">2</div><div class="umm-card">3</div>')
+    const { container } = gridDom('<div class="umm-card">1</div><div class="umm-card">2</div><div class="umm-card">3</div>')
     runCardEntrance(container, 45)
     const cards = Array.from(container.querySelectorAll('.umm-card')) as HTMLElement[]
     expect(cards.map((c) => c.style.animationDelay)).toEqual(['0ms', '45ms', '90ms'])
@@ -144,7 +144,7 @@ test.describe('runCardEntrance — 卡片入场级联', () => {
   })
 
   test('newOnly：AJAX 分页追加时不重播已入场卡片（延迟保持不变）', () => {
-    const { dom, container } = gridDom('<div class="umm-card">1</div><div class="umm-card">2</div>')
+    const { container } = gridDom('<div class="umm-card">1</div><div class="umm-card">2</div>')
     const [existing, fresh] = Array.from(container.querySelectorAll('.umm-card')) as HTMLElement[]
     existing!.classList.add('umm-sht-enter')
     existing!.style.animationDelay = '45ms'

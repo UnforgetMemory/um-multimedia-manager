@@ -108,12 +108,12 @@ async function characterize(
     const expected = await referenceGetWatchedIds(rawDb, storeName)
     const actual = await mdb.getWatchedIds(storeName)
 
-    const sorted = (s: Set<string>) => [...s].sort()
+    const sorted = (s: Iterable<string>) => [...s].sort()
     expect(sorted(actual)).toEqual(sorted(expected))
     expect(actual.size).toBe(expected.size)
 
     if (expectedWatched) {
-      expect(sorted(actual)).toEqual(sorted(expectedWatched))
+      expect(sorted(actual)).toEqual(sorted(new Set(expectedWatched)))
     }
   } finally {
     mdb.close()

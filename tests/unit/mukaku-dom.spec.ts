@@ -19,7 +19,7 @@ import { extractMvId, imageFileName, type MvIdSource } from '@/entrypoints/conte
 
 const el = (attrs: Record<string, string>, text = '', children: string[] = []): MvIdSource => ({
   getAttribute: (name: string) => attrs[name] ?? null,
-  querySelector: (selector: string) => {
+  querySelector: (_selector: string) => {
     // Minimal fake: only supports 'a[href*="/mv/"]' and 'a[to*="/mv/"]'
     const hrefLink = children.find((c) => c.includes('/mv/'))
     if (!hrefLink) return null

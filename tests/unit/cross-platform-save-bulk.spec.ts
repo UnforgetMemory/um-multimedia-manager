@@ -60,6 +60,7 @@ interface StubOptions {
 
 function makeIdentity(): UrlIdentity {
   return {
+    platform: 'douban',
     type: 'movie',
     providerId: '12345',
     url: 'https://movie.douban.com/subject/12345/',

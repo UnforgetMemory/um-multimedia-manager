@@ -83,7 +83,7 @@ test.describe('migrateRecord — engine branches', () => {
   })
 
   test('NO_MIGRATION_PATH when a version has no matching step', () => {
-    const gapped = [{ from: 0, to: 2, migrate: (r) => ({ ...r, schemaVersion: 2 }) }]
+    const gapped = [{ from: 0, to: 2, migrate: (r: Record<string, unknown>) => ({ ...r, schemaVersion: 2 }) }]
     const err = captureMigrationError(() => migrateRecord({ schemaVersion: 1 }, gapped, 2))
     expect(err.code).toBe('NO_MIGRATION_PATH')
   })

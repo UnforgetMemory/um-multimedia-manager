@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
 import { CacheManager } from '@/features/cache/cache-manager'
-import { MAX_QUEUE_SIZE, CACHE_TTL } from '@/features/data-scheduler/types'
+import { MAX_QUEUE_SIZE } from '@/features/data-scheduler/types'
 
 /**
  * DataScheduler core semantics (2026-08-08) — complements the existing M1/L1

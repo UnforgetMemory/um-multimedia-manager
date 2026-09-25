@@ -14,7 +14,7 @@ test.describe('normalizeStoreRecord — boundary validation', () => {
     expect(() => normalizeStoreRecord([{ status: 2 }])).toThrowError(MigrationError)
     try {
       normalizeStoreRecord([])
-      expect.unreachable()
+      throw new Error('expected MigrationError')
     } catch (e) {
       expect((e as MigrationError).code).toBe('INVALID_RECORD')
     }
@@ -37,7 +37,7 @@ test.describe('normalizeStoreRecord — boundary validation', () => {
       __proto__: { polluted: true },
     })
     expect('_injected' in record).toBe(false)
-    expect('polluted' in (record as Record<string, unknown>)).toBe(false)
+    expect('polluted' in (record as unknown as Record<string, unknown>)).toBe(false)
   })
 
   test('drops out-of-range status — falls back to neutral 0 (not the malicious value)', () => {

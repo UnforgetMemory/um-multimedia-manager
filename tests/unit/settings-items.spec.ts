@@ -18,6 +18,10 @@ import type { MinimalStorageArea } from '@/features/settings/items'
 interface AreaMock extends MinimalStorageArea {
   map: Map<string, unknown>
   emit(key: string, newValue: unknown): void
+  onChanged: {
+    addListener: (fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void) => void
+    removeListener: (fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void) => void
+  }
 }
 
 function createArea(): AreaMock {
@@ -153,8 +157,8 @@ test.describe('persistAppSettings', () => {
 
 test.describe('SettingsCache（API 保持）', () => {
   test('init → get → updateAll 全链路 + 未初始化 get 回退默认', async () => {
-    const cache = new cacheMod.settingsCache.constructor()
-    // 未初始化 → 同步回退默认值
+    const SettingsCacheCtor = cacheMod.settingsCache.constructor as new () => typeof cacheMod.settingsCache
+    const cache = new SettingsCacheCtor()
     expect(cache.get().syncInterval).toBe(30)
 
     seed({ syncInterval: 45 })
@@ -170,7 +174,8 @@ test.describe('SettingsCache（API 保持）', () => {
   })
 
   test('startListening：onChanged 合并进缓存（含 umm:appearance shim + 杂键排除）', async () => {
-    const cache = new cacheMod.settingsCache.constructor()
+    const SettingsCacheCtor = cacheMod.settingsCache.constructor as new () => typeof cacheMod.settingsCache
+    const cache = new SettingsCacheCtor()
     await cache.init()
     cache.startListening()
     area.emit('theme', 'dark')

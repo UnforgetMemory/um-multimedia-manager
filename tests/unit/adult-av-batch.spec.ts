@@ -77,7 +77,8 @@ test.describe('handleAdultAvBatchAdd (S5 N+1 elimination)', () => {
     const { promise, response } = runHandler(db, 'javdb', [
       { id: 'abc-123', url: 'https://new.example/abc', rating: 9 },
       { id: 'DEF-456', url: '' },
-      { url: 'https://no-id.example' }, // skipped: no id
+      // Runtime skip: missing id (handler filters before normalize).
+      { url: 'https://no-id.example' } as unknown as AdultAvIdInput,
     ])
     await promise
     // Exactly ONE read transaction + ONE write transaction (was 2 per item)
@@ -136,7 +137,10 @@ test.describe('handleAdultAvBatchAdd (S5 N+1 elimination)', () => {
 
   test('no valid items → no read/write transaction at all, addedCount 0', async () => {
     const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map())
-    const { promise, response } = runHandler(db, 'javdb', [{ url: 'https://a.example' }, { id: '' }])
+    const { promise, response } = runHandler(db, 'javdb', [
+      { url: 'https://a.example' } as unknown as AdultAvIdInput,
+      { id: '' },
+    ])
     await promise
     // ADR-025: 写入按分类器分组——无有效项 → 无分组 → 不产生读事务（旧实现
     // 会为整个批次发一次空 batchGet；分组后空批次不再触碰 DB）。

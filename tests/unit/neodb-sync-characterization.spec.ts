@@ -27,8 +27,7 @@ const IDENTITY: UrlIdentity = {
   providerId: 'catalog-1',
   url: 'https://neodb.social/movie/catalog-1/',
 }
-const NEO_KEY = 'movie::catalog-1'
-const TARGET_URL = 'https://movie.douban.com/subject/1292052/'
+
 
 const LINKS = [
   { provider: 'douban', url: 'https://movie.douban.com/subject/1292052/' },

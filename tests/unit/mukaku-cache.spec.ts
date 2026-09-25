@@ -32,7 +32,8 @@ import { MUKAKU_CONFIG } from '@/entrypoints/content/handlers/mukaku/config'
 
 interface FakeCalls {
   dbGetBulk: Array<[storeName: string, keys: string[]]>
-  dbGetWatchedIds: Array<[storeNames: string[]]>
+  /** Each call records the storeNames argument (one array per call). */
+  dbGetWatchedIds: string[][]
   dbPut: Array<[storeName: string, key: string, value: unknown]>
   dbDelete: Array<[storeName: string, key: string]>
 }
@@ -54,7 +55,7 @@ function createFakeStore(
       calls.dbGetBulk.push([storeName, keys])
       return handlers.dbGetBulk ? handlers.dbGetBulk(storeName, keys) : []
     },
-    dbGetWatchedIds: async (storeNames) => {
+    dbGetWatchedIds: async (storeNames: string[]) => {
       calls.dbGetWatchedIds.push(storeNames)
       return handlers.dbGetWatchedIds ? handlers.dbGetWatchedIds(storeNames) : {}
     },
@@ -188,7 +189,7 @@ test.describe('getWatchedIdSets', () => {
       imdbIds: new Set(['ttStale']),
     }
     const { store, calls } = createFakeStore({
-      dbGetWatchedIds: (storeNames) => ({
+      dbGetWatchedIds: (_storeNames) => ({
         douban_records: ['movie::d1', 'music::m1', 'movie::d2', 'unprefixed-key'],
         imdb_records: ['movie::tt1', 'movie::tt2'],
       }),

@@ -29,7 +29,7 @@ test.describe('豆瓣 5分制 ↔ 10分制 适配', () => {
   })
 
   test('无本地记录 → 必须写入', () => {
-    expect(shouldWriteRecord({ hasLocal: false, newStatus: 2, newRating10: 8 })).toBe(true)
+    expect(shouldWriteRecord({ hasLocal: false, localStatus: undefined, localRating: undefined, newStatus: 2, newRating10: 8 })).toBe(true)
   })
 
   test('有本地记录但状态不同 → 必须更新', () => {
