@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.17.2] - 2026-09-25
+
+### 新增功能
+
+- **WebDAV 凭证可选恢复**：导出/导入共用「包含 / 恢复 WebDAV 凭证」开关；导出写入明文凭证（确认后），导入在确认后恢复 URL/用户名/密码。默认关闭，恶意备份仍无法注入凭证
+
+### 修复与优化
+
+- **导入设置即时生效**：导入不再绕过 SettingsCache，主题/Token 等设置无需重启 SW
+- **NeoDB 请求超时**：单次 30s 中止，挂死主机不再拖住后台
+- **调度隔离**：导出/统计/全量读取/WebDAV/导入走独立 bulk 队列，不再阻塞日常读写
+- **数据写入不可变**：put/batchPut 不再改写调用方对象
+- **PT dimmer**：单条记录变更只重扫相关行
+- **豆瓣相关图升尺寸**：剧照/预告缩略图统一走 `upgradeDoubanImageSrc`
+
+### 变更（内部重构）
+
+- 依赖安全升级（adm-zip 0.6.1 等）；type-check 覆盖 tests/scripts
+
 ## [5.17.1] - 2026-09-23
 
 ### 新增功能
