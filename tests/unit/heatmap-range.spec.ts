@@ -6,7 +6,7 @@ import {
   clampTipX,
   CELL_MIN_PX,
   GRID_PAD_PX,
-} from '@/utils/heatmap-range'
+} from '@/libraries/utils/heatmap-range'
 
 // Locks smart day-range tiers: largest range that fits without horizontal scroll.
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { RequestQueue } from '@/utils/requestQueue'
+import { RequestQueue } from '@/libraries/utils/requestQueue'
 
 /**
  * Concurrency contract for the mukaku network probe queue.

@@ -6,7 +6,7 @@ import {
   minGridWidthPx,
   pickRangeDaysForWidth,
   type HeatmapRangeId,
-} from '@/utils/heatmap-range'
+} from '@/libraries/utils/heatmap-range'
 
 /**
  * Real-Chromium regression for smart day-range selection.

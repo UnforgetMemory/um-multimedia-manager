@@ -5,7 +5,7 @@ import {
   MigrationError,
   validateDatasetVersion,
 } from '@/features/migration/models'
-import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
+import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils'
 
 /**
  * Dataset (backup ZIP) versioning — T1 contract.

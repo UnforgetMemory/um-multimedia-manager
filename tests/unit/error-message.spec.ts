@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { errorMessage } from '@/utils/error-message'
+import { errorMessage } from '@/libraries/utils/error-message'
 
 /**
  * errorMessage — exception → safe string narrowing.

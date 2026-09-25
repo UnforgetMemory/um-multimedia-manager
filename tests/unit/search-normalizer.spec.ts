@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/utils/search-normalizer'
+import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/libraries/utils/search-normalizer'
 
 test.describe('normalizeSearchQuery', () => {
   test.describe('season/episode markers', () => {

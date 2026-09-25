@@ -13,7 +13,7 @@
 
 import { test, expect } from '@playwright/test'
 import { zip } from 'fflate'
-import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
+import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils'
 import type { StoreRecordSnapshot } from '@/domain/record/StoreRecord'
 
 // FileReader shim for the test runner (jszip legacy — harmless for fflate).

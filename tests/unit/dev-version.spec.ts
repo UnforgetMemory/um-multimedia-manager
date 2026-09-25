@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { devVersionSegment } from '@/utils/dev-version'
+import { devVersionSegment } from '@/libraries/utils/dev-version'
 
 /**
  * Regression for the dev-build leading-zero bug (umreview).

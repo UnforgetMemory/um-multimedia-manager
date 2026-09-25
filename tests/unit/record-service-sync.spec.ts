@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { RecordService } from '@/domain/record/RecordService'
 import type { IRecordRepository } from '@/domain/record/IRecordRepository'
 import { StoreRecord } from '@/domain/record/StoreRecord'
-import { UrlResolverBuilder } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/libraries/identity'
 import type { StoreRecordSnapshot } from '@/types'
 
 /**

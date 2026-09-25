@@ -52,9 +52,9 @@ function runGuard(srcDir: string, args: string[] = []): { status: number; out: s
 
 /** 合法夹具：依赖方向全部向下（app→feature→store→scenario→provider→engine→libraries）。 */
 const LEGAL_TREE: Record<string, string> = {
-  'utils/pure.ts': 'export const pure = 1\n',
-  'domain/entity.ts': "import { pure } from '@/utils/pure'\nexport const entity = pure\n",
-  'features/database/models.ts': "import { pure } from '@/utils/pure'\nexport const db = pure\n",
+  'libraries/utils/pure.ts': 'export const pure = 1\n',
+  'domain/entity.ts': "import { pure } from '@/libraries/utils/pure'\nexport const entity = pure\n",
+  'features/database/models.ts': "import { pure } from '@/libraries/utils/pure'\nexport const db = pure\n",
   'features/webdav/api.ts':
     "import { db } from '@/features/database/models'\nexport const api = db\n",
   // 内容脚本必须经「数据库门面」bare 导入，不得走 models/api 深路径
@@ -62,7 +62,7 @@ const LEGAL_TREE: Record<string, string> = {
     "import { Store } from '@/features/database'\nimport { api } from '@/features/webdav/api'\nexport const page = Store + api\n",
   'stores/app.ts': "import { page } from '@/content/page'\nexport const app = page\n",
   'shared/ui/button/Button.vue':
-    "<script setup lang=\"ts\">\nimport { pure } from '@/utils/pure'\n</script>\n\n<template><button>{{ pure }}</button></template>\n",
+    "<script setup lang=\"ts\">\nimport { pure } from '@/libraries/utils/pure'\n</script>\n\n<template><button>{{ pure }}</button></template>\n",
   'entrypoints/content/handlers/ok.ts':
     "import { Store } from '@/features/database'\nexport const s = Store\n",
   'entrypoints/background.ts':
@@ -73,7 +73,7 @@ const LEGAL_TREE: Record<string, string> = {
 const VIOLATING_TREE: Record<string, string> = {
   ...LEGAL_TREE,
   // C 类：纯层（libraries）依赖业务层（engine）
-  'utils/bad-lib.ts': "import { db } from '@/features/database/models'\nexport const bad = db\n",
+  'libraries/utils/bad-lib.ts': "import { db } from '@/features/database/models'\nexport const bad = db\n",
   // D 类：domain 依赖业务层（store）
   'domain/bad-domain.ts': "import { app } from '@/stores/app'\nexport const bad = app\n",
   // B 类：向上依赖（engine → app）—— 三种曾被漏检的导入写法
@@ -98,13 +98,13 @@ const VIOLATING_TREE: Record<string, string> = {
  */
 const PARTIAL_VALIDATION_TREE: Record<string, string> = {
   ...LEGAL_TREE,
-  'utils/zip-utils.ts': [
+  'libraries/utils/zip-utils.ts': [
     'export async function unpackageDataset(blob) {',
     '  return { data: {}, meta: blob }',
     '}',
   ].join('\n'),
   'features/webdav/loader.ts': [
-    "import { unpackageDataset } from '@/utils/zip-utils'",
+    "import { unpackageDataset } from '@/libraries/utils/zip-utils'",
     "import { validateDatasetVersion } from '@/features/migration/models'",
     'export async function a(blob) {',
     '  const { data, meta } = await unpackageDataset(blob)',
