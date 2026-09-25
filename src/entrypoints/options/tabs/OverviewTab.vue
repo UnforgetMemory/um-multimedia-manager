@@ -4,17 +4,17 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useStats, type RecordWithType } from '@/composables/useStats'
 import { PLATFORM_HUES } from '@/composables/usePlatformMeta'
-import { dateKey } from '@/utils'
+import { dateKey } from '@/libraries/utils'
 
 
 import HeatmapCalendar from '@/shared/HeatmapCalendar.vue'
 import { computeYearlyStats } from '@/domain/record/statistics'
 import PlatformDistribution from '@/shared/PlatformDistribution.vue'
-import { Card, CardHeader, CardContent } from '@/shared/ui/card'
-import { Button } from '@/shared/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert'
-import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
-import StatsGrid from '@/shared/ui/stats-grid/StatsGrid.vue'
+import { Card, CardHeader, CardContent } from '@/libraries/ui/card'
+import { Button } from '@/libraries/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/libraries/ui/alert'
+import SegmentedControl from '@/libraries/ui/segmented-control/SegmentedControl.vue'
+import StatsGrid from '@/libraries/ui/stats-grid/StatsGrid.vue'
 import { AlertCircle, Database, RefreshCw, Film, Tv, Music, Book, Gamepad2, ShieldAlert, Play } from 'lucide-vue-next'
 
 const { t } = useI18n()

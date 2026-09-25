@@ -9,12 +9,12 @@
 import type { StoreRecord, UrlIdentity } from '@/types'
 import type { MediaTypeId } from '@/domain/platform/MediaType'
 import { Store } from '@/features/database'
-import { Utils } from '@/utils'
-import { UrlResolverBuilder } from '@/shared/identity'
-import { safeSendMessage } from '@/utils/context'
+import { Utils } from '@/libraries/utils'
+import { UrlResolverBuilder } from '@/libraries/identity'
+import { safeSendMessage } from '@/libraries/utils/context'
 import { FloatingToast } from './utils/toast'
 import { t } from './i18n'
-import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
+import { debugLog, infoLog, warnLog, errorLog } from '@/libraries/utils/logger'
 
 /** Scan Douban page status — reads interest_sect_level DOM */
 function scanDoubanPageStatus(type?: string): { status: string; rating: number } {

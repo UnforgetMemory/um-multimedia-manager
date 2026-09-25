@@ -1,5 +1,5 @@
 import { onUnmounted } from 'vue'
-import { throttle } from '@/utils'
+import { throttle } from '@/libraries/utils'
 
 export interface PageObserverOptions {
   /** CSS selectors for containers to watch for injected content */

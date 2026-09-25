@@ -7,7 +7,7 @@
  * Cross-platform links stored in `linkedIds` map.
  */
 
-import type { Provider } from '@/config'
+import type { Provider } from '@/libraries/config'
 
 // ==================== Module Layout ====================
 

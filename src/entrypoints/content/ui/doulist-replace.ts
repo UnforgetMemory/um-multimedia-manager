@@ -10,7 +10,7 @@
 
 import type { UrlIdentity } from '@/types'
 import { FloatingToast } from '../utils/toast'
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 
 // P2 split: API client + theme tokens live in sibling modules.
 import { fetchAllDoulists, addToDoulist, createDoulist, removeFromDoulist, getDoulistLabel, DOULIST_CAT_MAP } from './doulist-api'

@@ -1,6 +1,6 @@
 import { Store } from '@/features/database'
-import { UrlResolverBuilder } from '@/shared/identity'
-import { safeSendMessage } from '@/utils/context'
+import { UrlResolverBuilder } from '@/libraries/identity'
+import { safeSendMessage } from '@/libraries/utils/context'
 import { extractCrossPlatformLinks, buildCrossPlatformTargets } from '@/content/douban/shared/cross-platform-links'
 import { injectNeoDBPushButtons, FloatingToast, t } from '@/content/douban/shared/legacy-bridge'
 import type { StoreRecord, UrlIdentity } from '@/types'

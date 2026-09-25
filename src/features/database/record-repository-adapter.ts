@@ -11,7 +11,7 @@
 import type { IRecordRepository } from '@/domain/record/IRecordRepository'
 import { StoreRecord } from '@/domain/record/StoreRecord'
 import type { StoreRecordSnapshot } from '@/types'
-import { UrlResolverBuilder } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/libraries/identity'
 /** Minimal interface for the database dependency — makes the adapter testable. */
 export interface DbAdapterForRepo {
   get(storeName: string, key: string): Promise<StoreRecordSnapshot | null>

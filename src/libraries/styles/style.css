@@ -1,0 +1,538 @@
+@import '../../libraries/styles/tokens.static.css';
+@import "tailwindcss" prefix(umm);
+
+/* Class-strategy dark variant: theme is driven by .dark on <html>
+   (stores/theme.ts toggles classes), not the OS prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   UMM Layer-1 Semantic Tokens (SPA: popup / options)
+   ============================================================
+   ADR-018 three-tier model — this file is the Tier-2 semantic
+   alias layer for the document context. ZERO raw color literals:
+   every value references tokens.static.css. Theme adaptation via
+   .dark class on <html> (stores/theme.ts), transitions gated by
+   .theme-ready (double-RAF).
+
+   Shadow DOM counterpart: src/content/douban/styles/design-tokens.css
+   JS-injection counterpart: src/entrypoints/content/styles/tokens.ts
+   Consistency gate: npm run ds:check (scripts/check-design-tokens.cjs)
+   ============================================================ */
+
+@theme {
+  /* ===== shadcn/vue semantic colors (direct refs, no hsl() wrapper) ===== */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart categorical palette — vivid, derived from static ramps */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar colors */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Radius system */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Animation system */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-in: umm-enter 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-out: umm-exit 150ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--reka-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--reka-accordion-content-height); }
+    to { height: 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ===== UMM semantic extensions (shared names with design-tokens.css) ===== */
+
+  /* ===== Status role system (ADR-019 D2): fill / on-fill / text-tier =====
+     Switchable values live on plain names in @layer base (:root/.dark);
+     @theme only exposes utility namespaces. */
+  --color-state-success: var(--success);
+  --color-state-success-on: var(--success-on);
+  --color-state-success-text: var(--success-text);
+  --color-state-warning: var(--warning);
+  --color-state-warning-on: var(--warning-on);
+  --color-state-warning-text: var(--warning-text);
+  --color-state-error: var(--error);
+  --color-state-error-on: var(--error-on);
+  --color-state-error-text: var(--error-text);
+  --color-state-info: var(--info);
+  --color-state-info-on: var(--info-on);
+  --color-state-info-text: var(--info-text);
+
+  /* Responsive page breakpoints (13-level, see DESIGN_GUIDE §3.4) */
+  --breakpoint-xs: 0px;
+  --breakpoint-sm: 320px;
+  --breakpoint-md: 375px;
+  --breakpoint-lg: 480px;
+  --breakpoint-xl: 640px;
+  --breakpoint-2xl: 768px;
+  --breakpoint-3xl: 1024px;
+  --breakpoint-4xl: 1280px;
+  --breakpoint-5xl: 1536px;
+  --breakpoint-6xl: 1920px;
+  --breakpoint-7xl: 2560px;
+  --breakpoint-8xl: 3200px;
+}
+
+/* ============================================================
+   Base element styles
+   ============================================================ */
+@layer base {
+  /* ============================================================
+     M3-style role mapping (ADR-019) — light scheme
+     surface(tone98 gray wash) / card(container-lowest white float)
+     outline-variant(--border weak) vs outline(--input strong)
+     ============================================================ */
+  :root {
+    --background: var(--umm-static-neutral-50);
+    --foreground: var(--umm-static-neutral-900);
+    --card: var(--umm-static-neutral-00);
+    --card-foreground: var(--umm-static-neutral-900);
+    --popover: var(--umm-static-neutral-00);
+    --popover-foreground: var(--umm-static-neutral-900);
+    --primary: var(--umm-static-brand-600);
+    --primary-foreground: var(--umm-static-neutral-00);
+    --secondary: var(--umm-static-neutral-100);
+    --secondary-foreground: var(--umm-static-neutral-800);
+    --muted: var(--umm-static-neutral-100);
+    --muted-foreground: var(--umm-static-neutral-600);
+    --accent: var(--umm-static-neutral-100);
+    --accent-foreground: var(--umm-static-neutral-900);
+    --destructive: var(--umm-static-red-600);
+    --destructive-foreground: var(--umm-static-neutral-00);
+    --border: var(--umm-static-neutral-200);
+    --input: var(--umm-static-neutral-250);
+    --ring: var(--umm-static-brand-500);
+    --radius: 0.625rem;
+
+  /* Primary container pair (M3 tone90/tone30) */
+  --primary-container: var(--umm-static-brand-100);
+  --on-primary-container: var(--umm-static-brand-800);
+
+    /* Vivid categorical charts */
+    --chart-1: var(--umm-static-brand-500);
+    --chart-2: var(--umm-static-teal-500);
+    --chart-3: var(--umm-static-amber-500);
+    --chart-4: var(--umm-static-violet-500);
+    --chart-5: var(--umm-static-rose-500);
+
+    --sidebar: var(--umm-static-neutral-00);
+    --sidebar-foreground: var(--umm-static-neutral-900);
+    --sidebar-primary: var(--umm-static-brand-600);
+    --sidebar-primary-foreground: var(--umm-static-neutral-00);
+    --sidebar-accent: var(--umm-static-brand-100);
+    --sidebar-accent-foreground: var(--umm-static-brand-800);
+    --sidebar-border: var(--umm-static-neutral-150);
+    --sidebar-ring: var(--umm-static-brand-500);
+
+    /* ===== Status triads (ADR-019 D2): fill + on-fill + text-tier =====
+       Contrast rule: fill carries its own on-color (white or deep tone);
+       text-tier is tuned for colored TEXT on page/card surfaces (AA 4.5). */
+    --success: var(--umm-static-green-700);
+    --success-on: var(--umm-static-neutral-00);
+    --success-text: var(--umm-static-green-700);
+    --warning: var(--umm-static-amber-400);
+    --warning-on: var(--umm-static-neutral-1000);
+    --warning-text: var(--umm-static-amber-700);
+    --error: var(--umm-static-red-600);
+    --error-on: var(--umm-static-neutral-00);
+    --error-text: var(--umm-static-red-700);
+    --info: var(--umm-static-blue-600);
+    --info-on: var(--umm-static-neutral-00);
+    --info-text: var(--umm-static-blue-700);
+
+    /* Status colors (LinkedTab reads these via inline styles).
+       Light fills pair with white --primary-foreground: neutral-600 (not 500 —
+       white on n500 is 4.17), blue-600, green-700. */
+    --umm-color-status-unknown: var(--umm-static-neutral-600);
+    --umm-color-status-unwatched: var(--umm-static-neutral-600);
+    --umm-color-status-watched: var(--umm-static-blue-600);
+    --umm-color-status-done: var(--umm-static-green-700);
+    --umm-color-error: var(--umm-static-red-700);
+
+    /* Surfaces & text */
+    --umm-color-surface: var(--background);
+    --umm-color-surface-secondary: var(--umm-static-neutral-75);
+    --umm-color-text-primary: var(--foreground);
+    --umm-color-text-secondary: var(--muted-foreground);
+    --umm-color-text-tertiary: var(--umm-static-neutral-550);
+    --umm-color-text-disabled: color-mix(in srgb, var(--umm-static-neutral-550) 55%, transparent);
+
+    /* Brand accent (mirrors design-tokens.css for cross-layer consistency) */
+    --umm-brand-accent: var(--umm-static-brand-600);
+
+    /* Bar chart colors (theme-adaptive, read via getComputedStyle in OverviewTab) */
+    --umm-bar-platform-l: 45%;
+    --umm-bar-platform-icon-l: 40%;
+    --umm-bar-base-s: 35;
+    --umm-bar-base-l: 75;
+    --umm-bar-dir: 1;
+
+    /* Layout */
+    --umm-page-margin: clamp(16px, 12px + 1vw, 64px);
+    --umm-card-padding: clamp(12px, 8px + 0.8vw, 40px);
+    --umm-section-gap: clamp(16px, 12px + 1vw, 56px);
+    --umm-popup-max-width: clamp(320px, 280px + 8vw, 800px);
+
+    /* Responsive page breakpoints (13-level, see DESIGN_GUIDE §3.4) */
+    --breakpoint-xs: 0px;
+    --breakpoint-sm: 320px;
+    --breakpoint-md: 375px;
+    --breakpoint-lg: 480px;
+    --breakpoint-xl: 640px;
+    --breakpoint-2xl: 768px;
+    --breakpoint-3xl: 1024px;
+    --breakpoint-4xl: 1280px;
+    --breakpoint-5xl: 1536px;
+    --breakpoint-6xl: 1920px;
+    --breakpoint-7xl: 2560px;
+    --breakpoint-8xl: 3200px;
+
+    /* Typography Scale — responsive via clamp() */
+    --umm-font-display-size: clamp(2rem, 1.5rem + 1.5vw, 4rem);
+    --umm-font-display-weight: 700;
+    --umm-font-display-line-height: 1.1;
+
+    --umm-font-h1-size: clamp(1.25rem, 1rem + 0.75vw, 2.25rem);
+    --umm-font-h1-weight: 600;
+    --umm-font-h1-line-height: 1.3;
+
+    --umm-font-h2-size: clamp(1rem, 0.875rem + 0.375vw, 1.5rem);
+    --umm-font-h2-weight: 600;
+    --umm-font-h2-line-height: 1.4;
+
+    --umm-font-h3-size: clamp(0.875rem, 0.75rem + 0.375vw, 1.25rem);
+    --umm-font-h3-weight: 600;
+    --umm-font-h3-line-height: 1.4;
+
+    --umm-font-body-size: clamp(0.875rem, 0.75rem + 0.375vw, 1.25rem);
+    --umm-font-body-weight: 400;
+    --umm-font-body-line-height: 1.6;
+
+    --umm-font-caption-size: clamp(0.75rem, 0.625rem + 0.375vw, 1rem);
+    --umm-font-caption-weight: 400;
+    --umm-font-caption-line-height: 1.5;
+
+    --umm-font-mono-size: clamp(0.75rem, 0.625rem + 0.375vw, 1rem);
+    --umm-font-mono-weight: 400;
+    --umm-font-mono-line-height: 1.5;
+  }
+
+  /* ============================================================
+     Dark scheme — macOS Vibrancy three-depth panels (STYLEKIT macos-vibrancy)
+     ============================================================ */
+  /* Dark scheme — macOS Vibrancy three-depth panels (STYLEKIT macos-vibrancy):
+     page deepest → cards/panels mid → elevated surfaces lightest,
+     1px white-alpha borders, white-alpha text tiers */
+  .dark {
+    --background: var(--umm-static-vibrancy-0);
+    --foreground: var(--umm-static-white-a95);
+    /* Dark-glass recipe: translucent cards over the opaque page — depth via
+       glass, not shadow. Popover stays near-opaque for menu readability. */
+    --card: color-mix(in srgb, var(--umm-static-vibrancy-1) 78%, transparent);
+    --card-foreground: var(--umm-static-white-a95);
+    --popover: color-mix(in srgb, var(--umm-static-vibrancy-0) 92%, transparent);
+    --popover-foreground: var(--umm-static-white-a95);
+    --primary: var(--umm-static-brand-400);
+    --primary-foreground: var(--umm-static-neutral-1000);
+    --secondary: var(--umm-static-vibrancy-2);
+    --secondary-foreground: var(--umm-static-white-a95);
+    --muted: var(--umm-static-vibrancy-2);
+    --muted-foreground: var(--umm-static-white-a72);
+    --accent: var(--umm-static-vibrancy-2);
+    --accent-foreground: var(--umm-static-white-a95);
+    --destructive: var(--umm-static-red-500);
+    --destructive-foreground: var(--umm-static-neutral-1000);
+    --border: var(--umm-static-white-a10);
+    --input: var(--umm-static-white-a12);
+    --ring: var(--umm-static-apple-blue);
+
+    --primary-container: var(--umm-static-brand-900);
+    --on-primary-container: var(--umm-static-brand-200);
+
+    --chart-1: var(--umm-static-brand-400);
+    --chart-2: var(--umm-static-teal-500);
+    --chart-3: var(--umm-static-amber-400);
+    --chart-4: var(--umm-static-violet-400);
+    --chart-5: var(--umm-static-rose-400);
+
+    --sidebar: var(--umm-static-vibrancy-0);
+    --sidebar-foreground: var(--umm-static-white-a95);
+    --sidebar-primary: var(--umm-static-brand-400);
+    --sidebar-primary-foreground: var(--umm-static-neutral-1000);
+    --sidebar-accent: var(--umm-static-vibrancy-2);
+    --sidebar-accent-foreground: var(--umm-static-white-a95);
+    --sidebar-border: var(--umm-static-white-a08);
+    --sidebar-ring: var(--umm-static-apple-blue);
+
+    /* Status triads (dark): bright fills pair with deep on-colors */
+    --success: var(--umm-static-green-400);
+    --success-on: var(--umm-static-neutral-1000);
+    --success-text: var(--umm-static-green-300);
+    --warning: var(--umm-static-amber-400);
+    --warning-on: var(--umm-static-neutral-1000);
+    --warning-text: var(--umm-static-amber-300);
+    --error: var(--umm-static-red-400);
+    --error-on: var(--umm-static-neutral-1000);
+    --error-text: var(--umm-static-red-300);
+    --info: var(--umm-static-blue-400);
+    --info-on: var(--umm-static-neutral-1000);
+    --info-text: var(--umm-static-blue-300);
+
+    --umm-color-status-unknown: var(--umm-static-neutral-500);
+    --umm-color-status-unwatched: var(--umm-static-neutral-500);
+    --umm-color-status-watched: var(--umm-static-blue-400);
+    --umm-color-status-done: var(--umm-static-green-400);
+    --umm-color-error: var(--umm-static-red-400);
+
+    --umm-color-surface: var(--background);
+    --umm-color-surface-secondary: var(--umm-static-vibrancy-1);
+    --umm-color-text-primary: var(--foreground);
+    --umm-color-text-secondary: var(--muted-foreground);
+    --umm-color-text-tertiary: var(--umm-static-white-a58);
+    --umm-color-text-disabled: color-mix(in srgb, var(--umm-static-white-a58) 55%, transparent);
+
+    --umm-bar-platform-l: 50%;
+    --umm-bar-platform-icon-l: 45%;
+    --umm-bar-base-s: 42;
+    --umm-bar-base-l: 42;
+    --umm-bar-dir: -1;
+
+    --umm-brand-accent: var(--umm-static-brand-400);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+  html {
+    transition: color-scheme 0.5s ease;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: background-color 0.5s ease, color 0.5s ease;
+  }
+  /* Theme transition: applies to ALL elements after first paint */
+  .theme-ready,
+  .theme-ready *,
+  .theme-ready *::before,
+  .theme-ready *::after {
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+  }
+
+  /* Exclude Select/Dropdown triggers from theme transition to prevent label flicker.
+     The .theme-ready * selector applies transition to all elements; trigger elements
+     need transition:none to avoid visible text flash during theme color changes. */
+  [data-reka-select-trigger],
+  [role="combobox"],
+  [data-reka-dropdown-menu-trigger],
+  [data-reka-menubar-trigger] {
+    transition: none !important;
+  }
+
+  /* Custom scrollbar - thin, rounded, theme-aware */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+    color: var(--foreground);
+  }
+  /* Vibrancy signature: Apple system blue selection in dark */
+  .dark ::selection {
+    background: color-mix(in srgb, var(--umm-static-apple-blue) 35%, transparent);
+  }
+
+  /* Reduced motion — a11y guard (StyleKit checklist requirement) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Mount entrance (StyleKit: Fade In Up, restrained) */
+  @keyframes umm-mount-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #app {
+    animation: umm-mount-fade var(--umm-static-duration-enter, 500ms) var(--umm-static-ease-emphasized, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  }
+
+  /* Stagger children (StyleKit pattern); capped delays keep long lists snappy */
+  .umm-stagger > * {
+    animation: umm-mount-fade var(--umm-static-duration-enter, 500ms) var(--umm-static-ease-emphasized, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+  }
+  .umm-stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .umm-stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .umm-stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .umm-stagger > *:nth-child(5) { animation-delay: 160ms; }
+  .umm-stagger > *:nth-child(6) { animation-delay: 200ms; }
+  .umm-stagger > *:nth-child(n + 7) { animation-delay: 240ms; }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+  }
+}
+
+/* ============================================================
+   Animation utilities for Select/Dropdown/Dialog components
+   ============================================================ */
+@keyframes umm-enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes umm-exit {
+  from {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+@layer utilities {
+  /* Brand gradient — Button variant="gradient" hero actions */
+  .bg-brand-gradient {
+    background-image: linear-gradient(
+      135deg,
+      var(--umm-static-brand-600),
+      var(--umm-static-brand-700)
+    );
+  }
+  .animate-in {
+    animation-name: umm-enter;
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .animate-out {
+    animation-name: umm-exit;
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .fade-in-0 { --tw-enter-opacity: 0; }
+  .fade-out-0 { --tw-exit-opacity: 0; }
+  .fade-in-80 { --tw-enter-opacity: 0.8; }
+  .fade-out-80 { --tw-exit-opacity: 0.8; }
+  .zoom-in-95 { --tw-enter-scale: 0.95; }
+  .zoom-out-95 { --tw-exit-scale: 0.95; }
+  .slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+  .slide-in-from-bottom-2 { --tw-enter-translate-y: 0.5rem; }
+  .slide-in-from-left-2 { --tw-enter-translate-x: -0.5rem; }
+  .slide-in-from-right-2 { --tw-enter-translate-x: 0.5rem; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+}
+
+/* ============================================================
+   Typography utility classes
+   ============================================================ */
+.font-display {
+  font-size: var(--umm-font-display-size);
+  font-weight: var(--umm-font-display-weight);
+  line-height: var(--umm-font-display-line-height);
+}
+.font-h1 {
+  font-size: var(--umm-font-h1-size);
+  font-weight: var(--umm-font-h1-weight);
+  line-height: var(--umm-font-h1-line-height);
+}
+.font-h2 {
+  font-size: var(--umm-font-h2-size);
+  font-weight: var(--umm-font-h2-weight);
+  line-height: var(--umm-font-h2-line-height);
+}
+.font-h3 {
+  font-size: var(--umm-font-h3-size);
+  font-weight: var(--umm-font-h3-weight);
+  line-height: var(--umm-font-h3-line-height);
+}
+.font-body {
+  font-size: var(--umm-font-body-size);
+  font-weight: var(--umm-font-body-weight);
+  line-height: var(--umm-font-body-line-height);
+}
+.font-caption {
+  font-size: var(--umm-font-caption-size);
+  font-weight: var(--umm-font-caption-weight);
+  line-height: var(--umm-font-caption-line-height);
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: var(--umm-font-mono-size);
+  font-weight: var(--umm-font-mono-weight);
+  line-height: var(--umm-font-mono-line-height);
+}
+
+/* Brightness levels */
+.text-primary-content { color: var(--foreground); }
+.text-secondary-content { color: var(--muted-foreground); }
+.text-tertiary-content { color: color-mix(in srgb, var(--muted-foreground) 85%, transparent); }

@@ -30,7 +30,7 @@ import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel'
 import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-panel'
 import { runVisibleEntrance, buildFloatbar } from '@/entrypoints/content/handlers/sehuatang-controls'
-import { escapeHtml } from '@/utils/escape-html'
+import { escapeHtml } from '@/libraries/utils/escape-html'
 import { attachSehuatangOverlay } from './overlay'
 import { toSafeAbsoluteUrl } from './url'
 import {

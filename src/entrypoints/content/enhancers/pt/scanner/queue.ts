@@ -8,7 +8,7 @@ import type { PtIdCacheEntry } from '@/types'
 import type { SiteScannerConfig } from '../types'
 import { Semaphore } from './semaphore'
 import { SITE_CONFIGS } from '../config/sites'
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 
 const ALLOWED_ORIGINS = new Set<string>(
   SITE_CONFIGS.flatMap(config => [`https://${config.domain}`, `http://${config.domain}`]),

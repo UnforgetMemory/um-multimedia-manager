@@ -16,7 +16,7 @@
  *   E. 内容脚本禁令 —— 不得直连 IndexedDB；不得深路径绕过 database 门面
  *   F. 解析/策略契约 —— `unpackageDataset` 的调用点必须同时调用
  *                       `validateDatasetVersion`（版本兼容策略归调用方，
- *                       见 src/utils/zip-utils.ts 头注）
+ *                       见 src/libraries/utils/zip-utils.ts 头注）
  *   W. 警告项       —— 内容脚本直连 chrome.storage、features 兄弟模块走深路径
  *
  * Usage: node scripts/check-architecture.cjs [--json] [--warn-only]
@@ -28,8 +28,8 @@
  *     且自身以 type-only 方式引用 provider 的 DTO。豁免是记录在案的例外，非疏漏。
  *   - src/domain/ 不设秩：其纯度由规则 D 单独负责，避免与 B 重复报错。
  *   - src/entrypoints/ 归 app 层（WXT 入口 = 应用装配）；其 content 编排子树单独归 scenario。
- *   - src/shared/ 按子目录拆分：ui / styles / locales / plugins / identity.ts / toast.ts 属
- *     libraries（业务无关的共享基元），其余组件属 feature。
+ *   - libraries 层（src/libraries/）：原 shared/{ui,styles,locales,plugins,identity,toast}
+ *     + utils + config.ts，均为业务无关的共享基元（umpp W3 L1 已迁入）。
  *   - libraries 允许依赖 domain / types：这两者是无基础设施依赖的最内层契约，
  *     允许依赖它们是依赖倒置的体现；禁止的是 libraries 依赖 app/feature/store/
  *     scenario/provider/engine（那才构成「公共层被业务腐蚀」）。
@@ -100,21 +100,21 @@ const LAYER_RULES = [
   ['stores', 'store'],
   ['composables', 'feature'],
 
-  // —— 共享基元（libraries）优先于 shared 的通用规则 ——
-  ['shared/ui', 'libraries'],
-  ['shared/styles', 'libraries'],
-  ['shared/locales', 'libraries'],
-  ['shared/plugins', 'libraries'],
-  ['shared/identity.ts', 'libraries'],
-  ['shared/toast.ts', 'libraries'],
+  // —— 共享基元（libraries）：已从 shared/ 迁至 libraries/（umpp W3 L1）——
+  ['libraries/utils', 'libraries'],
+  ['libraries/ui', 'libraries'],
+  ['libraries/styles', 'libraries'],
+  ['libraries/locales', 'libraries'],
+  ['libraries/plugins', 'libraries'],
+  ['libraries/identity.ts', 'libraries'],
+  ['libraries/toast.ts', 'libraries'],
+  ['libraries', 'libraries'],
   // —— 其余 shared 组件属 feature ——
   ['shared', 'feature'],
 
-  // —— 通用能力 ——
-  ['utils', 'libraries'],
+  // —— 通用能力（utils/config 已迁至 libraries/）——
   ['domain', 'domain'],
   ['types', 'types'],
-  ['config.ts', 'libraries'],
 
   // —— features/ 细分（必须排在通用 features 之前）——
   ['features/database', 'engine'],
@@ -340,12 +340,12 @@ log(`  ok  E. 已检查 ${contentScriptCount} 个内容脚本文件`)
 // ---------- F. 解析/策略分离契约 ----------
 
 /**
- * `src/utils/zip-utils.ts` 只负责解析，不再内置版本门禁（ADR-026 W1 分层修复）。
+ * `src/libraries/utils/zip-utils.ts` 只负责解析，不再内置版本门禁（ADR-026 W1 分层修复）。
  * 因此每个调用点都必须自行调用 `validateDatasetVersion` —— 否则导入链路会
  * 静默失去版本护栏。此处以文件级共存断言兜住「调用被删除」的退化。
  */
 /**
- * `src/utils/zip-utils.ts` 只负责解析，不再内置版本门禁（ADR-026 W1 分层修复）。
+ * `src/libraries/utils/zip-utils.ts` 只负责解析，不再内置版本门禁（ADR-026 W1 分层修复）。
  * 因此**每个调用点**都必须自行调用 `validateDatasetVersion` —— 否则该处导入
  * 链路会静默失去版本护栏。
  *

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount, Teleport, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Card, CardHeader, CardContent } from '@/shared/ui/card'
-import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
-import { dateKey } from '@/utils'
+import { Card, CardHeader, CardContent } from '@/libraries/ui/card'
+import SegmentedControl from '@/libraries/ui/segmented-control/SegmentedControl.vue'
+import { dateKey } from '@/libraries/utils'
 import {
   CELL_MIN_PX,
   GRID_PAD_PX,
   clampTipX,
   pickRangeDaysForWidth,
   type HeatmapRangeId,
-} from '@/utils/heatmap-range'
+} from '@/libraries/utils/heatmap-range'
 
 const { t, locale } = useI18n()
 

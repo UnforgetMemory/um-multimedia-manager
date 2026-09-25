@@ -21,7 +21,7 @@ import { RateLimiter } from './rate-limiter'
 import { RetryPolicy } from './retry-policy'
 import { SchedulerMonitor } from './scheduler-monitor'
 import { CacheManager } from '@/features/cache/cache-manager'
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 
 /**
  * Backoff after a rate-limit acquire timeout before retrying the loop.

@@ -8,8 +8,8 @@
  * - 用户认证
  */
 
-import { debugLog, infoLog, warnLog } from '@/utils/logger'
-import { sleep } from '@/utils'
+import { debugLog, infoLog, warnLog } from '@/libraries/utils/logger'
+import { sleep } from '@/libraries/utils'
 
 // ==================== 错误类型 ====================
 

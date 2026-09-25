@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useConfirmStore } from '@/stores/confirm'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
-import { Button } from '@/shared/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/libraries/ui/dialog'
+import { Button } from '@/libraries/ui/button'
 import { Loader2 } from 'lucide-vue-next'
 
 const confirmStore = useConfirmStore()

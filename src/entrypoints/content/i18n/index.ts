@@ -1,5 +1,5 @@
 import locales, { type Locale } from './locales'
-import { STORAGE_KEYS } from '@/config'
+import { STORAGE_KEYS } from '@/libraries/config'
 
 const STORAGE_KEY = 'umm:locale'
 /**

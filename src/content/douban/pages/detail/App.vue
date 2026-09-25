@@ -9,7 +9,7 @@ import { metaToChips, ratingBarWidth, starClass as starClassFn, openLink, handle
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
 import { syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
 import { extractCrossPlatformLinks } from '@/content/douban/shared/legacy-bridge'
-import { UrlResolverBuilder } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/libraries/identity'
 import { rating10ToDoubanStars, doubanStarsToRating10, shouldWriteRecord } from '@/content/douban/shared/rating-scale'
 import { Store } from '@/features/database'
 import type { StoreRecord } from '@/types'

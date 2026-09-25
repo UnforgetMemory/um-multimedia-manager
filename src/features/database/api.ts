@@ -8,9 +8,9 @@
  * caller.
  */
 
-import type { Provider } from '@/config'
+import type { Provider } from '@/libraries/config'
 import type { MessageType, MessagePayloadMap, MessageSuccess, StoreRecord, AppSettings, PtIdCacheEntry } from '@/types'
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 
 /**
  * Connection-level failures worth retrying — all mean "the receiving end

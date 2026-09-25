@@ -8,7 +8,7 @@
  * so the new Douban overlay system has a stable shared home (see legacy-bridge).
  */
 
-import type { Provider } from '@/config'
+import type { Provider } from '@/libraries/config'
 import type { UrlIdentity } from '@/types'
 
 /**

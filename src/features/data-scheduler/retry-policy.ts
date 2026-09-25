@@ -7,7 +7,7 @@
 
 import type { RetryConfig, RetryCallback } from './types'
 import { DEFAULT_RETRY_CONFIG } from './types'
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 
 /**
  * Calculate exponential backoff delay with optional jitter.

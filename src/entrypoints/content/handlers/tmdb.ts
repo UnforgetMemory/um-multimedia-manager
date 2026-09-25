@@ -7,8 +7,8 @@
 
 import type { UrlIdentity, StoreRecord } from '@/types'
 import { Store } from '@/features/database'
-import { Utils, throttle } from '@/utils'
-import { intervalWhenVisible } from '@/utils/visibility'
+import { Utils, throttle } from '@/libraries/utils'
+import { intervalWhenVisible } from '@/libraries/utils/visibility'
 import { createStatusChip } from '../utils/dom'
 import { createDetailPageHandler } from './create-detail-handler'
 

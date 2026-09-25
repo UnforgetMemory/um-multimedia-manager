@@ -5,7 +5,7 @@
 
 import type { UrlIdentity } from '@/types'
 import { Store } from '@/features/database'
-import { Utils } from '@/utils'
+import { Utils } from '@/libraries/utils'
 import { createStatusChip } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
 import { t } from '../i18n'

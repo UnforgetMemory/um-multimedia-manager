@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, onUnmounted, useTemplateRef } from 'vue'
-import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/utils/search-normalizer'
+import { collapseInputSpaces, normalizeSearchQuery, normalizeSearchQueryLive } from '@/libraries/utils/search-normalizer'
 
 /**
  * Unified search & navigation bar for all Douban pages.

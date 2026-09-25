@@ -21,8 +21,8 @@ import {
   classifyAvId,
   storeForAvIdKind,
 } from '@/features/adult-av/models'
-import { broadcast } from '@/utils/event-bus'
-import type { SendResponse } from '@/utils/error-message'
+import { broadcast } from '@/libraries/utils/event-bus'
+import type { SendResponse } from '@/libraries/utils/error-message'
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 
 const KNOWN_SOURCES = ['javdb', 'sehuatang']

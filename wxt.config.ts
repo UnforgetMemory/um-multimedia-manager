@@ -1,6 +1,6 @@
 import { defineConfig } from 'wxt'
 import tailwindcss from '@tailwindcss/vite'
-import { devVersionSegment } from './src/utils/dev-version'
+import { devVersionSegment } from './src/libraries/utils/dev-version'
 
 /**
  * Extension version — single source inside this config; kept in sync with
@@ -54,7 +54,7 @@ export default defineConfig({
   manifest: (env) => {
     // Dev-flavored = serve(HMR) / UMM_DEV build / 传统 dev 构建
     // (--mode development)：统一带 (DEV) 名 + 基版本.HHMM 时分段，
-    // 见 src/utils/dev-version.ts）+ 完整时间戳 version_name。
+    // 见 src/libraries/utils/dev-version.ts）+ 完整时间戳 version_name。
     const devFlavored = isDevBuild || env.command === 'serve' || env.mode === 'development'
     return {
     name: devFlavored ? DEV_NAME : PROD_NAME,

@@ -1,5 +1,5 @@
 
-import { throttle } from '@/utils'
+import { throttle } from '@/libraries/utils'
 import { getMTeamSets, applyCacheFallback } from './cache'
 import { getMTeamRowOutcome } from './mteam-match'
 import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types'

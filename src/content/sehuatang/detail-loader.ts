@@ -11,7 +11,7 @@
  * 到同一 Promise。
  */
 
-import { RequestQueue } from '@/utils/requestQueue'
+import { RequestQueue } from '@/libraries/utils/requestQueue'
 import { extractThreadIdFromUrl } from '@/entrypoints/content/handlers/sehuatang-extract'
 import { getCachedDetails, putCachedDetails } from './detail-cache'
 

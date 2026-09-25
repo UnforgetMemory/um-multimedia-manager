@@ -8,7 +8,7 @@
  * failure degrades to a plain miss (empty result), never a thrown error.
  */
 
-import { safeSendMessage } from '@/utils/context'
+import { safeSendMessage } from '@/libraries/utils/context'
 import type { MessagePayloadMap, ResponseMessageMap } from '@/types'
 
 /**

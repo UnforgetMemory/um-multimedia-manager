@@ -1,4 +1,4 @@
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 
 export interface WithRetryOptions<T> {
   /** Max number of attempts. Defaults to 8. */

@@ -4,7 +4,7 @@
  */
 
 import type { UrlIdentity } from '@/types'
-import { Utils, throttle } from '@/utils'
+import { Utils, throttle } from '@/libraries/utils'
 import { createStatusChip } from '../utils/dom'
 import { createDetailPageHandler } from './create-detail-handler'
 

@@ -11,8 +11,8 @@
  *    直接锁定（create-if-missing / update-if-not-watched / skip-if-watched）。
  */
 
-import { UrlResolverBuilder } from '@/shared/identity'
-import type { Provider } from '@/config'
+import { UrlResolverBuilder } from '@/libraries/identity'
+import type { Provider } from '@/libraries/config'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import type { PageScanResult } from './create-detail-handler'
 

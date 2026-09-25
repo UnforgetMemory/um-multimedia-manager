@@ -1,6 +1,6 @@
 import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
-import { intervalWhenVisible } from '@/utils/visibility'
+import { intervalWhenVisible } from '@/libraries/utils/visibility'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { Store } from '@/features/database'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'

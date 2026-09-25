@@ -28,7 +28,7 @@
  */
 
 import type { AppSettings, LogLevel } from '@/types'
-import { STORAGE_KEYS } from '@/config'
+import { STORAGE_KEYS } from '@/libraries/config'
 
 /** Resolved settings shape — every field present (fallback applied). */
 export type ResolvedAppSettings = Required<AppSettings>

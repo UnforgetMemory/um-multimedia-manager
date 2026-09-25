@@ -16,7 +16,7 @@
  * module so existing `from '@/types'` consumers keep working unchanged.
  */
 
-import type { Provider } from '@/config'
+import type { Provider } from '@/libraries/config'
 import type {
   AdultAvId,
   AdultAvIdInput,

@@ -1,11 +1,11 @@
 // ─── Mukaku 处理器类 ──────────────────────────────────
 
-import { RequestQueue } from '@/utils/requestQueue'
-import { initEventBus, onEvent } from '@/utils/event-bus'
+import { RequestQueue } from '@/libraries/utils/requestQueue'
+import { initEventBus, onEvent } from '@/libraries/utils/event-bus'
 import { FloatingToast } from '../../utils/toast'
 import { createStatusChip, waitForElement } from '../../utils/dom'
 import { t } from '../../i18n'
-import { warnLog, infoLog, errorLog, debugLog } from '@/utils/logger'
+import { warnLog, infoLog, errorLog, debugLog } from '@/libraries/utils/logger'
 import { MUKAKU_CONFIG, NETWORK_CONFIG } from './config'
 import { MukakuToastController } from './toast'
 import { extractMvId, extractLinkedIdsFromDOM, imageFileName, collectVisibleCards, PROCESSED_ATTR } from './dom'

@@ -1,5 +1,5 @@
 import type { AdultAvId, AdultAvIdInput, MessageType, MessagePayloadMap, MessageSuccess, RuntimeMessageEnvelope } from '@/types'
-import { safeSendMessage } from '@/utils/context'
+import { safeSendMessage } from '@/libraries/utils/context'
 
 async function sendMsg<K extends MessageType>(type: K, payload: MessagePayloadMap[K]): Promise<MessageSuccess<K>> {
   // The generic pair is per-K constrained but not provably a member of the

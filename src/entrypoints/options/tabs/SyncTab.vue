@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import SegmentedControl from '@/shared/ui/segmented-control/SegmentedControl.vue'
+import SegmentedControl from '@/libraries/ui/segmented-control/SegmentedControl.vue'
 
 const { t } = useI18n()
 const activeSubTab = ref('webdav')

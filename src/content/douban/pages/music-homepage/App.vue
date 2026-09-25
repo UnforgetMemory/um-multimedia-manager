@@ -7,7 +7,7 @@ import { UmmPageLayout } from '@/content/douban/components/UmmPageLayout'
 import { UmmMediaCard } from '@/content/douban/components/UmmMediaCard'
 import { UmmImageWrapper } from '@/content/douban/components/UmmImageWrapper'
 import { extractNewAlbums, extractGenreTags, extractPopularArtists } from './extractors'
-import { sleep } from '@/utils'
+import { sleep } from '@/libraries/utils'
 import type { GenreTag, PopularArtistItem } from './types'
 
 // Only ids of currently-visible albums are fetched (dbGetBulk), never a

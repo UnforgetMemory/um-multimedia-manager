@@ -49,7 +49,7 @@ import {
   dimCardsVisually,
   withDimBatch,
 } from '@/entrypoints/content/handlers/sehuatang-controls'
-import { escapeHtml } from '@/utils/escape-html'
+import { escapeHtml } from '@/libraries/utils/escape-html'
 import { attachSehuatangOverlay } from './overlay'
 import { extractSearchKeyword } from './url'
 import { collectThreadTrackKeys } from '@/entrypoints/content/handlers/sehuatang-extract'

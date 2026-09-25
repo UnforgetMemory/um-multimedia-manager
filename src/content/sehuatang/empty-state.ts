@@ -18,7 +18,7 @@
  */
 
 import { t } from '@/entrypoints/content/i18n'
-import { escapeHtml } from '@/utils/escape-html'
+import { escapeHtml } from '@/libraries/utils/escape-html'
 
 const EMPTY_CLASS = 'umm-sht-empty'
 

@@ -11,7 +11,7 @@
  *   - `data-title` / `data-url` = 复制与落库用
  */
 
-import { escapeHtml } from '@/utils/escape-html'
+import { escapeHtml } from '@/libraries/utils/escape-html'
 import type { SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
 
 export function buildCard(info: SehuatangThread): HTMLElement {

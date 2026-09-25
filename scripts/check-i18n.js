@@ -15,7 +15,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const LOCALES_DIR = join(__dirname, '../src/shared/locales')
+const LOCALES_DIR = join(__dirname, '../src/libraries/locales')
 const CONTENT_LOCALES_DIR = join(__dirname, '../src/entrypoints/content/i18n/locales')
 
 const isStrict = process.argv.includes('--strict')

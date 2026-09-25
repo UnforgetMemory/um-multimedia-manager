@@ -39,7 +39,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { initEventBus } from '@/utils/event-bus'
+import { initEventBus } from '@/libraries/utils/event-bus'
 import { injectGlobalStyles } from '@/entrypoints/content/styles/global'
 import { AdultAvStore } from '@/features/adult-av'
 import { classifyPage } from '@/content/sehuatang/url'

@@ -2,13 +2,13 @@
 import { useThemeStore } from '@/stores/theme'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardHeader } from '@/shared/ui/card'
+import { Card, CardContent, CardHeader } from '@/libraries/ui/card'
 import { Sun, Moon, Monitor, Globe } from 'lucide-vue-next'
-import { LOCALE_OPTIONS, persistLocale } from '@/shared/plugins/i18n'
-import type { Locale } from '@/shared/locales'
-import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
-import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
-import { OptionPicker } from '@/shared/ui/option-picker'
+import { LOCALE_OPTIONS, persistLocale } from '@/libraries/plugins/i18n'
+import type { Locale } from '@/libraries/locales'
+import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/libraries/ui/section-header/SectionHeader.vue'
+import { OptionPicker } from '@/libraries/ui/option-picker'
 
 const { t, locale } = useI18n()
 const themeStore = useThemeStore()

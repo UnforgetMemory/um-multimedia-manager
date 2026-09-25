@@ -2,11 +2,11 @@
  * DOM 操作工具函数
  */
 
-import { Utils } from '@/utils'
+import { Utils } from '@/libraries/utils'
 import { t } from '../i18n'
 import { statusLabelKey } from './status-label-key';
 
-import { escapeHtml } from '@/utils/escape-html'
+import { escapeHtml } from '@/libraries/utils/escape-html'
 export { escapeHtml }
 
 export interface WaitForElementOptions {

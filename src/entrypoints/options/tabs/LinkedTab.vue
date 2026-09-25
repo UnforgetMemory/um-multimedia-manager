@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
 import { Store } from '@/features/database'
-import type { Domain, Provider } from '@/config'
-import { Badge } from '@/shared/ui/badge'
-import { Separator } from '@/shared/ui/separator'
+import type { Domain, Provider } from '@/libraries/config'
+import { Badge } from '@/libraries/ui/badge'
+import { Separator } from '@/libraries/ui/separator'
 import { RefreshCw, Star } from 'lucide-vue-next'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { autoDetectPlatform } from '@/features/adult-av/auto-detect'
-import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue'
 
-import { PlatformSearchForm } from '@/shared/ui/platform-search-form'
+import { PlatformSearchForm } from '@/libraries/ui/platform-search-form'
 import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants'
 import { useI18n } from 'vue-i18n'
 

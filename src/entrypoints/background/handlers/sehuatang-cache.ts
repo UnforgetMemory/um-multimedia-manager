@@ -8,7 +8,7 @@
  */
 
 import type { MessagePayloadMap } from '@/types'
-import { errorMessage, type SendResponse } from '@/utils/error-message'
+import { errorMessage, type SendResponse } from '@/libraries/utils/error-message'
 import {
   getDetailCacheBatch,
   putDetailCacheBatch,

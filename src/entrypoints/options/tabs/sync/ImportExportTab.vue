@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { safeSendMessage } from '@/utils/context'
+import { safeSendMessage } from '@/libraries/utils/context'
 import { useI18n } from 'vue-i18n'
 import { Download, Upload } from 'lucide-vue-next'
 import { useConfirmStore } from '@/stores/confirm'
 import { useToast } from '@/composables/useToast'
-import { Switch } from '@/shared/ui/switch'
-import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
-import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
-import LoadingButton from '@/shared/ui/loading-button/LoadingButton.vue'
+import { Switch } from '@/libraries/ui/switch'
+import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue'
+import SectionHeader from '@/libraries/ui/section-header/SectionHeader.vue'
+import LoadingButton from '@/libraries/ui/loading-button/LoadingButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()

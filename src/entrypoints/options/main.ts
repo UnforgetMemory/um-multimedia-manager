@@ -2,8 +2,8 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { createAppI18n } from '@/shared/plugins/i18n'
-import '@/shared/styles/style.css'
+import { createAppI18n } from '@/libraries/plugins/i18n'
+import '@/libraries/styles/style.css'
 
 async function bootstrap() {
   const app = createApp(App)

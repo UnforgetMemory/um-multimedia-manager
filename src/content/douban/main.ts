@@ -20,7 +20,7 @@ import { MountRegistry } from './page-registry'
 import { detectPageType } from './shared/url-detector'
 import { injectGlobalStyles } from '@/entrypoints/content/styles/global'
 import { startThemeAttrSync } from './overlay/theme-sync'
-import { initEventBus } from '@/utils/event-bus'
+import { initEventBus } from '@/libraries/utils/event-bus'
 import { FloatingToast } from '@/entrypoints/content/utils/toast'
 
 import { mountMusicHomepage } from './pages/music-homepage/config'

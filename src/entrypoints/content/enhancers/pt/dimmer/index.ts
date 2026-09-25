@@ -3,9 +3,9 @@ import { MTeamHandler } from './mteam'
 import { NexusPHPHandler } from './nexusphp'
 import { clearResolvedAttributes, createDebouncedScheduler, rowMightMatchKey } from './refresh'
 import { resetPtBulkMemo } from './cache'
-import { sleep, throttle } from '@/utils'
+import { sleep, throttle } from '@/libraries/utils'
 import { waitForElement } from '../../../utils/dom'
-import { initEventBus, onEvent } from '@/utils/event-bus'
+import { initEventBus, onEvent } from '@/libraries/utils/event-bus'
 import type { HandlerContext, ListPageHandler } from '../types'
 
 /** Initial-process retry budget: attempts at 2s/4s backoff before giving up. */

@@ -5,7 +5,7 @@
  * All HTML is DOMPurify-sanitised before returning.
  */
 import DOMPurify from 'dompurify'
-import { UrlResolverBuilder } from '@/shared/identity'
+import { UrlResolverBuilder } from '@/libraries/identity'
 import type { UrlIdentity } from '@/types'
 import { upgradeDoubanImageSrc } from '@/content/douban/shared/image-size'
 import type { RatingBar, MetaRow, AwardItem } from './types'

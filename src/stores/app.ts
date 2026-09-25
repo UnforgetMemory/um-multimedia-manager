@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { safeSendMessage } from '@/utils/context'
+import { safeSendMessage } from '@/libraries/utils/context'
 import type { StoreRecord, AdultAvId } from '@/types'
 
 export const useAppStore = defineStore('app', () => {

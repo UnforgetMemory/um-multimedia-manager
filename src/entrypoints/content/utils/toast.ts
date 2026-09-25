@@ -9,8 +9,8 @@
 
 import { escapeHtml } from './dom'
 import { t } from '../i18n'
-import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/shared/toast'
-import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
+import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/libraries/toast'
+import { TOAST_CORE_CSS } from '@/libraries/styles/toast-css'
 
 
 // ─── 内部类型 ────────────────────────────────────────────

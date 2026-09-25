@@ -3,7 +3,7 @@ import type { MaybeRefOrGetter } from 'vue'
 import type { StoreRecord } from '@/types'
 import { loadRecordEntries } from '../record-cache-core'
 import { matchesVisibleId } from '../subject-keys'
-import { initEventBus, onEvent } from '@/utils/event-bus'
+import { initEventBus, onEvent } from '@/libraries/utils/event-bus'
 
 /** Narrow the `record:updated` payload to the fields we consume. */
 function isRecordUpdatedPayload(data: unknown): data is { storeName: string; key?: string } {

@@ -3,8 +3,8 @@
  * Design token consistency gate (ADR-018).
  *
  * Verifies the three-tier token model stays aligned:
- *   Tier 1  src/shared/styles/tokens.static.css      — the ONLY raw palette
- *   Tier 2  src/shared/styles/style.css              — alias layer (no literals)
+ *   Tier 1  src/libraries/styles/tokens.static.css      — the ONLY raw palette
+ *   Tier 2  src/libraries/styles/style.css              — alias layer (no literals)
  *           src/content/douban/styles/design-tokens.css — alias layer (no palette literals)
  *   Tier 3  src/entrypoints/content/styles/tokens.ts — derived constants (spot-checked)
  *
@@ -20,7 +20,7 @@ const failures = []
 const ok = (msg) => console.log(`  ok  ${msg}`)
 
 // ---------- 1. Tier-1 static palette parses ----------
-const staticCss = read('src/shared/styles/tokens.static.css')
+const staticCss = read('src/libraries/styles/tokens.static.css')
 const staticVars = new Map()
 for (const m of staticCss.matchAll(/--umm-static-([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})/g)) {
   staticVars.set(`--umm-static-${m[1]}`, m[2].toLowerCase())
@@ -45,7 +45,7 @@ for (const m of staticCss.matchAll(/(--umm-static-[a-z0-9-]+):/g)) {
 ok('tokens.static.css: no duplicate definitions')
 
 // ---------- 2. Tier-2 layers contain no raw palette literals ----------
-const styleCss = read('src/shared/styles/style.css')
+const styleCss = read('src/libraries/styles/style.css')
 const designTokens = read('src/content/douban/styles/design-tokens.css')
 
 const hexIn = (name, css) => [...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0])

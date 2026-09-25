@@ -17,9 +17,9 @@ import {
 import { settingsCache } from '@/features/settings/cache'
 import { computeStatistics, flattenRecords, type PlatformStoreEntries } from '@/domain/record/statistics'
 import type { StoreRecordSnapshot as StoreRecord } from '@/domain/record/StoreRecord'
-import { infoLog, warnLog } from '@/utils/logger'
-import { broadcast } from '@/utils/event-bus'
-import type { SendResponse } from '@/utils/error-message'
+import { infoLog, warnLog } from '@/libraries/utils/logger'
+import { broadcast } from '@/libraries/utils/event-bus'
+import type { SendResponse } from '@/libraries/utils/error-message'
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 
 /** Settings fields to include in export (all AppSettings keys except sensitive credentials) */

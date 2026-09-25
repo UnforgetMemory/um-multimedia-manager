@@ -11,13 +11,13 @@
 import { defineBackground } from 'wxt/utils/define-background'
 import type { LogLevel, RuntimeMessageEnvelope } from '@/types'
 import { mediaDB, STORE_NAMES } from '@/features/database/models'
-import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/utils/logger'
-import { STORAGE_KEYS } from '@/config'
+import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/libraries/utils/logger'
+import { STORAGE_KEYS } from '@/libraries/config'
 
 import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
 import { CacheManager } from '@/features/cache'
-import { infoLog as schedulerLog } from '@/utils/logger'
-import { errorMessage } from '@/utils/error-message'
+import { infoLog as schedulerLog } from '@/libraries/utils/logger'
+import { errorMessage } from '@/libraries/utils/error-message'
 import { settingsItems } from '@/features/settings/items'
 
 // Handler imports

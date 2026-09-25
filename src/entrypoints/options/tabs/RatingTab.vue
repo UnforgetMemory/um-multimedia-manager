@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { Store } from '@/features/database'
-import type { Domain, Provider } from '@/config'
+import type { Domain, Provider } from '@/libraries/config'
 import type { StoreRecord } from '@/types'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/shared/ui/button'
+import { Button } from '@/libraries/ui/button'
 import { Star, CheckCircle2, XCircle, Database, RefreshCw } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
-import { errorMessage } from '@/utils/error-message'
+import { errorMessage } from '@/libraries/utils/error-message'
 import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/features/adult-av/models'
 import { JAV_ID_REGEX, autoDetectPlatform } from '@/features/adult-av/auto-detect'
-import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
+import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue'
 
-import FormField from '@/shared/ui/form-field/FormField.vue'
-import { PlatformSearchForm } from '@/shared/ui/platform-search-form'
+import FormField from '@/libraries/ui/form-field/FormField.vue'
+import { PlatformSearchForm } from '@/libraries/ui/platform-search-form'
 import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants'
 
 const { t } = useI18n()

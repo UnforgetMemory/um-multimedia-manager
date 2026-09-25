@@ -9,8 +9,8 @@ import { useLocaleSync } from '@/composables/useLocaleSync'
 import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
 import ConfirmDialog from '@/shared/ConfirmDialog.vue'
 import ToastContainer from '@/shared/ToastContainer.vue'
-import NavItem from '@/shared/ui/nav-item/NavItem.vue'
-import { IconButton } from '@/shared/ui/icon-button'
+import NavItem from '@/libraries/ui/nav-item/NavItem.vue'
+import { IconButton } from '@/libraries/ui/icon-button'
 
 const { t } = useI18n()
 const router = useRouter()

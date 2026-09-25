@@ -3,10 +3,10 @@
  * 功能：根据 URL 动态加载对应的页面处理器
  */
 
-import { UrlResolverBuilder, PT_HOSTS } from '@/shared/identity'
+import { UrlResolverBuilder, PT_HOSTS } from '@/libraries/identity'
 import type { UrlIdentity } from '@/types'
-import { infoLog, errorLog } from '@/utils/logger'
-import { intervalWhenVisible } from '@/utils/visibility'
+import { infoLog, errorLog } from '@/libraries/utils/logger'
+import { intervalWhenVisible } from '@/libraries/utils/visibility'
 import { handleIMDbDetailPage } from './handlers/imdb'
 import { handleTMDBHomepage, handleTMDBDetailPage } from './handlers/tmdb'
 import { handleNeoDBDetailPage } from './handlers/neodb'

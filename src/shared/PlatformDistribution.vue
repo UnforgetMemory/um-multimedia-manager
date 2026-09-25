@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { PLATFORM_HUES, usePlatformColor } from '@/composables/usePlatformMeta'
-import { Card, CardContent } from '@/shared/ui/card'
+import { Card, CardContent } from '@/libraries/ui/card'
 
 const { t } = useI18n()
 

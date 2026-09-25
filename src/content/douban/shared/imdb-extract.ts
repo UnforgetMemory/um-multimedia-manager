@@ -2,11 +2,11 @@
  * IMDb ID recognition & extraction (Douban search overlay).
  *
  * 从豆瓣搜索结果条目中提取 IMDb id（abstract / abstract_2 / url 文本，
- * 或顶层 `imdb` 字段）。纯文本识别能力已下沉到 `@/utils/imdb-id`
+ * 或顶层 `imdb` 字段）。纯文本识别能力已下沉到 `@/libraries/utils/imdb-id`
  * （libraries 层）——搜索查询归一化器也需要它，故不可留在站点编排层。
  */
 
-import { extractImdbIdFromText } from '@/utils/imdb-id'
+import { extractImdbIdFromText } from '@/libraries/utils/imdb-id'
 
 export { extractImdbIdFromText }
 

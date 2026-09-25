@@ -8,7 +8,7 @@
  * mount factory and page-specific mount configurations.
  */
 
-import staticTokensCss from '@/shared/styles/tokens.static.css?raw'
+import staticTokensCss from '@/libraries/styles/tokens.static.css?raw'
 import designTokensCss from './styles/design-tokens.css?raw'
 import themeCss from './styles/theme.css?raw'
 import baseCss from './styles/base.css?raw'

@@ -6,11 +6,11 @@
  */
 
 import * as NeoDB from '@/features/neodb/api'
-import { infoLog, warnLog, errorLog } from '@/utils/logger'
-import { sleep } from '@/utils'
+import { infoLog, warnLog, errorLog } from '@/libraries/utils/logger'
+import { sleep } from '@/libraries/utils'
 import { settingsItems } from '@/features/settings/items'
 import type { MessagePayloadMap } from '@/types'
-import type { SendResponse } from '@/utils/error-message'
+import type { SendResponse } from '@/libraries/utils/error-message'
 
 /** Build Douban URL from provider info */
 function buildDoubanUrl(type: string, providerId: string): string {

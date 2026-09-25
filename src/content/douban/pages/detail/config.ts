@@ -2,7 +2,7 @@ import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { hideNavForPage } from '../../shared/hide-nav'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
-import { initEventBus, onEvent } from '@/utils/event-bus'
+import { initEventBus, onEvent } from '@/libraries/utils/event-bus'
 
 export const mountDetail = definePageMount({
   cssPreset: 'detail',

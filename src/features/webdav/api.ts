@@ -13,7 +13,7 @@
  */
 
 import type { RemoteMeta } from '@/types'
-import { errorMessage } from '@/utils/error-message'
+import { errorMessage } from '@/libraries/utils/error-message'
 
 const WEBDAV_TIMEOUT = 30_000
 

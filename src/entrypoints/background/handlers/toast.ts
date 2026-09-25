@@ -5,10 +5,10 @@
  * Extracted from background.ts for modularity.
  */
 
-import { escapeHtml } from '@/utils/escape-html'
-import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
+import { escapeHtml } from '@/libraries/utils/escape-html'
+import { TOAST_CORE_CSS } from '@/libraries/styles/toast-css'
 import type { MessagePayloadMap, ToastType } from '@/types'
-import type { SendResponse } from '@/utils/error-message'
+import type { SendResponse } from '@/libraries/utils/error-message'
 
 /** Valid toast notification types — single source: ToastType in @/types */
 const VALID_TOAST_TYPES = ['success', 'error', 'info', 'loading'] as const satisfies readonly ToastType[]

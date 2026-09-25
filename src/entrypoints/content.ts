@@ -14,12 +14,12 @@ import { initRouter, hasMatchingRoute } from './content/router'
 import { initI18n, startLocaleSync } from './content/i18n'
 import { injectGlobalStyles } from './content/styles/global'
 import { FloatingToast } from './content/utils/toast'
-import { infoLog, errorLog, configureLogging } from '@/utils/logger'
-import { sleep } from '@/utils'
+import { infoLog, errorLog, configureLogging } from '@/libraries/utils/logger'
+import { sleep } from '@/libraries/utils'
 import type { LogLevel } from '@/types'
-import { STORAGE_KEYS } from '@/config'
+import { STORAGE_KEYS } from '@/libraries/config'
 import { settingsItems } from '@/features/settings/items'
-import { initEventBus } from '@/utils/event-bus'
+import { initEventBus } from '@/libraries/utils/event-bus'
 
 export default defineContentScript({
   matches: [

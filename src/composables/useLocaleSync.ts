@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { STORAGE_KEYS } from '@/config'
-import type { Locale } from '@/shared/locales'
+import { STORAGE_KEYS } from '@/libraries/config'
+import type { Locale } from '@/libraries/locales'
 
 /**
  * Syncs the vue-i18n locale across tabs when language is changed in another context.

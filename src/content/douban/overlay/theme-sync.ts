@@ -9,7 +9,7 @@
  *     attribute never goes stale after overlay dismissal.
  */
 
-import { debounce } from '@/utils'
+import { debounce } from '@/libraries/utils'
 import { COLOR_SURFACE_DARK, COLOR_SURFACE_LIGHT } from '@/entrypoints/content/styles/tokens'
 
 export const THEME_KEY = 'umm:appearance'

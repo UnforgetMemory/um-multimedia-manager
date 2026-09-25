@@ -2,7 +2,7 @@
  * File download handler — uses MAIN world fetch for Referer-gated CDNs.
  */
 
-import { errorMessage } from '@/utils/error-message'
+import { errorMessage } from '@/libraries/utils/error-message'
 
 export async function handleDownloadFile(
   payload: { url?: string; filename?: string },
