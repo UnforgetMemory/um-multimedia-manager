@@ -10,15 +10,18 @@
 npm run dev             # 开发（WXT 热更新；内容脚本注入不可靠，仅调 UI 用）
 npm run dev:build       # Dev 编译（无热更新/无 dev 服务器，全量确定性）→ dist/chrome-mv3-dev，日常联调推荐
 npm run build           # 生产构建 → dist/chrome-mv3（含 fix-paths 后置步骤，不可跳过）
-npm run type-check      # vue-tsc --noEmit（唯一质量门禁，提交前必跑）
+npm run type-check      # vue-tsc --noEmit（类型门禁，提交前必跑）
 npm run test:unit       # Playwright 单元测试
 npm test                # 全部 Playwright 测试
 npm run i18n:check      # i18n 键完整性检查
+npm run arch:check      # 架构分层守卫（七层依赖方向；exit 1 即有违规）
+npm run ds:check        # 设计令牌门禁（三层令牌 + 对比度/对称断言）
 npm run package:patch   # 版本号 + 构建 + 打包（minor/major 同理）
 npm run zip             # 构建 + 打包 Chrome 商店包
 ```
 
-无 lint/format 命令。质量门禁：`type-check` → `build`。
+无 lint/format 命令。质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `i18n:check` → `build`。
+CI 侧：`Type Check` → `Static Gates`（arch/ds/i18n）→ `Build (chrome|firefox)`，门禁失败即阻断构建。
 
 ## 环境
 
@@ -77,7 +80,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 
 ## 关键约定
 
-- 路径别名 `@/` → `./src/`；组件库 shadcn/vue 在 `src/shared/ui/`（22 个组件）
+- 路径别名 `@/` → `./src/`；组件库 shadcn/vue 在 `src/shared/ui/`（23 个组件目录）
 - **Composition API + `<script setup>` + TypeScript**；禁止 `as any`/`@ts-ignore`
 - 内容脚本禁止直接触 IndexedDB——一律走 `chrome.runtime.sendMessage`
 - i18n 双系统：`src/shared/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
@@ -104,9 +107,12 @@ src/
 ├── content/douban/       # 新 Douban overlay（32 页面 + shared/ + styles/）
 ├── domain/               # DDD 领域层（record/identity/platform）
 ├── features/             # database / data-scheduler / cache / webdav / neodb /
-│                         # adult-av / migration / settings / optimistic-lock(仅类型)
+│                         # adult-av / sehuatang-cache / migration / settings /
+│                         # optimistic-lock(仅类型)
 ├── shared/               # ui 组件 / locales / plugins / 通用组件
 ├── types/                # 消息类型 + 数据接口（唯一权威）
 ├── utils/ composables/ stores/ config.ts
-└── docs/                 # adr/（架构决策）+ audit/（审计与蓝图）
 ```
+
+> 架构决策（`docs/adr/`）与审计蓝图（`docs/audit/`）在**仓库根**的 `docs/` 下，
+> 不在 `src/` 内。

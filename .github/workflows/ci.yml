@@ -30,9 +30,27 @@ jobs:
       - run: npm ci
       - run: npm run type-check
 
+  static-gates:
+    name: Static Gates
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      # 架构分层守卫（ADR-026 D6）：七层依赖方向单向向下，禁止向上/反向依赖
+      - run: npm run arch:check
+      # 设计令牌门禁（ADR-018/019/020）：三层令牌 + 对比度/明暗对称断言
+      - run: npm run ds:check
+      # i18n 键完整性：SPA + 内容脚本两套系统
+      - run: npm run i18n:check
+
   build:
     name: Build (${{ matrix.browser }})
-    needs: typecheck
+    needs: [typecheck, static-gates]
     runs-on: ubuntu-latest
     strategy:
       matrix:
