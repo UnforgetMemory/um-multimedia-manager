@@ -218,3 +218,19 @@ export function partitionInitialVisible<T extends { trackId: string | null; tid?
   }
   return { visible, hiddenCount }
 }
+
+/**
+ * 从当前文档提取全部线程行（自 app.ts 归入本模块，2026-09-25）。
+ *
+ * 选择器 `tbody[id^="normalthread_"]` 是精确锚点：自动排除列头 tbody 与置顶帖
+ * （置顶帖 tbody id 为 `stickthread_*`），与 parseThreadRow 的 `normalthread_` 前缀
+ * 判定一致。纯函数（只读 document），可独立测试。
+ */
+export function parseThreadList(): SehuatangThread[] {
+  const threads: SehuatangThread[] = []
+  for (const row of Array.from(document.querySelectorAll('tbody[id^="normalthread_"]'))) {
+    const thread = parseThreadRow(row)
+    if (thread) threads.push(thread)
+  }
+  return threads
+}

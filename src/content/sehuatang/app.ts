@@ -27,17 +27,19 @@ import { classifyAvId, normalizeAvId } from '@/features/adult-av/models'
 import { t, initI18n } from '@/entrypoints/content/i18n'
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel'
 import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-panel'
-import { escapeHtml } from '@/utils/escape-html'
 import { throttle } from '@/utils'
 import { onEvent } from '@/utils/event-bus'
 import { FloatingToast } from '@/entrypoints/content/utils/toast'
 import { mountSehuatangControls, countSehuatangCardStates, markCardsViewed, setGridHideViewed, dimCardsVisually, runVisibleEntrance, buildHomeLink, withDimBatch } from '@/entrypoints/content/handlers/sehuatang-controls'
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu'
 import { initImageReveal, runCardEntrance } from '@/entrypoints/content/handlers/sehuatang-effects'
-import { partitionInitialVisible, parseThreadRow, collectNewThreadRows, collectThreadTrackKeys, shouldDimOnNavigate, type SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
+import { partitionInitialVisible, parseThreadList, parseThreadRow, collectNewThreadRows, collectThreadTrackKeys, shouldDimOnNavigate, type SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
 import { attachSehuatangOverlay } from './overlay'
 import { syncEmptyHiddenState } from './empty-state'
 import { createDetailLoader, DETAIL_FLAG, type CardDetail, type DetailLoader } from './detail-loader'
+// 卡片渲染原语与跨页保存失败诊断（2026-09-25 自本模块拆出）
+import { buildCard, renderSkeleton, cardTrackKeys } from './card-render'
+import { reportSaveFailure, consumeSaveFailure } from './save-failure'
 
 // 页面生命周期状态：每次 handler 运行重置。
 // 三段已看统计缓存（ADR-025 D5）：避免每卡/每次刷新都全量读三表（2N 次消息 → 1 次）。
@@ -49,27 +51,7 @@ let hiddenAtMount = 0
 // 空态挂载点（shell 引用）：updateHeaderInfo 刷新时按需挂/撤「全部已看过」空态。
 let emptyShellRef: HTMLElement | null = null
 
-// 保存失败诊断标记（sessionStorage 按源跨页存活）：复制后立即切页也能在
-// 下一个页面呈现失败原因，解决「证据随页面销毁」的不可见失败。
-const SAVE_FAILURE_KEY = 'umm-sht-save-failure'
-
-function reportSaveFailure(reason: string, detail?: string): void {
-  console.warn('[UMM] Sehuatang save failure:', reason, detail ?? '')
-  try {
-    sessionStorage.setItem(SAVE_FAILURE_KEY, JSON.stringify({ at: Date.now(), reason, detail: detail ?? '' }))
-  } catch { /* 存储不可用时仅 console 可见 */ }
-}
-
-function consumeSaveFailure(): void {
-  try {
-    const raw = sessionStorage.getItem(SAVE_FAILURE_KEY)
-    if (!raw) return
-    sessionStorage.removeItem(SAVE_FAILURE_KEY)
-    const parsed = JSON.parse(raw) as { reason?: string; detail?: string }
-    const detail = parsed.detail ? ` (${parsed.detail})` : ''
-    FloatingToast.error(t('Magnet Save Failed'), `${parsed.reason ?? ''}${detail}`)
-  } catch { /* 解析失败忽略 */ }
-}
+// 保存失败诊断（跨页 sessionStorage 标记 + 消费）见 ./save-failure（2026-09-25 拆出）
 
 // 页面级单例（重入清理）：分页观察器 / 详情加载器 / 事件订阅。
 let activePaginationObserver: MutationObserver | null = null
@@ -149,39 +131,7 @@ function updateHeaderInfo(headerEl: HTMLElement, grid: HTMLElement) {
 }
 
 /** 构建单卡静态结构（零网络；封面/磁力由 DetailLoader 懒加载回填）。 */
-function buildCard(info: SehuatangThread): HTMLElement {
-  const card = document.createElement('div')
-  card.className = 'umm-card'
-  if (info.trackId) card.setAttribute('data-avid', info.trackId)
-  if (info.tid) card.setAttribute('data-tid', info.tid)
-  card.setAttribute('data-title', info.title)
-  card.setAttribute('data-url', info.url)
-
-  // 协议白名单与封面/磁力同源：非 http(s) 的 data-url 不设 href（锚点不可导航）。
-  const safeUrl = /^https?:\/\//i.test(info.url) ? info.url : ''
-  card.innerHTML = `
-    <div class="umm-card-image"></div>
-    <div class="umm-card-content">
-      <h3 class="umm-card-title"><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(info.title)}</a></h3>
-      <p class="umm-card-meta">${escapeHtml(info.releaseDate)}</p>
-      <div class="umm-card-links"></div>
-    </div>
-  `
-  return card
-}
-
-/** 骨架卡占位（hide ON 时已看检查期间；数量与真实行数一致防布局跳变）。 */
-function renderSkeleton(grid: HTMLElement, count: number): void {
-  const fragment = document.createDocumentFragment()
-  for (let i = 0; i < count; i++) {
-    const card = document.createElement('div')
-    card.className = 'umm-card umm-sht-skel'
-    card.setAttribute('aria-hidden', 'true')
-    card.innerHTML = '<div class="umm-card-image"></div><div class="umm-card-content"><div class="umm-sht-skel-line" style="width:88%"></div><div class="umm-sht-skel-line" style="width:40%"></div></div>'
-    fragment.appendChild(card)
-  }
-  grid.replaceChildren(fragment)
-}
+// buildCard / renderSkeleton 见 ./card-render（2026-09-25 拆出）
 
 /** 详情回填（缓存/抓取同一路径）：封面 + 磁力锚点 + 复制标记接线。
  *  headerRef 间接引用：loader 先于 header 创建（copy-all 依赖 loader），
@@ -262,11 +212,7 @@ function mountCards(grid: HTMLElement, threads: SehuatangThread[], loader: Detai
   return cards
 }
 
-/** 卡片候选判定键（data-avid 主键 + data-tid 兜底键）——非空即纳入。 */
-function cardTrackKeys(card: HTMLElement): string[] {
-  return [card.getAttribute('data-avid'), card.getAttribute('data-tid')]
-    .filter((key): key is string => key !== null && key !== '')
-}
+// cardTrackKeys 见 ./card-render（2026-09-25 拆出）
 
 /** 已看类批量应用（hide OFF 异步路径与 record:updated 同步共用）。
  *  双键命中：番号键（jav_ids/usav_ids）或 TID 键（sehuatang_ids）任一即已看。
@@ -352,14 +298,7 @@ function subscribeRecordUpdates(grid: HTMLElement, headerEl: HTMLElement): () =>
 }
 
 /** 解析原生帖子表全部行（覆盖层下的 light DOM；纯提取）。 */
-function parseThreadList(): SehuatangThread[] {
-  const threads: SehuatangThread[] = []
-  for (const row of Array.from(document.querySelectorAll('tbody[id^="normalthread_"]'))) {
-    const thread = parseThreadRow(row)
-    if (thread) threads.push(thread)
-  }
-  return threads
-}
+// parseThreadList 见 @/entrypoints/content/handlers/sehuatang-extract（2026-09-25 归入该模块）
 
 /**
  * AJAX 静态地址分页（Discuz #autopbn）：URL 不变、新行追加到原表格。
