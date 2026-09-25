@@ -74,9 +74,9 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 
 ### 数据系统
 
-- `features/database/models.ts` — IndexedDB 单例（store 名 `{platform}_records`，键 `{type}::{providerId}`）
-- `features/data-scheduler/` — 优先级队列 + 限流 + 重试，所有 DB 操作经此
-- `features/cache/` — L1 内存 LRU（SW wake 即清空）
+- `engine/database/models.ts` — IndexedDB 单例（store 名 `{platform}_records`，键 `{type}::{providerId}`）
+- `engine/data-scheduler/` — 优先级队列 + 限流 + 重试，所有 DB 操作经此
+- `engine/cache/` — L1 内存 LRU（SW wake 即清空）
 
 ## 关键约定
 
@@ -87,14 +87,14 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 - 共享工具：`src/libraries/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/content/douban/shared/`（retry/usePaginator/douban-extract）
 - 版本号在 `package.json` + `wxt.config.ts`（`npm run package:*` 同时更新）
 - 单元测试：Playwright（tests/unit/，**tests/ 源码被 git 跟踪**；仅 playwright-report/test-results 等产物被 ignore）
-- 设置存储：`src/features/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型
+- 设置存储：`src/engine/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型
 
 ## 添加新站点
 
 1. `content.ts` matches + `content/router.ts` 路由
 2. `content/handlers/` 建 handler（参照 `imdb.ts` / `create-detail-handler.ts`）
 3. `Platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
-4. `database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
+4. `engine/database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
 5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + ResponseMessageMap/SuccessDataMap + background.ts switch
 6. 两个 i18n 系统补键
 7. （Douban 页面）`content/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
