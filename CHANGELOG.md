@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **新增测试**：`tests/unit/mukaku-collect.spec.ts`（6 例）与 `tests/unit/mukaku-apply.spec.ts`（9 例）——覆盖此前嵌在 142 行方法内、**完全无测试**的卡片收集与结果应用规则
 - **单一事实源**：内容脚本语言键改为引用 `STORAGE_KEYS.LANGUAGE`（原为 `'language'` 裸字面量副本，与设置层存在漂移风险）
 - **i18n 门禁适配**：`scripts/check-i18n.js` 由「按 locale 块标记切分单文件」改为逐文件读取聚合目录（原脆弱解析逻辑退役）
+- **overlay 编排拆分**：`content/sehuatang/app.ts` 678 → 617 行（卡片渲染原语 `buildCard`/`renderSkeleton`/`cardTrackKeys` → `card-render.ts`；跨页保存失败诊断 `reportSaveFailure`/`consumeSaveFailure` → `save-failure.ts`；`parseThreadList` 归入 `sehuatang-extract.ts`，与它委托的 `parseThreadRow` 同域）
+- **新增测试**：`tests/unit/sehuatang-card-render.spec.ts`（10 例：`data-avid`/`data-tid` 双键契约 / HTML 转义 / http(s) 协议白名单 / 骨架替换 / 键过滤）与 `tests/unit/sehuatang-save-failure.spec.ts`（5 例：写入结构 / 后写覆盖 / 消费即清除 / 非法 JSON 容错）——覆盖原先不导出、无法单测的渲染原语与跨页诊断
 
 ## [5.17.2] - 2026-09-25
 
