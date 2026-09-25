@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { IDBFactory } from 'fake-indexeddb'
-import { MediaDatabase, DB_NAME, STORE_NAMES } from '@/features/database/models'
+import { MediaDatabase, DB_NAME, STORE_NAMES } from '@/engine/database/models'
 
 /**
  * v13 migration regression test — runs the REAL MediaDatabase against

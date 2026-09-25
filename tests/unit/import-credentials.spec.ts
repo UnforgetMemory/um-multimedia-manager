@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { settingsCache } from '@/features/settings/cache'
-import { mediaDB } from '@/features/database/models'
+import { settingsCache } from '@/engine/settings/cache'
+import { mediaDB } from '@/engine/database/models'
 import { handleImportData, IMPORT_SETTINGS_KEYS, WEBDAV_CREDENTIAL_KEYS } from '@/entrypoints/background/handlers/data'
 import type { ExportData } from '@/types'
 

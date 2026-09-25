@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { dbGetWatchedIds } from '@/features/database/api'
+import { dbGetWatchedIds } from '@/engine/database/api'
 
 /**
  * Database API retry contract (2026-08-11 umreview) — locks the send()

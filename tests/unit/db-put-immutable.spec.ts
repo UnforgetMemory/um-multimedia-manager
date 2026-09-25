@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { IDBFactory } from 'fake-indexeddb'
-import { MediaDatabase } from '@/features/database/models'
+import { MediaDatabase } from '@/engine/database/models'
 import type { StoreRecord } from '@/types'
 
 /**

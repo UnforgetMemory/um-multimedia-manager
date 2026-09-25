@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { normalizeVideoKey } from '@/features/database/models'
+import { normalizeVideoKey } from '@/engine/database/models'
 
 test.describe('normalizeVideoKey', () => {
   test('video::BV1xx → movie::BV1xx', () => {

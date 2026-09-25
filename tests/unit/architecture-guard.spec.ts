@@ -54,17 +54,17 @@ function runGuard(srcDir: string, args: string[] = []): { status: number; out: s
 const LEGAL_TREE: Record<string, string> = {
   'libraries/utils/pure.ts': 'export const pure = 1\n',
   'domain/entity.ts': "import { pure } from '@/libraries/utils/pure'\nexport const entity = pure\n",
-  'features/database/models.ts': "import { pure } from '@/libraries/utils/pure'\nexport const db = pure\n",
+  'engine/database/models.ts': "import { pure } from '@/libraries/utils/pure'\nexport const db = pure\n",
   'features/webdav/api.ts':
-    "import { db } from '@/features/database/models'\nexport const api = db\n",
+    "import { db } from '@/engine/database/models'\nexport const api = db\n",
   // 内容脚本必须经「数据库门面」bare 导入，不得走 models/api 深路径
   'content/page.ts':
-    "import { Store } from '@/features/database'\nimport { api } from '@/features/webdav/api'\nexport const page = Store + api\n",
+    "import { Store } from '@/engine/database'\nimport { api } from '@/features/webdav/api'\nexport const page = Store + api\n",
   'stores/app.ts': "import { page } from '@/content/page'\nexport const app = page\n",
   'shared/ui/button/Button.vue':
     "<script setup lang=\"ts\">\nimport { pure } from '@/libraries/utils/pure'\n</script>\n\n<template><button>{{ pure }}</button></template>\n",
   'entrypoints/content/handlers/ok.ts':
-    "import { Store } from '@/features/database'\nexport const s = Store\n",
+    "import { Store } from '@/engine/database'\nexport const s = Store\n",
   'entrypoints/background.ts':
     "import { api } from '@/features/webdav/api'\nexport const bg = api\n",
 }
@@ -73,22 +73,22 @@ const LEGAL_TREE: Record<string, string> = {
 const VIOLATING_TREE: Record<string, string> = {
   ...LEGAL_TREE,
   // C 类：纯层（libraries）依赖业务层（engine）
-  'libraries/utils/bad-lib.ts': "import { db } from '@/features/database/models'\nexport const bad = db\n",
+  'libraries/utils/bad-lib.ts': "import { db } from '@/engine/database/models'\nexport const bad = db\n",
   // D 类：domain 依赖业务层（store）
   'domain/bad-domain.ts': "import { app } from '@/stores/app'\nexport const bad = app\n",
   // B 类：向上依赖（engine → app）—— 三种曾被漏检的导入写法
-  'features/database/bad-up.ts': "import { bg } from '@/entrypoints/background'\nexport const bad = bg\n",
-  'features/database/bad-import-equals.ts':
+  'engine/database/bad-up.ts': "import { bg } from '@/entrypoints/background'\nexport const bad = bg\n",
+  'engine/database/bad-import-equals.ts':
     "import bg = require('@/entrypoints/background')\nexport const bad = bg\n",
-  'features/database/bad-template.ts':
+  'engine/database/bad-template.ts':
     "export async function load() {\n  return import(`@/entrypoints/background`)\n}\n",
   // E1 类：内容脚本直连 IndexedDB
   'content/bad-raw.ts': "export function boom() {\n  return indexedDB.open('probe')\n}\n",
   // E2 类：内容脚本深路径绕过 database 门面 —— 含 require 写法
   'entrypoints/content/handlers/bad-facade.ts':
-    "import { db } from '@/features/database/models'\nexport const bad = db\n",
+    "import { db } from '@/engine/database/models'\nexport const bad = db\n",
   'entrypoints/content/handlers/bad-facade-require.ts':
-    "const db = require('@/features/database/models')\nexport const bad = db\n",
+    "const db = require('@/engine/database/models')\nexport const bad = db\n",
 }
 
 /**
@@ -105,7 +105,7 @@ const PARTIAL_VALIDATION_TREE: Record<string, string> = {
   ].join('\n'),
   'features/webdav/loader.ts': [
     "import { unpackageDataset } from '@/libraries/utils/zip-utils'",
-    "import { validateDatasetVersion } from '@/features/migration/models'",
+    "import { validateDatasetVersion } from '@/engine/migration/models'",
     'export async function a(blob) {',
     '  const { data, meta } = await unpackageDataset(blob)',
     '  validateDatasetVersion(meta.dataVersion)',
@@ -142,7 +142,7 @@ test.describe('架构分层守卫 · 双向验证', () => {
 
     // B 向上依赖
     expect(out).toContain('B. 向上依赖')
-    expect(out).toContain('features/database/bad-up.ts')
+    expect(out).toContain('engine/database/bad-up.ts')
 
     // C libraries 纯度
     expect(out).toContain('C. libraries 纯度')
@@ -170,8 +170,8 @@ test.describe('架构分层守卫 · 双向验证', () => {
     const { out } = runGuard(dir)
 
     // 这三条是 2026-09-25 umreview 抓到的假阴性（当时全部漏检）
-    expect(out).toContain('features/database/bad-import-equals.ts')
-    expect(out).toContain('features/database/bad-template.ts')
+    expect(out).toContain('engine/database/bad-import-equals.ts')
+    expect(out).toContain('engine/database/bad-template.ts')
     expect(out).toContain('entrypoints/content/handlers/bad-facade-require.ts')
 
     fs.rmSync(dir, { recursive: true, force: true })

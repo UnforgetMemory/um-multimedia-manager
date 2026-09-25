@@ -3,7 +3,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { handleAdultAvBatchAdd } from '@/entrypoints/background/handlers/adult-av'
 import { JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME, SEHUATANG_IDS_STORE_NAME } from '@/features/adult-av/models'
 import type { StoreRecord, AdultAvIdInput } from '@/types'
-import type { MediaDatabase } from '@/features/database/models'
+import type { MediaDatabase } from '@/engine/database/models'
 
 /**
  * S5 — N+1 elimination for the adult write path.

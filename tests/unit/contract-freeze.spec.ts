@@ -8,7 +8,7 @@ import {
   MediaDatabase,
   RECORD_STORES,
   STORE_NAMES,
-} from '@/features/database/models'
+} from '@/engine/database/models'
 import {
   SEHUATANG_IDS_STORE_NAME,
   USAV_IDS_STORE_NAME,

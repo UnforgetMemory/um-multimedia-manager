@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { isWatchedStatus } from '@/features/database/models'
+import { isWatchedStatus } from '@/engine/database/models'
 
 /**
  * isWatchedStatus — the status gate behind getWatchedIds.

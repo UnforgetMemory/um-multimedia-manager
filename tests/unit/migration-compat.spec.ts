@@ -10,8 +10,8 @@ import {
   MIN_SUPPORTED_EXPORT_VERSION,
   CURRENT_RECORD_VERSION,
   CURRENT_CACHE_VERSION,
-} from '@/features/migration/models'
-import type { MigrationStep } from '@/features/migration/models'
+} from '@/engine/migration/models'
+import type { MigrationStep } from '@/engine/migration/models'
 
 /**
  * Migration/version-compatibility contract tests.

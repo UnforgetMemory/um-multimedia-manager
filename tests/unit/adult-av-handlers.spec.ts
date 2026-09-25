@@ -6,7 +6,7 @@ import {
   SEHUATANG_IDS_STORE_NAME,
 } from '@/features/adult-av/models'
 import type { StoreRecord, StoreRecordSnapshot } from '@/types'
-import type { MediaDatabase } from '@/features/database/models'
+import type { MediaDatabase } from '@/engine/database/models'
 
 /**
  * ADULT_AV_CHECK / ADULT_AV_GET_ALL — ADR-025 读侧核心逻辑的 handler 级护栏。

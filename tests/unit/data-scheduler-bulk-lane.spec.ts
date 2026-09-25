@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
-import { CacheManager } from '@/features/cache/cache-manager'
+import { DataScheduler } from '@/engine/data-scheduler/data-scheduler'
+import { CacheManager } from '@/engine/cache/cache-manager'
 
 /**
  * Bulk lane isolation (C2): long jobs (export/stats/WebDAV) must not

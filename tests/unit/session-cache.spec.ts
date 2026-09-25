@@ -8,7 +8,7 @@
  *  - exception swallowing (soft miss, never throw)
  */
 import { test, expect } from '@playwright/test'
-import * as sessionCache from '@/features/cache/session-cache'
+import * as sessionCache from '@/engine/cache/session-cache'
 
 // ---------------------------------------------------------------------------
 // Helpers

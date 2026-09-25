@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb'
-import { MediaDatabase, DB_NAME, DB_VERSION, STORE_NAMES, isWatchedStatus } from '@/features/database/models'
+import { MediaDatabase, DB_NAME, DB_VERSION, STORE_NAMES, isWatchedStatus } from '@/engine/database/models'
 
 /**
  * T7 — getWatchedIds characterization gate.

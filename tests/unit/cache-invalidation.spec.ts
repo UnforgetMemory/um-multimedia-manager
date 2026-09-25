@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { CacheManager } from '@/features/cache/cache-manager'
+import { CacheManager } from '@/engine/cache/cache-manager'
 import {
   registerCacheManager,
   getCacheManager,

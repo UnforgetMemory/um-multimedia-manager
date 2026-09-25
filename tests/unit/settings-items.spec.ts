@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import type { MinimalStorageArea } from '@/features/settings/items'
+import type { MinimalStorageArea } from '@/engine/settings/items'
 
 /**
  * settings items（W1 重构）兼容契约测试。
@@ -57,8 +57,8 @@ function createArea(): AreaMock {
 
 const area = createArea()
 
-let items!: typeof import('@/features/settings/items')
-let cacheMod!: typeof import('@/features/settings/cache')
+let items!: typeof import('@/engine/settings/items')
+let cacheMod!: typeof import('@/engine/settings/cache')
 
 test.beforeAll(async () => {
   // chrome 全局仅供 SettingsCache 的 onChanged / session-cache 降级路径使用
@@ -66,9 +66,9 @@ test.beforeAll(async () => {
     runtime: { id: 'test-extension-id' },
     storage: { onChanged: (area as unknown as { onChanged: unknown }).onChanged, local: area },
   }
-  items = await import('@/features/settings/items')
+  items = await import('@/engine/settings/items')
   items.__bindSettingsAreaForTests(area)
-  cacheMod = await import('@/features/settings/cache')
+  cacheMod = await import('@/engine/settings/cache')
 })
 
 const ORIGINAL_CHROME = (globalThis as { chrome?: unknown }).chrome

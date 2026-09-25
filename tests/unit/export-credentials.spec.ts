@@ -11,8 +11,8 @@
  * webdav-settings-backup.spec.ts, which reassigns settingsCache.get).
  */
 import { test, expect } from '@playwright/test'
-import { mediaDB } from '@/features/database/models'
-import { settingsCache } from '@/features/settings/cache'
+import { mediaDB } from '@/engine/database/models'
+import { settingsCache } from '@/engine/settings/cache'
 import { handleExportData } from '@/entrypoints/background/handlers/data'
 import type { AppSettings } from '@/types'
 

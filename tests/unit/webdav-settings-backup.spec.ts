@@ -16,7 +16,7 @@
  * mocks and is outside unit-test scope.
  */
 import { test, expect } from '@playwright/test'
-import { settingsCache } from '@/features/settings/cache'
+import { settingsCache } from '@/engine/settings/cache'
 import { EXPORT_SETTINGS_KEYS } from '@/entrypoints/background/handlers/data'
 import {
   collectBackupSettings,

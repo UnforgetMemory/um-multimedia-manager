@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
-import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
-import { CacheManager } from '@/features/cache/cache-manager'
-import type { SchedulerEvent } from '@/features/data-scheduler/types'
+import { DataScheduler } from '@/engine/data-scheduler/data-scheduler'
+import { CacheManager } from '@/engine/cache/cache-manager'
+import type { SchedulerEvent } from '@/engine/data-scheduler/types'
 
 /**
  * DataScheduler timeout diagnostics (2026-08-11 umreview) — locks the

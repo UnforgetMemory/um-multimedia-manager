@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
+import { DataScheduler } from '@/engine/data-scheduler/data-scheduler'
 
 /**
  * T19 — fixes for audit docs/audit/architecture-scan-2026-08-03.md:

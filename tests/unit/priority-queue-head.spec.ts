@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { PriorityQueue } from '@/features/data-scheduler/priority-queue'
-import type { QueuedTask, PriorityLevel } from '@/features/data-scheduler/types'
+import { PriorityQueue } from '@/engine/data-scheduler/priority-queue'
+import type { QueuedTask, PriorityLevel } from '@/engine/data-scheduler/types'
 
 /**
  * Head-index dequeue contract (replaces Array.shift O(n)).

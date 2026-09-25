@@ -6,7 +6,7 @@ import {
   SEHUATANG_IDS_STORE_NAME,
 } from '@/features/adult-av/models'
 import type { StoreRecord, StoreRecordSnapshot } from '@/types'
-import type { MediaDatabase } from '@/features/database/models'
+import type { MediaDatabase } from '@/engine/database/models'
 
 /**
  * ADULT_AV_STATS — 三段已看统计（ADR-025 D5：各自按表计数）。

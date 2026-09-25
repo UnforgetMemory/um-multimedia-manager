@@ -12,7 +12,7 @@
  *  2. Session area unavailable → read returns undefined, write is no-op.
  */
 import { test, expect } from '@playwright/test'
-import * as sessionCache from '@/features/cache/session-cache'
+import * as sessionCache from '@/engine/cache/session-cache'
 
 // ---------------------------------------------------------------------------
 // Helpers

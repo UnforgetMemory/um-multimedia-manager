@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { normalizeStoreRecord, MigrationError, CURRENT_RECORD_VERSION, MIN_SUPPORTED_RECORD_VERSION } from '@/features/migration/models'
+import { normalizeStoreRecord, MigrationError, CURRENT_RECORD_VERSION, MIN_SUPPORTED_RECORD_VERSION } from '@/engine/migration/models'
 
 /**
  * normalizeStoreRecord — boundary hardening for untrusted imported data
