@@ -40,15 +40,21 @@ export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
 ]
 
 /**
- * Settings keys allowed on IMPORT.
+ * Settings keys allowed on IMPORT by default.
  *
  * Security: this MUST mirror EXPORT_SETTINGS_KEYS and must NOT include
  * credential keys (webdavUrl/webdavUsername/webdavPassword). Previously the
  * import whitelist used every STORAGE_KEYS value, so a malicious backup could
  * rewrite the WebDAV target to an attacker-controlled server; the next sync
  * would then push the user's full library + real WebDAV password there.
+ *
+ * Opt-in restore of credentials is a separate path (includeWebDAVCredentials)
+ * after explicit user confirmation — own backup → own machine.
  */
 export const IMPORT_SETTINGS_KEYS: ReadonlySet<string> = new Set(EXPORT_SETTINGS_KEYS)
+
+/** WebDAV credential fields — only applied when the user opts in on import. */
+export const WEBDAV_CREDENTIAL_KEYS = ['webdavUrl', 'webdavUsername', 'webdavPassword'] as const
 
 /** Map store names to platform identifiers for stats/records aggregation */
 const storePlatformMap: Record<string, string> = {
@@ -113,7 +119,7 @@ export async function handleExportData(
 
 /** IMPORT_DATA — validate + replace all stores */
 export async function handleImportData(
-  payload: ExportData,
+  payload: ExportData & { includeWebDAVCredentials?: boolean },
   sendResponse: SendResponse
 ) {
   if (!payload?.stores) {
@@ -182,16 +188,27 @@ export async function handleImportData(
     }
   }
 
-  // Import settings if present (whitelist allowed keys only — excludes credentials)
+  // Import settings via the item layer so cache + session snapshot refresh
+  // immediately (raw chrome.storage.local.set left SettingsCache stale until
+  // SW restart — imported theme/token "had no effect").
   if (payload.settings) {
-    const filtered: Record<string, unknown> = {}
+    const filtered: Partial<AppSettings> = {}
     for (const [key, value] of Object.entries(payload.settings)) {
       if (IMPORT_SETTINGS_KEYS.has(key)) {
-        filtered[key] = value
+        ;(filtered as Record<string, unknown>)[key] = value
+      }
+    }
+    // Opt-in credential restore (ADR-016 one-way gate + explicit user consent).
+    if (payload.includeWebDAVCredentials) {
+      for (const key of WEBDAV_CREDENTIAL_KEYS) {
+        const value = payload.settings[key]
+        if (typeof value === 'string') {
+          ;(filtered as Record<string, unknown>)[key] = value
+        }
       }
     }
     if (Object.keys(filtered).length > 0) {
-      await chrome.storage.local.set(filtered)
+      await settingsCache.updateAll(filtered)
     }
   }
 

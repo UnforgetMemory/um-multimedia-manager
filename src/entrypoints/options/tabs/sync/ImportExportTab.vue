@@ -15,10 +15,10 @@ const toast = useToast()
 const { show } = useConfirmStore()
 const isExporting = ref(false)
 const isImporting = ref(false)
-// ADR-016 decision 3: opt-in switch for including WebDAV credentials in the
-// local export. Defaults to off — credentials are only exported when the user
-// explicitly acknowledges the plaintext-password warning. Import still rejects
-// these keys (IMPORT_SETTINGS_KEYS), so the security gate is one-directional.
+// ADR-016 decision 3: opt-in switch for WebDAV credentials on export AND
+// import. Defaults to off. Export warns about plaintext; import only applies
+// credentials when this switch is on AND the user confirms (malicious-backup
+// gate stays closed by default).
 const includeWebdavCredentials = ref(false)
 
 async function performExport() {
@@ -77,10 +77,17 @@ function triggerImport() {
         }
         let recordCount = 0
         if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
+        const fileHasCreds = !!(
+          payload?.settings &&
+          (payload.settings.webdavUrl || payload.settings.webdavUsername || payload.settings.webdavPassword)
+        )
+        const restoreCreds = includeWebdavCredentials.value && fileHasCreds
         show({
           title: t('confirm.importData'),
           description: t('confirm.importRecords', { count: recordCount.toLocaleString() }),
-          warning: t('common.overrideWarning'),
+          warning: restoreCreds
+            ? `${t('common.overrideWarning')}\n\n${t('confirm.importWithCredentialsDesc')}`
+            : t('common.overrideWarning'),
           details: `${t('common.fileName')}: ${file.name}`,
           icon: Upload,
           confirmText: t('common.startImport'),
@@ -94,9 +101,12 @@ function triggerImport() {
                   const sn = `${provider}_records`
                   if (payload.datasets[provider]) { stores[sn] = {}; for (const type of Object.keys(payload.datasets[provider])) { for (const r of payload.datasets[provider][type]) { stores[sn][`${type}::${r.providerId || r.id}`] = { url: r.url || '', status: r.status ?? 1, rating: r.rating ?? null, updatedAt: r.updatedAt || new Date().toISOString(), linkedIds: r.linkedIds || {} } } } }
                 }
-                importPayload = { stores }
+                importPayload = { stores, settings: payload.settings }
               }
-              const res = await safeSendMessage({ type: 'IMPORT_DATA', payload: importPayload }, { timeout: 30000 })
+              const res = await safeSendMessage({
+                type: 'IMPORT_DATA',
+                payload: { ...importPayload, includeWebDAVCredentials: restoreCreds },
+              }, { timeout: 30000 })
               if (res?.success) {
                 toast.success(t('toast.importSuccess'))
               } else {
@@ -147,5 +157,8 @@ function triggerImport() {
       </label>
       <Switch id="umm-include-webdav-creds" v-model="includeWebdavCredentials" />
     </div>
+    <p class="umm:text-xs umm:text-muted-foreground umm:mt-1">
+      {{ t('common.includeWebdavCredentialsHint') }}
+    </p>
   </SectionContainer>
 </template>

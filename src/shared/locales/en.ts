@@ -34,7 +34,8 @@ export default {
   'common.unlistened': 'Unlistened',
   'common.importData': 'Import Data',
   'common.exportData': 'Export Data',
-  'common.includeWebdavCredentials': 'Include WebDAV credentials',
+  'common.includeWebdavCredentials': 'Include / restore WebDAV credentials',
+  'common.includeWebdavCredentialsHint': 'When on: export embeds credentials in the file; import restores them after confirmation. Off by default (safer against malicious backups).',
   'common.startImport': 'Start Import',
   'common.fileName': 'File name',
   'common.overrideWarning': 'Records with the same ID will be overwritten',
@@ -214,4 +215,5 @@ export default {
   'confirm.importRecords': 'About to import {count} records',
   'confirm.exportWithCredentials': 'Export with WebDAV credentials',
   'confirm.exportWithCredentialsDesc': 'The export file will contain the WebDAV URL, username, and password in plaintext. Keep this file safe to avoid leakage.',
+  'confirm.importWithCredentialsDesc': 'This file contains WebDAV credentials. Importing will overwrite your current WebDAV URL, username, and password.',
 } as const

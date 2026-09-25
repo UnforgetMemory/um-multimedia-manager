@@ -87,7 +87,8 @@ export interface MessagePayloadMap {
   GET_SETTINGS: void
   UPDATE_SETTINGS: Partial<AppSettings>
   EXPORT_DATA: { includeWebDAVCredentials?: boolean } | undefined
-  IMPORT_DATA: ExportData
+  /** Opt-in credential restore; default false keeps the malicious-backup gate. */
+  IMPORT_DATA: ExportData & { includeWebDAVCredentials?: boolean }
   GET_ALL_RECORDS: void
   GET_STATISTICS: void
   HEALTH_CHECK: void
