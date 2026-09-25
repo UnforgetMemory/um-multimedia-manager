@@ -244,7 +244,12 @@ export class MediaDatabase {
 
   /** Put (insert or update) a record. Stamps schema + record version. */
   async put(storeName: string, key: string, record: StoreRecord): Promise<void> {
-    record.updatedAt = record.updatedAt || new Date().toISOString()
+    // Copy-on-write: never mutate the caller's snapshot (domain immutability).
+    const base: StoreRecord = {
+      ...record,
+      linkedIds: { ...record.linkedIds },
+      updatedAt: record.updatedAt || new Date().toISOString(),
+    }
 
     // Read version and write in a single transaction to prevent race condition
     // where two concurrent calls both read version 0 and both write version 1.
@@ -257,13 +262,11 @@ export class MediaDatabase {
       getReq.onsuccess = () => {
         const current = (getReq.result as StoreRecord | null) ?? null
         const nextVersion = (current?.recordVersion ?? 0) + 1
-        record.recordVersion = nextVersion
-        store.put(stampRecordVersion(record), key)
+        store.put(stampRecordVersion({ ...base, recordVersion: nextVersion }), key)
       }
       getReq.onerror = () => {
         // Fallback: write without version check
-        record.recordVersion = 1
-        store.put(stampRecordVersion(record), key)
+        store.put(stampRecordVersion({ ...base, recordVersion: 1 }), key)
       }
 
       tx.oncomplete = () => resolve()
@@ -289,19 +292,21 @@ export class MediaDatabase {
       const store = tx.objectStore(storeName)
 
       for (const { key, record } of records) {
-        record.updatedAt = record.updatedAt || new Date().toISOString()
+        const base: StoreRecord = {
+          ...record,
+          linkedIds: { ...record.linkedIds },
+          updatedAt: record.updatedAt || new Date().toISOString(),
+        }
 
         const getReq = store.get(key)
         getReq.onsuccess = () => {
           const current = (getReq.result as StoreRecord | null) ?? null
           const nextVersion = (current?.recordVersion ?? 0) + 1
-          record.recordVersion = nextVersion
-          store.put(stampRecordVersion(record), key)
+          store.put(stampRecordVersion({ ...base, recordVersion: nextVersion }), key)
         }
         getReq.onerror = () => {
           // Fallback: write without version check
-          record.recordVersion = 1
-          store.put(stampRecordVersion(record), key)
+          store.put(stampRecordVersion({ ...base, recordVersion: 1 }), key)
         }
       }
 
@@ -339,7 +344,7 @@ export class MediaDatabase {
       }
     }
 
-    record.recordVersion = expectedVersion + 1
+    // put() re-reads version in-tx and stamps current+1 (== expected+1 here).
     await this.put(storeName, key, record)
     return { ok: true, version: expectedVersion + 1 }
   }

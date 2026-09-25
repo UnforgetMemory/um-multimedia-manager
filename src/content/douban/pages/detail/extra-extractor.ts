@@ -72,10 +72,10 @@ export function extractPhotos(): {
     const linkEl = (li.querySelector('a') as HTMLAnchorElement) || null
     if (videoEl) {
       const bgImg = videoEl.style.backgroundImage || ''
-      const src = bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
+      const src = upgradeDoubanImageSrc(bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, ''))
       photoItems.push({ src, link: linkEl?.href || '', isVideo: true })
     } else if (imgEl) {
-      photoItems.push({ src: imgEl.src, link: linkEl?.href || '', isVideo: false })
+      photoItems.push({ src: upgradeDoubanImageSrc(imgEl.src), link: linkEl?.href || '', isVideo: false })
     }
   })
 

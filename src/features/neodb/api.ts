@@ -52,13 +52,18 @@ const NEOBASE_URL = 'https://neodb.social/api'
 
 const NEO_DB_MAX_RETRIES = 3
 const NEO_DB_RETRY_DELAY = 1000
+/** Per-attempt budget; align with WebDAV so a hung NeoDB cannot pin the SW. */
+const NEO_DB_TIMEOUT = 30_000
 
 /**
- * 带重试的 fetch 请求（针对 5xx 服务器错误）
+ * Fetch with 5xx/network retry. Each attempt has its own AbortController
+ * timeout. Abort/timeout is terminal (retrying a hung host only stacks waits).
  */
 async function fetchWithRetry(url: string, options: RequestInit, retries = NEO_DB_MAX_RETRIES): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutHandle = setTimeout(() => controller.abort(), NEO_DB_TIMEOUT)
   try {
-    const response = await fetch(url, options)
+    const response = await fetch(url, { ...options, signal: controller.signal })
     if (!response.ok && retries > 0 && response.status >= 500) {
       debugLog(`NeoDB request failed with ${response.status}, retrying... (${retries} attempts left)`)
       await sleep(NEO_DB_RETRY_DELAY)
@@ -66,12 +71,18 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = NEO_D
     }
     return response
   } catch (error: unknown) {
+    const isAbort = error instanceof Error && error.name === 'AbortError'
+    if (isAbort) {
+      throw new NeoDBError(0, 'Timeout', `NeoDB request timed out after ${NEO_DB_TIMEOUT}ms`)
+    }
     if (retries > 0) {
       debugLog(`NeoDB request error, retrying... (${retries} attempts left)`, error)
       await sleep(NEO_DB_RETRY_DELAY)
       return fetchWithRetry(url, options, retries - 1)
     }
     throw error
+  } finally {
+    clearTimeout(timeoutHandle)
   }
 }
 
