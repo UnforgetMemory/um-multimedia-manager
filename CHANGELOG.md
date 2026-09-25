@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **分层违规修正**（首次运行守卫即清零 4 项历史违规）：`StatCard.vue` 归位 `shared/ui/stat-card/`；`extractImdbIdFromText` 下沉 `src/utils/imdb-id.ts`；备份 ZIP 版本常量提取到 `src/utils/dataset-version.ts` 且版本兼容校验改由 WebDAV 导入链路负责（解析与策略分离，行为等价）；Bangumi 列表页改经数据库门面访问
 - **行为契约冻结**：新增 `tests/unit/contract-freeze.spec.ts`，以类型级断言锁定消息协议（33 项 `MessageType` + 三张映射表双向严格对齐）与番号三表分类器，并以完整快照锁定 IndexedDB v14 schema（fresh 12 store + 各自索引集合）
 - **CI 静态门禁**：新增 `Static Gates` job（架构分层 / 设计令牌 / i18n 完整性），`Build` 依赖其通过——门禁失败即阻断构建
+- **单体拆分（模块化）**：`content/styles/global.ts` 739 → 298 行（10 个组件样式块迁至 `badge-styles.ts` / `component-styles.ts`；主题变量表与 `ALL_STYLES` 组合顺序逐字不变，避免 CSS 层叠变化）；`content/i18n/locales.ts` 646 行 → `i18n/locales/` 聚合目录（一文件一语言 + 聚合入口，范式对齐既有 `src/shared/locales/`）；`sehuatang-controls.ts` 715 → 589 行（已看标记/淡化状态层抽出为 `sehuatang-controls-mark.ts`）；`mukaku/handler.ts` 的 142 行 `processVisibleCards` 分解为 `dom.collectVisibleCards`（纯函数）+ `apply.applyCardActions`（无状态）+ 2 个有状态私有方法。**>600 行文件由 6 个降至 3 个**
+- **新增测试**：`tests/unit/mukaku-collect.spec.ts`（6 例）与 `tests/unit/mukaku-apply.spec.ts`（9 例）——覆盖此前嵌在 142 行方法内、**完全无测试**的卡片收集与结果应用规则
+- **单一事实源**：内容脚本语言键改为引用 `STORAGE_KEYS.LANGUAGE`（原为 `'language'` 裸字面量副本，与设置层存在漂移风险）
+- **i18n 门禁适配**：`scripts/check-i18n.js` 由「按 locale 块标记切分单文件」改为逐文件读取聚合目录（原脆弱解析逻辑退役）
 
 ## [5.17.2] - 2026-09-25
 
