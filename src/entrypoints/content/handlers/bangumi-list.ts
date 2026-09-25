@@ -15,9 +15,9 @@
  */
 
 // 内容脚本只允许经数据库门面（Store + store 名映射）访问消息层；
-// 深路径 `@/features/database/{models,api}` 仅限 background handlers
+// 深路径 `@/engine/database/{models,api}` 仅限 background handlers
 // （架构守卫规则 E，见 scripts/check-architecture.cjs）。
-import { Store, STORE_NAMES } from '@/features/database'
+import { Store, STORE_NAMES } from '@/engine/database'
 import { t, initI18n } from '../i18n'
 import { waitForElement } from '../utils/dom'
 import {

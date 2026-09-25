@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { STORAGE_KEYS } from '@/libraries/config'
 import { safeSendMessage } from '@/libraries/utils/context'
 import { useI18n } from 'vue-i18n'

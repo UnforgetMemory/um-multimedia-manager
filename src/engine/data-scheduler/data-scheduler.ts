@@ -20,7 +20,7 @@ import { PriorityQueue } from './priority-queue'
 import { RateLimiter } from './rate-limiter'
 import { RetryPolicy } from './retry-policy'
 import { SchedulerMonitor } from './scheduler-monitor'
-import { CacheManager } from '@/features/cache/cache-manager'
+import { CacheManager } from '@/engine/cache/cache-manager'
 import { sleep } from '@/libraries/utils'
 
 /**

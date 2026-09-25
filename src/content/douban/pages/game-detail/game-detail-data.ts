@@ -290,7 +290,7 @@ function extractRecItems(): GameRecItem[] {
 export async function enrichGameRecItems(recItems: GameRecItem[]): Promise<GameRecItem[]> {
   if (recItems.length === 0) return recItems
   try {
-    const { Store } = await import('@/features/database')
+    const { Store } = await import('@/engine/database')
     const keys = [...new Set(
       recItems
         .map((i) => i.subjectId)

@@ -5,14 +5,14 @@
  * COUNT, GET_WATCHED_IDS, SYNC_PAGE_RECORD, and PT_ID_CACHE operations.
  */
 
-import type { DataScheduler } from '@/features/data-scheduler/data-scheduler'
-import type { MediaDatabase } from '@/features/database/models'
-import { RECORD_STORES, STORE_NAMES } from '@/features/database/models'
+import type { DataScheduler } from '@/engine/data-scheduler/data-scheduler'
+import type { MediaDatabase } from '@/engine/database/models'
+import { RECORD_STORES, STORE_NAMES } from '@/engine/database/models'
 import { broadcast } from '@/libraries/utils/event-bus'
 import { warnLog } from '@/libraries/utils/logger'
 import { RecordService } from '@/domain/record/RecordService'
 import { StoreRecord } from '@/domain/record/StoreRecord'
-import * as sessionCache from '@/features/cache/session-cache'
+import * as sessionCache from '@/engine/cache/session-cache'
 import type { MessagePayloadMap } from '@/types'
 import { invalidateSchedulerStore } from './cache-invalidation'
 

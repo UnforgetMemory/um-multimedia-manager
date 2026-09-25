@@ -21,7 +21,7 @@
  * Theme: reacts to the configured site attribute + prefers-color-scheme
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 
 // ── Shared status constants + pure parsers ────────────────────────────────
 // Single source of truth: video-overlay-pure.ts (locked by tests/unit/video-overlay.spec.ts).

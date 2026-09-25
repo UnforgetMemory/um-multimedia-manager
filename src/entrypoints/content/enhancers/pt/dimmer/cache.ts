@@ -2,7 +2,7 @@
  * PT Dimmer 缓存管理
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { CachedIdSets } from '../types'
 import type { PtIdCacheEntry } from '@/types'
 

@@ -117,11 +117,7 @@ const LAYER_RULES = [
   ['types', 'types'],
 
   // —— features/ 细分（必须排在通用 features 之前）——
-  ['features/database', 'engine'],
-  ['features/cache', 'engine'],
-  ['features/migration', 'engine'],
-  ['features/data-scheduler', 'engine'],
-  ['features/settings', 'engine'],
+  ['engine', 'engine'],
   ['features/webdav', 'provider'],
   ['features/neodb', 'provider'],
   ['features/adult-av', 'provider'],
@@ -302,10 +298,10 @@ log(`  ok  B/C/D. 已检查 ${edgeCount} 条层间依赖边`)
 
 /** 内容脚本禁止深路径访问的 database 内部模块（必须经 index 的 Store 门面）。 */
 const DB_INTERNAL_PATHS = [
-  'features/database/models',
-  'features/database/api',
-  'features/database/migrate',
-  'features/database/query-utils',
+  'engine/database/models',
+  'engine/database/api',
+  'engine/database/migrate',
+  'engine/database/query-utils',
 ]
 
 let contentScriptCount = 0
@@ -326,7 +322,7 @@ for (const abs of files) {
     const target = resolveSpecifier(spec, rel)
     if (!target) continue
     if (DB_INTERNAL_PATHS.some((p) => under(target, p))) {
-      fail(`E. 内容脚本绕过 database 门面（应经 @/features/database 的 Store）：${rel} → ${spec}`)
+      fail(`E. 内容脚本绕过 database 门面（应经 @/engine/database 的 Store）：${rel} → ${spec}`)
     }
   }
 

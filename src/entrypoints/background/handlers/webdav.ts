@@ -6,8 +6,8 @@
  */
 
 import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord, AppSettings } from '@/types'
-import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
-import { normalizeStoreRecord, validateDatasetVersion } from '@/features/migration/models'
+import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/engine/database/models'
+import { normalizeStoreRecord, validateDatasetVersion } from '@/engine/migration/models'
 import * as WebDAV from '@/features/webdav/api'
 import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils'
 import { calculateStoreHash } from '@/libraries/utils/hash-utils'
@@ -15,8 +15,8 @@ import { errorLog } from '@/libraries/utils/logger'
 import { broadcast } from '@/libraries/utils/event-bus'
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
 import { EXPORT_SETTINGS_KEYS, IMPORT_SETTINGS_KEYS } from './data'
-import { settingsCache } from '@/features/settings/cache'
-import { settingsItems } from '@/features/settings/items'
+import { settingsCache } from '@/engine/settings/cache'
+import { settingsItems } from '@/engine/settings/items'
 import { errorMessage, type SendResponse } from '@/libraries/utils/error-message'
 
 /** Read WebDAV settings from the typed storage items (targeted, batched) */

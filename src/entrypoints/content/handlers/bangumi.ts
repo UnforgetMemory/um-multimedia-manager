@@ -15,7 +15,7 @@
  */
 
 import type { UrlIdentity, StoreRecord } from '@/types'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { createStatusChip } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'
 import { t } from '../i18n'

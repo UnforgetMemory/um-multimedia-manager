@@ -8,7 +8,7 @@ import { ASPECT_RATIO } from '@/content/douban/shared/media-formats'
 import { metaToChips, ratingBarWidth, starClass as starClassFn, openLink, handleInterestSave } from '@/content/douban/shared/detail-ui'
 import { useInterest } from '@/content/douban/pages/detail/composables/useInterest'
 import { syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { GameDetailData } from './game-detail-data'
 
 const props = defineProps<{ data: GameDetailData }>()

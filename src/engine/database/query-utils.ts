@@ -5,7 +5,7 @@
  * a transaction is open.  No dependency on MediaDatabase.
  */
 
-import { normalizeStoreRecord, MigrationError } from '@/features/migration/models'
+import { normalizeStoreRecord, MigrationError } from '@/engine/migration/models'
 
 // ==================== Pagination ====================
 

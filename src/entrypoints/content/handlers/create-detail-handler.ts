@@ -9,7 +9,7 @@
  */
 
 import type { UrlIdentity, StoreRecord } from '@/types'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { Utils } from '@/libraries/utils'
 import { waitForElement } from '../utils/dom'
 import { FloatingToast } from '../utils/toast'

@@ -7,14 +7,14 @@
  */
 
 import type { AppSettings, ExportData, Statistics } from '@/types'
-import { mediaDB, RECORD_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
+import { mediaDB, RECORD_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/engine/database/models'
 import {
   validateExportVersion,
   getMigrationInfo,
   MigrationError,
   normalizeStoreRecord,
-} from '@/features/migration/models'
-import { settingsCache } from '@/features/settings/cache'
+} from '@/engine/migration/models'
+import { settingsCache } from '@/engine/settings/cache'
 import { computeStatistics, flattenRecords, type PlatformStoreEntries } from '@/domain/record/statistics'
 import type { StoreRecordSnapshot as StoreRecord } from '@/domain/record/StoreRecord'
 import { infoLog, warnLog } from '@/libraries/utils/logger'

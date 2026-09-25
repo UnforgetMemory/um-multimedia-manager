@@ -10,15 +10,15 @@
 
 import { defineBackground } from 'wxt/utils/define-background'
 import type { LogLevel, RuntimeMessageEnvelope } from '@/types'
-import { mediaDB, STORE_NAMES } from '@/features/database/models'
+import { mediaDB, STORE_NAMES } from '@/engine/database/models'
 import { debugLog, infoLog, warnLog, errorLog, configureLogging } from '@/libraries/utils/logger'
 import { STORAGE_KEYS } from '@/libraries/config'
 
-import { DataScheduler } from '@/features/data-scheduler/data-scheduler'
-import { CacheManager } from '@/features/cache'
+import { DataScheduler } from '@/engine/data-scheduler/data-scheduler'
+import { CacheManager } from '@/engine/cache'
 import { infoLog as schedulerLog } from '@/libraries/utils/logger'
 import { errorMessage } from '@/libraries/utils/error-message'
-import { settingsItems } from '@/features/settings/items'
+import { settingsItems } from '@/engine/settings/items'
 
 // Handler imports
 import { handleWebDAVTest, handleWebDAVUpload, handleWebDAVDownload, handleWebDAVSync } from './background/handlers/webdav'
@@ -36,8 +36,8 @@ import { registerCacheManager } from './background/handlers/cache-invalidation'
 import { handleDownloadFile } from './background/handlers/download'
 import { handleSehuatangCacheGetBatch, handleSehuatangCachePut } from './background/handlers/sehuatang-cache'
 import * as NeoDB from '@/features/neodb/api'
-import { settingsCache } from '@/features/settings/cache'
-import { RecordRepositoryAdapter, type DbAdapterForRepo } from '@/features/database/record-repository-adapter'
+import { settingsCache } from '@/engine/settings/cache'
+import { RecordRepositoryAdapter, type DbAdapterForRepo } from '@/engine/database/record-repository-adapter'
 import { RecordService } from '@/domain/record/RecordService'
 
 export default defineBackground({

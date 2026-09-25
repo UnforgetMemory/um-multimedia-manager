@@ -6,7 +6,7 @@
  */
 
 import type { UrlIdentity, StoreRecord } from '@/types'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { Utils, throttle } from '@/libraries/utils'
 import { intervalWhenVisible } from '@/libraries/utils/visibility'
 import { createStatusChip } from '../utils/dom'

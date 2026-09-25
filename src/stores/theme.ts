@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { useStorage, useMediaQuery } from '@vueuse/core'
-import { settingsItems } from '@/features/settings/items'
+import { settingsItems } from '@/engine/settings/items'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { STORAGE_KEYS } from '@/libraries/config'
 import { useI18n } from 'vue-i18n'
 import type { AppSettings } from '@/types'

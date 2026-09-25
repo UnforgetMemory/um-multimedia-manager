@@ -9,7 +9,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { initRouter, hasMatchingRoute } from './content/router'
 import { initI18n, startLocaleSync } from './content/i18n'
 import { injectGlobalStyles } from './content/styles/global'
@@ -18,7 +18,7 @@ import { infoLog, errorLog, configureLogging } from '@/libraries/utils/logger'
 import { sleep } from '@/libraries/utils'
 import type { LogLevel } from '@/types'
 import { STORAGE_KEYS } from '@/libraries/config'
-import { settingsItems } from '@/features/settings/items'
+import { settingsItems } from '@/engine/settings/items'
 import { initEventBus } from '@/libraries/utils/event-bus'
 
 export default defineContentScript({

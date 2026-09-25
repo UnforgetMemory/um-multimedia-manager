@@ -8,7 +8,7 @@
  * Both callers delegate here so the DB → Map transformation lives in one place.
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { StoreRecord } from '@/types'
 
 /**

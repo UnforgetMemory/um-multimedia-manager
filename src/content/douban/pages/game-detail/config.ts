@@ -2,7 +2,7 @@ import { definePageMount } from '../../mount-factory'
 import { createApp } from 'vue'
 import { intervalWhenVisible } from '@/libraries/utils/visibility'
 import { hideNavForPage } from '../../shared/hide-nav'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
 import { withRetry } from '../../shared/retry'
 

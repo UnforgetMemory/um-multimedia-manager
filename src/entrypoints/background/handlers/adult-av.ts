@@ -11,7 +11,7 @@
  */
 
 import type { AdultAvId, StoreRecord, StoreRecordSnapshot, MessagePayloadMap } from '@/types'
-import { mediaDB, type MediaDatabase } from '@/features/database/models'
+import { mediaDB, type MediaDatabase } from '@/engine/database/models'
 import {
   JAV_IDS_STORE_NAME,
   USAV_IDS_STORE_NAME,

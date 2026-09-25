@@ -3,7 +3,7 @@
  * 后台请求详情页并提取平台 ID，使用信号量控制并发
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { PtIdCacheEntry } from '@/types'
 import type { SiteScannerConfig } from '../types'
 import { Semaphore } from './semaphore'

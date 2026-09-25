@@ -1,5 +1,5 @@
 import type { AppSettings } from '@/types'
-import * as sessionCache from '@/features/cache/session-cache'
+import * as sessionCache from '@/engine/cache/session-cache'
 import {
   defaultAppSettings,
   persistAppSettings,

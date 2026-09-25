@@ -13,8 +13,8 @@
  * are no import cycles.
  */
 
-import type { CacheManager } from '@/features/cache/cache-manager'
-import * as sessionCache from '@/features/cache/session-cache'
+import type { CacheManager } from '@/engine/cache/cache-manager'
+import * as sessionCache from '@/engine/cache/session-cache'
 
 let registeredCacheManager: CacheManager | null = null
 

@@ -8,7 +8,7 @@
 import * as NeoDB from '@/features/neodb/api'
 import { infoLog, warnLog, errorLog } from '@/libraries/utils/logger'
 import { sleep } from '@/libraries/utils'
-import { settingsItems } from '@/features/settings/items'
+import { settingsItems } from '@/engine/settings/items'
 import type { MessagePayloadMap } from '@/types'
 import type { SendResponse } from '@/libraries/utils/error-message'
 

@@ -19,8 +19,8 @@
  */
 
 import type { StoreRecord, PtIdCacheEntry } from '@/types'
-import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/features/migration/models'
-import { LruCache } from '@/features/cache/lru-cache'
+import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/engine/migration/models'
+import { LruCache } from '@/engine/cache/lru-cache'
 import { queryPage as queryPageUtil, batchGet as batchGetUtil } from './query-utils'
 import type { PageQueryOptions, PageResult } from './query-utils'
 import type { WriteResult } from '@/features/optimistic-lock/types'

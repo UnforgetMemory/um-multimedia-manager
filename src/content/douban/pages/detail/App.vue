@@ -11,7 +11,7 @@ import { syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCr
 import { extractCrossPlatformLinks } from '@/content/douban/shared/legacy-bridge'
 import { UrlResolverBuilder } from '@/libraries/identity'
 import { rating10ToDoubanStars, doubanStarsToRating10, shouldWriteRecord } from '@/content/douban/shared/rating-scale'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { StoreRecord } from '@/types'
 import type { DetailData } from './detail-data'
 

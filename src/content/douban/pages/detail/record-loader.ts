@@ -1,7 +1,7 @@
 /**
  * IndexedDB record loading helpers for Douban detail pages.
  */
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { UrlIdentity, StoreRecord } from '@/types'
 import type { RecItem } from './types'
 

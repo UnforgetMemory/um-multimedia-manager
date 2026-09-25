@@ -1,4 +1,4 @@
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { UrlResolverBuilder } from '@/libraries/identity'
 import { safeSendMessage } from '@/libraries/utils/context'
 import { extractCrossPlatformLinks, buildCrossPlatformTargets } from '@/content/douban/shared/cross-platform-links'

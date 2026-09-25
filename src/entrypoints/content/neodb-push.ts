@@ -8,7 +8,7 @@
 
 import type { StoreRecord, UrlIdentity } from '@/types'
 import type { MediaTypeId } from '@/domain/platform/MediaType'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { Utils } from '@/libraries/utils'
 import { UrlResolverBuilder } from '@/libraries/identity'
 import { safeSendMessage } from '@/libraries/utils/context'

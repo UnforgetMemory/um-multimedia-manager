@@ -11,7 +11,7 @@
  * - NexusPHP: details.php?id={id} (audiences, hdhome, hdarea, ourbits, pterclub)
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 
 /** Extract douban ID from a URL like https://douban.com/subject/12345/ or https://movie.douban.com/subject/12345/ */
 function extractDoubanId(url: string): string | null {

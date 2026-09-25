@@ -2,7 +2,7 @@
  * NexusPHP 站点通用处理器（配置驱动，支持后台扫描）
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { getScanner, type ScanTask } from '../scanner'
 import { getListPageConfig } from '../config'
 import { getMovieSets } from './cache'

@@ -10,7 +10,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { STORE_NAMES, Store } from '@/features/database'
+import { STORE_NAMES, Store } from '@/engine/database'
 import {
   buildListingDimmerCss,
   isListingCapableRoute,

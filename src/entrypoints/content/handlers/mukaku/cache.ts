@@ -5,7 +5,7 @@
  * The underlying IndexedDB accepts any value; the cast is contained here.
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import { MUKAKU_CONFIG } from './config'
 
 const TTL = 'ttl_cache'

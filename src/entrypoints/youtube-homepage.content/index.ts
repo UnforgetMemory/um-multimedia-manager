@@ -15,7 +15,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Store, STORE_NAMES } from '@/features/database'
+import { Store, STORE_NAMES } from '@/engine/database'
 import {
   createVideoOverlay,
   parseYoutubeSearchId,

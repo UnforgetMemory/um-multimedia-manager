@@ -22,7 +22,7 @@
  */
 
 import { AdultAvStore } from '@/features/adult-av'
-import { settingsItems } from '@/features/settings/items'
+import { settingsItems } from '@/engine/settings/items'
 import { classifyAvId, normalizeAvId } from '@/features/adult-av/models'
 import { t, initI18n } from '@/entrypoints/content/i18n'
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel'

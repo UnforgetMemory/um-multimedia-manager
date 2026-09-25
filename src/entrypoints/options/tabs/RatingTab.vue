@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database'
 import type { Domain, Provider } from '@/libraries/config'
 import type { StoreRecord } from '@/types'
 import { useI18n } from 'vue-i18n'

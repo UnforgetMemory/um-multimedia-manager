@@ -11,7 +11,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { STORE_NAMES } from '@/features/database'
+import { STORE_NAMES } from '@/engine/database'
 import {
   createVideoOverlay,
   parseBilibiliBvid,
