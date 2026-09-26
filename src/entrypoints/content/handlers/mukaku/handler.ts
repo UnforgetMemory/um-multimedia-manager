@@ -15,6 +15,7 @@ import { clearProcessedMarkers, createDebouncedScheduler, isDetailContextStale, 
 import { createSerialRunner } from './processing'
 import { resolveCardState, type CardAction } from './resolve'
 import { applyCardActions, type CardApplyInput } from './apply'
+import { MukakuListObserver } from './list-observer'
 
 /** List-API fail cooldown: no retry for 30s after a failed fetch (prevents scan-storm request floods). */
 const LIST_API_FAIL_COOLDOWN_MS = 30_000
@@ -41,13 +42,11 @@ class MukakuHandler {
   private listMappingCache: { sb: string; map: Map<string, { doubanId: string; imdbId: string | null }> } | null = null
   /** Per-key (sb:page) list-API fail timestamps — one term's failure must not block another (O3). */
   private listMappingFailTs: Record<string, number> = {}
-  private listObserver: MutationObserver | null = null
-  /** IntersectionObserver for lazy-loaded cards after initial batch. */
-  private listIntersectionObserver: IntersectionObserver | null = null
   private toastScheduled = false
-  private processDebounceTimer: ReturnType<typeof setTimeout> | null = null
   /** Serial runner: coalesces re-entrant scans (route change during in-flight scan is re-run, not dropped). */
   private runner = createSerialRunner()
+  /** Lazy-load observer + debounce lifecycle (owns the Intersection/Mutation observers). */
+  private observers = new MukakuListObserver(() => this.runner.run(() => this.processVisibleCards()))
   /** 300ms trailing-edge debounce — coalesces record event storms (bulk import). */
   private refreshScheduler = createDebouncedScheduler(300, {
     setTimeout: (cb, ms) => window.setTimeout(cb, ms),
@@ -394,27 +393,16 @@ class MukakuHandler {
     this.resetForPage()
     this.activate()
     this.runner.run(() => this.processVisibleCards())
-    this.setupLazyLoadObserver()
+    this.observers.setup()
   }
 
   /**
    * SPA navigation reset: disconnect old observers (prevent leaks), clear caches so the
    * new page is evaluated from scratch. Does not touch cleanup() (that is
-   * beforeunload-level teardown). Observers are rebuilt by setupLazyLoadObserver.
+   * beforeunload-level teardown). Observers are rebuilt by observers.setup().
    */
   private resetForPage(): void {
-    if (this.listObserver) {
-      this.listObserver.disconnect()
-      this.listObserver = null
-    }
-    if (this.listIntersectionObserver) {
-      this.listIntersectionObserver.disconnect()
-      this.listIntersectionObserver = null
-    }
-    if (this.processDebounceTimer) {
-      clearTimeout(this.processDebounceTimer)
-      this.processDebounceTimer = null
-    }
+    this.observers.disconnect()
     this.watchedIdCache = null
     this.sessionNoAssociation.clear()
     this.probeFailCooldown.clear()
@@ -423,52 +411,6 @@ class MukakuHandler {
     this.listMappingFailTs = {}
     this.probeCache.clear()
     this.refreshScheduler.cancel()
-  }
-
-  private setupLazyLoadObserver(): void {
-    if (this.listObserver) {
-      this.listObserver.disconnect()
-      this.listObserver = null
-    }
-    if (this.listIntersectionObserver) {
-      this.listIntersectionObserver.disconnect()
-      this.listIntersectionObserver = null
-    }
-
-    this.listIntersectionObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            if (this.processDebounceTimer) {
-              clearTimeout(this.processDebounceTimer)
-            }
-            this.processDebounceTimer = setTimeout(() => {
-              this.processDebounceTimer = null
-              this.runner.run(() => this.processVisibleCards())
-            }, 150)
-          }
-        }
-      },
-      {
-        rootMargin: '500px 0px',
-        threshold: 0.1,
-      },
-    )
-
-    this.listObserver = new MutationObserver(() => {
-      if (this.processDebounceTimer) {
-        clearTimeout(this.processDebounceTimer)
-      }
-      this.processDebounceTimer = setTimeout(() => {
-        this.processDebounceTimer = null
-        this.runner.run(() => this.processVisibleCards())
-      }, 300)
-    })
-
-    this.listObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-    })
   }
 
   /**
@@ -614,18 +556,7 @@ class MukakuHandler {
    * 清理资源
    */
   public cleanup(): void {
-    if (this.listObserver) {
-      this.listObserver.disconnect()
-      this.listObserver = null
-    }
-    if (this.listIntersectionObserver) {
-      this.listIntersectionObserver.disconnect()
-      this.listIntersectionObserver = null
-    }
-    if (this.processDebounceTimer) {
-      clearTimeout(this.processDebounceTimer)
-      this.processDebounceTimer = null
-    }
+    this.observers.disconnect()
     this.eventBusUnsubscribers.forEach((unsub) => unsub())
     this.eventBusUnsubscribers = []
     this.activated = false
