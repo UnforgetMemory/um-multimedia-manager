@@ -129,7 +129,7 @@ export function collapseInputSpaces(raw: string): string {
  * runs on an already-normalized query are no-ops — no cursor churn.
  */
 export function normalizeSearchQueryLive(raw: string): string {
-  const hasTrailingSpace = / $/.test(raw)
+  const hasTrailingSpace = raw.endsWith(' ')
   const normalized = normalizeSearchQuery(raw.trimEnd())
   // Anti-lone-space invariant: a trailing space is only re-appended to a
   // NON-EMPTY result — whitespace-only input must collapse to '' (not ' ').

@@ -49,7 +49,6 @@ function referenceGetWatchedIds(db: IDBDatabase, storeName: string): Promise<Set
     const store = tx.objectStore(storeName)
     const request = store.openCursor()
     const ids = new Set<string>()
-    let count = 0
 
     request.onsuccess = () => {
       const cursor = request.result
@@ -59,7 +58,6 @@ function referenceGetWatchedIds(db: IDBDatabase, storeName: string): Promise<Set
         if (isWatchedStatus(rawStatus)) {
           ids.add(cursor.primaryKey as string)
         }
-        count++
         cursor.continue()
       } else {
         resolve(ids)

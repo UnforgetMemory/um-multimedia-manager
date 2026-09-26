@@ -226,7 +226,7 @@ function extractCreation(li: HTMLLIElement): CreationItem | null {
     if (/^\(\d{4}\)$/.test(text)) {
       year = text.replace(/[()]/g, '')
     } else if (text.startsWith('[')) {
-      role = text.replace(/[\[\]]/g, '').trim()
+      role = text.replace(/[[\]]/g, '').trim()
     } else if (text) {
       status = text.replace(/[()]/g, '').trim()
     }

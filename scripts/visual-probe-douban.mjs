@@ -24,8 +24,6 @@ await page.screenshot({ path: path.join(out, 'matrix-full.png'), fullPage: true 
 // computed-style probe: paginator active vars
 for (const [hid, tag] of [['host-light', 'light'], ['host-dark', 'dark']]) {
   const r = await page.locator(`#${hid}`).evaluate(async h => {
-    const el = h.shadowRoot.querySelector('.umm-paginator-btn--active')
-    const cs = getComputedStyle(el)
     const rules = []
     const walk = (list, media) => {
       for (const rule of list) {

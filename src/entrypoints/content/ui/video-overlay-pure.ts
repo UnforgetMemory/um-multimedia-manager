@@ -52,7 +52,7 @@ export function parseYoutubeSearchId(search: string): string | null {
 export function parseBilibiliBvid(pathname: string, search?: string): string | null {
   const pathMatch = pathname.match(/^\/video\/(BV[a-zA-Z0-9]+)\/?$/i)
   if (pathMatch) return pathMatch[1]
-  if (/^\/list\//.test(pathname)) {
+  if (pathname.startsWith('/list/')) {
     const bvidParam = search ? new URLSearchParams(search).get('bvid') : null
     if (bvidParam && /^BV[a-zA-Z0-9]+$/.test(bvidParam)) return bvidParam
   }

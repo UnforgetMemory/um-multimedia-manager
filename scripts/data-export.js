@@ -7,13 +7,11 @@
  * - Support selective export by provider/type
  */
 
-import { execSync } from 'child_process'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { createRequire } from 'module'
-import { createWriteStream } from 'fs'
 
 const require = createRequire(import.meta.url)
 const AdmZip = require('adm-zip')
@@ -93,7 +91,7 @@ function generateMetadata(recordCount, filters) {
  * 从 Background 导出数据
  * 注意：这个脚本需要在扩展环境中运行，或通过 chrome.debugging API
  */
-async function exportDataFromExtension(filters) {
+async function exportDataFromExtension() {
   console.log('📤 UMM Data Exporter\n')
   console.log('='.repeat(60))
   

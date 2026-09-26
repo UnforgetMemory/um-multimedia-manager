@@ -120,7 +120,7 @@ export async function onCrossPlatformSave(options: SaveOptions): Promise<StoreRe
             if (mergedLinks.tmdb) neodbLinkedIds.tmdb = mergedLinks.tmdb
             await Store.dbPut('neodb_records', neodbKey!, {
               ...existingNeoDB,
-              linkedIds: { ...(existingNeoDB.linkedIds || {}), ...neodbLinkedIds },
+              linkedIds: { ...existingNeoDB.linkedIds, ...neodbLinkedIds },
             })
           }
         }
@@ -193,7 +193,7 @@ export async function syncNeoDBOnLoad(
         if (mergedLinks.tmdb) neodbLinkedIds.tmdb = mergedLinks.tmdb
         await Store.dbPut('neodb_records', neodbKey, {
           ...existingNeoDB,
-          linkedIds: { ...(existingNeoDB.linkedIds || {}), ...neodbLinkedIds },
+          linkedIds: { ...existingNeoDB.linkedIds, ...neodbLinkedIds },
         })
       }
     }
@@ -271,7 +271,7 @@ async function syncToNeoDB(
     // caller's snapshot remains untouched and the value-object pattern is respected.
     const doubanRecord = {
       ...ctx.doubanRecord,
-      linkedIds: { ...(ctx.doubanRecord.linkedIds || {}), neodb: neodbFullKey },
+      linkedIds: { ...ctx.doubanRecord.linkedIds, neodb: neodbFullKey },
       updatedAt: new Date().toISOString(),
     }
 
@@ -289,7 +289,7 @@ async function syncToNeoDB(
     const neodbWrite = existingNeoDB
       ? Store.dbPut(neodbStoreName, neodbKey, {
           ...existingNeoDB,
-          linkedIds: { ...(existingNeoDB.linkedIds || {}), ...neodbLinkedIds },
+          linkedIds: { ...existingNeoDB.linkedIds, ...neodbLinkedIds },
         })
       : ((): Promise<void> => {
           const neodbRecord: StoreRecord = {
@@ -315,7 +315,7 @@ async function syncToNeoDB(
         if ((existingTarget.linkedIds?.neodb ?? '') !== neodbFullKey) {
           linkedWrites.push(Store.dbPut(targetStore, linkKey, {
             ...existingTarget,
-            linkedIds: { ...(existingTarget.linkedIds || {}), neodb: neodbFullKey },
+            linkedIds: { ...existingTarget.linkedIds, neodb: neodbFullKey },
           }))
         }
       }

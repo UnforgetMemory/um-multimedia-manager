@@ -165,7 +165,7 @@ onMounted(() => {
                 rating: currentRecord.rating,
                 comment: currentRecord.comment || '',
                 updatedAt: new Date().toISOString(),
-                linkedIds: { ...(existingTarget?.linkedIds || {}), douban: key },
+                linkedIds: { ...existingTarget?.linkedIds, douban: key },
               } as StoreRecord)
             }
           }

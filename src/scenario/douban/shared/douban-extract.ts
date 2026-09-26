@@ -206,7 +206,7 @@ export function extractCollectPageShell(root: Element | Document): CollectPageSh
   const numEl = root.querySelector('.subject-num')
   if (numEl) {
     const text = numEl.textContent ?? ''
-    const pageMatch = text.match(/^([\d\-]+)\s*\/\s*([\d,]+)/)
+    const pageMatch = text.match(/^([\d-]+)\s*\/\s*([\d,]+)/)
     if (pageMatch) {
       currentPage = pageMatch[1]
       total = parseInt(pageMatch[2].replace(/,/g, ''), 10)

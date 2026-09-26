@@ -138,7 +138,6 @@ function resolveRelative(oldFileAbs, spec) {
   let rel = path.relative(path.dirname(newFileAbs), newTargetAbs).replace(/\\/g, '/')
   if (!rel.startsWith('.')) rel = './' + rel
   // 保留原 query/hash（如有）
-  const tail = spec.replace(/^[?#].*$/, '')
   return rel + (spec.length > clean.length ? spec.slice(clean.length) : '')
 }
 

@@ -18,7 +18,6 @@ async function resizeIcons() {
   console.log('📐 开始调整图标尺寸...\n')
   
   const fs = await import('fs')
-  const path = await import('path')
   
   // 验证输入文件存在
   if (!fs.existsSync(inputFile)) {

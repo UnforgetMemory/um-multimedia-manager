@@ -90,12 +90,6 @@ function getLocaleFiles() {
   return files
 }
 
-// Check if a key exists in a file
-function hasKey(filePath, key) {
-  const content = readFileSync(filePath, 'utf-8')
-  const regex = new RegExp(`['"]${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]\\s*:`)
-  return regex.test(content)
-}
 
 // Main check
 function check() {

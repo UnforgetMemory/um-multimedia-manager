@@ -8,7 +8,7 @@
  */
 
 import { execSync } from 'child_process'
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync } from 'fs'
+import { readFileSync, existsSync, mkdirSync, rmSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
@@ -233,25 +233,6 @@ function validateAndReadData(extractDir) {
   return data
 }
 
-/**
- * 生成导入报告
- */
-function generateImportReport(stats) {
-  const report = {
-    importTime: new Date().toISOString(),
-    mode: stats.mode,
-    totalRecords: stats.totalRecords,
-    imported: stats.imported,
-    skipped: stats.skipped,
-    errors: stats.errors,
-    conflicts: stats.conflicts || []
-  }
-  
-  const reportPath = join(CONFIG.defaultImportDir, `import-report-${Date.now()}.json`)
-  writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8')
-  
-  return reportPath
-}
 
 // ==================== 主流程 ====================
 

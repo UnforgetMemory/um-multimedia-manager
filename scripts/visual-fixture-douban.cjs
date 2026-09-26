@@ -5,7 +5,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const root = path.resolve(__dirname, '..')
-const DB = 'src/scenario/douban/styles'
 const S = f => fs.readFileSync(path.join(root, f.startsWith('shared/') ? path.join('src', f) : path.join('src/scenario/douban/styles', f)), 'utf8')
 
 const order = [

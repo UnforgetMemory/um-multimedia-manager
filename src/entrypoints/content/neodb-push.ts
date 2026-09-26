@@ -283,7 +283,7 @@ async function pushToNeoDB(
           existingNeoDB.rating = adjustedRating
           existingNeoDB.updatedAt = new Date().toISOString()
           existingNeoDB.linkedIds = {
-            ...(existingNeoDB.linkedIds || {}),
+            ...existingNeoDB.linkedIds,
             douban: doubanFullKey,
           }
           await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)

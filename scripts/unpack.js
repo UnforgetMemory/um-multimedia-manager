@@ -9,14 +9,11 @@
  */
 
 import { execSync } from 'child_process'
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs'
+import { readFileSync, existsSync, mkdirSync, rmSync } from 'fs'
 import { join, basename } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { createRequire } from 'module'
-import { createReadStream } from 'fs'
-import { promisify } from 'util'
-import { pipeline } from 'stream'
 
 const require = createRequire(import.meta.url)
 const AdmZip = require('adm-zip')

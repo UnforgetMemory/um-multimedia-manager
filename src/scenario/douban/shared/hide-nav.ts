@@ -97,7 +97,6 @@ export function hideNavForPage(pageType: PageType): void {
     case 'series':
       hideNativeNav({ globalNav: true, bookNav: true })
       break
-      break
     case 'book-profile':
     case 'book-review-detail':
       hideNativeNav({ globalNav: true, bookNav: true })
