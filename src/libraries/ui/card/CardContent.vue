@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div :class="
   cn('umm:p-[var(--umm-card-padding)]', props.class)
 ">

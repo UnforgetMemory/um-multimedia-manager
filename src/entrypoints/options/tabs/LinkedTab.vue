@@ -164,7 +164,7 @@ function getStatusColor(s: number): string {
 onUnmounted(() => { if (timer) clearTimeout(timer) })
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <PlatformSearchForm
       v-model:platform="linkedSelectedPlatform"

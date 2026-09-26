@@ -4,7 +4,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div class="umm:flex umm:flex-col umm:gap-[var(--umm-section-gap)]">
     <slot />
   </div>

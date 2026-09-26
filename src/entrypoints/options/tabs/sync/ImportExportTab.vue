@@ -128,7 +128,7 @@ function triggerImport() {
 }
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <SectionHeader :title="t('tab.importExport')" />
     <div class="umm:grid umm:grid-cols-2 umm:gap-3">

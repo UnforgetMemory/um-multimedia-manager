@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import { forwardProps, forwardEmits } from '@/libraries/ui/forward-props'
 import type { DialogContentEmits, DialogContentProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
@@ -8,7 +10,6 @@ import {
   DialogContent,
   DialogOverlay,
   DialogPortal,
-  useForwardPropsEmits,
 } from "reka-ui"
 import { cn } from "@/libraries/utils/cn"
 
@@ -17,10 +18,19 @@ const emits = defineEmits<DialogContentEmits>()
 
 const delegatedProps = reactiveOmit(props, "class")
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+const forwardedProps = forwardProps(delegatedProps)
+const forwardedEmits = forwardEmits<DialogContentEmits>(emits, [
+  'escapeKeyDown',
+  'pointerDownOutside',
+  'focusOutside',
+  'interactOutside',
+  'openAutoFocus',
+  'closeAutoFocus',
+])
+const forwarded = computed(() => ({ ...forwardedProps.value, ...forwardedEmits }))
 </script>
 
-<template>
+<template vapor>
   <DialogPortal>
     <DialogOverlay
       class="umm:fixed umm:inset-0 umm:z-50 umm:bg-black/80 umm:data-[state=open]:animate-in umm:data-[state=closed]:animate-out umm:data-[state=closed]:fade-out-0 umm:data-[state=open]:fade-in-0"

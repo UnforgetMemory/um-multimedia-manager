@@ -120,7 +120,7 @@ watch([debugEnabled, logLevel], ([e, l], [oldE, oldL]) => {
 })
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <div class="umm:flex umm:flex-col umm:gap-4">
       <SectionHeader :title="t('settings.neodbConfig')" />

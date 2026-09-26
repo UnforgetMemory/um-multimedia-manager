@@ -10,7 +10,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div :class="cn(alertVariants({ variant }), props.class)" role="alert">
     <slot />
   </div>

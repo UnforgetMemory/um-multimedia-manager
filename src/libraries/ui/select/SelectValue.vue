@@ -5,7 +5,7 @@ import { SelectValue } from "reka-ui"
 const props = defineProps<SelectValueProps>()
 </script>
 
-<template>
+<template vapor>
   <SelectValue v-bind="props">
     <slot />
   </SelectValue>

@@ -1,19 +1,20 @@
 <script setup lang="ts">
+import { forwardProps } from '@/libraries/ui/forward-props'
 import type { SelectTriggerProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
 import { ChevronDown } from "lucide-vue-next"
-import { SelectIcon, SelectTrigger, useForwardProps } from "reka-ui"
+import { SelectIcon, SelectTrigger } from "reka-ui"
 import { cn } from "@/libraries/utils/cn"
 
 const props = defineProps<SelectTriggerProps & { class?: HTMLAttributes["class"] }>()
 
 const delegatedProps = reactiveOmit(props, "class")
 
-const forwardedProps = useForwardProps(delegatedProps)
+const forwardedProps = forwardProps(delegatedProps)
 </script>
 
-<template>
+<template vapor>
   <SelectTrigger
     v-bind="forwardedProps"
     :class="

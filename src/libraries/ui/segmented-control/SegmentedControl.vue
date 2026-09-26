@@ -13,7 +13,7 @@ const props = defineProps<{
 const modelValue = defineModel<string>('modelValue', { required: true })
 </script>
 
-<template>
+<template vapor>
   <div class="umm:flex umm:bg-muted umm:p-1 umm:rounded-xl umm:gap-1">
     <button
       v-for="option in options"

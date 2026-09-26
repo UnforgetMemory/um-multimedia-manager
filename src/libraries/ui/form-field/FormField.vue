@@ -7,7 +7,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div class="umm:flex umm:flex-col umm:gap-2">
     <Label>{{ label }}</Label>
     <p v-if="description" class="umm:font-caption umm:text-secondary-content">{{ description }}</p>

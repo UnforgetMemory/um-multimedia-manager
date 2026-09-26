@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div :class="
   cn('umm:flex umm:flex-col umm:gap-1.5 umm:p-[var(--umm-card-padding)] umm:pb-4', props.class)
 ">

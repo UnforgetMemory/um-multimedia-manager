@@ -126,7 +126,7 @@ async function uploadCloud() {
 }
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <Card>
       <CardHeader class="umm:pb-3">

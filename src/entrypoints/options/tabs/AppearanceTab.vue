@@ -28,7 +28,7 @@ function setLocale(value: Locale) {
 }
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <!-- Theme -->
     <Card>

@@ -31,7 +31,7 @@ onMounted(async () => {
 })
 </script>
 
-<template>
+<template vapor>
   <div class="umm:flex umm:flex-col umm:h-full">
     <div class="umm:flex umm:items-center umm:justify-between umm:px-5 umm:pt-4 umm:pb-2">
       <h1 class="umm:flex umm:items-center umm:gap-2 umm:text-base umm:font-bold umm:tracking-tight umm:text-primary-content">

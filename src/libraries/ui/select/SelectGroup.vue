@@ -10,7 +10,7 @@ const props = defineProps<SelectGroupProps & { class?: HTMLAttributes["class"] }
 const delegatedProps = reactiveOmit(props, "class")
 </script>
 
-<template>
+<template vapor>
   <SelectGroup :class="cn('umm:p-1 umm:w-full', props.class)" v-bind="delegatedProps">
     <slot />
   </SelectGroup>

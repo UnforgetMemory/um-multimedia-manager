@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { forwardProps } from '@/libraries/ui/forward-props'
 import type { SelectItemProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
@@ -7,7 +8,6 @@ import {
   SelectItem,
   SelectItemIndicator,
   SelectItemText,
-  useForwardProps,
 } from "reka-ui"
 import { cn } from "@/libraries/utils/cn"
 
@@ -15,10 +15,10 @@ const props = defineProps<SelectItemProps & { class?: HTMLAttributes["class"] }>
 
 const delegatedProps = reactiveOmit(props, "class")
 
-const forwardedProps = useForwardProps(delegatedProps)
+const forwardedProps = forwardProps(delegatedProps)
 </script>
 
-<template>
+<template vapor>
   <SelectItem
     v-bind="forwardedProps"
     :class="

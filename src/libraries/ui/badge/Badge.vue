@@ -10,7 +10,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div :class="cn(badgeVariants({ variant }), props.class)">
     <slot />
   </div>

@@ -5,7 +5,7 @@ import { TooltipProvider } from "reka-ui"
 const props = defineProps<TooltipProviderProps>()
 </script>
 
-<template>
+<template vapor>
   <TooltipProvider v-bind="props">
     <slot />
   </TooltipProvider>

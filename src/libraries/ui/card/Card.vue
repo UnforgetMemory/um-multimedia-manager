@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div
     :class="
   cn(

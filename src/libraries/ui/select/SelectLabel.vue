@@ -7,7 +7,7 @@ import { cn } from "@/libraries/utils/cn"
 const props = defineProps<SelectLabelProps & { class?: HTMLAttributes["class"] }>()
 </script>
 
-<template>
+<template vapor>
   <SelectLabel :class="cn('umm:py-1.5 umm:pl-8 umm:pr-2 umm:text-sm umm:font-semibold', props.class)">
     <slot />
   </SelectLabel>

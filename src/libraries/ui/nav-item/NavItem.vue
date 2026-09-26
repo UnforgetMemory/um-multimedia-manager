@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <button
     @click="emit('click')"
     :class="[

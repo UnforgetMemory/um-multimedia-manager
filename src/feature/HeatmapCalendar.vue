@@ -173,7 +173,7 @@ function heatmapColor(level: number): string {
 const legendLevels = [0, 2, 4, 6, 8] as const
 </script>
 
-<template>
+<template vapor>
   <Card>
     <CardHeader>
       <div class="umm:flex umm:items-center umm:justify-between">

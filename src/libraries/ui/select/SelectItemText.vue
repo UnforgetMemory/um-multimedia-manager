@@ -5,7 +5,7 @@ import { SelectItemText } from "reka-ui"
 const props = defineProps<SelectItemTextProps>()
 </script>
 
-<template>
+<template vapor>
   <SelectItemText v-bind="props">
     <slot />
   </SelectItemText>

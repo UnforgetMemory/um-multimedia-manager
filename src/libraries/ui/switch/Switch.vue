@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import { forwardProps, forwardEmits } from '@/libraries/ui/forward-props'
 import type { SwitchRootEmits, SwitchRootProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import {
   SwitchRoot,
   SwitchThumb,
-  useForwardPropsEmits,
 } from "reka-ui"
 import { cn } from "@/libraries/utils/cn"
 
@@ -12,10 +13,12 @@ const props = defineProps<SwitchRootProps & { class?: HTMLAttributes["class"] }>
 
 const emits = defineEmits<SwitchRootEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const forwardedProps = forwardProps(props)
+const forwardedEmits = forwardEmits<SwitchRootEmits>(emits, ['update:modelValue'])
+const forwarded = computed(() => ({ ...forwardedProps.value, ...forwardedEmits }))
 </script>
 
-<template>
+<template vapor>
   <SwitchRoot
     v-bind="forwarded"
     :class="

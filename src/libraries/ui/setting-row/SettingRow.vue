@@ -21,7 +21,7 @@ interface Props {
 const props = defineProps<Props>()
 </script>
 
-<template>
+<template vapor>
   <div
     :class="[
       'umm:flex umm:items-center umm:justify-between umm:rounded-lg umm:border umm:p-3',

@@ -38,7 +38,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 </script>
 
-<template>
+<template vapor>
   <div
     class="umm:flex umm:flex-col umm:gap-4 umm:p-[var(--umm-card-padding)] umm:border umm:border-border umm:rounded-lg"
   >

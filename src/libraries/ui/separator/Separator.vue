@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<
 const delegatedProps = reactiveOmit(props, "class")
 </script>
 
-<template>
+<template vapor>
   <Separator
     v-bind="delegatedProps"
     :class="

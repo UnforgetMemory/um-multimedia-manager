@@ -5,7 +5,7 @@ import { cn } from "@/libraries/utils/cn"
 const props = defineProps<{ class?: HTMLAttributes["class"] }>()
 </script>
 
-<template>
+<template vapor>
   <div
     :class="cn('umm:flex umm:flex-col-reverse umm:sm:flex-row umm:sm:justify-end umm:sm:gap-x-2', props.class,
       )

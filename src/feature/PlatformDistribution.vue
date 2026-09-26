@@ -16,7 +16,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div class="umm:grid umm:grid-cols-1 umm:sm:grid-cols-2 umm:gap-3 umm-stagger">
     <Card v-for="info in platformStats" :key="info.provider" class="umm:transition-all umm:hover:shadow-md umm:hover:border-primary/30">
       <CardContent class="umm:p-4">

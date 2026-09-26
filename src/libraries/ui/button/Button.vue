@@ -56,7 +56,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 </script>
 
-<template>
+<template vapor>
   <Primitive
     :as="as"
     :as-child="asChild"

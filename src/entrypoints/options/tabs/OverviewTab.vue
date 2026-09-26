@@ -198,7 +198,7 @@ function barColor(count: number, maxCount: number): string {
 onMounted(async () => { await appStore.loadData() })
 </script>
 
-<template>
+<template vapor>
   <div class="umm:flex umm:flex-col umm:gap-6">
     <!-- Skeleton -->
     <div v-if="!appStore.dataReady && !appStore.error" class="umm:flex umm:flex-col umm:gap-6">

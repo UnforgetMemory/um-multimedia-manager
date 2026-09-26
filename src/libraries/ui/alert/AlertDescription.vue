@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div :class="cn('umm:text-sm umm:[&_p]:leading-relaxed', props.class)">
     <slot />
   </div>

@@ -8,7 +8,7 @@ const confirmStore = useConfirmStore()
 const { state } = confirmStore
 </script>
 
-<template>
+<template vapor>
   <Dialog :open="state.open" @update:open="(open: boolean) => { if (!open) state.open = false }">
     <DialogContent class="umm:sm:max-w-md">
       <DialogHeader>

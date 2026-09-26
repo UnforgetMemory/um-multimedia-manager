@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <h5 :class="cn('umm:mb-1 umm:font-medium umm:leading-none umm:tracking-tight', props.class)">
     <slot />
   </h5>

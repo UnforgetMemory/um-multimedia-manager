@@ -15,7 +15,7 @@ const subTabs = [
 ]
 </script>
 
-<template>
+<template vapor>
   <div class="umm:flex umm:flex-col umm:gap-[var(--umm-section-gap)]">
     <SegmentedControl v-model="activeSubTab" :options="subTabs" />
 

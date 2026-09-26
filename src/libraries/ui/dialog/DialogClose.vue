@@ -5,7 +5,7 @@ import { DialogClose } from "reka-ui"
 const props = defineProps<DialogCloseProps>()
 </script>
 
-<template>
+<template vapor>
   <DialogClose v-bind="props">
     <slot />
   </DialogClose>

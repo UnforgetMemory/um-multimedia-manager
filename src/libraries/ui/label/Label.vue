@@ -10,7 +10,7 @@ const props = defineProps<LabelProps & { class?: HTMLAttributes["class"] }>()
 const delegatedProps = reactiveOmit(props, "class")
 </script>
 
-<template>
+<template vapor>
   <Label
     v-bind="delegatedProps"
     :class="cn('umm:text-sm umm:font-medium umm:leading-none umm:pb-1.5 umm:peer-disabled:cursor-not-allowed umm:peer-disabled:opacity-70', props.class,

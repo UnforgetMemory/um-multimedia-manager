@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 </script>
 
-<template>
+<template vapor>
   <Button
     :variant="props.variant"
     :size="props.size"

@@ -9,7 +9,7 @@ useThemeStore()
 useLocaleSync()
 </script>
 
-<template>
+<template vapor>
   <RouterView />
   <ConfirmDialog />
   <ToastContainer />

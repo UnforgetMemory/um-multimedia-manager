@@ -5,7 +5,7 @@ import { DialogTrigger } from "reka-ui"
 const props = defineProps<DialogTriggerProps>()
 </script>
 
-<template>
+<template vapor>
   <DialogTrigger v-bind="props">
     <slot />
   </DialogTrigger>

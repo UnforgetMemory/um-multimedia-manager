@@ -33,7 +33,7 @@ const iconColor = computed(() =>
 )
 </script>
 
-<template>
+<template vapor>
   <Card class="umm:p-3 umm:text-center umm:overflow-hidden">
     <CardContent class="umm:p-0">
       <component

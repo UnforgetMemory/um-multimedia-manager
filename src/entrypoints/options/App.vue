@@ -46,7 +46,7 @@ function navigateTo(path: string) {
 }
 </script>
 
-<template>
+<template vapor>
   <div class="umm:h-screen umm:bg-background umm:text-foreground umm:flex umm:overflow-hidden">
     <!-- Sidebar — persistent on xl+, drawer on smaller -->
     <!-- Mobile drawer overlay -->

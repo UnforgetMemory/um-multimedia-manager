@@ -5,7 +5,7 @@ import { TooltipTrigger } from "reka-ui"
 const props = defineProps<TooltipTriggerProps>()
 </script>
 
-<template>
+<template vapor>
   <TooltipTrigger v-bind="props">
     <slot />
   </TooltipTrigger>

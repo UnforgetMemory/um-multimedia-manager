@@ -221,7 +221,7 @@ watch(selectedPlatform, () => { if (ratingInput.value.trim() && !isQuerying.valu
 onUnmounted(() => { if (queryDebounceTimer) clearTimeout(queryDebounceTimer) })
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <PlatformSearchForm
       v-model:platform="selectedPlatform"

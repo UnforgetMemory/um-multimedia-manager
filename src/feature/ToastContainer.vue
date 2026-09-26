@@ -19,7 +19,7 @@ const colors = {
 }
 </script>
 
-<template>
+<template vapor>
   <Teleport to="body">
     <div class="umm:fixed umm:bottom-6 umm:right-6 umm:z-[999999] umm:flex umm:flex-col umm:gap-3 umm:items-end umm:pointer-events-none">
       <TransitionGroup

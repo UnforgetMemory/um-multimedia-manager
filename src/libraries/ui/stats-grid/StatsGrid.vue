@@ -16,7 +16,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div class="umm:grid umm:grid-cols-2 umm:lg:grid-cols-4 umm:gap-3">
     <StatCard
       v-for="stat in stats"

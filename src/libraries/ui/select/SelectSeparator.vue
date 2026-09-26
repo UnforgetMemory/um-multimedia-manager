@@ -10,7 +10,7 @@ const props = defineProps<SelectSeparatorProps & { class?: HTMLAttributes["class
 const delegatedProps = reactiveOmit(props, "class")
 </script>
 
-<template>
+<template vapor>
   <SelectSeparator v-bind="delegatedProps" :class="cn('umm:-mx-1 umm:my-1 umm:h-px umm:bg-muted', props.class)" />
 </template>
 

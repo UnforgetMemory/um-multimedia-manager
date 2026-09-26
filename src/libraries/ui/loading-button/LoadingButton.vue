@@ -18,7 +18,7 @@ const emit = defineEmits<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <Button
     @click="emit('click')"
     :variant="variant"
