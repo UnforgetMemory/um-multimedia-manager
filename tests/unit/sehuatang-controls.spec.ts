@@ -551,12 +551,12 @@ test.describe('openSehuatangMenu — ☰ 居中菜单对话框', () => {
     expect(doc.getElementById('umm-sht-menu-overlay')).toBeNull()
   })
 
-  test('样式令牌基准：菜单样式消费 --usl-* 语义令牌（独立样式表）', () => {
+  test('样式令牌基准：菜单样式消费 --umm-* 语义令牌（独立样式表）', () => {
     const { dom, anchor } = menuDom()
     openSehuatangMenu(dom.window.document, anchor, 'Menu', baseActions())
     const css = dom.window.document.getElementById('umm-sht-menu-styles')!.textContent!
     expect(css).toContain('.umm-sht-menu-item')
-    expect(css).toContain('var(--usl-surface-raised)')
+    expect(css).toContain('var(--umm-surface-raised)')
     expect(css).not.toContain('#1e1e1e')
   })
 

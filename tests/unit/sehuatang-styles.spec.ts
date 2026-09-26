@@ -30,7 +30,7 @@ test.describe('uslVarsForHost — light-DOM 变量表重宿主 :host', () => {
 
   test('usl 令牌完整携带（表面/文本/边框/accent 双主题）', () => {
     const css = uslVarsForHost()
-    for (const key of ['--usl-surface', '--usl-text-primary', '--usl-border', '--usl-accent', '--usl-fill-primary']) {
+    for (const key of ['--umm-surface', '--umm-overlay-text-primary', '--umm-overlay-border', '--umm-accent', '--umm-fill-primary']) {
       expect(css).toContain(key)
     }
   })
@@ -58,7 +58,7 @@ const FUNCTIONAL_COLOR = /\b(?:hsla?|hwb|lab|lch|oklab|oklch|color)\(/i
 
 /**
  * 命名色黑名单（调色板色值，禁）。前后必须不是 [\w-]，避免命中
- * 令牌名片段（如 --usl-...-white）；transparent / currentColor / inherit
+ * 令牌名片段（如 --umm-...-white）；transparent / currentColor / inherit
  * 是合法关键字，刻意不在禁列。仅断言「不宜出现的常见调色板名」，
  * 新增命名色时同步扩充。
  */
@@ -68,9 +68,9 @@ const NAMED_COLOR = /(?<![\w-])(?:red|green|blue|black|white|gray|grey|silver|ma
 const ALLOWED_RGBA = [/^0,0,0,[\d.]+$/, /^255,255,255,[\d.]+$/, /^18,20,26,[\d.]+$/]
 
 test.describe('CONTROLS_CSS — 令牌基准（原 controls spec 迁移）', () => {
-  test('消费 --usl-* 语义令牌', () => {
-    expect(CONTROLS_CSS).toContain('var(--usl-surface')
-    expect(CONTROLS_CSS).toContain('var(--usl-fill-primary)')
+  test('消费 --umm-* 语义令牌', () => {
+    expect(CONTROLS_CSS).toContain('var(--umm-surface')
+    expect(CONTROLS_CSS).toContain('var(--umm-fill-primary)')
   })
 })
 
@@ -83,8 +83,8 @@ test.describe('CONTROLS_CSS — header 布局健壮化 + 搜索框', () => {
     // tabs 由「换行堆叠」改为「单行滚动带」：不再 flex-wrap
     expect(CONTROLS_CSS).not.toMatch(/\.umm-sht-tabs \{[^}]*flex-wrap/)
     // 紧凑化：纵向留白与区域间距收紧（pad-y 0.9vw 档 / gap 1vw 档）。
-    expect(CONTROLS_CSS).toMatch(/--sht-pad-y: clamp\(6px, 0\.9vw, 12px\)/)
-    expect(CONTROLS_CSS).toMatch(/--sht-gap: clamp\(6px, 1vw, 12px\)/)
+    expect(CONTROLS_CSS).toMatch(/--umm-pad-y: clamp\(6px, 0\.9vw, 12px\)/)
+    expect(CONTROLS_CSS).toMatch(/--umm-gap: clamp\(6px, 1vw, 12px\)/)
   })
 
   test('header 三列网格 + 顶部居中簇 + 摩天轮舞台/轮替控件', () => {
@@ -134,7 +134,7 @@ test.describe('CONTROLS_CSS — header 布局健壮化 + 搜索框', () => {
     // 两 box 共用 box 面样式（本页状态 .umm-header-info + 全局三段 .umm-sht-stats）
     expect(CONTROLS_CSS).toMatch(/\.umm-header-info, \.umm-sht-stats \{[^}]*border-radius: 8px/)
     expect(CONTROLS_CSS).toMatch(/\.umm-header-info, \.umm-sht-stats \{[^}]*white-space: nowrap/)
-    expect(CONTROLS_CSS).toMatch(/\.umm-header-info, \.umm-sht-stats \{[^}]*background: var\(--usl-surface-raised\)/)
+    expect(CONTROLS_CSS).toMatch(/\.umm-header-info, \.umm-sht-stats \{[^}]*background: var\(--umm-surface-raised\)/)
     // 左侧上下文文本载体（非 box）
     expect(CONTROLS_CSS).toContain('.umm-sht-context')
   })
@@ -255,9 +255,9 @@ test.describe('EMPTY_CSS — 全部已看过空态', () => {
     expect(EMPTY_CSS).toContain('prefers-reduced-motion')
   })
 
-  test('消费 --usl-* 令牌（无裸色）', () => {
-    expect(EMPTY_CSS).toContain('var(--usl-text-primary)')
-    expect(EMPTY_CSS).toContain('var(--usl-text-muted)')
+  test('消费 --umm-* 令牌（无裸色）', () => {
+    expect(EMPTY_CSS).toContain('var(--umm-overlay-text-primary)')
+    expect(EMPTY_CSS).toContain('var(--umm-overlay-text-muted)')
   })
 })
 
@@ -273,10 +273,10 @@ test.describe('HOME_CSS — 首页分区网格', () => {
     expect(HOME_CSS).toContain('.umm-sht-home-link')
   })
 
-  test('消费 --usl-* 令牌（无裸色）', () => {
-    expect(HOME_CSS).toContain('var(--usl-text-primary)')
-    expect(HOME_CSS).toContain('var(--usl-fill-primary)')
-    expect(HOME_CSS).toContain('var(--usl-accent)')
+  test('消费 --umm-* 令牌（无裸色）', () => {
+    expect(HOME_CSS).toContain('var(--umm-overlay-text-primary)')
+    expect(HOME_CSS).toContain('var(--umm-fill-primary)')
+    expect(HOME_CSS).toContain('var(--umm-accent)')
   })
 })
 
@@ -291,9 +291,9 @@ test.describe('SEARCH_CSS — 搜索结果卡片', () => {
     expect(SEARCH_CSS).not.toContain('.umm-sht-search-pager')
   })
 
-  test('消费 --usl-* 令牌（与 HOME 对称）', () => {
-    expect(SEARCH_CSS).toContain('var(--usl-text-')
-    expect(SEARCH_CSS).toContain('var(--usl-accent)')
+  test('消费 --umm-* 令牌（与 HOME 对称）', () => {
+    expect(SEARCH_CSS).toContain('var(--umm-overlay-text-')
+    expect(SEARCH_CSS).toContain('var(--umm-accent)')
   })
 })
 
@@ -309,11 +309,11 @@ test.describe('RISK_CSS — 风控页（年龄门）', () => {
     expect(RISK_CSS).toContain('.umm-sht-risk-warn')
   })
 
-  test('消费 --usl-* 令牌（按钮主/次面 + 文本层级，无裸色）', () => {
-    expect(RISK_CSS).toContain('var(--usl-fill-primary)')
-    expect(RISK_CSS).toContain('var(--usl-ink-on-fill)')
-    expect(RISK_CSS).toContain('var(--usl-surface-raised)')
-    expect(RISK_CSS).toContain('var(--usl-border-strong)')
-    expect(RISK_CSS).toContain('var(--usl-text-secondary)')
+  test('消费 --umm-* 令牌（按钮主/次面 + 文本层级，无裸色）', () => {
+    expect(RISK_CSS).toContain('var(--umm-fill-primary)')
+    expect(RISK_CSS).toContain('var(--umm-ink-on-fill)')
+    expect(RISK_CSS).toContain('var(--umm-surface-raised)')
+    expect(RISK_CSS).toContain('var(--umm-border-strong)')
+    expect(RISK_CSS).toContain('var(--umm-overlay-text-secondary)')
   })
 })
