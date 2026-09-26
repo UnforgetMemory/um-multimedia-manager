@@ -48,7 +48,7 @@ function statusLabel(status: number): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="book">
     <div class="umm-series-root">
       <!-- ═══ Header section ═══ -->

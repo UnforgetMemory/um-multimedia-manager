@@ -6,7 +6,7 @@ import type { ArtistsOverviewData } from './types'
 defineProps<{ data: ArtistsOverviewData }>()
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="music">
     <div class="umm-artists-root">
       <!-- Section: Recommended artists -->

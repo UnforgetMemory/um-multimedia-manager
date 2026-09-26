@@ -20,7 +20,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div v-if="displayName" class="umm-userbar">
     <div
       v-if="avatarUrl"

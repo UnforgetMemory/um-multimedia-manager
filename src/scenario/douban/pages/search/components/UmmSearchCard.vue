@@ -55,7 +55,7 @@ const mediaFormat = computed(() => {
 const titleParts = computed(() => splitTitleYear(props.item.title))
 </script>
 
-<template>
+<template vapor>
   <div class="umm-search-card-wrap" :class="{ 'umm-search-card-wrap--music': isMusic }">
   <a
     :href="item.url"

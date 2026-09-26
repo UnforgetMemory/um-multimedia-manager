@@ -232,7 +232,7 @@ function formatRatingBarPct(pct: string): string {
 defineExpose({ updateRecord })
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout :type="mediaType">
     <div class="umm-detail-root">
 

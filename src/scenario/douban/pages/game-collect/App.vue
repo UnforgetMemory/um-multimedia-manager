@@ -24,7 +24,7 @@ function parseRating(rating: string): number {
 const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.game, props.data.subType, 'do'))
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-gc-root">
       <UmmUserBar

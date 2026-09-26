@@ -29,7 +29,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <div :class="containerClass">
     <a v-if="prevUrl" :href="prevUrl" :class="pageClass">‹</a>
     <a

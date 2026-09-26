@@ -17,7 +17,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
 )
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-doulists-root">
       <UmmUserBar

@@ -57,7 +57,7 @@ function statusBadgeText(status: number, rating: number): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-dlist-root">
       <div class="umm-dlist-layout">

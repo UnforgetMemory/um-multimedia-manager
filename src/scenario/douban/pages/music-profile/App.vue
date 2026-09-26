@@ -8,7 +8,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="music">
     <div class="umm-mp-root">
       <!-- Hero -->

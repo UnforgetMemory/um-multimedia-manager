@@ -29,7 +29,7 @@ function openUrl(url: string): void {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-personage-root">
       <!-- Empty state -->

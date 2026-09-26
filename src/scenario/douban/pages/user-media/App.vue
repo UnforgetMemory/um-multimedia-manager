@@ -22,7 +22,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
 const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.movie, props.data.subType, 'doing'))
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-umedia-root">
 

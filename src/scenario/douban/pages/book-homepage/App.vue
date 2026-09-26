@@ -90,7 +90,7 @@ function trendIcon(trend: PopularBookItem['trend']): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="book">
     <div class="umm-top-panel">
       <UmmMediaRow

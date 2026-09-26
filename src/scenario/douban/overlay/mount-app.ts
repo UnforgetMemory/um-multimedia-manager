@@ -6,6 +6,7 @@
  * afterMount hook.
  */
 
+import { vaporInteropPlugin } from 'vue'
 import type { App } from 'vue'
 
 export interface MountOptions {
@@ -62,6 +63,9 @@ export function mountUmmOverlay(options: MountOptions): void {
     container.className = 'umm-mount'
     shadow.appendChild(container)
     const app = options.createApp(shadow, ctx)
+    // ADR-026 D2：Douban overlay 的页面 SFC 已 vapor 化，但树内仍有 VDOM
+    // 组件（lucide-vue-next 图标等）。缺少此插件时它们静默不渲染且零报错。
+    app.use(vaporInteropPlugin)
     app.mount(container)
 
     if (options.afterMount) {

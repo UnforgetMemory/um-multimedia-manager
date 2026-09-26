@@ -21,7 +21,7 @@ function openPersonage(url: string): void {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-celebrities-root">
       <!-- Header -->

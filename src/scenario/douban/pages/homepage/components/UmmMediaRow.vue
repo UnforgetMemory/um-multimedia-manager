@@ -38,7 +38,7 @@ function recordFor(item: MediaRowItem) {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmScrollRow v-if="items.length > 0" :title="title" :mode="grid ? 'grid' : 'scroll'">
     <UmmMediaCard
       v-for="item in items"

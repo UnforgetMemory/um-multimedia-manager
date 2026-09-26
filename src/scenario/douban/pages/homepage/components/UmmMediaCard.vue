@@ -32,6 +32,6 @@ const cardProps = {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmMediaCard v-bind="cardProps" />
 </template>

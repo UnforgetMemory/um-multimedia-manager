@@ -30,7 +30,7 @@ function toRatingScore(rating: string): string | undefined {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="music">
     <div class="umm-mc-root">
       <UmmUserBar

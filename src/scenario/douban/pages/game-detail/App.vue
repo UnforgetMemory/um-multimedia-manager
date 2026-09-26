@@ -69,7 +69,7 @@ defineExpose({ updateRecord })
 
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="game">
     <div class="umm-detail-root">
       <div class="umm-detail-grid">

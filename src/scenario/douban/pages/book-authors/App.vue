@@ -16,7 +16,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
 )
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="book">
     <div class="umm-authors-root">
       <UmmUserBar

@@ -15,7 +15,7 @@ function starHtml(rating: number): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="book">
     <div class="umm-rd-root">
       <!-- Subject info card -->

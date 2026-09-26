@@ -15,7 +15,7 @@ function goToPage(url: string): void {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="music">
     <div class="umm-genre-root">
       <!-- Header -->

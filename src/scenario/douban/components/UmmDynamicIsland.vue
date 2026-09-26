@@ -163,7 +163,7 @@ onUnmounted(() => {
 })
 </script>
 
-<template>
+<template vapor>
   <form class="umm-island" @submit.prevent="handleSearch">
     <nav class="umm-island-nav" aria-label="豆瓣导航">
       <button

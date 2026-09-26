@@ -8,7 +8,7 @@ defineProps<{
 }>()
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-user-profile-root">
 

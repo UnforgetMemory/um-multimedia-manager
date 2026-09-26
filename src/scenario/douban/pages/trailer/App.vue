@@ -1,4 +1,4 @@
-<template>
+<template vapor>
   <UmmPageLayout :type="'movie'" :newTab="true">
     <div :class="['umm-trailer-root', d.isDetail ? 'umm-trailer-root--detail' : '']">
       <!-- Detail page: video player -->

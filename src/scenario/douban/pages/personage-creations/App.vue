@@ -65,7 +65,7 @@ function formatRole(role: string): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-personage-root">
       <!-- Empty state -->

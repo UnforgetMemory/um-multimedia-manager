@@ -36,7 +36,7 @@ function handleClick(item: StatBarItem): void {
 }
 </script>
 
-<template>
+<template vapor>
   <div v-if="title" class="umm-statbar-title">{{ title }}</div>
   <div class="umm-statbar-grid">
     <div

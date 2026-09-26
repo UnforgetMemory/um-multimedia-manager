@@ -37,7 +37,7 @@ const chipData = computed(() => {
 })
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="music">
     <div class="umm-albums-root">
       <div class="umm-albums-header">

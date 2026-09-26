@@ -48,6 +48,6 @@ onMounted(() => {
 watch(() => props.records, enhanceReviews, { deep: false })
 </script>
 
-<template>
+<template vapor>
   <!-- Side-effect component: enhances existing Douban #reviews .review items with UMM status badges -->
 </template>

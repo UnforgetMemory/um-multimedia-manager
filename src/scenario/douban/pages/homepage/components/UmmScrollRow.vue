@@ -7,7 +7,7 @@ interface Props {
 defineProps<Props>()
 </script>
 
-<template>
+<template vapor>
   <section class="umm-section">
     <h2 v-if="title" class="umm-section-hd">{{ title }}</h2>
     <div v-if="mode === 'scroll'" class="umm-scroll-wrap">

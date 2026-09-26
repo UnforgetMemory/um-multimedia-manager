@@ -68,7 +68,7 @@ function recordFor(item: { subjectId: string }) {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="music">
     <div class="umm-top-panel">
       <div v-if="genreTags.length > 0" class="umm-section">

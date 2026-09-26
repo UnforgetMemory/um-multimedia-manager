@@ -31,7 +31,7 @@ function starHtml(rating: number): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-reviews-root">
       <UmmUserBar

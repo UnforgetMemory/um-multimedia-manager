@@ -76,7 +76,7 @@ function clampJumpInput(): void {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout :newTab="false" :type="type" :initialQuery="searchData?.text || ''">
     <div class="umm-search-page">
 

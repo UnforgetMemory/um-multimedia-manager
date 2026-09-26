@@ -128,7 +128,7 @@ const initialQuery = computed(() => {
 })
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="game" :new-tab="false" :initial-query="initialQuery">
     <div class="umm-game-explore-page">
       <div class="umm-game-explore-hd">

@@ -148,7 +148,7 @@ onUnmounted(() => {
 })
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="movie">
     <div class="umm-photos-root">
       <!-- Header -->

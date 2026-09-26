@@ -29,7 +29,7 @@ function actionLabel(item: RecentReadingItem): string {
 }
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout type="book">
     <div class="umm-book-profile-root">
 

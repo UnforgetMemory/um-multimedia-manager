@@ -15,7 +15,7 @@ defineProps<Props>()
 const modelValue = defineModel<FilterType>('modelValue', { required: true })
 </script>
 
-<template>
+<template vapor>
   <div class="umm-search-hd">
     <div class="umm-search-hd-left">
       <h1 class="umm-search-title">搜索结果</h1>

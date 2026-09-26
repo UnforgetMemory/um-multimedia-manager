@@ -68,7 +68,7 @@ onMounted(async () => {
 onUnmounted(unsubscribe)
 </script>
 
-<template>
+<template vapor>
   <UmmPageLayout>
     <div class="umm-top-panel">
 

@@ -49,7 +49,7 @@ const visiblePages = computed<(number | string)[]>(() => {
 })
 </script>
 
-<template>
+<template vapor>
   <div v-if="totalPages > 1" class="umm-paginator">
     <button
       class="umm-paginator-btn"
