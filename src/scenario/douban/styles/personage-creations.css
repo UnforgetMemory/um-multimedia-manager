@@ -68,7 +68,9 @@
   color: var(--umm-text-secondary);
   cursor: pointer;
   border-radius: 6px;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-creations-tab:hover {
@@ -104,7 +106,10 @@
   color: var(--umm-text-secondary);
   cursor: pointer;
   border-radius: 4px;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-creations-sort-btn:hover {
@@ -155,7 +160,10 @@
   color: var(--umm-text-secondary);
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   line-height: 1.5;
 }
 
@@ -190,7 +198,9 @@
   border: 1px solid var(--umm-personage-card-border);
   border-radius: var(--umm-card-radius, 10px);
   background: var(--umm-card-bg, var(--umm-static-neutral-00));
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   position: relative;
 }
 
@@ -365,7 +375,10 @@
   font-size: var(--umm-font-sm, 0.8125rem);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   font-family: inherit;
 }
 
@@ -417,9 +430,18 @@
   }
 }
 /* Dark theme: bright text tiers on deep tint fills (ADR-020 D3/D4) */
-:host(.umm-theme--dark) .umm-creation-badge--wish { background: rgba(23, 37, 84, 0.92); color: var(--umm-static-blue-300); }
-:host(.umm-theme--dark) .umm-creation-badge--do { background: rgba(66, 32, 6, 0.92); color: var(--umm-static-amber-300); }
-:host(.umm-theme--dark) .umm-creation-badge--collect { background: rgba(6, 78, 59, 0.92); color: var(--umm-static-green-300); }
+:host(.umm-theme--dark) .umm-creation-badge--wish {
+  background: rgba(23, 37, 84, 0.92);
+  color: var(--umm-static-blue-300);
+}
+:host(.umm-theme--dark) .umm-creation-badge--do {
+  background: rgba(66, 32, 6, 0.92);
+  color: var(--umm-static-amber-300);
+}
+:host(.umm-theme--dark) .umm-creation-badge--collect {
+  background: rgba(6, 78, 59, 0.92);
+  color: var(--umm-static-green-300);
+}
 :host(.umm-theme--dark) .umm-creation-status {
   color: var(--umm-static-amber-300);
   background: color-mix(in srgb, var(--umm-static-amber-400) 14%, transparent);

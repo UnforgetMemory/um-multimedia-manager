@@ -119,8 +119,9 @@
   background: transparent;
   border: none;
   outline: none;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .umm-card:link,
@@ -151,8 +152,9 @@
   overflow: hidden;
   flex-shrink: 0;
   background: var(--umm-bg-secondary);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 
@@ -168,8 +170,9 @@
 
 .umm-card:hover .umm-card-cover {
   transform: translateY(-6px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
-              0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .umm-card-title {
@@ -207,7 +210,12 @@
   border: 1px solid var(--umm-border-light);
   border-left: 3px solid var(--umm-border-light);
   box-sizing: border-box;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 /* Left accent stripe by rank */
@@ -276,7 +284,9 @@
   text-align: center;
   line-height: 1;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   color: var(--umm-static-neutral-00);
   background: var(--umm-text-muted);
 }
@@ -289,33 +299,56 @@
 
 /* Gold medal — #1 */
 .umm-billboard-order--gold {
-  background: linear-gradient(135deg, var(--umm-static-amber-400) 0%, var(--umm-static-gold-500) 60%, var(--umm-static-gold-700) 100%);
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(
+    135deg,
+    var(--umm-static-amber-400) 0%,
+    var(--umm-static-gold-500) 60%,
+    var(--umm-static-gold-700) 100%
+  );
+  box-shadow:
+    0 0 8px rgba(255, 215, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.2);
   color: var(--umm-static-neutral-1000);
   font-size: var(--umm-font-sm);
 }
 .umm-billboard-card:hover .umm-billboard-order--gold {
-  box-shadow: 0 0 16px rgba(255, 215, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 0 16px rgba(255, 215, 0, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* Silver medal — #2 */
 .umm-billboard-order--silver {
-  background: linear-gradient(135deg, var(--umm-static-neutral-150) 0%, var(--umm-static-neutral-300) 50%, var(--umm-static-neutral-400) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--umm-static-neutral-150) 0%,
+    var(--umm-static-neutral-300) 50%,
+    var(--umm-static-neutral-400) 100%
+  );
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   color: var(--umm-static-neutral-1000);
 }
 .umm-billboard-card:hover .umm-billboard-order--silver {
-  box-shadow: 0 0 12px rgba(192, 192, 192, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 12px rgba(192, 192, 192, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Bronze medal — #3 */
 .umm-billboard-order--bronze {
-  background: linear-gradient(135deg, var(--umm-static-amber-400) 0%, var(--umm-static-gold-600) 50%, var(--umm-static-amber-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--umm-static-amber-400) 0%,
+    var(--umm-static-gold-600) 50%,
+    var(--umm-static-amber-600) 100%
+  );
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   color: var(--umm-static-neutral-1000);
 }
 .umm-billboard-card:hover .umm-billboard-order--bronze {
-  box-shadow: 0 0 12px rgba(205, 127, 50, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 12px rgba(205, 127, 50, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Dark theme — adjust left accent and medal glow.
@@ -452,17 +485,25 @@
 }
 
 @media (min-width: 1280px) {
-  .umm-grid-track { grid-template-columns: repeat(6, 1fr); }
+  .umm-grid-track {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 @media (min-width: 1920px) {
-  .umm-grid-track { grid-template-columns: repeat(7, 1fr); }
+  .umm-grid-track {
+    grid-template-columns: repeat(7, 1fr);
+  }
 }
 
 @media (min-width: 2560px) {
-  .umm-grid-track { grid-template-columns: repeat(8, 1fr); }
+  .umm-grid-track {
+    grid-template-columns: repeat(8, 1fr);
+  }
 }
 
 @media (min-width: 3200px) {
-  .umm-grid-track { grid-template-columns: repeat(9, 1fr); }
+  .umm-grid-track {
+    grid-template-columns: repeat(9, 1fr);
+  }
 }

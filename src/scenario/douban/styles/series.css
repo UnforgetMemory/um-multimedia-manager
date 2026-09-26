@@ -143,7 +143,10 @@
   text-decoration: none;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-series-sort-link:hover {
@@ -177,7 +180,9 @@
   background: var(--s-card-bg);
   border: 1px solid var(--s-card-border);
   border-radius: var(--umm-radius-lg, 12px);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .umm-series-item:hover {
@@ -244,7 +249,18 @@
   width: 12px;
   height: 12px;
   background: var(--umm-border);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
 }
 
 .umm-series-item-star--filled {
@@ -336,7 +352,10 @@
   text-decoration: none;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-series-page-btn:hover {

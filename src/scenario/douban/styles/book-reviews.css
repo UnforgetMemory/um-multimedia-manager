@@ -13,7 +13,6 @@
 
 /* ===== Title ===== */
 
-
 /* ===== Review List ===== */
 .umm-reviews-list {
   display: flex;
@@ -27,7 +26,9 @@
   padding: var(--umm-space-md, 14px);
   border-radius: var(--umm-card-radius, 10px);
   background: var(--umm-bg-secondary);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .umm-reviews-card:hover {
   transform: translateY(-2px);
@@ -126,7 +127,11 @@
   border: 1px solid color-mix(in srgb, var(--umm-rev-accent) 30%, transparent);
   border-radius: var(--umm-radius-lg, 12px);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
   font-family: inherit;
   line-height: 1.4;
 }
@@ -139,4 +144,3 @@
 }
 
 /* ===== Empty ===== */
-

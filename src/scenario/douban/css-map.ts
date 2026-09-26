@@ -8,102 +8,60 @@
  * mount factory and page-specific mount configurations.
  */
 
-import staticTokensCss from '@/libraries/styles/tokens.static.css?raw'
-import designTokensCss from './styles/design-tokens.css?raw'
-import themeCss from './styles/theme.css?raw'
-import baseCss from './styles/base.css?raw'
-import breakpointsCss from './styles/breakpoints.css?raw'
-import homepageCss from './styles/homepage.css?raw'
-import musicHomepageCss from './styles/music-homepage.css?raw'
-import bookHomepageCss from './styles/book-homepage.css?raw'
-import bookProfileCss from './styles/book-profile.css?raw'
-import genreCss from './styles/genre.css?raw'
-import artistsOverviewCss from './styles/artists-overview.css?raw'
-import searchCss from './styles/search.css?raw'
-import detailCss from './styles/detail.css?raw'
-import photosCss from './styles/photos.css?raw'
-import trailerCss from './styles/trailer.css?raw'
-import celebritiesCss from './styles/celebrities.css?raw'
-import personageCss from './styles/personage.css?raw'
-import personageCreationsCss from './styles/personage-creations.css?raw'
-import userProfileCss from './styles/user-profile.css?raw'
-import movieProfileCss from './styles/movie-profile.css?raw'
-import musicProfileCss from './styles/music-profile.css?raw'
-import doulistsCss from './styles/doulists.css?raw'
-import doulistDetailCss from './styles/doulist-detail.css?raw'
-import userMediaCss from './styles/user-media.css?raw'
-import userCelebritiesCss from './styles/user-celebrities.css?raw'
-import userReviewsCss from './styles/user-reviews.css?raw'
-import bookReviewsCss from './styles/book-reviews.css?raw'
-import reviewDetailCss from './styles/review-detail.css?raw'
-import bookReviewDetailCss from './styles/book-review-detail.css?raw'
-import bookCollectCss from './styles/book-collect.css?raw'
-import bookAuthorsCss from './styles/book-authors.css?raw'
-import userbarCss from './styles/userbar.css?raw'
-import paginatorCss from './styles/paginator.css?raw'
-import albumsCss from './styles/albums.css?raw'
-import gameCollectCss from './styles/game-collect.css?raw'
-import gameDetailCss from './styles/game-detail.css?raw'
-import gameExploreCss from './styles/game-explore.css?raw'
-import pageLayoutCss from './styles/page-layout.css?raw'
-import interestCss from './styles/interest.css?raw'
-import mediaChipsCss from './styles/media-chips.css?raw'
-import seriesCss from './styles/series.css?raw'
-import musicCollectCss from './styles/music-collect.css?raw'
-import titlebarCss from './styles/titlebar.css?raw'
-import emptyStateCss from './styles/empty-state.css?raw'
-import statbarCss from './styles/statbar.css?raw'
-
-export {
-  staticTokensCss,
-  designTokensCss,
-  themeCss,
-  baseCss,
-  breakpointsCss,
-  homepageCss,
-  musicHomepageCss,
-  bookHomepageCss,
-  bookProfileCss,
-  genreCss,
-  artistsOverviewCss,
-  searchCss,
-  detailCss,
-  photosCss,
-  trailerCss,
-  celebritiesCss,
-  personageCss,
-  personageCreationsCss,
-  userProfileCss,
-  movieProfileCss,
-  musicProfileCss,
-  doulistsCss,
-  doulistDetailCss,
-  userMediaCss,
-  userCelebritiesCss,
-  userReviewsCss,
-  bookReviewsCss,
-  reviewDetailCss,
-  bookReviewDetailCss,
-  bookCollectCss,
-  paginatorCss,
-  bookAuthorsCss,
-  userbarCss,
-  albumsCss,
-  gameCollectCss,
-  gameDetailCss,
-  gameExploreCss,
-  pageLayoutCss,
-  interestCss,
-  mediaChipsCss,
-  titlebarCss,
-  musicCollectCss,
-  emptyStateCss,
-  statbarCss,
-}
+import staticTokensCss from '@/libraries/styles/tokens.static.css?raw';
+import designTokensCss from './styles/design-tokens.css?raw';
+import themeCss from './styles/theme.css?raw';
+import baseCss from './styles/base.css?raw';
+import breakpointsCss from './styles/breakpoints.css?raw';
+import homepageCss from './styles/homepage.css?raw';
+import musicHomepageCss from './styles/music-homepage.css?raw';
+import bookHomepageCss from './styles/book-homepage.css?raw';
+import bookProfileCss from './styles/book-profile.css?raw';
+import genreCss from './styles/genre.css?raw';
+import artistsOverviewCss from './styles/artists-overview.css?raw';
+import searchCss from './styles/search.css?raw';
+import detailCss from './styles/detail.css?raw';
+import photosCss from './styles/photos.css?raw';
+import trailerCss from './styles/trailer.css?raw';
+import celebritiesCss from './styles/celebrities.css?raw';
+import personageCss from './styles/personage.css?raw';
+import personageCreationsCss from './styles/personage-creations.css?raw';
+import userProfileCss from './styles/user-profile.css?raw';
+import movieProfileCss from './styles/movie-profile.css?raw';
+import musicProfileCss from './styles/music-profile.css?raw';
+import doulistsCss from './styles/doulists.css?raw';
+import doulistDetailCss from './styles/doulist-detail.css?raw';
+import userMediaCss from './styles/user-media.css?raw';
+import userCelebritiesCss from './styles/user-celebrities.css?raw';
+import userReviewsCss from './styles/user-reviews.css?raw';
+import bookReviewsCss from './styles/book-reviews.css?raw';
+import reviewDetailCss from './styles/review-detail.css?raw';
+import bookReviewDetailCss from './styles/book-review-detail.css?raw';
+import bookCollectCss from './styles/book-collect.css?raw';
+import bookAuthorsCss from './styles/book-authors.css?raw';
+import userbarCss from './styles/userbar.css?raw';
+import paginatorCss from './styles/paginator.css?raw';
+import albumsCss from './styles/albums.css?raw';
+import gameCollectCss from './styles/game-collect.css?raw';
+import gameDetailCss from './styles/game-detail.css?raw';
+import gameExploreCss from './styles/game-explore.css?raw';
+import pageLayoutCss from './styles/page-layout.css?raw';
+import interestCss from './styles/interest.css?raw';
+import mediaChipsCss from './styles/media-chips.css?raw';
+import seriesCss from './styles/series.css?raw';
+import musicCollectCss from './styles/music-collect.css?raw';
+import titlebarCss from './styles/titlebar.css?raw';
+import emptyStateCss from './styles/empty-state.css?raw';
+import statbarCss from './styles/statbar.css?raw';
 
 /**
  * CSS chunk lookup table — maps preset names (used in css-composer.ts presets)
  * to their raw CSS string values from ?raw imports.
+ *
+ * NOTE: 本表是 css-map 的唯一对外消费面（mount-factory.ts 经 `cssMap` 聚合消费）。
+ * 44 个 ?raw 常量必须保持**直接变量引用**形态：WXT content script 为 lib 模式
+ * IIFE 强制内联（无运行时 chunk 切分），任何「按需动态化」均不减产物字节
+ * （见 ADR/审计 P-G 实测）。新增/删除样式块须与 css-composer presets 同步。
  */
 export const cssMap: Record<string, string> = {
   'static-tokens': staticTokensCss,
@@ -151,4 +109,4 @@ export const cssMap: Record<string, string> = {
   titlebar: titlebarCss,
   'empty-state': emptyStateCss,
   statbar: statbarCss,
-}
+};

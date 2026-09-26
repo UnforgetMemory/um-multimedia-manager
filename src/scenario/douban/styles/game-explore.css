@@ -68,7 +68,10 @@
   font-size: 0.8125rem;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -107,7 +110,10 @@
   font-size: 0.8125rem;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-game-sort-btn:hover {
@@ -137,7 +143,9 @@
   background: var(--umm-bg-secondary);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   border: 1px solid var(--umm-border);
 }
 
@@ -266,7 +274,11 @@
   font-size: 0.875rem;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .umm-game-load-btn:hover {

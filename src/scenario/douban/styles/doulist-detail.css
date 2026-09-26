@@ -138,7 +138,7 @@
 }
 
 .umm-dlist-times span + span::before {
-  content: " · ";
+  content: ' · ';
 }
 
 .umm-dlist-desc {
@@ -191,7 +191,10 @@
   border-radius: 20px;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-dlist-filter-btn:hover {
@@ -225,7 +228,9 @@
   background: var(--dd-card-bg);
   border: 1px solid var(--dd-card-border);
   border-radius: var(--umm-radius-lg, 12px);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .umm-dlist-item:hover {
@@ -290,7 +295,18 @@
   width: 12px;
   height: 12px;
   background: var(--umm-border);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
 }
 
 .umm-dlist-item-star--filled {
@@ -346,7 +362,10 @@
   text-decoration: none;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .umm-dlist-page-btn:hover {
@@ -363,5 +382,3 @@
 .umm-dlist-page-btn--active:hover {
   color: var(--umm-on-accent);
 }
-
-

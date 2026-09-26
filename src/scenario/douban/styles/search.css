@@ -58,7 +58,9 @@
   color: var(--umm-text-secondary);
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -94,7 +96,9 @@
   background: var(--umm-bg-secondary);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   border: 1px solid var(--umm-border);
   border-left: 3px solid var(--umm-border);
   box-sizing: border-box;
@@ -189,7 +193,6 @@
 
 /* ---- Media chip color variants (all ≥4.5:1 WCAG AA with white text) ---- */
 /* chip colors moved to media-chips.css */
-
 
 /* ---- Card body ---- */
 .umm-search-card-body {
@@ -292,7 +295,9 @@
   border: 1px solid rgba(231, 163, 62, 0.3);
   border-radius: var(--umm-radius-lg, 12px);
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 :host(.umm-theme--dark) .umm-search-imdb {
   color: var(--umm-static-amber-300);
@@ -327,7 +332,10 @@
   background: var(--umm-bg);
   border: 1px solid var(--umm-border);
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   cursor: pointer;
 }
 
@@ -387,7 +395,10 @@
   background: var(--umm-bg);
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .umm-page-go:hover {

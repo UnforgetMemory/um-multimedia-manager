@@ -13,7 +13,6 @@
 
 /* ===== Title Bar ===== */
 
-
 /* ===== Sort Bar ===== */
 .umm-bc-optbar {
   margin-bottom: var(--umm-space-md, 16px);
@@ -30,7 +29,9 @@
   border-radius: var(--umm-radius-lg, 12px);
   color: var(--umm-text-secondary);
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 .umm-bc-opt:hover {
   background: var(--umm-bg);
@@ -54,7 +55,9 @@
   padding: var(--umm-space-md, 14px);
   border-radius: var(--umm-card-radius, 10px);
   background: var(--umm-bg-secondary);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .umm-bc-card:hover {
   transform: translateY(-2px);
@@ -120,5 +123,3 @@
   margin: var(--umm-space-md, 14px) 0 6px;
   text-align: center;
 }
-
-
