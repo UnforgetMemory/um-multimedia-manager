@@ -1,4 +1,4 @@
-import { ref, defineComponent, h } from 'vue'
+import { ref, defineComponent, h } from 'vue';
 
 /**
  * UmmImage — image renderer with shimmer loading overlay.
@@ -18,7 +18,7 @@ export const UmmImage = defineComponent({
     href: { type: String, default: undefined },
   },
   setup(props) {
-    const loaded = ref(false)
+    const loaded = ref(false);
 
     return () => {
       const img = h('img', {
@@ -32,9 +32,13 @@ export const UmmImage = defineComponent({
           objectFit: 'cover' as const,
           display: 'block',
         },
-        onLoad: () => { loaded.value = true },
-        onError: () => { loaded.value = true },
-      })
+        onLoad: () => {
+          loaded.value = true;
+        },
+        onError: () => {
+          loaded.value = true;
+        },
+      });
 
       const shimmer = loaded.value
         ? null
@@ -45,34 +49,42 @@ export const UmmImage = defineComponent({
               inset: '0',
               zIndex: '1',
             },
-          })
+          });
 
       const containerStyle: Record<string, string> = {
         position: 'relative',
         overflow: 'hidden',
         borderRadius: 'inherit',
         width: '100%',
-      }
+      };
       if (props.aspectRatio) {
-        containerStyle.aspectRatio = props.aspectRatio
+        containerStyle.aspectRatio = props.aspectRatio;
       }
 
-      const content = [img, shimmer].filter(Boolean)
+      const content = [img, shimmer].filter(Boolean);
 
       if (props.href) {
-        return h('a', {
-          href: props.href,
-          target: '_blank',
-          rel: 'noopener noreferrer',
-          class: 'umm-image-container',
-          style: containerStyle,
-        }, content)
+        return h(
+          'a',
+          {
+            href: props.href,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            class: 'umm-image-container',
+            style: containerStyle,
+          },
+          content,
+        );
       }
 
-      return h('div', {
-        class: 'umm-image-container',
-        style: containerStyle,
-      }, content)
-    }
+      return h(
+        'div',
+        {
+          class: 'umm-image-container',
+          style: containerStyle,
+        },
+        content,
+      );
+    };
   },
-})
+});

@@ -1,109 +1,115 @@
-import DOMPurify from 'dompurify'
+import DOMPurify from 'dompurify';
 
 export interface GameRatingBar {
-  label: string
-  pct: string
+  label: string;
+  pct: string;
 }
 
 export interface GameMetaRow {
-  label: string
-  html: string
+  label: string;
+  html: string;
 }
 
 export interface GamePhotoItem {
-  src: string
-  link: string
-  isVideo: boolean
-  title?: string
-  tag?: string
+  src: string;
+  link: string;
+  isVideo: boolean;
+  title?: string;
+  tag?: string;
 }
 
 export interface GameShortComment {
-  user: string
-  userLink: string
-  rating: number
-  content: string
-  time: string
-  votes: number
-  platform?: string
+  user: string;
+  userLink: string;
+  rating: number;
+  content: string;
+  time: string;
+  votes: number;
+  platform?: string;
 }
 
 export interface GameRecItem {
-  title: string
-  poster: string
-  link: string
-  subjectId: string
-  recStatus: number
-  personalRating?: number
+  title: string;
+  poster: string;
+  link: string;
+  subjectId: string;
+  recStatus: number;
+  personalRating?: number;
 }
 
 export interface GameDetailData {
-  title: string
-  posterSrc: string
-  identity: { platform: 'douban'; type: 'game'; providerId: string; url: string }
-  ratingNum: string
-  ratingPeople: string
-  bigstarNum: string
-  ratingBars: GameRatingBar[]
-  metaRows: GameMetaRow[]
-  hasCollected: boolean
-  collectionText: string
-  collectionDate: string
-  collectionComment: string
-  initialStatus: number
-  initialRating: number
-  synopsisHtml: string
-  galleryItems: GamePhotoItem[]
-  shortComments: GameShortComment[]
-  recItems: GameRecItem[]
+  title: string;
+  posterSrc: string;
+  identity: { platform: 'douban'; type: 'game'; providerId: string; url: string };
+  ratingNum: string;
+  ratingPeople: string;
+  bigstarNum: string;
+  ratingBars: GameRatingBar[];
+  metaRows: GameMetaRow[];
+  hasCollected: boolean;
+  collectionText: string;
+  collectionDate: string;
+  collectionComment: string;
+  initialStatus: number;
+  initialRating: number;
+  synopsisHtml: string;
+  galleryItems: GamePhotoItem[];
+  shortComments: GameShortComment[];
+  recItems: GameRecItem[];
 }
 
 export function extractGameDetailData(): GameDetailData | null {
   try {
-    const titleEl = document.querySelector('#content h1')
-    const title = titleEl?.textContent?.trim() || ''
+    const titleEl = document.querySelector('#content h1');
+    const title = titleEl?.textContent?.trim() || '';
 
-    const posterImg = document.querySelector<HTMLImageElement>('.item-subject-info .pic a img, .item-subject-info .pic img')
-    const posterSrc = posterImg?.src || (posterImg?.getAttribute('src') ?? '')
+    const posterImg = document.querySelector<HTMLImageElement>(
+      '.item-subject-info .pic a img, .item-subject-info .pic img',
+    );
+    const posterSrc = posterImg?.src || (posterImg?.getAttribute('src') ?? '');
 
-    const ratingNumEl = document.querySelector('.ll.rating_num')
-    const ratingNum = ratingNumEl?.textContent?.trim() || ''
+    const ratingNumEl = document.querySelector('.ll.rating_num');
+    const ratingNum = ratingNumEl?.textContent?.trim() || '';
 
-    const peopleSpan = document.querySelector('.rating_sum .rating_people span, .rating_sum a.rating_people span')
-    const ratingPeople = peopleSpan?.textContent?.trim() || ''
+    const peopleSpan = document.querySelector(
+      '.rating_sum .rating_people span, .rating_sum a.rating_people span',
+    );
+    const ratingPeople = peopleSpan?.textContent?.trim() || '';
 
-    const starEl = document.querySelector<HTMLElement>('[class*="bigstar"]')
-    const bigstarNum = starEl?.className?.replace(/\D/g, '') || ''
+    const starEl = document.querySelector<HTMLElement>('[class*="bigstar"]');
+    const bigstarNum = starEl?.className?.replace(/\D/g, '') || '';
 
-    const ratingBars = extractRatingBars()
-    const metaRows = extractMetaRows()
-    const identity = extractIdentity()
-    if (!identity) return null
+    const ratingBars = extractRatingBars();
+    const metaRows = extractMetaRows();
+    const identity = extractIdentity();
+    if (!identity) return null;
 
-    const collectionSection = document.querySelector('.collection-section')
-    const hasCollected = !!collectionSection
+    const collectionSection = document.querySelector('.collection-section');
+    const hasCollected = !!collectionSection;
 
-    const collectionResultEl = collectionSection?.querySelector('.collection-result')
-    const collectionText = collectionResultEl?.textContent?.trim() || ''
+    const collectionResultEl = collectionSection?.querySelector('.collection-result');
+    const collectionText = collectionResultEl?.textContent?.trim() || '';
 
-    const dateEl = collectionSection?.querySelector('.color_gray')
-    const collectionDate = dateEl?.textContent?.trim() || ''
+    const dateEl = collectionSection?.querySelector('.color_gray');
+    const collectionDate = dateEl?.textContent?.trim() || '';
 
-    const commentEl = collectionSection?.querySelector('.collection-comment')
-    const collectionComment = commentEl?.textContent?.trim() || ''
+    const commentEl = collectionSection?.querySelector('.collection-comment');
+    const collectionComment = commentEl?.textContent?.trim() || '';
 
-    let initialStatus = 0
-    if (collectionText.includes('我玩过')) initialStatus = 2
-    else if (collectionText.includes('我想玩')) initialStatus = 1
-    else if (collectionText.includes('我最近在玩')) initialStatus = 3
+    let initialStatus = 0;
+    if (collectionText.includes('我玩过')) initialStatus = 2;
+    else if (collectionText.includes('我想玩')) initialStatus = 1;
+    else if (collectionText.includes('我最近在玩')) initialStatus = 3;
 
-    const ratingBtn = document.querySelector<HTMLElement>('a.collect-btn[data-rating]')
-    const initialRating = ratingBtn ? parseInt(ratingBtn.getAttribute('data-rating') || '0', 10) : 0
+    const ratingBtn = document.querySelector<HTMLElement>('a.collect-btn[data-rating]');
+    const initialRating = ratingBtn
+      ? parseInt(ratingBtn.getAttribute('data-rating') || '0', 10)
+      : 0;
 
-    const synopsisHtml = extractSynopsis()
-    const galleryItems = extractGallery()
-    const shortComments = extractShortComments()
-    const recItems = extractRecItems()
+    const synopsisHtml = extractSynopsis();
+    const galleryItems = extractGallery();
+    const shortComments = extractShortComments();
+    const recItems = extractRecItems();
 
     return {
       title,
@@ -124,196 +130,226 @@ export function extractGameDetailData(): GameDetailData | null {
       galleryItems,
       shortComments,
       recItems,
-    }
+    };
   } catch {
-    return null
+    return null;
   }
 }
 
 function extractRatingBars(): { label: string; pct: string }[] {
-  const bars: { label: string; pct: string }[] = []
-  const container = document.getElementById('interest_sectl') || document.querySelector('.rating_wrap')
-  if (!container) return bars
+  const bars: { label: string; pct: string }[] = [];
+  const container =
+    document.getElementById('interest_sectl') || document.querySelector('.rating_wrap');
+  if (!container) return bars;
   // Game page has flat siblings: .starstop → .power → .rating_per (repeating)
-  const stars = container.querySelectorAll('.starstop')
+  const stars = container.querySelectorAll('.starstop');
   for (let i = 0; i < stars.length; i++) {
-    const label = stars[i].textContent?.trim() || ''
-    if (!label) continue
+    const star = stars[i];
+    if (!star) continue;
+    const label = star.textContent?.trim() || '';
+    if (!label) continue;
     // Find the NEXT .rating_per after this .starstop (sibling, not descendant)
-    let pctEl = stars[i].nextElementSibling
+    let pctEl = star.nextElementSibling;
     while (pctEl && pctEl.tagName !== 'BR') {
-      if (pctEl.classList.contains('rating_per')) break
-      pctEl = pctEl.nextElementSibling
+      if (pctEl.classList.contains('rating_per')) break;
+      pctEl = pctEl.nextElementSibling;
     }
-    const pct = pctEl?.textContent?.trim() || ''
-    bars.push({ label, pct })
+    const pct = pctEl?.textContent?.trim() || '';
+    bars.push({ label, pct });
   }
-  return bars
+  return bars;
 }
 
 function extractMetaRows(): { label: string; html: string }[] {
-  const rows: { label: string; html: string }[] = []
-  const dl = document.querySelector('.item-subject-info dl.thing-attr')
-  if (!dl) return rows
-  const dts = dl.querySelectorAll('dt')
+  const rows: { label: string; html: string }[] = [];
+  const dl = document.querySelector('.item-subject-info dl.thing-attr');
+  if (!dl) return rows;
+  const dts = dl.querySelectorAll('dt');
   dts.forEach((dt) => {
-    const dd = dt.nextElementSibling
-    const label = dt.textContent?.replace(/[：:]\s*$/, '').trim() || ''
-    const html = dd?.innerHTML?.trim() || ''
-    if (label && html) rows.push({ label, html: DOMPurify.sanitize(html) })
-  })
-  return rows
+    const dd = dt.nextElementSibling;
+    const label = dt.textContent?.replace(/[：:]\s*$/, '').trim() || '';
+    const html = dd?.innerHTML?.trim() || '';
+    if (label && html) rows.push({ label, html: DOMPurify.sanitize(html) });
+  });
+  return rows;
 }
 
-function extractIdentity(): { platform: 'douban'; type: 'game'; providerId: string; url: string } | null {
-  const match = location.pathname.match(/\/game\/(\d+)/)
-  if (!match) return null
+function extractIdentity(): {
+  platform: 'douban';
+  type: 'game';
+  providerId: string;
+  url: string;
+} | null {
+  const match = location.pathname.match(/\/game\/(\d+)/);
+  if (!match) return null;
   return {
     platform: 'douban',
     type: 'game',
-    providerId: match[1],
+    providerId: match[1] ?? '',
     url: location.href,
-  }
+  };
 }
 
 function extractSynopsis(): string {
-  const desc = document.querySelector('.mod.item-desc#link-report')
-  if (!desc) return ''
-  const p = desc.querySelector('p')
-  if (!p) return ''
+  const desc = document.querySelector('.mod.item-desc#link-report');
+  if (!desc) return '';
+  const p = desc.querySelector('p');
+  if (!p) return '';
   // Read full innerHTML from clone to avoid mutating the page's DOM
-  const clone = p.cloneNode(true) as HTMLElement
-  return DOMPurify.sanitize(clone.innerHTML?.trim() || '')
+  const clone = p.cloneNode(true) as HTMLElement;
+  return DOMPurify.sanitize(clone.innerHTML?.trim() || '');
 }
 
 function extractGallery(): GamePhotoItem[] {
-  const items: GamePhotoItem[] = []
+  const items: GamePhotoItem[] = [];
   // Game page uses two separate .mod#th-photos sections: videos then photos
-  const photoMods = document.querySelectorAll<HTMLElement>('.mod#th-photos')
+  const photoMods = document.querySelectorAll<HTMLElement>('.mod#th-photos');
   photoMods.forEach((mod) => {
-    const heading = mod.querySelector('h2')
-    const headingText = heading?.textContent || ''
+    const heading = mod.querySelector('h2');
+    const headingText = heading?.textContent || '';
 
     if (headingText.includes('视频')) {
-      const videos = mod.querySelectorAll<HTMLElement>('.video-mini')
+      const videos = mod.querySelectorAll<HTMLElement>('.video-mini');
       videos.forEach((v) => {
-        const link = v.querySelector('a.video')
-        const img = v.querySelector<HTMLImageElement>('img')
-        const titleEl = v.querySelector('.title span, a.title span')
-        const tagEl = v.querySelector(':scope > span')
-        if (!link || !img) return
+        const link = v.querySelector('a.video');
+        const img = v.querySelector<HTMLImageElement>('img');
+        const titleEl = v.querySelector('.title span, a.title span');
+        const tagEl = v.querySelector(':scope > span');
+        if (!link || !img) return;
         items.push({
           src: img.src || img.getAttribute('src') || '',
           link: link.getAttribute('href') || '',
           isVideo: true,
           title: titleEl?.textContent?.trim() || '',
           tag: tagEl?.textContent?.trim() || undefined,
-        })
-      })
+        });
+      });
     } else if (headingText.includes('图片')) {
-      const photos = mod.querySelectorAll<HTMLElement>('.list ul li:not(.photos-upload)')
+      const photos = mod.querySelectorAll<HTMLElement>('.list ul li:not(.photos-upload)');
       photos.forEach((p) => {
-        const a = p.querySelector('a')
-        const img = p.querySelector<HTMLImageElement>('img')
-        if (!a || !img) return
+        const a = p.querySelector('a');
+        const img = p.querySelector<HTMLImageElement>('img');
+        if (!a || !img) return;
         items.push({
           src: img.src || img.getAttribute('src') || '',
           link: a.getAttribute('href') || '',
           isVideo: false,
-        })
-      })
+        });
+      });
     }
-  })
-  return items
+  });
+  return items;
 }
 
 function extractShortComments(): GameShortComment[] {
-  const comments: GameShortComment[] = []
-  const items = document.querySelectorAll<HTMLElement>('.comment-list .comment-item')
+  const comments: GameShortComment[] = [];
+  const items = document.querySelectorAll<HTMLElement>('.comment-list .comment-item');
   items.forEach((el) => {
-    const userLink = el.querySelector<HTMLAnchorElement>('.user-info a')
-    const userName = userLink?.textContent?.trim() || ''
-    const href = userLink?.getAttribute('href') || ''
-    const pubtime = el.querySelector('.pubtime')?.textContent?.trim() || ''
-    const shortEl = el.querySelector('.short')
-    const content = shortEl?.textContent?.trim() || ''
+    const userLink = el.querySelector<HTMLAnchorElement>('.user-info a');
+    const userName = userLink?.textContent?.trim() || '';
+    const href = userLink?.getAttribute('href') || '';
+    const pubtime = el.querySelector('.pubtime')?.textContent?.trim() || '';
+    const shortEl = el.querySelector('.short');
+    const content = shortEl?.textContent?.trim() || '';
 
     // Rating: className like "allstar50" => 5, "allstar40" => 4
-    const starEl = el.querySelector<HTMLElement>('[class*="allstar"]')
-    let rating = 0
+    const starEl = el.querySelector<HTMLElement>('[class*="allstar"]');
+    let rating = 0;
     if (starEl) {
-      const match = starEl.className.match(/allstar(\d)/)
-      if (match) rating = parseInt(match[1], 10)
+      const match = starEl.className.match(/allstar(\d)/);
+      if (match) rating = parseInt(match[1] ?? '', 10);
     }
 
-    const diggSpan = el.querySelector<HTMLElement>('.digg span, .digg > span')
-    const votes = diggSpan ? parseInt(diggSpan.textContent?.trim() || '0', 10) : 0
+    const diggSpan = el.querySelector<HTMLElement>('.digg span, .digg > span');
+    const votes = diggSpan ? parseInt(diggSpan.textContent?.trim() || '0', 10) : 0;
 
     // Platform tag (game-specific: PC, PS4, etc.)
-    const platformEls = el.querySelectorAll<HTMLElement>('.user-info > span:not(.pubtime):not(.comment-location)')
-    let platform: string | undefined
+    const platformEls = el.querySelectorAll<HTMLElement>(
+      '.user-info > span:not(.pubtime):not(.comment-location)',
+    );
+    let platform: string | undefined;
     platformEls.forEach((s) => {
-      const text = s.textContent?.trim()
-      if (text && !/^\d/.test(text) && text !== '力荐' && text !== '推荐' && text !== '还行' && text !== '较差' && text !== '很差') {
-        platform = text
+      const text = s.textContent?.trim();
+      if (
+        text &&
+        !/^\d/.test(text) &&
+        text !== '力荐' &&
+        text !== '推荐' &&
+        text !== '还行' &&
+        text !== '较差' &&
+        text !== '很差'
+      ) {
+        platform = text;
       }
-    })
+    });
 
-    if (!userName && !content) return
-    comments.push({ user: userName, userLink: href, rating, content, time: pubtime, votes, platform })
-  })
-  return comments
+    if (!userName && !content) return;
+    comments.push({
+      user: userName,
+      userLink: href,
+      rating,
+      content,
+      time: pubtime,
+      votes,
+      platform,
+    });
+  });
+  return comments;
 }
 
 function extractRecItems(): GameRecItem[] {
-  const items: GameRecItem[] = []
-  const container = document.querySelector('#recommendations .recommendations-bd')
-  if (!container) return items
-  const dls = container.querySelectorAll('dl')
+  const items: GameRecItem[] = [];
+  const container = document.querySelector('#recommendations .recommendations-bd');
+  if (!container) return items;
+  const dls = container.querySelectorAll('dl');
   dls.forEach((dl) => {
-    const img = dl.querySelector<HTMLImageElement>('dt img')
-    const link = dl.querySelector('dd a')
-    if (!img || !link) return
-    const href = link.getAttribute('href') || ''
-    const idMatch = href.match(/\/game\/(\d+)/)
+    const img = dl.querySelector<HTMLImageElement>('dt img');
+    const link = dl.querySelector('dd a');
+    if (!img || !link) return;
+    const href = link.getAttribute('href') || '';
+    const idMatch = href.match(/\/game\/(\d+)/);
     items.push({
       title: link.textContent?.trim() || '',
       poster: img.src || img.getAttribute('src') || '',
       link: href,
       subjectId: idMatch?.[1] || '',
       recStatus: 0,
-    })
-  })
-  return items
+    });
+  });
+  return items;
 }
 
 export async function enrichGameRecItems(recItems: GameRecItem[]): Promise<GameRecItem[]> {
-  if (recItems.length === 0) return recItems
+  if (recItems.length === 0) return recItems;
   try {
-    const { Store } = await import('@/engine/database')
-    const keys = [...new Set(
-      recItems
-        .map((i) => i.subjectId)
-        .filter((id): id is string => Boolean(id))
-        .map((id) => `game::${id}`),
-    )]
-    if (keys.length === 0) return recItems
-    const entries = await Store.dbGetBulk('douban_records', keys)
-    const recordMap = new Map<string, { status: number; rating: number }>()
+    const { Store } = await import('@/engine/database');
+    const keys = [
+      ...new Set(
+        recItems
+          .map((i) => i.subjectId)
+          .filter((id): id is string => Boolean(id))
+          .map((id) => `game::${id}`),
+      ),
+    ];
+    if (keys.length === 0) return recItems;
+    const entries = await Store.dbGetBulk('douban_records', keys);
+    const recordMap = new Map<string, { status: number; rating: number }>();
     for (const { key, record } of entries) {
-      const id = key.split('::')[1]
+      const id = key.split('::')[1];
       if (id && (record.status ?? 0) > 0) {
-        recordMap.set(id, { status: record.status, rating: record.rating || 0 })
+        recordMap.set(id, { status: record.status, rating: record.rating || 0 });
       }
     }
     for (const item of recItems) {
-      if (!item.subjectId) continue
-      const rec = recordMap.get(item.subjectId)
+      if (!item.subjectId) continue;
+      const rec = recordMap.get(item.subjectId);
       if (rec) {
-        item.recStatus = rec.status
-        if (rec.rating > 0) item.personalRating = rec.rating
+        item.recStatus = rec.status;
+        if (rec.rating > 0) item.personalRating = rec.rating;
       }
     }
-  } catch { /* silent */ }
-  return recItems
+  } catch {
+    /* silent */
+  }
+  return recItems;
 }

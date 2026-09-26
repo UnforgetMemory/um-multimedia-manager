@@ -1,32 +1,34 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 import { collectTitleLabel } from '../../shared/collect-title-label';
-import { statusBadgeLabels } from '../../shared/status-labels'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import { UmmRating } from '@/scenario/douban/components/UmmRating'
-import type { MusicCollectData } from './types'
-import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue'
-import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue'
-import { usePaginator } from '../../shared/composables/usePaginator'
+import { statusBadgeLabels } from '../../shared/status-labels';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmRating } from '@/scenario/douban/components/umm-rating';
+import type { MusicCollectData } from './types';
+import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
+import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
+import { usePaginator } from '../../shared/composables/use-paginator';
 
 const props = defineProps<{
-  data: MusicCollectData
-}>()
+  data: MusicCollectData;
+}>();
 
 const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.pageLinks,
   () => props.data.prevPageUrl,
   () => props.data.nextPageUrl,
-)
+);
 
 /** Human-readable tab label for the current collection sub-type */
-const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.music, props.data.subType, 'doing'))
+const titleLabel = computed(() =>
+  collectTitleLabel(statusBadgeLabels.music, props.data.subType, 'doing'),
+);
 
 /** Convert music rating (1-3) to 0-10 scale for UmmRating */
 function toRatingScore(rating: string): string | undefined {
-  if (rating === '0' || !rating) return undefined
-  const n = parseInt(rating, 10) // 1, 2, or 3
-  return n === 3 ? '10.0' : String(n * 3.0)
+  if (rating === '0' || !rating) return undefined;
+  const n = parseInt(rating, 10); // 1, 2, or 3
+  return n === 3 ? '10.0' : String(n * 3.0);
 }
 </script>
 
@@ -54,7 +56,8 @@ function toRatingScore(rating: string): string | undefined {
             :key="opt.label"
             :href="opt.url || undefined"
             :class="['umm-mc-opt', opt.active ? 'umm-mc-opt--active' : '']"
-          >{{ opt.label }}</a>
+            >{{ opt.label }}</a
+          >
         </div>
       </div>
 
@@ -73,10 +76,7 @@ function toRatingScore(rating: string): string | undefined {
           target="_blank"
         >
           <span v-if="item.date" class="umm-mc-card-date">{{ item.date }}</span>
-          <div
-            class="umm-mc-card-cover"
-            :style="{ backgroundImage: `url(${item.posterUrl})` }"
-          />
+          <div class="umm-mc-card-cover" :style="{ backgroundImage: `url(${item.posterUrl})` }" />
           <div class="umm-mc-card-body">
             <span class="umm-mc-card-title">{{ item.title }}</span>
             <span v-if="item.subtitle" class="umm-mc-card-subtitle">{{ item.subtitle }}</span>

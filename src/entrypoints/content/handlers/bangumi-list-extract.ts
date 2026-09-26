@@ -15,8 +15,8 @@ import { statusLabelKey } from '../utils/status-label-key';
  * 仅 "item_" + 纯数字命中；其余（含空串、大小写不符、非数字后缀）返回 null。
  */
 export function extractListItemId(liId: string): string | null {
-  const match = liId.match(/^item_(\d+)$/)
-  return match ? match[1] : null
+  const match = liId.match(/^item_(\d+)$/);
+  return match?.[1] ?? null;
 }
 
 /**
@@ -25,8 +25,8 @@ export function extractListItemId(liId: string): string | null {
  * /browser 单独出现（404）、/anime 博客 feed、/subject/{id} 详情页均返回 null。
  */
 export function extractBrowserPathType(pathname: string): string | null {
-  const match = pathname.match(/^\/(anime|book|music|game)\/browser(?:\/|$)/)
-  return match ? match[1] : null
+  const match = pathname.match(/^\/(anime|book|music|game)\/browser(?:\/|$)/);
+  return match?.[1] ?? null;
 }
 
 /**
@@ -34,10 +34,10 @@ export function extractBrowserPathType(pathname: string): string | null {
  * 必须恰好一个 "::" 分隔且 providerId 非空；否则返回 null。
  */
 export function extractProviderIdFromKey(key: string): string | null {
-  const parts = key.split('::')
-  if (parts.length !== 2) return null
-  const providerId = parts[1]
-  return providerId.length > 0 ? providerId : null
+  const parts = key.split('::');
+  if (parts.length !== 2) return null;
+  const providerId = parts[1];
+  return providerId && providerId.length > 0 ? providerId : null;
 }
 
 /**
@@ -51,15 +51,15 @@ export function extractProviderIdFromKey(key: string): string | null {
 export function bangumiTypePrefix(mediaType: string | null | undefined): string | null {
   switch (mediaType) {
     case 'anime':
-      return 'tv'
+      return 'tv';
     case 'book':
-      return 'book'
+      return 'book';
     case 'music':
-      return 'music'
+      return 'music';
     case 'game':
-      return 'game'
+      return 'game';
     default:
-      return null
+      return null;
   }
 }
 
@@ -81,17 +81,18 @@ export function bangumiListMarkerSpec(
   status: number,
   mediaType?: string,
 ): { labelKey: string; statusAttr: string } {
-  const labelKey = (suffix: string, base: string): string => statusLabelKey(mediaType ?? '', suffix, base)
+  const labelKey = (suffix: string, base: string): string =>
+    statusLabelKey(mediaType ?? '', suffix, base);
   switch (status) {
     case 1:
-      return { labelKey: labelKey('wish', 'status.wish'), statusAttr: 'wish' }
+      return { labelKey: labelKey('wish', 'status.wish'), statusAttr: 'wish' };
     case 2:
-      return { labelKey: labelKey('done', 'status.done'), statusAttr: 'done' }
+      return { labelKey: labelKey('done', 'status.done'), statusAttr: 'done' };
     case 3:
-      return { labelKey: labelKey('doing', 'status.doing'), statusAttr: 'doing' }
+      return { labelKey: labelKey('doing', 'status.doing'), statusAttr: 'doing' };
     case 0:
     default:
-      return { labelKey: labelKey('none', 'status.none'), statusAttr: 'none' }
+      return { labelKey: labelKey('none', 'status.none'), statusAttr: 'none' };
   }
 }
 
@@ -103,11 +104,11 @@ export function bangumiListMarkerSpec(
  * 纯函数：无 DOM、无 imports，可在 Playwright 单元测试中独立运行。
  */
 export function bangumiListRatingText(rating: number): string {
-  const num = Number(rating)
-  if (!Number.isFinite(num) || num <= 0) return ''
-  const clamped = Math.max(0, Math.min(10, Math.round(num * 2) / 2))
-  const normalized = Number(clamped.toFixed(1))
-  if (!normalized) return ''
-  const text = Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1)
-  return `${text}/10`
+  const num = Number(rating);
+  if (!Number.isFinite(num) || num <= 0) return '';
+  const clamped = Math.max(0, Math.min(10, Math.round(num * 2) / 2));
+  const normalized = Number(clamped.toFixed(1));
+  if (!normalized) return '';
+  const text = Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
+  return `${text}/10`;
 }

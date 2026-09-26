@@ -24,34 +24,37 @@
  * 复用 .umm-card 基础类（与列表页同款 hover/grid 行为）。
  */
 
-import { AdultAvStore } from '@/provider/adult-av'
-import { initI18n, t } from '@/entrypoints/content/i18n'
-import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu'
-import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel'
-import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-panel'
-import { runVisibleEntrance, buildFloatbar } from '@/entrypoints/content/handlers/sehuatang-controls'
-import { escapeHtml } from '@/libraries/utils/escape-html'
-import { attachSehuatangOverlay } from './overlay'
-import { toSafeAbsoluteUrl } from './url'
+import { AdultAvStore } from '@/provider/adult-av';
+import { initI18n, t } from '@/entrypoints/content/i18n';
+import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu';
+import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel';
+import { showCheckViewedPanel } from '@/entrypoints/content/ui/check-viewed-panel';
+import {
+  runVisibleEntrance,
+  buildFloatbar,
+} from '@/entrypoints/content/handlers/sehuatang-controls';
+import { escapeHtml } from '@/libraries/utils/escape-html';
+import { attachSehuatangOverlay } from './overlay';
+import { toSafeAbsoluteUrl } from './url';
 import {
   extractIndexCategories,
   extractIndexStats,
   type SehuatangCategory,
   type SehuatangSubForum,
-} from './extract-home'
+} from './home-extract';
 
 function el(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag)
-  node.className = className
-  if (text !== undefined) node.textContent = text
-  return node
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
 function buildSubForumCard(forum: SehuatangSubForum): HTMLElement {
-  const safeHref = toSafeAbsoluteUrl(forum.href)
-  const safeIconSrc = toSafeAbsoluteUrl(forum.iconSrc)
+  const safeHref = toSafeAbsoluteUrl(forum.href);
+  const safeIconSrc = toSafeAbsoluteUrl(forum.iconSrc);
 
-  const card = el('div', 'umm-card umm-sht-home-card')
+  const card = el('div', 'umm-card umm-sht-home-card');
   card.innerHTML = `
     <a class="umm-sht-home-link" href="${escapeHtml(safeHref)}" target="_blank" rel="noopener noreferrer">
       <div class="umm-sht-home-icon ${forum.hasNew ? 'is-new' : ''}">
@@ -60,89 +63,97 @@ function buildSubForumCard(forum: SehuatangSubForum): HTMLElement {
       <div class="umm-sht-home-body">
         <div class="umm-sht-home-name">${escapeHtml(forum.name)}</div>
         <div class="umm-sht-home-meta">
-          ${forum.todayCount !== null
-            ? `<span class="umm-sht-home-pill">${escapeHtml(t('sht.forum_today', { count: String(forum.todayCount) }))}</span>`
-            : ''}
-          ${forum.threadsCount
-            ? `<span>${escapeHtml(t('sht.forum_threads', { count: forum.threadsCount }))}</span>`
-            : ''}
-          ${forum.postsCount
-            ? `<span>${escapeHtml(t('sht.forum_posts', { count: forum.postsCount }))}</span>`
-            : ''}
+          ${
+            forum.todayCount !== null
+              ? `<span class="umm-sht-home-pill">${escapeHtml(t('sht.forum_today', { count: String(forum.todayCount) }))}</span>`
+              : ''
+          }
+          ${
+            forum.threadsCount
+              ? `<span>${escapeHtml(t('sht.forum_threads', { count: forum.threadsCount }))}</span>`
+              : ''
+          }
+          ${
+            forum.postsCount
+              ? `<span>${escapeHtml(t('sht.forum_posts', { count: forum.postsCount }))}</span>`
+              : ''
+          }
         </div>
         <div class="umm-sht-home-last">
-          ${forum.lastPostLabel
-            ? escapeHtml(t('sht.forum_last', { when: forum.lastPostLabel }))
-            : escapeHtml(t('sht.forum_never'))}
+          ${
+            forum.lastPostLabel
+              ? escapeHtml(t('sht.forum_last', { when: forum.lastPostLabel }))
+              : escapeHtml(t('sht.forum_never'))
+          }
         </div>
       </div>
     </a>
-  `
-  return card
+  `;
+  return card;
 }
 
 function buildCategorySection(category: SehuatangCategory): HTMLElement {
-  const section = el('section', 'umm-sht-home-section')
-  section.setAttribute('data-cat', category.id)
+  const section = el('section', 'umm-sht-home-section');
+  section.setAttribute('data-cat', category.id);
 
-  const titleRow = el('div', 'umm-sht-home-cat')
-  titleRow.textContent = category.title
-  section.appendChild(titleRow)
+  const titleRow = el('div', 'umm-sht-home-cat');
+  titleRow.textContent = category.title;
+  section.appendChild(titleRow);
 
-  const grid = el('div', 'umm-sht-home-grid')
+  const grid = el('div', 'umm-sht-home-grid');
   for (const forum of category.forums) {
-    grid.appendChild(buildSubForumCard(forum))
+    grid.appendChild(buildSubForumCard(forum));
   }
-  section.appendChild(grid)
-  return section
+  section.appendChild(grid);
+  return section;
 }
 
 function buildHeader(stats: ReturnType<typeof extractIndexStats>): HTMLElement {
-  const header = el('div', 'umm-sehuatang-header')
+  const header = el('div', 'umm-sehuatang-header');
 
   // 上行：站点统计（左，.umm-sht-context）｜ 右上角统计区——首页是导航层，
   // 无「本页已看/本页隐藏」概念（用户裁决），故仅全局三段一个 box。
-  const rowContext = el('div', 'umm-sht-row umm-sht-row--context')
-  const context = el('div', 'umm-sht-context')
+  const rowContext = el('div', 'umm-sht-row umm-sht-row--context');
+  const context = el('div', 'umm-sht-context');
   if (stats) {
     context.textContent = t('sht.index_stats', {
       today: stats.today,
       yesterday: stats.yesterday,
       posts: stats.posts,
       members: stats.members,
-    })
+    });
   } else {
-    context.textContent = t('sht.index_title')
+    context.textContent = t('sht.index_title');
   }
-  rowContext.appendChild(context)
+  rowContext.appendChild(context);
 
   // 顶部居中簇（header top center）：仅 ☰ 菜单——row--context 三列网格的
   // 中列（首页即当前页，不加 🏠 自链按钮）。
-  const center = el('div', 'umm-sht-center')
-  const menuBtn = el('button', 'umm-sht-action')
-  menuBtn.textContent = '☰'
-  menuBtn.setAttribute('aria-haspopup', 'dialog')
-  menuBtn.title = t('Menu Title')
+  const center = el('div', 'umm-sht-center');
+  const menuBtn = el('button', 'umm-sht-action');
+  menuBtn.textContent = '☰';
+  menuBtn.setAttribute('aria-haspopup', 'dialog');
+  menuBtn.title = t('Menu Title');
   menuBtn.onclick = () => {
     openSehuatangMenu(document, menuBtn, t('Menu Title'), [
       { label: t('Manual Add'), onClick: () => showManualAddPanel() },
       { label: t('Check Viewed Status'), onClick: () => showCheckViewedPanel() },
-    ])
-  }
-  center.appendChild(menuBtn)
-  rowContext.appendChild(center)
+    ]);
+  };
+  center.appendChild(menuBtn);
+  rowContext.appendChild(center);
 
-  const statArea = el('div', 'umm-sht-stat-area')
-  statArea.appendChild(el('div', 'umm-sht-stats'))
-  rowContext.appendChild(statArea)
-  header.appendChild(rowContext)
-  return header
+  const statArea = el('div', 'umm-sht-stat-area');
+  statArea.appendChild(el('div', 'umm-sht-stats'));
+  rowContext.appendChild(statArea);
+  header.appendChild(rowContext);
+  return header;
 }
 
 /** 隐藏原首页内容（#ct 容器）。保留 #wp 外壳（与站点 SPA 行为兼容）。 */
 function hideOriginalContent(): void {
-  const ct = document.getElementById('ct')
-  if (ct) ct.style.display = 'none'
+  const ct = document.getElementById('ct');
+  if (ct) ct.style.display = 'none';
 }
 
 /**
@@ -152,56 +163,60 @@ function hideOriginalContent(): void {
  * 困在骨架屏上。
  */
 export async function runSehuatangIndexApp(): Promise<void> {
-  await initI18n()
-  console.log('[UMM] Sehuatang index app activated')
+  await initI18n();
+  console.log('[UMM] Sehuatang index app activated');
 
-  const overlay = attachSehuatangOverlay()
+  const overlay = attachSehuatangOverlay();
   try {
     // DOM 守卫：必须存在至少一个 category_ 容器，否则视为非首页。
-    const categories = extractIndexCategories()
-    const stats = extractIndexStats()
+    const categories = extractIndexCategories();
+    const stats = extractIndexStats();
     if (categories.length === 0) {
-      overlay?.dismiss()
-      return
+      overlay?.dismiss();
+      return;
     }
-    if (!overlay) return
+    if (!overlay) return;
 
     // 隐藏原内容（DOM 保留，规避站点 SPA 行为）。
-    hideOriginalContent()
+    hideOriginalContent();
 
     // 重建 overlay 内容根（--island：挂岛页面，底部遮挡补偿 padding 生效）。
-    const shell = el('div', 'umm-sht-shell umm-sht-shell--island')
-    shell.appendChild(buildHeader(stats))
+    const shell = el('div', 'umm-sht-shell umm-sht-shell--island');
+    shell.appendChild(buildHeader(stats));
 
     for (const category of categories) {
-      shell.appendChild(buildCategorySection(category))
+      shell.appendChild(buildCategorySection(category));
     }
 
     // 底部「灵动岛」：首页导航层仅搜索入口（无分页/动作场景）。
-    const island = buildFloatbar(document, { search: true })
-    if (island) shell.appendChild(island.pill)
+    const island = buildFloatbar(document, { search: true });
+    if (island) shell.appendChild(island.pill);
 
-    overlay.mountContent(shell)
-    runVisibleEntrance(shell)
+    overlay.mountContent(shell);
+    runVisibleEntrance(shell);
     // 下行统计行：UMM 全局三段（挂载完成后拉取——await 保证渲染完成时序
     // 确定，不阻塞 overlay 首帧；失败降级保持空态，与列表页同纪律）。
-    const statsLine = shell.querySelector('.umm-sht-stats') as HTMLElement | null
+    const statsLine = shell.querySelector('.umm-sht-stats') as HTMLElement | null;
     if (statsLine) {
       try {
-        const s = await AdultAvStore.stats()
+        const s = await AdultAvStore.stats();
         if (statsLine.isConnected) {
           statsLine.textContent = t('sht.global_stats', {
             jp: String(s.jp),
             us: String(s.us),
             tid: String(s.tid),
-          })
+          });
         }
-      } catch { /* 降级：统计不可用不阻断页面 */ }
+      } catch {
+        /* 降级：统计不可用不阻断页面 */
+      }
     }
     // 样式已就位（attachSehuatangOverlay 已注入完整 overlay CSS，包含 HOME_CSS）。
-    console.log(`[UMM] Sehuatang index rendered: ${categories.length} categories, ${categories.reduce((n, c) => n + c.forums.length, 0)} sub-forums`)
+    console.log(
+      `[UMM] Sehuatang index rendered: ${categories.length} categories, ${categories.reduce((n, c) => n + c.forums.length, 0)} sub-forums`,
+    );
   } catch (error) {
-    console.error('[UMM] Sehuatang index build failed, dismissing overlay:', error)
-    overlay?.dismiss()
+    console.error('[UMM] Sehuatang index build failed, dismissing overlay:', error);
+    overlay?.dismiss();
   }
 }

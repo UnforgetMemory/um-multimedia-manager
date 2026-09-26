@@ -1,49 +1,53 @@
 <script setup lang="ts">
 // Series overlay: header info, sort options, book list with record badges, paginator
 import UmmPageLinks from '@/scenario/douban/components/UmmPageLinks.vue';
-import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { SeriesPageData, SeriesItem } from './types'
+import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { SeriesPageData, SeriesItem } from './types';
 
 const props = defineProps<{
-  data: SeriesPageData
-  recordMap?: Map<string, import('@/types').StoreRecord>
-}>()
+  data: SeriesPageData;
+  recordMap?: Map<string, import('@/types').StoreRecord>;
+}>();
 
 // Get full record for an item
 function getItemRecord(item: SeriesItem): import('@/types').StoreRecord | undefined {
-  if (!props.recordMap) return undefined
-  return props.recordMap.get(item.subjectId)
+  if (!props.recordMap) return undefined;
+  return props.recordMap.get(item.subjectId);
 }
 
 // Star display helper (0-10 scale → 5 stars)
 function starRating(rating: number): number {
-  return rating / 2
+  return rating / 2;
 }
 
 // Star classes for display
 function starClass(item: SeriesItem, starIndex: number): string {
-  const stars = starRating(item.rating)
-  const filled = starIndex + 1
-  if (stars >= filled) return 'umm-series-item-star umm-series-item-star--filled'
-  if (stars >= filled - 0.5) return 'umm-series-item-star umm-series-item-star--half'
-  return 'umm-series-item-star'
+  const stars = starRating(item.rating);
+  const filled = starIndex + 1;
+  if (stars >= filled) return 'umm-series-item-star umm-series-item-star--filled';
+  if (stars >= filled - 0.5) return 'umm-series-item-star umm-series-item-star--half';
+  return 'umm-series-item-star';
 }
 
 // Format count with Chinese-friendly units
 function formatCount(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '万'
-  return n.toLocaleString()
+  if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+  return n.toLocaleString();
 }
 
 // Status label helper
 function statusLabel(status: number): string {
-  const labels = statusBadgeLabels.book
+  const labels = statusBadgeLabels.book;
   switch (status) {
-    case 2: return labels.done
-    case 1: return labels.wish
-    case 3: return labels.doing
-    default: return ''
+    case 2:
+      return labels.done;
+    case 1:
+      return labels.wish;
+    case 3:
+      return labels.doing;
+    default:
+      return '';
   }
 }
 </script>
@@ -70,7 +74,8 @@ function statusLabel(status: number): string {
             :href="`https://book.douban.com/series/collect?series_id=${data.id}`"
             class="umm-series-collect-btn"
             target="_blank"
-          >收藏丛书</a>
+            >收藏丛书</a
+          >
         </div>
       </div>
 
@@ -93,16 +98,13 @@ function statusLabel(status: number): string {
           :key="opt.label"
           :href="opt.url || undefined"
           :class="['umm-series-sort-link', opt.active ? 'umm-series-sort-link--active' : '']"
-        >{{ opt.label }}</a>
+          >{{ opt.label }}</a
+        >
       </div>
 
       <!-- ═══ Book list ═══ -->
       <div v-if="data.items.length > 0" class="umm-series-items">
-        <div
-          v-for="item in data.items"
-          :key="item.subjectId"
-          class="umm-series-item"
-        >
+        <div v-for="item in data.items" :key="item.subjectId" class="umm-series-item">
           <div class="umm-series-item-cover">
             <a :href="item.subjectUrl" target="_blank">
               <img :src="item.coverUrl" :alt="item.title" loading="lazy" />
@@ -118,23 +120,18 @@ function statusLabel(status: number): string {
                   getItemRecord(item)!.status === 1 ? 'umm-series-status--wish' : '',
                   getItemRecord(item)!.status === 3 ? 'umm-series-status--doing' : '',
                 ]"
-              >{{ statusLabel(getItemRecord(item)!.status) }}</span>
-              <a
-                :href="item.subjectUrl"
-                class="umm-series-item-title"
-                target="_blank"
-              >{{ item.title }}</a>
+                >{{ statusLabel(getItemRecord(item)!.status) }}</span
+              >
+              <a :href="item.subjectUrl" class="umm-series-item-title" target="_blank">{{
+                item.title
+              }}</a>
             </div>
 
             <div v-if="item.pubInfo" class="umm-series-item-pub">{{ item.pubInfo }}</div>
 
             <div v-if="item.rating > 0" class="umm-series-item-rating">
               <span class="umm-series-item-stars">
-                <span
-                  v-for="i in 5"
-                  :key="i"
-                  :class="starClass(item, i - 1)"
-                />
+                <span v-for="i in 5" :key="i" :class="starClass(item, i - 1)" />
               </span>
               <span class="umm-series-item-score">{{ item.rating }}</span>
               <span class="umm-series-item-count">({{ formatCount(item.ratingCount) }})</span>

@@ -67,9 +67,12 @@ export class Status {
    */
   static require(value: number | string): Status {
     const num = typeof value === 'string' ? Number(value) : value;
-    const status = Status.fromCode(num) ?? (typeof value === 'string' ? Status.fromString(value) : null);
+    const status =
+      Status.fromCode(num) ?? (typeof value === 'string' ? Status.fromString(value) : null);
     if (!status) {
-      throw new RangeError(`Invalid status value: "${value}". Expected 0 (none), 1 (wishlist), 2 (done), or 3 (doing)`);
+      throw new RangeError(
+        `Invalid status value: "${value}". Expected 0 (none), 1 (wishlist), 2 (done), or 3 (doing)`,
+      );
     }
     return status;
   }
@@ -129,20 +132,28 @@ export class Status {
   /** Human-readable label. */
   get label(): string {
     switch (this.code) {
-      case 0: return 'None';
-      case 1: return 'Wishlist';
-      case 2: return 'Done';
-      case 3: return 'Doing';
+      case 0:
+        return 'None';
+      case 1:
+        return 'Wishlist';
+      case 2:
+        return 'Done';
+      case 3:
+        return 'Doing';
     }
   }
 
   /** Legacy string value for backward compatibility. */
   get legacyString(): string {
     switch (this.code) {
-      case 0: return 'none';
-      case 1: return 'wish';
-      case 2: return 'done';
-      case 3: return 'doing';
+      case 0:
+        return 'none';
+      case 1:
+        return 'wish';
+      case 2:
+        return 'done';
+      case 3:
+        return 'doing';
     }
   }
 

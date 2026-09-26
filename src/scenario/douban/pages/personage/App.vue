@@ -1,31 +1,29 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import { UmmMediaCard } from '@/scenario/douban/components/UmmMediaCard'
-import type { PersonagePageData } from './personage-data'
+import { ref, computed } from 'vue';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmMediaCard } from '@/scenario/douban/components/umm-media-card';
+import type { PersonagePageData } from './personage-data';
 
-const props = defineProps<{ data: PersonagePageData }>()
-const d = props.data
+const props = defineProps<{ data: PersonagePageData }>();
+const d = props.data;
 
-const bioExpanded = ref(false)
-const showAllAwards = ref(false)
+const bioExpanded = ref(false);
+const showAllAwards = ref(false);
 
-const displayAwards = computed(() =>
-  showAllAwards.value ? d.awards : d.awards.slice(0, 5),
-)
+const displayAwards = computed(() => (showAllAwards.value ? d.awards : d.awards.slice(0, 5)));
 
-const hasMoreAwards = computed(() => d.awards.length > 5)
+const hasMoreAwards = computed(() => d.awards.length > 5);
 
 function toggleBio(): void {
-  bioExpanded.value = !bioExpanded.value
+  bioExpanded.value = !bioExpanded.value;
 }
 
 function toggleAwards(): void {
-  showAllAwards.value = !showAllAwards.value
+  showAllAwards.value = !showAllAwards.value;
 }
 
 function openUrl(url: string): void {
-  if (url) window.open(url, '_blank')
+  if (url) window.open(url, '_blank');
 }
 </script>
 
@@ -33,24 +31,15 @@ function openUrl(url: string): void {
   <UmmPageLayout type="movie">
     <div class="umm-personage-root">
       <!-- Empty state -->
-      <div v-if="!d.name" class="umm-personage-empty">
-        未找到影人信息
-      </div>
+      <div v-if="!d.name" class="umm-personage-empty">未找到影人信息</div>
       <template v-else>
         <!-- Profile header -->
         <div class="umm-profile-header">
-          <div
-            class="umm-profile-avatar"
-            :style="{ backgroundImage: `url(${d.avatar})` }"
-          />
+          <div class="umm-profile-avatar" :style="{ backgroundImage: `url(${d.avatar})` }" />
           <div class="umm-profile-info">
             <h1 class="umm-profile-name">{{ d.name }}</h1>
             <ul v-if="d.properties.length" class="umm-profile-props">
-              <li
-                v-for="prop in d.properties"
-                :key="prop.label"
-                class="umm-profile-prop"
-              >
+              <li v-for="prop in d.properties" :key="prop.label" class="umm-profile-prop">
                 <span class="umm-profile-prop-label">{{ prop.label }}:</span>
                 {{ prop.value }}
               </li>
@@ -61,15 +50,12 @@ function openUrl(url: string): void {
         <!-- Biography -->
         <div v-if="d.biography" class="umm-section">
           <h2 class="umm-section-title">人物简介</h2>
-          <p
-            class="umm-bio-text"
-            :class="{ 'umm-bio-text--expanded': bioExpanded }"
-          >{{ d.biography }}</p>
-          <button
-            v-if="d.biography.length > 120"
-            class="umm-bio-expand"
-            @click="toggleBio"
-          >{{ bioExpanded ? '(收起)' : '(展开)' }}</button>
+          <p class="umm-bio-text" :class="{ 'umm-bio-text--expanded': bioExpanded }">
+            {{ d.biography }}
+          </p>
+          <button v-if="d.biography.length > 120" class="umm-bio-expand" @click="toggleBio">
+            {{ bioExpanded ? '(收起)' : '(展开)' }}
+          </button>
         </div>
 
         <!-- Photos -->
@@ -93,48 +79,44 @@ function openUrl(url: string): void {
             <span class="umm-photos-count">（共 {{ d.awards.length }} 项）</span>
           </h2>
           <ul class="umm-awards-list">
-            <li
-              v-for="(award, i) in displayAwards"
-              :key="i"
-              class="umm-award-item"
-            >
+            <li v-for="(award, i) in displayAwards" :key="i" class="umm-award-item">
               <span class="umm-award-year">{{ award.year }}</span>
               <a
                 :href="award.awardUrl"
                 class="umm-award-name"
                 @click.prevent="openUrl(award.awardUrl)"
-              >{{ award.awardName }}</a>
+                >{{ award.awardName }}</a
+              >
               <span class="umm-award-status">{{ award.status }}</span>
               <a
                 v-if="award.workName"
                 :href="award.workUrl"
                 class="umm-award-work"
                 @click.prevent="openUrl(award.workUrl)"
-              >{{ award.workName }}</a>
+                >{{ award.workName }}</a
+              >
             </li>
           </ul>
-          <button
-            v-if="hasMoreAwards"
-            class="umm-bio-expand"
-            @click="toggleAwards"
-          >{{ showAllAwards ? '(收起)' : `(查看全部 ${d.awards.length} 项)` }}</button>
+          <button v-if="hasMoreAwards" class="umm-bio-expand" @click="toggleAwards">
+            {{ showAllAwards ? '(收起)' : `(查看全部 ${d.awards.length} 项)` }}
+          </button>
         </div>
 
         <!-- Recent works -->
         <div v-if="d.recentWorks.length" class="umm-section">
           <h2 class="umm-section-title">最近的 {{ d.recentWorks.length }} 部作品</h2>
           <div class="umm-works-grid">
-        <UmmMediaCard
-          v-for="(work, i) in d.recentWorks"
-          :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
-          mode="grid"
-          :poster-url="work.poster"
-          :title="work.title"
-          :href="work.url"
-          :rating="work.rating"
-          :badge-status="work.recordStatus ?? 0"
-          :badge-rating="work.recordRating ?? 0"
-        />
+            <UmmMediaCard
+              v-for="(work, i) in d.recentWorks"
+              :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
+              mode="grid"
+              :poster-url="work.poster"
+              :title="work.title"
+              :href="work.url"
+              :rating="work.rating"
+              :badge-status="work.recordStatus ?? 0"
+              :badge-rating="work.recordRating ?? 0"
+            />
           </div>
         </div>
 
@@ -142,23 +124,21 @@ function openUrl(url: string): void {
         <div v-if="d.popularWorks.length" class="umm-section">
           <h2 class="umm-section-title">收藏人数最多的 {{ d.popularWorks.length }} 部作品</h2>
           <div class="umm-works-grid">
-        <UmmMediaCard
-          v-for="(work, i) in d.popularWorks"
-          :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
-          mode="grid"
-          :poster-url="work.poster"
-          :title="work.title"
-          :href="work.url"
-          :rating="work.rating"
-          :badge-status="work.recordStatus ?? 0"
-          :badge-rating="work.recordRating ?? 0"
-        />
+            <UmmMediaCard
+              v-for="(work, i) in d.popularWorks"
+              :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
+              mode="grid"
+              :poster-url="work.poster"
+              :title="work.title"
+              :href="work.url"
+              :rating="work.rating"
+              :badge-status="work.recordStatus ?? 0"
+              :badge-rating="work.recordRating ?? 0"
+            />
           </div>
-          <button
-            v-if="d.moreWorksUrl"
-            class="umm-personage-btn"
-            @click="openUrl(d.moreWorksUrl)"
-          >更多影视作品{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →</button>
+          <button v-if="d.moreWorksUrl" class="umm-personage-btn" @click="openUrl(d.moreWorksUrl)">
+            更多影视作品{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →
+          </button>
         </div>
 
         <!-- Unreleased works -->
@@ -176,11 +156,9 @@ function openUrl(url: string): void {
               <span v-if="work.year" class="umm-unreleased-year">{{ work.year }}</span>
             </a>
           </div>
-          <button
-            v-if="d.moreWorksUrl"
-            class="umm-personage-btn"
-            @click="openUrl(d.moreWorksUrl)"
-          >更多影视作品{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →</button>
+          <button v-if="d.moreWorksUrl" class="umm-personage-btn" @click="openUrl(d.moreWorksUrl)">
+            更多影视作品{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →
+          </button>
         </div>
 
         <!-- Partners -->

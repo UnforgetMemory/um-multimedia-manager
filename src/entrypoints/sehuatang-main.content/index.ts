@@ -38,22 +38,22 @@
  * createOverlay 自建（app-risk.ts 内聚）。
  */
 
-import { defineContentScript } from 'wxt/utils/define-content-script'
-import { initEventBus } from '@/libraries/utils/event-bus'
-import { injectGlobalStyles } from '@/entrypoints/content/styles/global'
-import { AdultAvStore } from '@/provider/adult-av'
-import { classifyPage } from '@/scenario/sehuatang/url'
-import { isRiskGateDocument } from '@/scenario/sehuatang/extract-risk'
-import { resolveThreadWatchKey } from '@/entrypoints/content/handlers/sehuatang-extract'
-import { runSehuatangOverlayApp } from '@/scenario/sehuatang/app'
-import { runSehuatangIndexApp } from '@/scenario/sehuatang/app-home'
-import { runSehuatangSearchApp } from '@/scenario/sehuatang/app-search'
-import { runSehuatangRiskApp } from '@/scenario/sehuatang/app-risk'
+import { defineContentScript } from 'wxt/utils/define-content-script';
+import { initEventBus } from '@/libraries/utils/event-bus';
+import { injectGlobalStyles } from '@/entrypoints/content/styles/global';
+import { AdultAvStore } from '@/provider/adult-av';
+import { classifyPage } from '@/scenario/sehuatang/url';
+import { isRiskGateDocument } from '@/scenario/sehuatang/risk-extract';
+import { resolveThreadWatchKey } from '@/entrypoints/content/handlers/sehuatang-extract';
+import { runSehuatangOverlayApp } from '@/scenario/sehuatang/app';
+import { runSehuatangIndexApp } from '@/scenario/sehuatang/app-home';
+import { runSehuatangSearchApp } from '@/scenario/sehuatang/app-search';
+import { runSehuatangRiskApp } from '@/scenario/sehuatang/app-risk';
 
 /** 帖子页标题：优先帖子主体（#thread_subject），退化到 document.title。 */
 function threadTitle(): string {
-  const subject = document.getElementById('thread_subject')?.textContent?.trim()
-  return subject || document.title
+  const subject = document.getElementById('thread_subject')?.textContent?.trim();
+  return subject || document.title;
 }
 
 /**
@@ -61,13 +61,13 @@ function threadTitle(): string {
  * 不得干扰用户浏览；下次访问重试。
  */
 async function recordThreadVisit(url: string): Promise<void> {
-  const key = resolveThreadWatchKey(threadTitle(), url)
-  if (!key) return
+  const key = resolveThreadWatchKey(threadTitle(), url);
+  if (!key) return;
   try {
-    await AdultAvStore.add('sehuatang', key, 0, url)
-    console.log('[UMM] Sehuatang thread visit recorded:', key)
+    await AdultAvStore.add('sehuatang', key, 0, url);
+    console.log('[UMM] Sehuatang thread visit recorded:', key);
   } catch (error) {
-    console.warn('[UMM] Sehuatang thread visit record failed:', error)
+    console.warn('[UMM] Sehuatang thread visit record failed:', error);
   }
 }
 
@@ -85,29 +85,29 @@ export default defineContentScript({
   async main() {
     // 风控页优先级最高：DOM 检测（URL 不可预判——见文件头分支 0）。
     if (isRiskGateDocument(document)) {
-      await runSehuatangRiskApp()
-      return
+      await runSehuatangRiskApp();
+      return;
     }
 
-    const url = location.href
-    const kind = classifyPage(url)
+    const url = location.href;
+    const kind = classifyPage(url);
 
     // 帖子页：静默记录已看，不接管 overlay、不注入 UI。
     if (kind === 'thread') {
-      await recordThreadVisit(url)
-      return
+      await recordThreadVisit(url);
+      return;
     }
 
     // 列表 / 搜索 / 首页：URL 判型与早期入口一致；非受支持页（other）不接管。
-    if (kind !== 'forumdisplay' && kind !== 'search' && kind !== 'index') return
-    initEventBus()
-    injectGlobalStyles()
+    if (kind !== 'forumdisplay' && kind !== 'search' && kind !== 'index') return;
+    initEventBus();
+    injectGlobalStyles();
     if (kind === 'forumdisplay') {
-      await runSehuatangOverlayApp()
+      await runSehuatangOverlayApp();
     } else if (kind === 'search') {
-      await runSehuatangSearchApp()
+      await runSehuatangSearchApp();
     } else {
-      await runSehuatangIndexApp()
+      await runSehuatangIndexApp();
     }
   },
-})
+});

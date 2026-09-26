@@ -6,20 +6,20 @@
  * various Jav ID formats (FC2-PPV, standard codes, etc.).
  */
 
-import { AdultAvStore } from '@/provider/adult-av'
-import { initI18n } from '../i18n'
-import { normalizeAvId, extractBaseId } from '@/provider/adult-av/models'
+import { AdultAvStore } from '@/provider/adult-av';
+import { throttle } from '@/libraries/utils';
+import { initI18n } from '../i18n';
+import { normalizeAvId, extractBaseId } from '@/provider/adult-av/models';
 
-let observer: MutationObserver | null = null
+let observer: MutationObserver | null = null;
 
-const AVID_REGEX = /[A-Za-z0-9]{2,}[-][\w-]{2,}/i
+// MutationObserver 回调节流窗口（trailing 语义，audit §P-C）；
+// run() 每趟批量收集全部未处理条目，丢中间事件不丢最终状态。
+const OBSERVER_THROTTLE_MS = 250;
 
-const ITEM_SELECTORS = [
-  '.item',
-  '.grid-item',
-  '.video-card',
-  '.column-item',
-]
+const AVID_REGEX = /[A-Za-z0-9]{2,}[-][\w-]{2,}/i;
+
+const ITEM_SELECTORS = ['.item', '.grid-item', '.video-card', '.column-item'];
 
 const ID_SELECTORS = [
   '.video-title strong',
@@ -27,7 +27,7 @@ const ID_SELECTORS = [
   '.title a',
   '.id-text',
   '[class*="id"]',
-]
+];
 
 /**
  * Extract and normalize AV ID from a JavDB item element.
@@ -37,60 +37,64 @@ const ID_SELECTORS = [
  */
 function extractAvId(item: Element): string | null {
   for (const sel of ID_SELECTORS) {
-    const el = item.querySelector(sel)
-    if (!el) continue
-    const text = el.textContent?.trim()
-    if (!text) continue
-    const match = text.match(AVID_REGEX)
+    const el = item.querySelector(sel);
+    if (!el) continue;
+    const text = el.textContent?.trim();
+    if (!text) continue;
+    const match = text.match(AVID_REGEX);
     if (match) {
-      const normalized = normalizeAvId(match[0])
-      if (normalized.startsWith('FC2-PPV-')) return normalized
-      return extractBaseId(normalized).replace(/^0+/, '')
+      const normalized = normalizeAvId(match[0]);
+      if (normalized.startsWith('FC2-PPV-')) return normalized;
+      return extractBaseId(normalized).replace(/^0+/, '');
     }
   }
-  return null
+  return null;
 }
 
 function run(): void {
-  const items: { el: Element; avid: string }[] = []
+  const items: { el: Element; avid: string }[] = [];
 
   for (const sel of ITEM_SELECTORS) {
-    const found = document.querySelectorAll(sel)
-    found.forEach(el => {
-      if (el.getAttribute('data-umm-processed')) return
-      const avid = extractAvId(el)
-      if (!avid) return
-      el.setAttribute('data-umm-processed', 'true')
-      el.setAttribute('data-umm-avid', avid)
-      items.push({ el, avid })
-    })
+    const found = document.querySelectorAll(sel);
+    found.forEach((el) => {
+      if (el.getAttribute('data-umm-processed')) return;
+      const avid = extractAvId(el);
+      if (!avid) return;
+      el.setAttribute('data-umm-processed', 'true');
+      el.setAttribute('data-umm-avid', avid);
+      items.push({ el, avid });
+    });
   }
 
-  if (items.length === 0) return
+  if (items.length === 0) return;
 
   // Batch query: send all IDs in one message
-  const avids = items.map(i => i.avid)
+  const avids = items.map((i) => i.avid);
   AdultAvStore.batchCheckExists(avids).then((watched: Set<string>) => {
     for (const { el, avid } of items) {
       if (watched.has(avid)) {
-        (el as HTMLElement).classList.add('umm-viewed')
+        (el as HTMLElement).classList.add('umm-viewed');
       }
     }
-  })
+  });
 
   // Click handler per item (fire-and-forget, doesn't block)
   for (const { el, avid } of items) {
-    el.addEventListener('click', () => {
-      AdultAvStore.add('javdb', avid, 0)
-      ;(el as HTMLElement).classList.add('umm-viewed')
-    }, { once: true })
+    el.addEventListener(
+      'click',
+      () => {
+        AdultAvStore.add('javdb', avid, 0);
+        (el as HTMLElement).classList.add('umm-viewed');
+      },
+      { once: true },
+    );
   }
 }
 
 function injectStyles(): void {
-  if (document.getElementById('umm-javdb-styles')) return
-  const style = document.createElement('style')
-  style.id = 'umm-javdb-styles'
+  if (document.getElementById('umm-javdb-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'umm-javdb-styles';
   style.textContent = `
     body.javdb-enhanced .item.umm-viewed,
     body.javdb-enhanced .grid-item.umm-viewed,
@@ -103,20 +107,22 @@ function injectStyles(): void {
     body.javdb-enhanced .video-card.umm-viewed:hover,
     body.javdb-enhanced .column-item.umm-viewed:hover {
       opacity: 1 !important; filter: grayscale(0%);
-    }`
-  document.head.appendChild(style)
+    }`;
+  document.head.appendChild(style);
 }
 
 export async function handleJavDBPage(): Promise<void> {
-  await initI18n()
-  console.log('[UMM] JavDB enhancer activated')
+  await initI18n();
+  console.log('[UMM] JavDB enhancer activated');
 
-  injectStyles()
-  document.body.classList.add('javdb-enhanced')
+  injectStyles();
+  document.body.classList.add('javdb-enhanced');
 
-  run()
+  run();
 
-  observer = new MutationObserver(() => run())
-  const container = document.querySelector('.movie-list, .grid, .video-grid, #main-container, #content') || document.body
-  observer.observe(container, { childList: true, subtree: true })
+  observer = new MutationObserver(throttle(() => run(), OBSERVER_THROTTLE_MS));
+  const container =
+    document.querySelector('.movie-list, .grid, .video-grid, #main-container, #content') ||
+    document.body;
+  observer.observe(container, { childList: true, subtree: true });
 }

@@ -17,22 +17,22 @@
  * 页面内容（域名 / 按钮文案 / 警告文本）全部透传站点原文，零 i18n 键。
  */
 
-import { createOverlay } from '@/scenario/douban/overlay/create-overlay'
+import { createOverlay } from '@/scenario/douban/overlay/create-overlay';
 import {
   SEHUATANG_OVERLAY_ID,
   SEHUATANG_OVERLAY_Z_INDEX,
   LOADING_SUBTITLE,
   resolveEarlyLocale,
-} from './constants'
-import { attachSehuatangOverlay, type SehuatangOverlayHandle } from './overlay'
-import { extractRiskGate } from './extract-risk'
-import { toSafeAbsoluteUrl } from './url'
+} from './constants';
+import { attachSehuatangOverlay, type SehuatangOverlayHandle } from './overlay';
+import { extractRiskGate } from './risk-extract';
+import { toSafeAbsoluteUrl } from './url';
 
 function el(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag)
-  node.className = className
-  if (text !== undefined) node.textContent = text
-  return node
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
 /**
@@ -44,29 +44,29 @@ function createDetachedOverlay(): SehuatangOverlayHandle {
     overlayId: SEHUATANG_OVERLAY_ID,
     subtitle: LOADING_SUBTITLE[resolveEarlyLocale()],
     zIndex: SEHUATANG_OVERLAY_Z_INDEX,
-  })
-  const handle = attachSehuatangOverlay()
-  if (!handle) throw new Error('[UMM] Sehuatang risk overlay host missing after create')
-  return handle
+  });
+  const handle = attachSehuatangOverlay();
+  if (!handle) throw new Error('[UMM] Sehuatang risk overlay host missing after create');
+  return handle;
 }
 
 /** 重建进入按钮：点击委托原 DOM 按钮（写 cookie + 重载），缺失退化 href 导航。 */
 function buildEnterButton(label: string, index: number, fallbackHref: string): HTMLButtonElement {
-  const btn = document.createElement('button')
-  btn.type = 'button'
-  btn.className = `umm-sht-risk-enter ${index === 0 ? 'umm-sht-risk-enter--primary' : 'umm-sht-risk-enter--secondary'}`
-  btn.textContent = label
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `umm-sht-risk-enter ${index === 0 ? 'umm-sht-risk-enter--primary' : 'umm-sht-risk-enter--secondary'}`;
+  btn.textContent = label;
   btn.onclick = () => {
-    const originals = document.querySelectorAll<HTMLAnchorElement>('a.enter-btn')
-    const target = originals[index]
+    const originals = document.querySelectorAll<HTMLAnchorElement>('a.enter-btn');
+    const target = originals[index];
     if (target) {
-      target.click()
-      return
+      target.click();
+      return;
     }
-    const href = toSafeAbsoluteUrl(fallbackHref)
-    if (href) window.location.href = href
-  }
-  return btn
+    const href = toSafeAbsoluteUrl(fallbackHref);
+    if (href) window.location.href = href;
+  };
+  return btn;
 }
 
 /**
@@ -74,40 +74,41 @@ function buildEnterButton(label: string, index: number, fallbackHref: string): H
  * 早期入口已建壳则接管，否则自建；构建异常 → dismiss 还原原风控页。
  */
 export async function runSehuatangRiskApp(): Promise<void> {
-  console.log('[UMM] Sehuatang risk gate activated')
+  console.log('[UMM] Sehuatang risk gate activated');
 
-  const overlay = attachSehuatangOverlay() ?? createDetachedOverlay()
+  const overlay = attachSehuatangOverlay() ?? createDetachedOverlay();
   try {
-    const gate = extractRiskGate(document)
+    const gate = extractRiskGate(document);
     // 进入按钮是风控页的核心功能；缺失 = DOM 漂移，重建无意义。
     if (!gate || gate.enters.length === 0) {
-      overlay.dismiss()
-      return
+      overlay.dismiss();
+      return;
     }
 
-    const shell = el('div', 'umm-sht-shell umm-sht-shell--risk')
-    const panel = el('div', 'umm-sht-risk-panel')
+    const shell = el('div', 'umm-sht-shell umm-sht-shell--risk');
+    const panel = el('div', 'umm-sht-risk-panel');
 
-    panel.appendChild(el('div', 'umm-sht-risk-domain', gate.domain))
+    panel.appendChild(el('div', 'umm-sht-risk-domain', gate.domain));
 
     gate.enters.forEach((enter, index) => {
-      panel.appendChild(buildEnterButton(enter.label, index, enter.href))
-    })
+      panel.appendChild(buildEnterButton(enter.label, index, enter.href));
+    });
 
-    panel.appendChild(el('div', 'umm-sht-risk-line'))
+    panel.appendChild(el('div', 'umm-sht-risk-line'));
 
-    if (gate.warningTitle) panel.appendChild(el('h3', 'umm-sht-risk-warn-title', gate.warningTitle))
+    if (gate.warningTitle)
+      panel.appendChild(el('h3', 'umm-sht-risk-warn-title', gate.warningTitle));
     for (const warning of gate.warnings) {
-      panel.appendChild(el('p', 'umm-sht-risk-warn', warning))
+      panel.appendChild(el('p', 'umm-sht-risk-warn', warning));
     }
 
-    shell.appendChild(panel)
-    overlay.mountContent(shell)
+    shell.appendChild(panel);
+    overlay.mountContent(shell);
     console.log(
       `[UMM] Sehuatang risk gate rendered: ${gate.enters.length} enter buttons, ${gate.warnings.length} warnings`,
-    )
+    );
   } catch (error) {
-    console.error('[UMM] Sehuatang risk gate build failed, dismissing overlay:', error)
-    overlay.dismiss()
+    console.error('[UMM] Sehuatang risk gate build failed, dismissing overlay:', error);
+    overlay.dismiss();
   }
 }

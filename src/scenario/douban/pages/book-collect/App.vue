@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 import { collectTitleLabel } from '../../shared/collect-title-label';
-import { statusBadgeLabels } from '../../shared/status-labels'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { BookCollectData } from './types'
-import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue'
-import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue'
-import { usePaginator } from '../../shared/composables/usePaginator'
+import { statusBadgeLabels } from '../../shared/status-labels';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { BookCollectData } from './types';
+import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
+import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
+import { usePaginator } from '../../shared/composables/use-paginator';
 
 const props = defineProps<{
-  data: BookCollectData
-}>()
+  data: BookCollectData;
+}>();
 
 /** Derive the current page number from .thispage paginator label */
 const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.pageLinks,
   () => props.data.prevPageUrl,
   () => props.data.nextPageUrl,
-)
+);
 /** Human-readable tab label for the current collection sub-type */
-const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.book, props.data.subType, 'doing'))
+const titleLabel = computed(() =>
+  collectTitleLabel(statusBadgeLabels.book, props.data.subType, 'doing'),
+);
 </script>
 
 <template vapor>
@@ -46,7 +48,8 @@ const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.book, prop
             :key="opt.label"
             :href="opt.url || undefined"
             :class="['umm-bc-opt', opt.active ? 'umm-bc-opt--active' : '']"
-          >{{ opt.label }}</a>
+            >{{ opt.label }}</a
+          >
         </div>
       </div>
 
@@ -59,10 +62,7 @@ const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.book, prop
       <div v-if="data.items.length > 0" class="umm-bc-list">
         <div v-for="item in data.items" :key="item.subjectId" class="umm-bc-card">
           <a :href="item.url" class="umm-bc-cover-link" target="_blank">
-            <div
-              class="umm-bc-cover"
-              :style="{ backgroundImage: `url(${item.posterUrl})` }"
-            />
+            <div class="umm-bc-cover" :style="{ backgroundImage: `url(${item.posterUrl})` }" />
           </a>
           <div class="umm-bc-body">
             <a :href="item.url" class="umm-bc-title" target="_blank">{{ item.title }}</a>

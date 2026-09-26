@@ -45,7 +45,7 @@ export class MediaType {
    */
   static fromString(id: string): MediaType | null {
     const normalized = id.toLowerCase().trim();
-    const found = MediaType.KNOWN.find(t => t.id === normalized);
+    const found = MediaType.KNOWN.find((t) => t.id === normalized);
     return found ?? null;
   }
 
@@ -58,7 +58,9 @@ export class MediaType {
   static require(id: string): MediaType {
     const type = MediaType.fromString(id);
     if (!type) {
-      throw new RangeError(`Unknown media type: "${id}". Expected one of: movie, tv, music, book, game`);
+      throw new RangeError(
+        `Unknown media type: "${id}". Expected one of: movie, tv, music, book, game`,
+      );
     }
     return type;
   }

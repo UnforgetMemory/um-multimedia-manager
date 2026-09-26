@@ -7,49 +7,49 @@
  */
 
 export interface CelebrityWork {
-  title: string
-  url: string
+  title: string;
+  url: string;
 }
 
 export interface CelebrityItem {
   /** Personage ID from URL (e.g. '27481219') */
-  personageId: string
+  personageId: string;
   /** Display name (e.g. '冯小刚 Xiaogang Feng') */
-  name: string
+  name: string;
   /** Personage page URL */
-  personageUrl: string
+  personageUrl: string;
   /** Avatar image URL */
-  avatar: string
+  avatar: string;
   /** Role description text (e.g. '演员 Actor (饰 肖大力)') */
-  role: string
+  role: string;
   /** Role tooltip / full role title attribute */
-  roleDetail: string
+  roleDetail: string;
   /** Representative works (up to 3) */
-  works: CelebrityWork[]
+  works: CelebrityWork[];
   /** Whether the celebrity has a verified Douban account */
-  hasDoubanAccount: boolean
+  hasDoubanAccount: boolean;
 }
 
 export interface CelebrityGroup {
   /** Section heading (e.g. '导演 Director', '演员 Cast') */
-  heading: string
+  heading: string;
   /** Celebrities in this group */
-  celebrities: CelebrityItem[]
+  celebrities: CelebrityItem[];
 }
 
 export interface CelebritiesPageData {
   /** Page title (e.g. '抓特务 的全部演职员') */
-  title: string
+  title: string;
   /** Celebrity groups ordered as they appear on the page */
-  groups: CelebrityGroup[]
+  groups: CelebrityGroup[];
 }
 
 /**
  * Extract a personage ID from a personage URL like /personage/27481219/.
  */
 function extractPersonageId(url: string): string {
-  const m = url.match(/\/personage\/(\d+)\/?/)
-  return m ? m[1] : ''
+  const m = url.match(/\/personage\/(\d+)\/?/);
+  return m?.[1] ?? '';
 }
 
 /**
@@ -57,10 +57,10 @@ function extractPersonageId(url: string): string {
  * Falls back to empty string if not found.
  */
 function extractAvatarUrl(avatarEl: HTMLElement | null): string {
-  if (!avatarEl) return ''
-  const style = avatarEl.getAttribute('style') || ''
-  const m = style.match(/background-image:\s*url\(['"]?([^'")\s]+)['"]?\)/)
-  return m ? m[1] : ''
+  if (!avatarEl) return '';
+  const style = avatarEl.getAttribute('style') || '';
+  const m = style.match(/background-image:\s*url\(['"]?([^'")\s]+)['"]?\)/);
+  return m?.[1] ?? '';
 }
 
 /**
@@ -68,67 +68,68 @@ function extractAvatarUrl(avatarEl: HTMLElement | null): string {
  * Returns up to 3 works with title and URL.
  */
 function extractWorks(worksEl: HTMLElement | null): CelebrityWork[] {
-  if (!worksEl) return []
-  const works: CelebrityWork[] = []
+  if (!worksEl) return [];
+  const works: CelebrityWork[] = [];
   worksEl.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
-    const title = a.getAttribute('title') || a.textContent?.trim() || ''
-    const url = a.href || ''
+    const title = a.getAttribute('title') || a.textContent?.trim() || '';
+    const url = a.href || '';
     if (title) {
-      works.push({ title, url })
+      works.push({ title, url });
     }
-  })
-  return works
+  });
+  return works;
 }
 
 /**
  * Extract a single celebrity item from a li.celebrity element.
  */
 function extractCelebrity(li: HTMLLIElement): CelebrityItem | null {
-  const link = li.querySelector<HTMLAnchorElement>('a[href*="/personage/"]')
-  if (!link) return null
+  const link = li.querySelector<HTMLAnchorElement>('a[href*="/personage/"]');
+  if (!link) return null;
 
-  const personageUrl = link.href
-  const personageId = extractPersonageId(personageUrl)
-  if (!personageId) return null
+  const personageUrl = link.href;
+  const personageId = extractPersonageId(personageUrl);
+  if (!personageId) return null;
 
-  const avatarEl = li.querySelector<HTMLElement>('.avatar')
-  const avatar = extractAvatarUrl(avatarEl)
+  const avatarEl = li.querySelector<HTMLElement>('.avatar');
+  const avatar = extractAvatarUrl(avatarEl);
 
-  const infoEl = li.querySelector('.info')
-  if (!infoEl) return null
+  const infoEl = li.querySelector('.info');
+  if (!infoEl) return null;
 
-  const nameEl = infoEl.querySelector<HTMLAnchorElement>('.name a')
-  const name = nameEl?.textContent?.trim() || ''
+  const nameEl = infoEl.querySelector<HTMLAnchorElement>('.name a');
+  const name = nameEl?.textContent?.trim() || '';
 
-  const roleEl = infoEl.querySelector('.role')
-  const role = roleEl?.textContent?.trim() || ''
-  const roleDetail = roleEl?.getAttribute('title') || role
+  const roleEl = infoEl.querySelector('.role');
+  const role = roleEl?.textContent?.trim() || '';
+  const roleDetail = roleEl?.getAttribute('title') || role;
 
-  const worksEl = infoEl.querySelector('.works')
-  const works = extractWorks(worksEl as HTMLElement | null)
+  const worksEl = infoEl.querySelector('.works');
+  const works = extractWorks(worksEl as HTMLElement | null);
 
-  const hasDoubanAccount = link.classList.contains('has-account') ||
+  const hasDoubanAccount =
+    link.classList.contains('has-account') ||
     avatarEl?.classList.contains('has-account') ||
-    !!li.querySelector('.sns-card')
+    !!li.querySelector('.sns-card');
 
-  return { personageId, name, personageUrl, avatar, role, roleDetail, works, hasDoubanAccount }
+  return { personageId, name, personageUrl, avatar, role, roleDetail, works, hasDoubanAccount };
 }
 
 /**
  * Extract a single celebrity group (list-wrapper section).
  */
 function extractGroup(wrapper: HTMLElement): CelebrityGroup | null {
-  const headingEl = wrapper.querySelector('h2')
-  if (!headingEl) return null
-  const heading = headingEl.textContent?.trim() || ''
+  const headingEl = wrapper.querySelector('h2');
+  if (!headingEl) return null;
+  const heading = headingEl.textContent?.trim() || '';
 
-  const items: CelebrityItem[] = []
+  const items: CelebrityItem[] = [];
   wrapper.querySelectorAll<HTMLLIElement>('ul.celebrities-list > li.celebrity').forEach((li) => {
-    const item = extractCelebrity(li)
-    if (item) items.push(item)
-  })
+    const item = extractCelebrity(li);
+    if (item) items.push(item);
+  });
 
-  return { heading, celebrities: items }
+  return { heading, celebrities: items };
 }
 
 /**
@@ -136,19 +137,19 @@ function extractGroup(wrapper: HTMLElement): CelebrityGroup | null {
  * Returns null if the page does not contain the #celebrities container.
  */
 export function extractCelebritiesPageData(): CelebritiesPageData | null {
-  const celebritiesEl = document.querySelector('#celebrities')
-  if (!celebritiesEl) return null
+  const celebritiesEl = document.querySelector('#celebrities');
+  if (!celebritiesEl) return null;
 
-  const h1 = document.querySelector('#content h1')
-  const title = h1?.textContent?.trim() || ''
+  const h1 = document.querySelector('#content h1');
+  const title = h1?.textContent?.trim() || '';
 
-  const groups: CelebrityGroup[] = []
+  const groups: CelebrityGroup[] = [];
   celebritiesEl.querySelectorAll<HTMLElement>('.list-wrapper').forEach((wrapper) => {
-    const group = extractGroup(wrapper)
+    const group = extractGroup(wrapper);
     if (group && group.celebrities.length > 0) {
-      groups.push(group)
+      groups.push(group);
     }
-  })
+  });
 
-  return { title, groups }
+  return { title, groups };
 }

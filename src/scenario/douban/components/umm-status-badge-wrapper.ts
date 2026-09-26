@@ -1,5 +1,5 @@
-import { defineComponent, h, type PropType } from 'vue'
-import { UmmStatusBadge } from './UmmStatusBadge'
+import { defineComponent, h, type PropType } from 'vue';
+import { UmmStatusBadge } from './umm-status-badge';
 
 export const UmmStatusBadgeWrapper = defineComponent({
   name: 'UmmStatusBadgeWrapper',
@@ -10,6 +10,6 @@ export const UmmStatusBadgeWrapper = defineComponent({
     type: { type: String as PropType<'movie' | 'music' | 'book' | 'game'>, default: 'movie' },
   },
   setup(props) {
-    return () => h(UmmStatusBadge, { ...props })
+    return () => h(UmmStatusBadge, { ...props });
   },
-})
+});

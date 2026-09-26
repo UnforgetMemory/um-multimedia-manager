@@ -5,37 +5,41 @@
  * spinner, and syncs the theme onto the host element.
  */
 
-import { startThemeSync } from './theme-sync'
-import { COLOR_SURFACE_DARK, COLOR_SURFACE_LIGHT, COLOR_ACCENT_APPLE } from '@/entrypoints/content/styles/tokens'
+import { startThemeSync } from './theme-sync';
+import {
+  COLOR_SURFACE_DARK,
+  COLOR_SURFACE_LIGHT,
+  COLOR_ACCENT_APPLE,
+} from '@/entrypoints/content/styles/tokens';
 
 /** Shadow root CSS for loading spinner (shared across all overlays).
  *  Colors mirror the DARK Vibrancy surface (--umm-static-vibrancy-0 #1c1c1e)
  *  and light surface (#f7f9fc); kept literal because this early overlay
  *  cannot wait for the ?raw token composition. Shell must equal the mounted
  *  app surface pixel-for-pixel — no seams. */
-const SHADOW_CSS = `:host{--ov-bg:${COLOR_SURFACE_DARK};--ov-text:#f4f4f5;--ov-text-muted:rgb(255 255 255/0.58);--ov-ring:rgb(255 255 255/0.15);--ov-ring-top:${COLOR_ACCENT_APPLE};background:var(--ov-bg);transition:background-color 0.3s ease,color 0.3s ease,border-color 0.3s ease}:host([data-theme="light"]){--ov-bg:${COLOR_SURFACE_LIGHT};--ov-text:#151a23;--ov-text-muted:#5d6a81;--ov-ring:rgb(21 26 35/0.12);--ov-ring-top:var(--umm-ring-top-light, #4f6ef7);background:var(--ov-bg)}.ov-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--ov-text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ov-spinner{width:40px;height:40px;border:3px solid var(--ov-ring);border-top-color:var(--ov-ring-top);border-radius:50%;animation:ov-spin .8s linear infinite;box-sizing:border-box}.ov-title{font-size:1.25rem;font-weight:600}.ov-subtitle{font-size:.8125rem;color:var(--ov-text-muted)}@keyframes ov-spin{to{transform:rotate(360deg)}}`
+const SHADOW_CSS = `:host{--ov-bg:${COLOR_SURFACE_DARK};--ov-text:#f4f4f5;--ov-text-muted:rgb(255 255 255/0.58);--ov-ring:rgb(255 255 255/0.15);--ov-ring-top:${COLOR_ACCENT_APPLE};background:var(--ov-bg);transition:background-color 0.3s ease,color 0.3s ease,border-color 0.3s ease}:host([data-theme="light"]){--ov-bg:${COLOR_SURFACE_LIGHT};--ov-text:#151a23;--ov-text-muted:#5d6a81;--ov-ring:rgb(21 26 35/0.12);--ov-ring-top:var(--umm-ring-top-light, #4f6ef7);background:var(--ov-bg)}.ov-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--ov-text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ov-spinner{width:40px;height:40px;border:3px solid var(--ov-ring);border-top-color:var(--ov-ring-top);border-radius:50%;animation:ov-spin .8s linear infinite;box-sizing:border-box}.ov-title{font-size:1.25rem;font-weight:600}.ov-subtitle{font-size:.8125rem;color:var(--ov-text-muted)}@keyframes ov-spin{to{transform:rotate(360deg)}}@media (prefers-reduced-motion: reduce){.ov-spinner{animation:none}:host{transition:none}}`;
 
 /** Page-level style element ID scoped to the overlay */
 function getPageStyleId(overlayId: string): string {
-  return `${overlayId}-page-style`
+  return `${overlayId}-page-style`;
 }
 
 /** Page-level CSS to lock body and style overlay (injected into document root).
  *  Backgrounds mirror --umm-color-surface per theme (see SHADOW_CSS note). */
 function getPageCSS(overlayId: string, zIndex: number): string {
-  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:${zIndex}!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:${COLOR_SURFACE_DARK}!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:${COLOR_SURFACE_LIGHT}!important;color-scheme:light!important}body{overflow:hidden!important}`
+  return `#${overlayId}{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:${zIndex}!important;margin:0!important;padding:0!important;border:none!important;box-sizing:border-box!important;display:block!important;overflow-y:auto!important;background:${COLOR_SURFACE_DARK}!important;color-scheme:dark!important}#${overlayId}[data-theme="light"]{background:${COLOR_SURFACE_LIGHT}!important;color-scheme:light!important}body{overflow:hidden!important}`;
 }
 
 export interface OverlayOptions {
   /** Unique overlay element ID */
-  overlayId: string
+  overlayId: string;
   /** Subtitle text below "UMManager" */
-  subtitle: string
+  subtitle: string;
   /** Whether to expose window.__ummDismissDetailMask() (detail page only) */
-  exposeDismiss?: boolean
+  exposeDismiss?: boolean;
   /** Page-level host z-index (default 200; sehuatang needs a higher tier to
    *  cover Discuz fixed chrome yet stay below global .umm-overlay panels). */
-  zIndex?: number
+  zIndex?: number;
 }
 
 /**
@@ -43,63 +47,63 @@ export interface OverlayOptions {
  * Must be called at document_start.
  */
 export function createOverlay(options: OverlayOptions): HTMLElement {
-  const { overlayId, subtitle, exposeDismiss = false, zIndex = 200 } = options
+  const { overlayId, subtitle, exposeDismiss = false, zIndex = 200 } = options;
   // document_start guarantee: documentElement exists before any script runs.
-  const doc = document.documentElement
+  const doc = document.documentElement;
 
   // 1. Inject page-level body lock CSS
-  const pageStyle = document.createElement('style')
-  pageStyle.id = getPageStyleId(overlayId)
-  pageStyle.textContent = getPageCSS(overlayId, zIndex)
-  doc.appendChild(pageStyle)
+  const pageStyle = document.createElement('style');
+  pageStyle.id = getPageStyleId(overlayId);
+  pageStyle.textContent = getPageCSS(overlayId, zIndex);
+  doc.appendChild(pageStyle);
 
   // 2. Create overlay element with shadow DOM
-  const overlay = document.createElement('div')
-  overlay.id = overlayId
-  overlay.attachShadow({ mode: 'open' })
-  doc.appendChild(overlay)
+  const overlay = document.createElement('div');
+  overlay.id = overlayId;
+  overlay.attachShadow({ mode: 'open' });
+  doc.appendChild(overlay);
 
   // 3. Move to <body> on DOMContentLoaded (body may not exist at document_start)
   const moveToBody = () => {
     if (document.body && overlay.parentElement !== document.body) {
-      document.body.appendChild(overlay)
+      document.body.appendChild(overlay);
     }
-  }
+  };
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', moveToBody, { once: true })
+    document.addEventListener('DOMContentLoaded', moveToBody, { once: true });
   } else {
-    moveToBody()
+    moveToBody();
   }
 
   // 4. Inject shadow-root CSS
-  const shadow = overlay.shadowRoot!
-  const style = document.createElement('style')
-  style.textContent = SHADOW_CSS
-  shadow.appendChild(style)
+  const shadow = overlay.shadowRoot!;
+  const style = document.createElement('style');
+  style.textContent = SHADOW_CSS;
+  shadow.appendChild(style);
 
   // 5. Create loading spinner
-  const loading = document.createElement('div')
-  loading.className = 'ov-loading'
+  const loading = document.createElement('div');
+  loading.className = 'ov-loading';
   loading.innerHTML =
     '<div class="ov-spinner"></div>' +
     '<div class="ov-title">UMManager</div>' +
-    `<div class="ov-subtitle">${subtitle}</div>`
-  shadow.appendChild(loading)
+    `<div class="ov-subtitle">${subtitle}</div>`;
+  shadow.appendChild(loading);
 
   // 6. Sync theme onto host element
-  const stopThemeSync = startThemeSync(overlay)
+  const stopThemeSync = startThemeSync(overlay);
 
   // 7. Expose dismiss for document_idle handler (detail page only)
   if (exposeDismiss) {
-    ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-      stopThemeSync()
-      if (!overlay.parentNode) return
-      loading.remove()
-      const ps = document.getElementById(getPageStyleId(overlayId))
-      if (ps) ps.remove()
-      overlay.remove()
-    }
+    (window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
+      stopThemeSync();
+      if (!overlay.parentNode) return;
+      loading.remove();
+      const ps = document.getElementById(getPageStyleId(overlayId));
+      if (ps) ps.remove();
+      overlay.remove();
+    };
   }
 
-  return overlay
+  return overlay;
 }

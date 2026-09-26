@@ -5,7 +5,7 @@
  * Implementations live in the infrastructure layer and handle storage
  * (IndexedDB, in-memory, remote API, etc.).
  */
-import type { StoreRecord } from '@/domain/record/StoreRecord';
+import type { StoreRecord } from '@/domain/record/store-record';
 
 export interface IRecordRepository {
   /**

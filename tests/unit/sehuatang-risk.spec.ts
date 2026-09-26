@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test'
-import { JSDOM } from 'jsdom'
-import { isRiskGateDocument, extractRiskGate } from '@/scenario/sehuatang/extract-risk'
+import { test, expect } from '@playwright/test';
+import { JSDOM } from 'jsdom';
+import { isRiskGateDocument, extractRiskGate } from '@/scenario/sehuatang/risk-extract';
 
 /**
  * 色花堂风控页（年龄门）检测与提取测试（extract-risk）。
@@ -29,75 +29,77 @@ const RISK_HTML = `
   </p>
   <p>This article contains material which may offernd and may not be distributed, circulated, sold, hired, given, lent, shown, played or projected to a person under the age of 18 years. All models are 18 or older.</p>
 </div>
-`
+`;
 
 function docFrom(html: string): Document {
-  return new JSDOM(html).window.document
+  return new JSDOM(html).window.document;
 }
 
 test.describe('isRiskGateDocument — DOM 双标记判定', () => {
   test('风控页夹具命中（div.domain + a.enter-btn[href] 双 AND）', () => {
-    expect(isRiskGateDocument(docFrom(RISK_HTML))).toBe(true)
-  })
+    expect(isRiskGateDocument(docFrom(RISK_HTML))).toBe(true);
+  });
 
   test('正常 Discuz 列表页文档不命中', () => {
     const html =
-      '<div id="wp"><div id="ct"><div id="threadlisttableid"><table><tbody><tr></tr></tbody></table></div></div></div>'
-    expect(isRiskGateDocument(docFrom(html))).toBe(false)
-  })
+      '<div id="wp"><div id="ct"><div id="threadlisttableid"><table><tbody><tr></tr></tbody></table></div></div></div>';
+    expect(isRiskGateDocument(docFrom(html))).toBe(false);
+  });
 
   test('单标记不命中（严防误判的双 AND 红线）', () => {
-    expect(isRiskGateDocument(docFrom('<div class="domain">SEHUATANG.NET</div>'))).toBe(false)
+    expect(isRiskGateDocument(docFrom('<div class="domain">SEHUATANG.NET</div>'))).toBe(false);
     expect(
-      isRiskGateDocument(docFrom('<a href="https://www.sehuatang.net/" class="enter-btn">进入</a>')),
-    ).toBe(false)
-  })
+      isRiskGateDocument(
+        docFrom('<a href="https://www.sehuatang.net/" class="enter-btn">进入</a>'),
+      ),
+    ).toBe(false);
+  });
 
   test('domain 空文本不命中', () => {
     expect(
       isRiskGateDocument(
         docFrom('<div class="domain">   </div><a href="#" class="enter-btn">进入</a>'),
       ),
-    ).toBe(false)
-  })
-})
+    ).toBe(false);
+  });
+});
 
 test.describe('extractRiskGate — 风控页内容透传提取', () => {
   test('完整夹具：域名 / 双按钮（文档序）/ 警告标题与双段', () => {
-    const gate = extractRiskGate(docFrom(RISK_HTML))
-    expect(gate).not.toBeNull()
-    expect(gate!.domain).toBe('SEHUATANG.NET')
-    expect(gate!.enters).toHaveLength(2)
+    const gate = extractRiskGate(docFrom(RISK_HTML));
+    expect(gate).not.toBeNull();
+    expect(gate!.domain).toBe('SEHUATANG.NET');
+    expect(gate!.enters).toHaveLength(2);
     expect(gate!.enters[0]).toEqual({
       label: '满18岁，请点此进入',
       href: 'https://www.sehuatang.net/',
-    })
+    });
     expect(gate!.enters[1]).toEqual({
       label: 'If you are over 18，please click here',
       href: 'https://www.sehuatang.net/',
-    })
-    expect(gate!.warningTitle).toBe('警告 / WARNING')
-    expect(gate!.warnings).toHaveLength(2)
-    expect(gate!.warnings[0]).toContain('本物品內容可能令人反感')
-    expect(gate!.warnings[1]).toContain('All models are 18 or older')
-  })
+    });
+    expect(gate!.warningTitle).toBe('警告 / WARNING');
+    expect(gate!.warnings).toHaveLength(2);
+    expect(gate!.warnings[0]).toContain('本物品內容可能令人反感');
+    expect(gate!.warnings[1]).toContain('All models are 18 or older');
+  });
 
   test('源码缩进换行被空白归一化（标签/警告文本不夹带换行）', () => {
-    const gate = extractRiskGate(docFrom(RISK_HTML))!
-    expect(gate.enters.every((e) => !/\n/.test(e.label))).toBe(true)
-    expect(gate.warnings.every((w) => !/\n/.test(w))).toBe(true)
-    expect(gate.warningTitle).not.toMatch(/\n/)
-  })
+    const gate = extractRiskGate(docFrom(RISK_HTML))!;
+    expect(gate.enters.every((e) => !/\n/.test(e.label))).toBe(true);
+    expect(gate.warnings.every((w) => !/\n/.test(w))).toBe(true);
+    expect(gate.warningTitle).not.toMatch(/\n/);
+  });
 
   test('缺 down-content：警告标题 null、警告段空数组（域名/按钮不受影响）', () => {
-    const html = '<div class="domain">SEHUATANG.NET</div><a href="#" class="enter-btn">进入</a>'
-    const gate = extractRiskGate(docFrom(html))!
-    expect(gate.domain).toBe('SEHUATANG.NET')
-    expect(gate.warningTitle).toBeNull()
-    expect(gate.warnings).toEqual([])
-  })
+    const html = '<div class="domain">SEHUATANG.NET</div><a href="#" class="enter-btn">进入</a>';
+    const gate = extractRiskGate(docFrom(html))!;
+    expect(gate.domain).toBe('SEHUATANG.NET');
+    expect(gate.warningTitle).toBeNull();
+    expect(gate.warnings).toEqual([]);
+  });
 
   test('非风控文档 → null（编排层 dismiss 兜底依据）', () => {
-    expect(extractRiskGate(docFrom('<div id="ct"></div>'))).toBeNull()
-  })
-})
+    expect(extractRiskGate(docFrom('<div id="ct"></div>'))).toBeNull();
+  });
+});

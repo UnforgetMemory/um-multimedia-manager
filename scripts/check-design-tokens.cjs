@@ -10,84 +10,110 @@
  *
  * Usage: npm run ds:check   (exit 1 on any violation)
  */
-const fs = require('node:fs')
-const path = require('node:path')
+const fs = require('node:fs');
+const path = require('node:path');
 
-const root = path.resolve(__dirname, '..')
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8')
+const root = path.resolve(__dirname, '..');
+const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 
-const failures = []
-const ok = (msg) => console.log(`  ok  ${msg}`)
+const failures = [];
+const ok = (msg) => console.log(`  ok  ${msg}`);
 
 // ---------- 1. Tier-1 static palette parses ----------
-const staticCss = read('src/libraries/styles/tokens.static.css')
-const staticVars = new Map()
+const staticCss = read('src/libraries/styles/tokens.static.css');
+const staticVars = new Map();
 for (const m of staticCss.matchAll(/--umm-static-([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})/g)) {
-  staticVars.set(`--umm-static-${m[1]}`, m[2].toLowerCase())
+  staticVars.set(`--umm-static-${m[1]}`, m[2].toLowerCase());
 }
 // Motion statics: durations/easings carry non-color values (ms / cubic-bezier)
-for (const m of staticCss.matchAll(/--umm-static-(duration-[a-z0-9-]+|ease-[a-z0-9-]+):\s*([^;]+);/g)) {
-  staticVars.set(`--umm-static-${m[1]}`, m[2].trim())
+for (const m of staticCss.matchAll(
+  /--umm-static-(duration-[a-z0-9-]+|ease-[a-z0-9-]+):\s*([^;]+);/g,
+)) {
+  staticVars.set(`--umm-static-${m[1]}`, m[2].trim());
 }
 // Overlay statics: white-alpha / ink-tint / wish-dark carry rgba()/rgb() values
-for (const m of staticCss.matchAll(/--umm-static-(white-a\d+|ink(?:-island)?-[a-z0-9-]+|wish-[a-z0-9-]+):\s*([^;]+);/g)) {
-  staticVars.set(`--umm-static-${m[1]}`, m[2].trim())
+for (const m of staticCss.matchAll(
+  /--umm-static-(white-a\d+|ink(?:-island)?-[a-z0-9-]+|wish-[a-z0-9-]+):\s*([^;]+);/g,
+)) {
+  staticVars.set(`--umm-static-${m[1]}`, m[2].trim());
 }
-if (staticVars.size < 80) failures.push(`tokens.static.css: expected >=80 static vars, parsed ${staticVars.size}`)
-else ok(`tokens.static.css parsed (${staticVars.size} vars)`)
+if (staticVars.size < 80)
+  failures.push(`tokens.static.css: expected >=80 static vars, parsed ${staticVars.size}`);
+else ok(`tokens.static.css parsed (${staticVars.size} vars)`);
 
 // Duplicate definitions inside static file = drift risk
-const seen = new Set()
+const seen = new Set();
 for (const m of staticCss.matchAll(/(--umm-static-[a-z0-9-]+):/g)) {
-  if (seen.has(m[1])) failures.push(`tokens.static.css: duplicate definition ${m[1]}`)
-  seen.add(m[1])
+  if (seen.has(m[1])) failures.push(`tokens.static.css: duplicate definition ${m[1]}`);
+  seen.add(m[1]);
 }
-ok('tokens.static.css: no duplicate definitions')
+ok('tokens.static.css: no duplicate definitions');
 
 // ---------- 2. Tier-2 layers contain no raw palette literals ----------
-const styleCss = read('src/libraries/styles/style.css')
-const designTokens = read('src/scenario/douban/styles/design-tokens.css')
+const styleCss = read('src/libraries/styles/style.css');
+const designTokens = read('src/scenario/douban/styles/design-tokens.css');
 
-const hexIn = (name, css) => [...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0])
-const styleHex = hexIn('style.css', styleCss)
-if (styleHex.length) failures.push(`style.css: raw hex literals not allowed (Tier-2): ${styleHex.join(', ')}`)
-else ok('style.css: zero raw hex')
+const hexIn = (name, css) => [...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
+const styleHex = hexIn('style.css', styleCss);
+if (styleHex.length)
+  failures.push(`style.css: raw hex literals not allowed (Tier-2): ${styleHex.join(', ')}`);
+else ok('style.css: zero raw hex');
 
-const dtHex = hexIn('design-tokens.css', designTokens)
-if (dtHex.length) failures.push(`design-tokens.css: raw hex literals not allowed (Tier-2): ${dtHex.join(', ')}`)
-else ok('design-tokens.css: zero raw hex')
+const dtHex = hexIn('design-tokens.css', designTokens);
+if (dtHex.length)
+  failures.push(`design-tokens.css: raw hex literals not allowed (Tier-2): ${dtHex.join(', ')}`);
+else ok('design-tokens.css: zero raw hex');
 
-const dtHsl = [...designTokens.matchAll(/hsla?\(/g)]
-if (dtHsl.length) failures.push(`design-tokens.css: hsl() literals not allowed (${dtHsl.length}) — use var(--umm-static-*)`)
-else ok('design-tokens.css: zero hsl() literals')
+const dtHsl = [...designTokens.matchAll(/hsla?\(/g)];
+if (dtHsl.length)
+  failures.push(
+    `design-tokens.css: hsl() literals not allowed (${dtHsl.length}) — use var(--umm-static-*)`,
+  );
+else ok('design-tokens.css: zero hsl() literals');
 
-const rgbCount = (css) => [...css.matchAll(/rgba?\(/g)].length
-const styleRgb = rgbCount(styleCss)
-if (styleRgb) failures.push(`style.css: rgb() literals not allowed (${styleRgb}) — use var(--umm-static-*)`)
-else ok('style.css: zero rgb() literals')
-const dtRgb = rgbCount(designTokens)
-if (dtRgb) failures.push(`design-tokens.css: rgb() literals not allowed (${dtRgb}) — use var(--umm-static-*)`)
-else ok('design-tokens.css: zero rgb() literals')
+const rgbCount = (css) => [...css.matchAll(/rgba?\(/g)].length;
+const styleRgb = rgbCount(styleCss);
+if (styleRgb)
+  failures.push(`style.css: rgb() literals not allowed (${styleRgb}) — use var(--umm-static-*)`);
+else ok('style.css: zero rgb() literals');
+const dtRgb = rgbCount(designTokens);
+if (dtRgb)
+  failures.push(
+    `design-tokens.css: rgb() literals not allowed (${dtRgb}) — use var(--umm-static-*)`,
+  );
+else ok('design-tokens.css: zero rgb() literals');
 
 // Every var() a Tier-2 file references must exist (static, local, or reka runtime)
-const runtimeVars = new Set(['--reka-accordion-content-height', '--tw-enter-opacity', '--tw-exit-opacity', '--tw-enter-scale', '--tw-exit-scale', '--tw-enter-translate-x', '--tw-enter-translate-y', '--tw-enter-rotate', '--tw-exit-translate-x', '--tw-exit-translate-y', '--tw-exit-rotate'])
+const runtimeVars = new Set([
+  '--reka-accordion-content-height',
+  '--tw-enter-opacity',
+  '--tw-exit-opacity',
+  '--tw-enter-scale',
+  '--tw-exit-scale',
+  '--tw-enter-translate-x',
+  '--tw-enter-translate-y',
+  '--tw-enter-rotate',
+  '--tw-exit-translate-x',
+  '--tw-exit-translate-y',
+  '--tw-exit-rotate',
+]);
 const checkRefs = (name, css) => {
-  const localVars = new Set([...css.matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]))
+  const localVars = new Set([...css.matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]));
   for (const m of css.matchAll(/var\((--[a-z0-9-]+)/g)) {
-    const v = m[1]
+    const v = m[1];
     if (!staticVars.has(v) && !localVars.has(v) && !runtimeVars.has(v)) {
-      failures.push(`${name}: unresolved var reference ${v}`)
+      failures.push(`${name}: unresolved var reference ${v}`);
     }
   }
-}
-checkRefs('style.css', styleCss)
-checkRefs('design-tokens.css', designTokens)
-ok('Tier-2 var() references all resolve')
+};
+checkRefs('style.css', styleCss);
+checkRefs('design-tokens.css', designTokens);
+ok('Tier-2 var() references all resolve');
 
 // ---------- 3. Tier-3 tokens.ts spot-check against static ----------
 // SPOT_CHECKS resolve names from staticVars. DARK_OVERRIDES pin intentional
 // hex (5.16.0 dark tuning) so drift is still caught without forcing static.
-const tokensTs = read('src/entrypoints/content/styles/tokens.ts')
+const tokensTs = read('src/entrypoints/content/styles/tokens.ts');
 const SPOT_CHECKS = [
   ['COLOR_PRIMARY_START', 'brand-500'],
   ['COLOR_PRIMARY_END', 'brand-600'],
@@ -129,7 +155,7 @@ const SPOT_CHECKS = [
   ['COLOR_STATUS_TEXT_NONE', 'red-700'],
   ['COLOR_STATUS_TEXT_DONE_DARK', 'green-300'],
   ['COLOR_STATUS_TEXT_NONE_DARK', 'red-300'],
-]
+];
 // Intentional dark-theme overrides (5.16.0 Radix low-saturation tuning).
 // These deliberately diverge from tokens.static.css names; pin exact hex so
 // silent drift is still caught. Do not "fix" them back to the static palette.
@@ -138,52 +164,72 @@ const DARK_OVERRIDES = [
   ['COLOR_OVERLAY_TEXT_SECONDARY_DARK', '#a9b4c6', 'raised ~7.3:1 secondary ink'],
   ['COLOR_OVERLAY_TEXT_MUTED_DARK', '#8b98ad', 'raised ~5.2:1 muted tier gap vs secondary'],
   ['COLOR_OVERLAY_ACCENT_DARK', '#9ba8f0', 'Radix indigo-11 text-level accent'],
-]
+];
 // Normalize for comparison: hex compares verbatim; rgb()/rgba() compare by
 // numeric signature (tokens.ts uses rgba() commas, static uses rgb() spaces).
-const normValue = (s) => (s.startsWith('#') ? s.toLowerCase() : (s.match(/[\d.]+/g) || []).map((n) => parseFloat(n).toString()).join(','))
+const normValue = (s) =>
+  s.startsWith('#')
+    ? s.toLowerCase()
+    : (s.match(/[\d.]+/g) || []).map((n) => parseFloat(n).toString()).join(',');
 for (const [name, staticName] of SPOT_CHECKS) {
-  const re = new RegExp(`export const ${name} = '([^']+)'`)
-  const m = tokensTs.match(re)
-  const expected = staticVars.get(`--umm-static-${staticName}`)
-  if (!expected) { failures.push(`spot-check: unknown static ${staticName}`); continue }
-  if (!m) { failures.push(`tokens.ts: missing export ${name}`); continue }
-  if (normValue(m[1]) !== normValue(expected)) failures.push(`tokens.ts: ${name}=${m[1]} != static ${staticName} (${expected})`)
+  const re = new RegExp(`export const ${name} = '([^']+)'`);
+  const m = tokensTs.match(re);
+  const expected = staticVars.get(`--umm-static-${staticName}`);
+  if (!expected) {
+    failures.push(`spot-check: unknown static ${staticName}`);
+    continue;
+  }
+  if (!m) {
+    failures.push(`tokens.ts: missing export ${name}`);
+    continue;
+  }
+  if (normValue(m[1]) !== normValue(expected))
+    failures.push(`tokens.ts: ${name}=${m[1]} != static ${staticName} (${expected})`);
 }
-ok(`tokens.ts spot-checks (${SPOT_CHECKS.length})`)
+ok(`tokens.ts spot-checks (${SPOT_CHECKS.length})`);
 for (const [name, expectedHex, why] of DARK_OVERRIDES) {
-  const re = new RegExp(`export const ${name} = '([^']+)'`)
-  const m = tokensTs.match(re)
-  if (!m) { failures.push(`tokens.ts: missing export ${name}`); continue }
+  const re = new RegExp(`export const ${name} = '([^']+)'`);
+  const m = tokensTs.match(re);
+  if (!m) {
+    failures.push(`tokens.ts: missing export ${name}`);
+    continue;
+  }
   if (normValue(m[1]) !== normValue(expectedHex)) {
-    failures.push(`tokens.ts: ${name}=${m[1]} != intentional dark override ${expectedHex} (${why})`)
+    failures.push(
+      `tokens.ts: ${name}=${m[1]} != intentional dark override ${expectedHex} (${why})`,
+    );
   }
 }
-ok(`tokens.ts dark overrides pinned (${DARK_OVERRIDES.length})`)
+ok(`tokens.ts dark overrides pinned (${DARK_OVERRIDES.length})`);
 
 // Semantic map guard: wish must be amber family, never blue (ADR-018 D3 regression guard)
 if (/COLOR_WISH_START\s*=\s*'#(3b82f6|2563eb|1d4ed8)'/i.test(tokensTs)) {
-  failures.push('tokens.ts: COLOR_WISH_* regressed to blue — wish semantic is amber')
+  failures.push('tokens.ts: COLOR_WISH_* regressed to blue — wish semantic is amber');
 }
-ok('wish=amber semantic guard')
+ok('wish=amber semantic guard');
 
 // ---------- 4. WCAG contrast assertions on key role pairs (ADR-019 D2) ----------
 // Fail-closed: only 6-digit hex reaches lum(); anything else is a failure.
 function lum(hex) {
-  const h = hex.replace('#', '')
-  if (!/^[0-9a-f]{6}$/i.test(h)) return NaN
+  const h = hex.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(h)) return NaN;
   const ch = [0, 2, 4].map((i) => {
-    let c = parseInt(h.slice(i, i + 2), 16) / 255
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
-  })
-  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+    let c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
 }
 function contrast(fg, bg) {
-  const l1 = lum(fg); const l2 = lum(bg)
-  if (Number.isNaN(l1) || Number.isNaN(l2)) return NaN
-  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
+  const l1 = lum(fg);
+  const l2 = lum(bg);
+  if (Number.isNaN(l1) || Number.isNaN(l2)) return NaN;
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
-const S = (n) => { const v = staticVars.get(n); if (!v) failures.push(`contrast module: missing static ${n}`); return v }
+const S = (n) => {
+  const v = staticVars.get(n);
+  if (!v) failures.push(`contrast module: missing static ${n}`);
+  return v;
+};
 const PAIRS = [
   ['L primary/on-primary', '--umm-static-neutral-00', '--umm-static-brand-600', 4.5],
   ['L on-surface/surface', '--umm-static-neutral-900', '--umm-static-neutral-50', 4.5],
@@ -227,22 +273,28 @@ const PAIRS = [
   ['L ink-white/amber700-btn', '--umm-static-neutral-00', '--umm-static-amber-700', 4.5],
   // macOS Vibrancy dark adoption (STYLEKIT macos-vibrancy / ADR-021)
   ['D link-apple/vibrancy0', '--umm-static-apple-blue', '--umm-static-vibrancy-0', 4.5],
-  ['D link-apple-bright/vibrancy1', '--umm-static-apple-blue-bright', '--umm-static-vibrancy-1', 4.5],
+  [
+    'D link-apple-bright/vibrancy1',
+    '--umm-static-apple-blue-bright',
+    '--umm-static-vibrancy-1',
+    4.5,
+  ],
   ['D white/vibrancy2-btn', '--umm-static-neutral-00', '--umm-static-vibrancy-2', 4.5],
   // NeoDB dark buttons — Primer/Radix desaturated fills x WHITE ink (Wave-F)
   ['D white/neodb-amber-dark', '--umm-static-neutral-00', '--umm-static-neodb-amber-dark', 4.5],
   ['D white/neodb-green-dark', '--umm-static-neutral-00', '--umm-static-neodb-green-dark', 4.5],
   ['D white/neodb-indigo-dark', '--umm-static-neutral-00', '--umm-static-neodb-indigo-dark', 4.5],
   ['D white/neodb-violet-dark', '--umm-static-neutral-00', '--umm-static-neodb-violet-dark', 4.5],
-]
+];
 for (const [label, fgN, bgN, min] of PAIRS) {
-  const fg = S(fgN); const bg = S(bgN)
-  if (!fg || !bg) continue
-  const r = contrast(fg, bg)
-  if (r < min) failures.push(`contrast ${label}: ${r.toFixed(2)} < ${min} (${fg} on ${bg})`)
-  else console.log(`  ok  contrast ${label}: ${r.toFixed(2)}:1`)
+  const fg = S(fgN);
+  const bg = S(bgN);
+  if (!fg || !bg) continue;
+  const r = contrast(fg, bg);
+  if (r < min) failures.push(`contrast ${label}: ${r.toFixed(2)} < ${min} (${fg} on ${bg})`);
+  else console.log(`  ok  contrast ${label}: ${r.toFixed(2)}:1`);
 }
-ok(`WCAG pair assertions (${PAIRS.length})`)
+ok(`WCAG pair assertions (${PAIRS.length})`);
 
 // ---------- 4b. Status badge ink source guard (2026-08-30 regression lock) ----------
 // base.css badge variants must declare their ink token explicitly.
@@ -255,96 +307,153 @@ ok(`WCAG pair assertions (${PAIRS.length})`)
 // (explicit user override). Banned for wish: warm amber/gold fills (ΔE-proven
 // red-adjacent), deep ink text (rejected twice), the v6 90deg gold strip
 // (family-breaking). none = RED (既定设计，锁死不可改).
-const baseCssRaw = read('src/scenario/douban/styles/base.css')
+const baseCssRaw = read('src/scenario/douban/styles/base.css');
 // Strip comments BEFORE matching: a `}` inside a comment would truncate the
 // [^}]* block capture, and comment text must never satisfy/trip a guard.
-const baseCss = baseCssRaw.replace(/\/\*[\s\S]*?\*\//g, '')
-const wishBlocks = [...baseCss.matchAll(/\.umm-status--wish\s*\{([^}]*)\}/gs)].map((m) => m[1])
+const baseCss = baseCssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
+const wishBlocks = [...baseCss.matchAll(/\.umm-status--wish\s*\{([^}]*)\}/gs)].map((m) => m[1]);
 if (wishBlocks.length === 0) {
-  failures.push('base.css: .umm-status--wish rule missing')
+  failures.push('base.css: .umm-status--wish rule missing');
 } else {
-  const lightWish = wishBlocks.find((b) => /linear-gradient\(180deg,\s*var\(--umm-static-violet-600\)/.test(b) && /var\(--umm-static-violet-700\)/.test(b))
-  const darkWish = wishBlocks.find((b) => /background:\s*var\(--umm-static-violet-700\)/.test(b) && !/linear-gradient/.test(b))
+  const lightWish = wishBlocks.find(
+    (b) =>
+      /linear-gradient\(\s*180deg,\s*var\(--umm-static-violet-600\)/.test(b) &&
+      /var\(--umm-static-violet-700\)/.test(b),
+  );
+  const darkWish = wishBlocks.find(
+    (b) => /background:\s*var\(--umm-static-violet-700\)/.test(b) && !/linear-gradient/.test(b),
+  );
   if (!lightWish || !/color:\s*var\(--umm-static-neutral-00\)/.test(lightWish)) {
-    failures.push('base.css: light .umm-status--wish must be vertical violet-600→700 gradient x WHITE ink (round-4 C1)')
+    failures.push(
+      'base.css: light .umm-status--wish must be vertical violet-600→700 gradient x WHITE ink (round-4 C1)',
+    );
   }
   if (!darkWish || !/color:\s*var\(--umm-static-neutral-00\)/.test(darkWish)) {
-    failures.push('base.css: dark .umm-status--wish must be flat violet-700 x WHITE ink (dark family flat-solid convention)')
+    failures.push(
+      'base.css: dark .umm-status--wish must be flat violet-700 x WHITE ink (dark family flat-solid convention)',
+    );
   }
   if (wishBlocks.some((b) => /var\(--umm-static-(amber|gold)-/.test(b))) {
-    failures.push('base.css: .umm-status--wish must NOT use warm amber/gold fills (CIEDE2000-proven red-adjacent, user-rejected x3)')
+    failures.push(
+      'base.css: .umm-status--wish must NOT use warm amber/gold fills (CIEDE2000-proven red-adjacent, user-rejected x3)',
+    );
   }
   if (wishBlocks.some((b) => /90deg|var\(--umm-static-wish-ink-dark\)/.test(b))) {
-    failures.push('base.css: .umm-status--wish must NOT use the v6 90deg gold strip (user-rejected as family-breaking)')
+    failures.push(
+      'base.css: .umm-status--wish must NOT use the v6 90deg gold strip (user-rejected as family-breaking)',
+    );
   }
-  if (wishBlocks.some((b) => /color:\s*var\(--umm-static-wish-ink\)|color:\s*var\(--umm-static-neutral-1000\)/.test(b))) {
-    failures.push('base.css: .umm-status--wish must NOT use deep ink text (user-rejected as 墨色-blends-with-fill)')
+  if (
+    wishBlocks.some((b) =>
+      /color:\s*var\(--umm-static-wish-ink\)|color:\s*var\(--umm-static-neutral-1000\)/.test(b),
+    )
+  ) {
+    failures.push(
+      'base.css: .umm-status--wish must NOT use deep ink text (user-rejected as 墨色-blends-with-fill)',
+    );
   }
 }
-const noneBlocks = [...baseCss.matchAll(/\.umm-status--none\s*\{([^}]*)\}/gs)]
-const redNoneLight = noneBlocks.some((m) => /background:\s*linear-gradient\([^)]*var\(--umm-static-red-600\)/.test(m[1]))
-const redNoneDark = noneBlocks.some((m) => /background:\s*var\(--umm-static-red-700\)/.test(m[1]))
+const noneBlocks = [...baseCss.matchAll(/\.umm-status--none\s*\{([^}]*)\}/gs)];
+const redNoneLight = noneBlocks.some((m) =>
+  /background:\s*linear-gradient\([^)]*var\(--umm-static-red-600\)/.test(m[1]),
+);
+const redNoneDark = noneBlocks.some((m) => /background:\s*var\(--umm-static-red-700\)/.test(m[1]));
 if (noneBlocks.length === 0 || !redNoneLight || !redNoneDark) {
-  failures.push('base.css: .umm-status--none MUST stay red (light red-gradient / dark red-700) — 既定设计，禁止改动')
+  failures.push(
+    'base.css: .umm-status--none MUST stay red (light red-gradient / dark red-700) — 既定设计，禁止改动',
+  );
 }
 for (const variant of ['done', 'none', 'wish', 'doing']) {
-  const blocks = [...baseCss.matchAll(new RegExp(`\\.umm-status--${variant}\\s*\\{([^}]*)\\}`, 'gs'))].map((m) => m[1])
-  if (blocks.length === 0 || blocks.some((b) => !/color:\s*var\(--umm-static-neutral-00\)/.test(b))) {
-    failures.push(`base.css: every .umm-status--${variant} block (light AND dark) must declare white ink explicitly (ink discipline)`)
+  const blocks = [
+    ...baseCss.matchAll(new RegExp(`\\.umm-status--${variant}\\s*\\{([^}]*)\\}`, 'gs')),
+  ].map((m) => m[1]);
+  if (
+    blocks.length === 0 ||
+    blocks.some((b) => !/color:\s*var\(--umm-static-neutral-00\)/.test(b))
+  ) {
+    failures.push(
+      `base.css: every .umm-status--${variant} block (light AND dark) must declare white ink explicitly (ink discipline)`,
+    );
   }
 }
-ok('status badge ink source guards')
+ok('status badge ink source guards');
 
 // Status chip theme adaptation (2026-08-29 sweep): series doing chip must keep
 // its dark-theme override (translucent dark-amber fill x amber-300 ink) —
 // a static light fill without a dark counterpart is the adaptation regression.
-const seriesCss = read('src/scenario/douban/styles/series.css')
-if (!/\.umm-series-status--doing\s*\{[^}]*\}/s.test(seriesCss) ||
-    !/:host\(\.umm-theme--dark\)\s*\.umm-series-status--doing\s*\{[^}]*color:\s*var\(--umm-static-amber-300\)/s.test(seriesCss)) {
-  failures.push('series.css: .umm-series-status--doing must keep a dark-theme override with amber-300 ink')
+const seriesCss = read('src/scenario/douban/styles/series.css');
+if (
+  !/\.umm-series-status--doing\s*\{[^}]*\}/s.test(seriesCss) ||
+  !/:host\(\.umm-theme--dark\)\s*\.umm-series-status--doing\s*\{[^}]*color:\s*var\(--umm-static-amber-300\)/s.test(
+    seriesCss,
+  )
+) {
+  failures.push(
+    'series.css: .umm-series-status--doing must keep a dark-theme override with amber-300 ink',
+  );
 }
-ok('series status chip dark-adaptation guard')
+ok('series status chip dark-adaptation guard');
 
 // Colored-TEXT tier guards (ADR-019 D2, 2026-08-29): light colored small text
 // needs the 700+ ramp. gold-500/600/700 on white measure 2.70/3.22/4.18 — the
 // shared rating badge must use the dedicated --umm-rating-gold-text token.
 if (!/--umm-rating-gold-text:\s*var\(--umm-static-gold-800\)/.test(designTokens)) {
-  failures.push('design-tokens.css: light --umm-rating-gold-text must be gold-800 (D2 text tier)')
+  failures.push('design-tokens.css: light --umm-rating-gold-text must be gold-800 (D2 text tier)');
 }
 if (!/--umm-rating-gold-text:\s*var\(--umm-static-amber-400\)/.test(designTokens)) {
-  failures.push('design-tokens.css: dark --umm-rating-gold-text must be amber-400 (D2 text tier)')
+  failures.push('design-tokens.css: dark --umm-rating-gold-text must be amber-400 (D2 text tier)');
 }
 for (const m of baseCss.matchAll(/\.umm-rating-score\.umm-rating--gold-\w+\s*\{([^}]*)\}/g)) {
   if (!/color:\s*var\(--umm-rating-gold-text\)/.test(m[1])) {
-    failures.push('base.css: rating gold text classes must use var(--umm-rating-gold-text) (gold-500/600/700 fail AA on white)')
-    break
+    failures.push(
+      'base.css: rating gold text classes must use var(--umm-rating-gold-text) (gold-500/600/700 fail AA on white)',
+    );
+    break;
   }
 }
-const personageCss = read('src/scenario/douban/styles/personage.css')
-const personageLight = personageCss.match(/:host\s*\{([^}]*)\}/s)
-if (personageLight && /--umm-rating-score:\s*var\(--umm-static-gold-(4|5|6)00\)/.test(personageLight[1])) {
-  failures.push('personage.css: light --umm-rating-score must be gold-800 (gold-500 measures 2.70:1 on white)')
+const personageCss = read('src/scenario/douban/styles/personage.css');
+const personageLight = personageCss.match(/:host\s*\{([^}]*)\}/s);
+if (
+  personageLight &&
+  /--umm-rating-score:\s*var\(--umm-static-gold-(4|5|6)00\)/.test(personageLight[1])
+) {
+  failures.push(
+    'personage.css: light --umm-rating-score must be gold-800 (gold-500 measures 2.70:1 on white)',
+  );
 }
-ok('colored-text tier guards (D2)')
+ok('colored-text tier guards (D2)');
 
 // ---------- 4. --umm-* light/dark key symmetry (global.ts overlay tiers) ----------
-const globalTs = read('src/entrypoints/content/styles/global.ts')
-const ummKeysIn = (block) => new Set([...block.matchAll(/--umm-([a-z0-9-]+):/g)].map((m) => `--umm-${m[1]}`))
-const lightBlock = globalTs.match(/export const THEME_VARS = `([\s\S]*?)`\n\nexport const THEME_VARS_DARK/s)?.[1] ?? ''
-const darkBlock = globalTs.match(/export const THEME_VARS_DARK = `([\s\S]*?)`\n\n\//s)?.[1] ?? ''
-const lightUmm = ummKeysIn(lightBlock)
-const darkUmm = ummKeysIn(darkBlock)
+const globalTs = read('src/entrypoints/content/styles/global.ts');
+const ummKeysIn = (block) =>
+  new Set([...block.matchAll(/--umm-([a-z0-9-]+):/g)].map((m) => `--umm-${m[1]}`));
+// `;?\n+ tolerates formatter choices (trailing semicolon after template
+// literal, blank-line count) — the guard locks token symmetry, not layout.
+const lightRe = new RegExp(
+  'export const THEME_VARS = `([\\s\\S]*?)`;?\\n+export const THEME_VARS_DARK',
+  's',
+);
+const darkRe = new RegExp('export const THEME_VARS_DARK = `([\\s\\S]*?)`;?\\n+/', 's');
+const lightBlock = globalTs.match(lightRe)?.[1] ?? '';
+const darkBlock = globalTs.match(darkRe)?.[1] ?? '';
+const lightUmm = ummKeysIn(lightBlock);
+const darkUmm = ummKeysIn(darkBlock);
 // --umm-ink-on-fill is theme-invariant by design (white ink on colored fills).
-const THEME_INVARIANT_UMM = new Set(['--umm-ink-on-fill'])
-for (const k of lightUmm) if (!darkUmm.has(k) && !THEME_INVARIANT_UMM.has(k)) failures.push(`global.ts: --umm key ${k} missing dark flip (THEME_VARS_DARK)`)
-for (const k of darkUmm) if (!lightUmm.has(k) && !THEME_INVARIANT_UMM.has(k)) failures.push(`global.ts: --umm key ${k} has dark flip but no light definition`)
-if (lightUmm.size === 0) failures.push('global.ts: failed to parse THEME_VARS block for --umm symmetry check')
-ok(`--umm-* light/dark key symmetry (${lightUmm.size} pairs)`)
+const THEME_INVARIANT_UMM = new Set(['--umm-ink-on-fill']);
+for (const k of lightUmm)
+  if (!darkUmm.has(k) && !THEME_INVARIANT_UMM.has(k))
+    failures.push(`global.ts: --umm key ${k} missing dark flip (THEME_VARS_DARK)`);
+for (const k of darkUmm)
+  if (!lightUmm.has(k) && !THEME_INVARIANT_UMM.has(k))
+    failures.push(`global.ts: --umm key ${k} has dark flip but no light definition`);
+if (lightUmm.size === 0)
+  failures.push('global.ts: failed to parse THEME_VARS block for --umm symmetry check');
+ok(`--umm-* light/dark key symmetry (${lightUmm.size} pairs)`);
 
 // ---------- result ----------
 if (failures.length) {
-  console.error(`\n✗ ds:check FAILED (${failures.length})`)
-  for (const f of failures) console.error(`  ✗ ${f}`)
-  process.exit(1)
+  console.error(`\n✗ ds:check FAILED (${failures.length})`);
+  for (const f of failures) console.error(`  ✗ ${f}`);
+  process.exit(1);
 }
-console.log('\n✓ ds:check passed — token tiers aligned')
+console.log('\n✓ ds:check passed — token tiers aligned');

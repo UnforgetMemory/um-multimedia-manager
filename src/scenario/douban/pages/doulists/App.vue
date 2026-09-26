@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { DoulistsPageData } from './types'
-import { CATEGORY_LABELS } from './types'
-import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue'
-import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue'
-import { usePaginator } from '../../shared/composables/usePaginator'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { DoulistsPageData } from './types';
+import { CATEGORY_LABELS } from './types';
+import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
+import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
+import { usePaginator } from '../../shared/composables/use-paginator';
 
 const props = defineProps<{
-  data: DoulistsPageData
-}>()
+  data: DoulistsPageData;
+}>();
 
 const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.pageLinks,
   () => props.data.prevPageUrl,
   () => props.data.nextPageUrl,
-)
+);
 </script>
 
 <template vapor>
@@ -46,14 +46,20 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
         <template v-if="data.collectedUrl">
           <a
             :href="data.createdUrl || '#'"
-            :class="['umm-doulist-tab', data.activeTab === 'created' ? 'umm-doulist-tab--active' : '']"
+            :class="[
+              'umm-doulist-tab',
+              data.activeTab === 'created' ? 'umm-doulist-tab--active' : '',
+            ]"
           >
             创建的
             <span class="umm-doulist-count">{{ data.createdCount }}</span>
           </a>
           <a
             :href="data.collectedUrl"
-            :class="['umm-doulist-tab', data.activeTab === 'collected' ? 'umm-doulist-tab--active' : '']"
+            :class="[
+              'umm-doulist-tab',
+              data.activeTab === 'collected' ? 'umm-doulist-tab--active' : '',
+            ]"
           >
             关注的
             <span class="umm-doulist-count">{{ data.collectedCount }}</span>
@@ -90,7 +96,8 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
               v-if="item.category !== 'other'"
               class="umm-doulist-cat-badge"
               :class="`umm-doulist-cat--${item.category}`"
-            >{{ CATEGORY_LABELS[item.category] }}</span>
+              >{{ CATEGORY_LABELS[item.category] }}</span
+            >
           </div>
           <!-- Layer 3: Body -->
           <div class="umm-doulist-body">
@@ -106,7 +113,9 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
             <div class="umm-doulist-footer">
               <span v-if="item.updateTime" class="umm-doulist-time">{{ item.updateTime }}</span>
               <span class="umm-doulist-footer-space" />
-              <span v-if="item.followerCount > 0" class="umm-doulist-followers">{{ item.followerCount }} 关注</span>
+              <span v-if="item.followerCount > 0" class="umm-doulist-followers"
+                >{{ item.followerCount }} 关注</span
+              >
             </div>
           </div>
         </a>

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue'
-import type { MusicProfileData } from './types'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue';
+import type { MusicProfileData } from './types';
 
 defineProps<{
-  data: MusicProfileData
-}>()
+  data: MusicProfileData;
+}>();
 </script>
 
 <template vapor>
@@ -26,7 +26,7 @@ defineProps<{
       <!-- Stats -->
       <UmmStatBar
         v-if="data.stats.length > 0"
-        :items="data.stats.map(stat => ({ label: stat.label, value: stat.count, url: stat.url }))"
+        :items="data.stats.map((stat) => ({ label: stat.label, value: stat.count, url: stat.url }))"
       />
 
       <!-- Album Section -->
@@ -45,10 +45,7 @@ defineProps<{
             class="umm-mp-card"
             target="_blank"
           >
-            <div
-              class="umm-mp-card-cover"
-              :style="{ backgroundImage: `url(${item.posterUrl})` }"
-            />
+            <div class="umm-mp-card-cover" :style="{ backgroundImage: `url(${item.posterUrl})` }" />
             <span class="umm-mp-card-title">{{ item.title }}</span>
           </a>
         </div>
@@ -66,7 +63,8 @@ defineProps<{
             :href="m.url"
             class="umm-mp-musician"
             target="_blank"
-          >{{ m.name }}</a>
+            >{{ m.name }}</a
+          >
         </div>
       </div>
 

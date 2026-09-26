@@ -7,24 +7,28 @@
  *
  * Reuses UmmPageLayout, UmmStatBar from shared components.
  */
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue'
-import type { BookProfileData, RecentReadingItem } from './types'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue';
+import type { BookProfileData, RecentReadingItem } from './types';
 
 defineProps<{
-  data: BookProfileData
-}>()
+  data: BookProfileData;
+}>();
 
 function parseRating(rating: number): string {
-  return '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '½' : '')
+  return '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '½' : '');
 }
 
 function actionLabel(item: RecentReadingItem): string {
   switch (item.action) {
-    case 'read': return '读过'
-    case 'wish': return '想读'
-    case 'review': return '写了书评'
-    default: return ''
+    case 'read':
+      return '读过';
+    case 'wish':
+      return '想读';
+    case 'review':
+      return '写了书评';
+    default:
+      return '';
   }
 }
 </script>
@@ -32,7 +36,6 @@ function actionLabel(item: RecentReadingItem): string {
 <template vapor>
   <UmmPageLayout type="book">
     <div class="umm-book-profile-root">
-
       <!-- ===== Hero ===== -->
       <div class="umm-hero">
         <div
@@ -58,7 +61,8 @@ function actionLabel(item: RecentReadingItem): string {
           :class="{ 'umm-profile-nav-item--active': item.active }"
           target="_blank"
           rel="noopener"
-        >{{ item.label }}</a>
+          >{{ item.label }}</a
+        >
       </nav>
 
       <!-- ===== Stat Bars ===== -->
@@ -66,9 +70,33 @@ function actionLabel(item: RecentReadingItem): string {
         <UmmStatBar
           title="📚 读书"
           :items="[
-            ...(data.readTotal > 0 ? [{ label: '读过', value: data.readTotal, url: `https://book.douban.com/people/${data.user.userId}/collect` }] : []),
-            ...(data.wishTotal > 0 ? [{ label: '想读', value: data.wishTotal, url: `https://book.douban.com/people/${data.user.userId}/wish` }] : []),
-            ...(data.user.reviewCount > 0 ? [{ label: '书评', value: data.user.reviewCount, url: `https://book.douban.com/people/${data.user.userId}/reviews` }] : []),
+            ...(data.readTotal > 0
+              ? [
+                  {
+                    label: '读过',
+                    value: data.readTotal,
+                    url: `https://book.douban.com/people/${data.user.userId}/collect`,
+                  },
+                ]
+              : []),
+            ...(data.wishTotal > 0
+              ? [
+                  {
+                    label: '想读',
+                    value: data.wishTotal,
+                    url: `https://book.douban.com/people/${data.user.userId}/wish`,
+                  },
+                ]
+              : []),
+            ...(data.user.reviewCount > 0
+              ? [
+                  {
+                    label: '书评',
+                    value: data.user.reviewCount,
+                    url: `https://book.douban.com/people/${data.user.userId}/reviews`,
+                  },
+                ]
+              : []),
           ]"
         />
       </div>
@@ -82,7 +110,8 @@ function actionLabel(item: RecentReadingItem): string {
             :href="`https://book.douban.com/people/${data.user.userId}/collect`"
             class="umm-dash-head-link"
             target="_blank"
-          >全部{{ data.readTotal }}</a>
+            >全部{{ data.readTotal }}</a
+          >
         </h2>
         <div class="umm-dash-grid">
           <a
@@ -111,7 +140,8 @@ function actionLabel(item: RecentReadingItem): string {
             :href="`https://book.douban.com/people/${data.user.userId}/wish`"
             class="umm-dash-head-link"
             target="_blank"
-          >全部{{ data.wishTotal }}</a>
+            >全部{{ data.wishTotal }}</a
+          >
         </h2>
         <div class="umm-dash-grid">
           <a
@@ -139,7 +169,8 @@ function actionLabel(item: RecentReadingItem): string {
             :href="`https://book.douban.com/people/${data.user.userId}/authors`"
             class="umm-dash-head-link"
             target="_blank"
-          >全部{{ data.authors.length }}</a>
+            >全部{{ data.authors.length }}</a
+          >
         </h2>
         <div class="umm-author-grid">
           <a
@@ -169,7 +200,7 @@ function actionLabel(item: RecentReadingItem): string {
           >
             <!-- Date separator -->
             <div
-              v-if="idx === 0 || item.date !== data.recentReading[idx - 1].date"
+              v-if="idx === 0 || item.date !== data.recentReading[idx - 1]?.date"
               class="umm-timeline-date"
             >
               <span class="umm-timeline-date-dot" />
@@ -178,8 +209,16 @@ function actionLabel(item: RecentReadingItem): string {
             <!-- Entry -->
             <div class="umm-timeline-item">
               <span class="umm-timeline-action">{{ actionLabel(item) }}</span>
-              <a :href="item.href" class="umm-timeline-title" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
-              <span v-if="item.rating > 0" class="umm-timeline-stars">{{ '★'.repeat(item.rating) }}</span>
+              <a
+                :href="item.href"
+                class="umm-timeline-title"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ item.title }}</a
+              >
+              <span v-if="item.rating > 0" class="umm-timeline-stars">{{
+                '★'.repeat(item.rating)
+              }}</span>
               <p v-if="item.quote" class="umm-timeline-quote">{{ item.quote }}</p>
             </div>
           </template>
@@ -195,7 +234,8 @@ function actionLabel(item: RecentReadingItem): string {
             :href="`https://book.douban.com/people/${data.user.userId}/reviews`"
             class="umm-dash-head-link"
             target="_blank"
-          >全部{{ data.user.reviewCount }}</a>
+            >全部{{ data.user.reviewCount }}</a
+          >
         </h2>
         <div class="umm-reviews-list">
           <article v-for="rev in data.reviews" :key="rev.id" class="umm-review-card">
@@ -205,12 +245,28 @@ function actionLabel(item: RecentReadingItem): string {
               </a>
             </div>
             <div class="umm-review-body">
-              <a :href="rev.url" class="umm-review-title" target="_blank" rel="noopener noreferrer">{{ rev.title }}</a>
+              <a
+                :href="rev.url"
+                class="umm-review-title"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ rev.title }}</a
+              >
               <div class="umm-review-meta">
-                <a :href="rev.subjectUrl" target="_blank" rel="noopener noreferrer" class="umm-review-subject">{{ rev.subjectTitle }}</a>
-                <span v-if="rev.rating > 0" class="umm-review-stars">{{ parseRating(rev.rating) }}</span>
+                <a
+                  :href="rev.subjectUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="umm-review-subject"
+                  >{{ rev.subjectTitle }}</a
+                >
+                <span v-if="rev.rating > 0" class="umm-review-stars">{{
+                  parseRating(rev.rating)
+                }}</span>
               </div>
-              <p class="umm-review-excerpt">{{ rev.excerpt.slice(0, 200) }}{{ rev.excerpt.length > 200 ? '...' : '' }}</p>
+              <p class="umm-review-excerpt">
+                {{ rev.excerpt.slice(0, 200) }}{{ rev.excerpt.length > 200 ? '...' : '' }}
+              </p>
             </div>
           </article>
         </div>
@@ -224,7 +280,8 @@ function actionLabel(item: RecentReadingItem): string {
             :href="`https://www.douban.com/people/${data.user.userId}/subject_doulists/book`"
             class="umm-dash-head-link"
             target="_blank"
-          >全部</a>
+            >全部</a
+          >
         </h2>
         <div class="umm-doulist-grid">
           <a
@@ -236,11 +293,12 @@ function actionLabel(item: RecentReadingItem): string {
             rel="noopener noreferrer"
           >
             <span class="umm-doulist-item-title">{{ dl.title }}</span>
-            <span v-if="dl.recommendCount > 0" class="umm-doulist-item-count">{{ dl.recommendCount }}人推荐</span>
+            <span v-if="dl.recommendCount > 0" class="umm-doulist-item-count"
+              >{{ dl.recommendCount }}人推荐</span
+            >
           </a>
         </div>
       </div>
-
     </div>
   </UmmPageLayout>
 </template>

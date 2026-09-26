@@ -1,12 +1,14 @@
-import type { BillboardItem, HotSectionItem, ReviewItem, ScreeningItem } from './types'
-import { extractSubjectId } from '@/scenario/douban/shared/extract-subject-id'
+import type { BillboardItem, HotSectionItem, ReviewItem, ScreeningItem } from './types';
+import { extractSubjectId } from '@/scenario/douban/shared/subject-id-extract';
 
 function sanitizeHref(href: string): string {
   try {
-    const url = new URL(href, window.location.origin)
-    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href
-  } catch { /* invalid URL */ }
-  return ''
+    const url = new URL(href, window.location.origin);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch {
+    /* invalid URL */
+  }
+  return '';
 }
 
 /**
@@ -20,45 +22,57 @@ function sanitizeHref(href: string): string {
  * - Returns items sorted by groupIndex
  */
 export function parseScreeningItems(): ScreeningItem[] {
-  const items: ScreeningItem[] = []
-  const seenSubjectIds = new Set<string>()
-  let currentGroupIndex = 0
+  const items: ScreeningItem[] = [];
+  const seenSubjectIds = new Set<string>();
+  let currentGroupIndex = 0;
 
-  document.querySelectorAll('#screening .ui-slide-item').forEach(item => {
-    const el = item as HTMLElement
-    if (el.classList.contains('ui-slide-item-duplicate')) return
+  document.querySelectorAll('#screening .ui-slide-item').forEach((item) => {
+    const el = item as HTMLElement;
+    if (el.classList.contains('ui-slide-item-duplicate')) return;
 
-    const dstat = el.dataset.dstatAreaid || ''
+    const dstat = el.dataset.dstatAreaid || '';
     if (dstat) {
-      const parts = dstat.split('_')
-      currentGroupIndex = parseInt(parts[parts.length - 1] || '0', 10)
+      const parts = dstat.split('_');
+      currentGroupIndex = parseInt(parts[parts.length - 1] || '0', 10);
     }
 
-    const subjectId = extractSubjectId(item)
-    if (!subjectId || seenSubjectIds.has(subjectId)) return
-    seenSubjectIds.add(subjectId)
+    const subjectId = extractSubjectId(item);
+    if (!subjectId || seenSubjectIds.has(subjectId)) return;
+    seenSubjectIds.add(subjectId);
 
-    const title = el.dataset.title || ''
-    const rate = el.dataset.rate || ''
-    const starNum = el.dataset.star || '00'
-    const intro = el.dataset.intro || ''
+    const title = el.dataset.title || '';
+    const rate = el.dataset.rate || '';
+    const starNum = el.dataset.star || '00';
+    const intro = el.dataset.intro || '';
 
-    const posterLink = item.querySelector('.poster a')
-    let posterUrl = ''
-    let posterAlt = ''
-    let href = ''
+    const posterLink = item.querySelector('.poster a');
+    let posterUrl = '';
+    let posterAlt = '';
+    let href = '';
     if (posterLink) {
-      href = sanitizeHref((posterLink as HTMLAnchorElement).href || posterLink.getAttribute('href') || '')
-      const imgEl = posterLink.querySelector('img')
-      posterUrl = imgEl?.getAttribute('src') || ''
-      posterAlt = imgEl?.getAttribute('alt') || title
+      href = sanitizeHref(
+        (posterLink as HTMLAnchorElement).href || posterLink.getAttribute('href') || '',
+      );
+      const imgEl = posterLink.querySelector('img');
+      posterUrl = imgEl?.getAttribute('src') || '';
+      posterAlt = imgEl?.getAttribute('alt') || title;
     }
 
-    items.push({ groupIndex: currentGroupIndex, subjectId, title, rate, starNum, intro, posterUrl, posterAlt, href })
-  })
+    items.push({
+      groupIndex: currentGroupIndex,
+      subjectId,
+      title,
+      rate,
+      starNum,
+      intro,
+      posterUrl,
+      posterAlt,
+      href,
+    });
+  });
 
-  items.sort((a, b) => a.groupIndex - b.groupIndex)
-  return items
+  items.sort((a, b) => a.groupIndex - b.groupIndex);
+  return items;
 }
 
 /**
@@ -71,26 +85,28 @@ export function parseScreeningItems(): ScreeningItem[] {
  * Subject ID is extracted from links inside the row.
  */
 export function parseBillboardItems(): BillboardItem[] {
-  const items: BillboardItem[] = []
+  const items: BillboardItem[] = [];
 
-  document.querySelectorAll('#billboard table tr').forEach(row => {
-    const orderTd = row.querySelector('td.order')
-    const titleTd = row.querySelector('td.title')
-    if (!orderTd || !titleTd) return
+  document.querySelectorAll('#billboard table tr').forEach((row) => {
+    const orderTd = row.querySelector('td.order');
+    const titleTd = row.querySelector('td.title');
+    if (!orderTd || !titleTd) return;
 
-    const titleLink = titleTd.querySelector('a')
-    if (!titleLink) return
+    const titleLink = titleTd.querySelector('a');
+    if (!titleLink) return;
 
-    const order = orderTd.textContent?.trim() || ''
-    const title = titleLink.textContent?.trim() || ''
-    const href = sanitizeHref((titleLink as HTMLAnchorElement).href || titleLink.getAttribute('href') || '')
-    const subjectId = extractSubjectId(row)
+    const order = orderTd.textContent?.trim() || '';
+    const title = titleLink.textContent?.trim() || '';
+    const href = sanitizeHref(
+      (titleLink as HTMLAnchorElement).href || titleLink.getAttribute('href') || '',
+    );
+    const subjectId = extractSubjectId(row);
 
-    if (!subjectId) return
-    items.push({ order, title, href, subjectId })
-  })
+    if (!subjectId) return;
+    items.push({ order, title, href, subjectId });
+  });
 
-  return items
+  return items;
 }
 
 /**
@@ -108,31 +124,35 @@ export function parseBillboardItems(): BillboardItem[] {
  * - Episodes info (optional) from `.subject-card-item-episodes-info`
  */
 export function parseHotSection(selector: string): HotSectionItem[] {
-  const items: HotSectionItem[] = []
+  const items: HotSectionItem[] = [];
 
-  document.querySelectorAll(`${selector} .swiper-slide:not(.swiper-slide-duplicate) .subject-card`).forEach(card => {
-    const subjectId = extractSubjectId(card)
-    if (!subjectId) return
+  document
+    .querySelectorAll(`${selector} .swiper-slide:not(.swiper-slide-duplicate) .subject-card`)
+    .forEach((card) => {
+      const subjectId = extractSubjectId(card);
+      if (!subjectId) return;
 
-    const titleSpan = card.querySelector('.subject-card-item-title-text')
-    const title = titleSpan?.textContent?.trim() || ''
+      const titleSpan = card.querySelector('.subject-card-item-title-text');
+      const title = titleSpan?.textContent?.trim() || '';
 
-    const ratingSpan = card.querySelector('.subject-card-item-rating-score')
-    const rate = ratingSpan?.textContent?.trim() || ''
+      const ratingSpan = card.querySelector('.subject-card-item-rating-score');
+      const rate = ratingSpan?.textContent?.trim() || '';
 
-    const coverImg = card.querySelector('.subject-card-item-cover img')
-    const posterUrl = coverImg?.getAttribute('src') || ''
+      const coverImg = card.querySelector('.subject-card-item-cover img');
+      const posterUrl = coverImg?.getAttribute('src') || '';
 
-    const link = card.querySelector('a')
-    const href = sanitizeHref((link as HTMLAnchorElement)?.href || link?.getAttribute('href') || '')
+      const link = card.querySelector('a');
+      const href = sanitizeHref(
+        (link as HTMLAnchorElement)?.href || link?.getAttribute('href') || '',
+      );
 
-    const episodesInfo = card.querySelector('.subject-card-item-episodes-info')
-    const episodes = episodesInfo?.textContent?.trim()
+      const episodesInfo = card.querySelector('.subject-card-item-episodes-info');
+      const episodes = episodesInfo?.textContent?.trim();
 
-    items.push({ subjectId, title, rate, posterUrl, href, ...(episodes ? { episodes } : {}) })
-  })
+      items.push({ subjectId, title, rate, posterUrl, href, ...(episodes ? { episodes } : {}) });
+    });
 
-  return items
+  return items;
 }
 
 /**
@@ -141,20 +161,22 @@ export function parseHotSection(selector: string): HotSectionItem[] {
  * Extracts subject ID and href from `.review-hd a[href*="/subject/"]`.
  */
 export function parseReviewItems(): ReviewItem[] {
-  const items: ReviewItem[] = []
+  const items: ReviewItem[] = [];
 
-  document.querySelectorAll('#reviews .review').forEach(review => {
-    const movieLink = review.querySelector('.review-hd a')
-    if (!movieLink) return
+  document.querySelectorAll('#reviews .review').forEach((review) => {
+    const movieLink = review.querySelector('.review-hd a');
+    if (!movieLink) return;
 
-    const href = sanitizeHref((movieLink as HTMLAnchorElement).href || movieLink.getAttribute('href') || '')
-    if (!href) return
+    const href = sanitizeHref(
+      (movieLink as HTMLAnchorElement).href || movieLink.getAttribute('href') || '',
+    );
+    if (!href) return;
 
-    const match = href.match(/\/subject\/(\d+)/)
-    if (!match) return
+    const match = href.match(/\/subject\/(\d+)/);
+    if (!match) return;
 
-    items.push({ subjectId: match[1], href })
-  })
+    items.push({ subjectId: match[1] ?? '', href });
+  });
 
-  return items
+  return items;
 }

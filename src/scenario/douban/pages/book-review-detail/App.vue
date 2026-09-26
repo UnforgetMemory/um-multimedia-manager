@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { BookReviewDetailData } from './types'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { BookReviewDetailData } from './types';
 
 defineProps<{
-  data: BookReviewDetailData
-}>()
+  data: BookReviewDetailData;
+}>();
 
 /** Render 0-10 rating as ★/½/☆ characters */
 function starHtml(rating: number): string {
-  const full = Math.max(0, Math.floor(rating))
-  const half = rating - full >= 0.5
-  const empty = Math.max(0, 5 - full - (half ? 1 : 0))
-  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
+  const full = Math.max(0, Math.floor(rating));
+  const half = rating - full >= 0.5;
+  const empty = Math.max(0, 5 - full - (half ? 1 : 0));
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
 }
 </script>
 
@@ -47,7 +47,9 @@ function starHtml(rating: number): string {
           />
         </a>
         <div class="umm-rd-author-info">
-          <a :href="data.authorUrl" class="umm-rd-author-name" target="_blank">{{ data.authorName }}</a>
+          <a :href="data.authorUrl" class="umm-rd-author-name" target="_blank">{{
+            data.authorName
+          }}</a>
           <div class="umm-rd-meta-line">
             <span v-if="data.date" class="umm-rd-date">{{ data.date }}</span>
             <span v-if="data.location" class="umm-rd-location">· {{ data.location }}</span>

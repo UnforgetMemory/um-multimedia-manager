@@ -48,7 +48,7 @@ export class Rating {
     const rating = Rating.fromNumber(value);
     if (!rating) {
       throw new RangeError(
-        `Invalid rating: ${value}. Must be between ${Rating.MIN} and ${Rating.MAX} in ${Rating.STEP} increments.`
+        `Invalid rating: ${value}. Must be between ${Rating.MIN} and ${Rating.MAX} in ${Rating.STEP} increments.`,
       );
     }
     return rating;

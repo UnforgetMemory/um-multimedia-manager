@@ -1,40 +1,52 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { safeSendMessage } from '@/libraries/utils/context'
-import { useI18n } from 'vue-i18n'
-import { Download, Upload } from 'lucide-vue-next'
-import { useConfirmStore } from '@/store/confirm'
-import { useToast } from '@/feature/composables/useToast'
-import { Switch } from '@/libraries/ui/switch'
-import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue'
-import SectionHeader from '@/libraries/ui/section-header/SectionHeader.vue'
-import LoadingButton from '@/libraries/ui/loading-button/LoadingButton.vue'
+import { ref } from 'vue';
+import { safeSendMessage } from '@/libraries/utils/context';
+import { useI18n } from 'vue-i18n';
+import { Download, Upload } from 'lucide-vue-next';
+import { useConfirmStore } from '@/store/confirm';
+import { useToast } from '@/feature/composables/use-toast';
+import { Switch } from '@/libraries/ui/switch';
+import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';
+import SectionHeader from '@/libraries/ui/section-header/SectionHeader.vue';
+import LoadingButton from '@/libraries/ui/loading-button/LoadingButton.vue';
 
-const { t } = useI18n()
-const toast = useToast()
-const { show } = useConfirmStore()
-const isExporting = ref(false)
-const isImporting = ref(false)
+const { t } = useI18n();
+const toast = useToast();
+const { show } = useConfirmStore();
+const isExporting = ref(false);
+const isImporting = ref(false);
 // ADR-016 decision 3: opt-in switch for WebDAV credentials on export AND
 // import. Defaults to off. Export warns about plaintext; import only applies
 // credentials when this switch is on AND the user confirms (malicious-backup
 // gate stays closed by default).
-const includeWebdavCredentials = ref(false)
+const includeWebdavCredentials = ref(false);
 
 async function performExport() {
-  isExporting.value = true
+  isExporting.value = true;
   try {
     const response = await safeSendMessage(
-      { type: 'EXPORT_DATA', payload: { includeWebDAVCredentials: includeWebdavCredentials.value } },
-      { timeout: 30000 }
-    )
-    if (!response?.success) throw new Error(response?.error || t('toast.exportFailed'))
-    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
-    toast.success(t('toast.exportSuccess'))
-  } catch (e: unknown) { toast.error(t('toast.exportFailed'), String(e)) } finally { isExporting.value = false }
+      {
+        type: 'EXPORT_DATA',
+        payload: { includeWebDAVCredentials: includeWebdavCredentials.value },
+      },
+      { timeout: 30000 },
+    );
+    if (!response?.success) throw new Error(response?.error || t('toast.exportFailed'));
+    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `umm-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(t('toast.exportSuccess'));
+  } catch (e: unknown) {
+    toast.error(t('toast.exportFailed'), String(e));
+  } finally {
+    isExporting.value = false;
+  }
 }
 
 async function exportData() {
@@ -42,8 +54,8 @@ async function exportData() {
   // surface a confirm dialog warning that the file will contain the password
   // in plaintext. Only proceed after explicit confirmation.
   if (!includeWebdavCredentials.value) {
-    await performExport()
-    return
+    await performExport();
+    return;
   }
   show({
     title: t('confirm.exportWithCredentials'),
@@ -52,36 +64,51 @@ async function exportData() {
     icon: Download,
     confirmText: t('common.exportData'),
     action: async () => {
-      await performExport()
+      await performExport();
     },
-  })
+  });
 }
 
 function triggerImport() {
-  const input = document.createElement('input'); input.type = 'file'; input.accept = '.json'
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
   input.onchange = async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return
-    const reader = new FileReader()
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const raw = (event.target?.result as string) || ''
-        const clean = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw
-        let payload: any
+        const raw = (event.target?.result as string) || '';
+        const clean = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+        let payload: any;
         try {
-          payload = JSON.parse(clean)
+          payload = JSON.parse(clean);
         } catch (parseErr: unknown) {
-          const preview = raw.slice(0, 80).replace(/[\x00-\x1f]/g, ch => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`)
-          console.error('[Import] JSON parse failed. Raw[:80]:', preview, 'length:', raw.length)
-          toast.error(t('toast.importFailed'), `${String(parseErr)}\n\nFile starts with: "${preview}"`)
-          return
+          const preview = raw
+            .slice(0, 80)
+            .replace(
+              /[\x00-\x1f]/g,
+              (ch) => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`,
+            );
+          console.error('[Import] JSON parse failed. Raw[:80]:', preview, 'length:', raw.length);
+          toast.error(
+            t('toast.importFailed'),
+            `${String(parseErr)}\n\nFile starts with: "${preview}"`,
+          );
+          return;
         }
-        let recordCount = 0
-        if (payload.stores) { for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length }
+        let recordCount = 0;
+        if (payload.stores) {
+          for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length;
+        }
         const fileHasCreds = !!(
           payload?.settings &&
-          (payload.settings.webdavUrl || payload.settings.webdavUsername || payload.settings.webdavPassword)
-        )
-        const restoreCreds = includeWebdavCredentials.value && fileHasCreds
+          (payload.settings.webdavUrl ||
+            payload.settings.webdavUsername ||
+            payload.settings.webdavPassword)
+        );
+        const restoreCreds = includeWebdavCredentials.value && fileHasCreds;
         show({
           title: t('confirm.importData'),
           description: t('confirm.importRecords', { count: recordCount.toLocaleString() }),
@@ -92,39 +119,59 @@ function triggerImport() {
           icon: Upload,
           confirmText: t('common.startImport'),
           action: async () => {
-            isImporting.value = true
+            isImporting.value = true;
             try {
-              let importPayload = payload
+              let importPayload = payload;
               if (payload.datasets && !payload.stores) {
-                const stores: Record<string, Record<string, any>> = {}
+                const stores: Record<string, Record<string, any>> = {};
                 for (const provider of ['douban', 'imdb', 'neodb', 'tmdb']) {
-                  const sn = `${provider}_records`
-                  if (payload.datasets[provider]) { stores[sn] = {}; for (const type of Object.keys(payload.datasets[provider])) { for (const r of payload.datasets[provider][type]) { stores[sn][`${type}::${r.providerId || r.id}`] = { url: r.url || '', status: r.status ?? 1, rating: r.rating ?? null, updatedAt: r.updatedAt || new Date().toISOString(), linkedIds: r.linkedIds || {} } } } }
+                  const sn = `${provider}_records`;
+                  if (payload.datasets[provider]) {
+                    stores[sn] = {};
+                    for (const type of Object.keys(payload.datasets[provider])) {
+                      for (const r of payload.datasets[provider][type]) {
+                        stores[sn][`${type}::${r.providerId || r.id}`] = {
+                          url: r.url || '',
+                          status: r.status ?? 1,
+                          rating: r.rating ?? null,
+                          updatedAt: r.updatedAt || new Date().toISOString(),
+                          linkedIds: r.linkedIds || {},
+                        };
+                      }
+                    }
+                  }
                 }
-                importPayload = { stores, settings: payload.settings }
+                importPayload = { stores, settings: payload.settings };
               }
-              const res = await safeSendMessage({
-                type: 'IMPORT_DATA',
-                payload: { ...importPayload, includeWebDAVCredentials: restoreCreds },
-              }, { timeout: 30000 })
+              const res = await safeSendMessage(
+                {
+                  type: 'IMPORT_DATA',
+                  payload: { ...importPayload, includeWebDAVCredentials: restoreCreds },
+                },
+                { timeout: 30000 },
+              );
               if (res?.success) {
-                toast.success(t('toast.importSuccess'))
+                toast.success(t('toast.importSuccess'));
               } else {
-                console.error('[Import] background handler returned error:', JSON.stringify(res))
-                throw new Error(res?.error || 'Import returned no response')
+                console.error('[Import] background handler returned error:', JSON.stringify(res));
+                throw new Error(res?.error || 'Import returned no response');
               }
             } catch (e: unknown) {
-              const errMsg = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
-              console.error('[Import] action error:', errMsg)
-              toast.error(t('toast.importFailed'), errMsg)
-            } finally { isImporting.value = false }
+              const errMsg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+              console.error('[Import] action error:', errMsg);
+              toast.error(t('toast.importFailed'), errMsg);
+            } finally {
+              isImporting.value = false;
+            }
           },
-        })
-      } catch (e: unknown) { toast.error(t('toast.importFailed'), String(e)) }
-    }
-    reader.readAsText(file)
-  }
-  input.click()
+        });
+      } catch (e: unknown) {
+        toast.error(t('toast.importFailed'), String(e));
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 </script>
 
@@ -152,7 +199,10 @@ function triggerImport() {
       />
     </div>
     <div class="umm:flex umm:items-center umm:justify-between umm:mt-3 umm:gap-3">
-      <label class="umm:text-sm umm:text-muted-foreground umm:cursor-pointer" for="umm-include-webdav-creds">
+      <label
+        class="umm:text-sm umm:text-muted-foreground umm:cursor-pointer"
+        for="umm-include-webdav-creds"
+      >
         {{ t('common.includeWebdavCredentials') }}
       </label>
       <Switch id="umm-include-webdav-creds" v-model="includeWebdavCredentials" />

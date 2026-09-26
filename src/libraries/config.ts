@@ -3,7 +3,7 @@
  * 从 Tampermonkey 脚本迁移而来,适配 Chrome Extension 环境
  */
 
-import { Platform } from '@/domain/platform/Platform';
+import { Platform } from '@/domain/platform/platform';
 
 // ==================== Storage Key Constants ====================
 
@@ -34,4 +34,3 @@ export const STORAGE_KEYS = {
 export type Domain = 'movie' | 'tv' | 'music' | 'book' | 'game' | 'video';
 // Provider 派生自 Platform.KNOWN — 单一平台清单来源,避免手工维护漂移。
 export type Provider = (typeof Platform.KNOWN)[number];
-

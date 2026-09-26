@@ -3,27 +3,27 @@
  *
  * Consolidates the loading logic shared between:
  * - load-record-map.ts  (plain async function)
- * - useRecordCache.ts   (reactive composable)
+ * - use-record-cache.ts   (reactive composable)
  *
  * Both callers delegate here so the DB → Map transformation lives in one place.
  */
 
-import { Store } from '@/engine/database'
-import type { StoreRecord } from '@/types'
+import { Store } from '@/engine/database';
+import type { StoreRecord } from '@/types';
 
 /**
  * Minimal Store API shape for dependency injection (testability).
  * Matches the two methods used by the loading routine.
  */
 export interface StoreApi {
-  dbGetBulk: typeof Store.dbGetBulk
-  dbGetAll: typeof Store.dbGetAll
+  dbGetBulk: typeof Store.dbGetBulk;
+  dbGetAll: typeof Store.dbGetAll;
 }
 
 const DEFAULT_STORE: StoreApi = {
   dbGetBulk: (...args) => Store.dbGetBulk(...args),
   dbGetAll: (...args) => Store.dbGetAll(...args),
-}
+};
 
 /**
  * Load douban_records from IndexedDB into a Map.
@@ -45,35 +45,38 @@ export async function loadRecordEntries(
   ids?: string[],
   storeApi: StoreApi = DEFAULT_STORE,
 ): Promise<Map<string, StoreRecord>> {
-  const map = new Map<string, StoreRecord>()
+  const map = new Map<string, StoreRecord>();
   try {
-    let entries: Array<{ key: string; record: StoreRecord }>
+    let entries: Array<{ key: string; record: StoreRecord }>;
     if (ids && ids.length > 0) {
-      const p = prefix ? `${prefix}::` : ''
-      entries = await storeApi.dbGetBulk('douban_records', ids.map((id) => `${p}${id}`))
+      const p = prefix ? `${prefix}::` : '';
+      entries = await storeApi.dbGetBulk(
+        'douban_records',
+        ids.map((id) => `${p}${id}`),
+      );
     } else {
-      entries = await storeApi.dbGetAll('douban_records')
+      entries = await storeApi.dbGetAll('douban_records');
     }
     if (prefix) {
-      const p = `${prefix}::`
+      const p = `${prefix}::`;
       for (const { key, record } of entries) {
         if (key.startsWith(p)) {
-          map.set(key.slice(p.length), record)
+          map.set(key.slice(p.length), record);
         }
       }
     } else {
       for (const { key, record } of entries) {
-        const id = key.split('::')[1]
+        const id = key.split('::')[1];
         if (id) {
           map.set(id, {
             status: record.status ?? 0,
             rating: record.rating ?? 0,
-          } as StoreRecord)
+          } as StoreRecord);
         }
       }
     }
   } catch {
     // DB errors are non-critical for record loading
   }
-  return map
+  return map;
 }

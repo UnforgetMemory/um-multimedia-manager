@@ -22,13 +22,16 @@
  * 结束模板字符串导致 PARSE_ERROR）。
  */
 
-import { THEME_VARS, THEME_VARS_DARK } from '@/entrypoints/content/styles/global'
+import { THEME_VARS, THEME_VARS_DARK } from '@/entrypoints/content/styles/global';
 
 /** 把 light-DOM 的 html 作用域变量表重宿主到 shadow :host（单一事实源，零色值复制）。 */
 export function uslVarsForHost(): string {
-  const light = THEME_VARS.replace(/^\s*html\s*\{/m, ':host {')
-  const dark = THEME_VARS_DARK.replace(/html\[data-umm-theme="dark"\]\s*\{/, ':host(.umm-theme--dark) {')
-  return `${light}\n${dark}`
+  const light = THEME_VARS.replace(/^\s*html\s*\{/m, ':host {');
+  const dark = THEME_VARS_DARK.replace(
+    /html\[data-umm-theme="dark"\]\s*\{/,
+    ':host(.umm-theme--dark) {',
+  );
+  return `${light}\n${dark}`;
 }
 
 /** 网格与卡片（原 sehuatang.ts injectStyles）。导出供样式 spec 断言。 */
@@ -66,7 +69,7 @@ export const GRID_CSS = `
 @keyframes umm-sht-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 .umm-card.umm-sht-skel { animation: umm-sht-skel-pulse 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .umm-card.umm-sht-skel { animation: none; } }
-`
+`;
 
 /** 控件（原 sehuatang-controls.ts injectControlsStyles）：header 双行 + 面包屑/选项卡/分页/悬浮栏。 */
 export const CONTROLS_CSS = `
@@ -164,7 +167,7 @@ export const CONTROLS_CSS = `
 @media (max-width: 640px) {
   .umm-sht-floatbar .umm-sht-pg-total, .umm-sht-floatbar .umm-sht-pg-jump { display: none; }
 }
-`
+`;
 
 /** 动效（原 sehuatang-effects.ts injectEffectsStyles）：模糊揭示 + 已看灰度 + 入场级联 + 悬浮栏入场。 */
 export const EFFECTS_CSS = `
@@ -185,12 +188,12 @@ export const EFFECTS_CSS = `
 @keyframes umm-sht-float-in { from { opacity: 0; transform: translate(-50%, 28px) scale(0.92); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 .umm-sht-floatbar { animation: umm-sht-float-in 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
 @media (prefers-reduced-motion: reduce) {
-  .umm-card.umm-sht-enter, .umm-sht-floatbar { animation: none; }
+  .umm-card.umm-sht-enter, .umm-sht-floatbar, .umm-magnet-link.umm-sht-copied { animation: none; }
   .umm-card .umm-card-image img, .umm-card-image::after { transition: none; }
   .umm-card { transition: none; }
   .umm-card:hover { transform: none; }
 }
-`
+`;
 
 /**
  * 搜索页（pg_search）结果卡片（无封面/无磁力，纯文本条目）。
@@ -212,7 +215,7 @@ export const SEARCH_CSS = `
 .umm-sht-search-foot { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--umm-overlay-text-muted); font-size: clamp(0.7rem, 0.65rem + 0.2vw, 0.78rem); }
 .umm-sht-search-when { font-variant-numeric: tabular-nums; }
 .umm-sht-search-author { color: var(--umm-overlay-text-secondary); }
-`
+`;
 
 /**
  * 首页（pg_index）分区网格（list-style 分组 + 子版块卡片）。
@@ -237,7 +240,7 @@ export const HOME_CSS = `
 .umm-sht-home-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--umm-overlay-text-muted); font-size: clamp(0.7rem, 0.65rem + 0.2vw, 0.78rem); }
 .umm-sht-home-pill { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; background: var(--umm-fill-primary); color: var(--umm-ink-on-fill); font-weight: 700; font-size: clamp(0.68rem, 0.63rem + 0.2vw, 0.74rem); }
 .umm-sht-home-last { color: var(--umm-overlay-text-muted); font-size: clamp(0.68rem, 0.63rem + 0.2vw, 0.76rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-`
+`;
 
 /**
  * 风控页（年龄门）——任意路径可返回的站点的风控文档，视觉重建（点击委托
@@ -256,7 +259,7 @@ export const RISK_CSS = `
 .umm-sht-risk-line { height: 1px; background: var(--umm-overlay-border); margin: 14px 0; }
 .umm-sht-risk-warn-title { margin: 0; text-align: center; font-size: 1rem; font-weight: 700; color: var(--umm-overlay-text-primary); padding: 2px 0 8px; }
 .umm-sht-risk-warn { margin: 0; padding: 4px 0; text-align: center; line-height: 1.9; font-size: clamp(0.8rem, 0.76rem + 0.2vw, 0.9rem); color: var(--umm-overlay-text-secondary); }
-`
+`;
 
 /**
  * 列表页「全部已看过」空态（hide ON 且无可见条目）：flex:1 撑满 shell 剩余
@@ -270,7 +273,7 @@ export const EMPTY_CSS = `
 .umm-sht-empty-hint { margin: 0; color: var(--umm-overlay-text-muted); font-size: clamp(0.78rem, 0.74rem + 0.2vw, 0.88rem); }
 @keyframes umm-sht-empty-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .umm-sht-empty { animation: none; } }
-`
+`;
 
 /**
  * 完整 overlay 样式表：usl 变量（:host 双主题）+ 网格 + 控件 + 动效 + 首页 + 搜索 + 风控 + 空态。
@@ -293,4 +296,4 @@ ${SEARCH_CSS}
 ${RISK_CSS}
 /* === empty (all watched) === */
 ${EMPTY_CSS}
-`
+`;

@@ -13,8 +13,8 @@
  * Equality is determined by platform + type + providerId.
  * The canonical URL is always derived and consistent.
  */
-import { Platform } from '@/domain/platform/Platform';
-import { MediaType } from '@/domain/platform/MediaType';
+import { Platform } from '@/domain/platform/platform';
+import { MediaType } from '@/domain/platform/media-type';
 
 export class Identity {
   /** The platform this identity belongs to. */
@@ -46,11 +46,7 @@ export class Identity {
    * Create an Identity from raw components.
    * Validates all inputs and returns null on failure.
    */
-  static create(
-    platform: string,
-    type: string,
-    providerId: string,
-  ): Identity | null {
+  static create(platform: string, type: string, providerId: string): Identity | null {
     const p = Platform.fromString(platform);
     const t = MediaType.fromString(type);
     if (!p || !t || !providerId) return null;
@@ -89,33 +85,33 @@ export class Identity {
       const pathname = parsed.pathname;
 
       // Douban movie
-      const doubanMovie = pathname.match(/^\/subject\/(\d+)/i);
+      const doubanMovie = pathname.match(/^\/subject\/(\d+)/i)?.[1];
       if (host === 'movie.douban.com' && doubanMovie) {
-        return Identity.create('douban', 'movie', doubanMovie[1]);
+        return Identity.create('douban', 'movie', doubanMovie);
       }
 
       // Douban music
-      const doubanMusic = pathname.match(/^\/subject\/(\d+)/i);
+      const doubanMusic = pathname.match(/^\/subject\/(\d+)/i)?.[1];
       if (host === 'music.douban.com' && doubanMusic) {
-        return Identity.create('douban', 'music', doubanMusic[1]);
+        return Identity.create('douban', 'music', doubanMusic);
       }
 
       // Douban book
-      const doubanBook = pathname.match(/^\/subject\/(\d+)/i);
+      const doubanBook = pathname.match(/^\/subject\/(\d+)/i)?.[1];
       if (host === 'book.douban.com' && doubanBook) {
-        return Identity.create('douban', 'book', doubanBook[1]);
+        return Identity.create('douban', 'book', doubanBook);
       }
 
       // IMDb
-      const imdb = pathname.match(/^\/title\/(tt\d+)\/$/i);
+      const imdb = pathname.match(/^\/title\/(tt\d+)\/$/i)?.[1];
       if (host.endsWith('imdb.com') && imdb) {
-        return Identity.create('imdb', 'movie', imdb[1].toLowerCase());
+        return Identity.create('imdb', 'movie', imdb.toLowerCase());
       }
 
       // NeoDB movie
-      const neodbMovie = pathname.match(/^\/movie\/([a-zA-Z0-9_-]+)\/$/i);
+      const neodbMovie = pathname.match(/^\/movie\/([a-zA-Z0-9_-]+)\/$/i)?.[1];
       if (host === 'neodb.social' && neodbMovie) {
-        return Identity.create('neodb', 'movie', neodbMovie[1]);
+        return Identity.create('neodb', 'movie', neodbMovie);
       }
 
       // NeoDB TV (season / episode / show)
@@ -126,33 +122,33 @@ export class Identity {
       }
 
       // NeoDB album
-      const neodbAlbum = pathname.match(/^\/album\/([a-zA-Z0-9_-]+)\/$/i);
+      const neodbAlbum = pathname.match(/^\/album\/([a-zA-Z0-9_-]+)\/$/i)?.[1];
       if (host === 'neodb.social' && neodbAlbum) {
-        return Identity.create('neodb', 'music', neodbAlbum[1]);
+        return Identity.create('neodb', 'music', neodbAlbum);
       }
 
       // NeoDB book
-      const neodbBook = pathname.match(/^\/book\/([a-zA-Z0-9_-]+)\/$/i);
+      const neodbBook = pathname.match(/^\/book\/([a-zA-Z0-9_-]+)\/$/i)?.[1];
       if (host === 'neodb.social' && neodbBook) {
-        return Identity.create('neodb', 'book', neodbBook[1]);
+        return Identity.create('neodb', 'book', neodbBook);
       }
 
       // Douban game
-      const doubanGame = pathname.match(/^\/game\/(\d+)/i);
+      const doubanGame = pathname.match(/^\/game\/(\d+)/i)?.[1];
       if (host === 'www.douban.com' && doubanGame) {
-        return Identity.create('douban', 'game', doubanGame[1]);
+        return Identity.create('douban', 'game', doubanGame);
       }
 
       // Douban personage (celebrity page) — mapped to 'movie' so the person links to related movie records
-      const doubanPersonage = pathname.match(/^\/personage\/(\d+)\/$/i);
+      const doubanPersonage = pathname.match(/^\/personage\/(\d+)\/$/i)?.[1];
       if (host === 'www.douban.com' && doubanPersonage) {
-        return Identity.create('douban', 'movie', doubanPersonage[1]);
+        return Identity.create('douban', 'movie', doubanPersonage);
       }
 
       // Bilibili video
-      const bilibili = pathname.match(/^\/video\/(BV[a-zA-Z0-9]+)\/?$/i);
+      const bilibili = pathname.match(/^\/video\/(BV[a-zA-Z0-9]+)\/?$/i)?.[1];
       if (host === 'www.bilibili.com' && bilibili) {
-        return Identity.create('bilibili', 'movie', bilibili[1]);
+        return Identity.create('bilibili', 'movie', bilibili);
       }
 
       // YouTube video
@@ -160,16 +156,16 @@ export class Identity {
       // below never fires for watch URLs — Identity.fromUrl() returns null for YouTube pages.
       // This branch is kept as a documented dead path (see Identity.spec.ts).
       if (host === 'www.youtube.com' || host === 'youtube.com' || host === 'm.youtube.com') {
-        const videoId = parsed.searchParams.get('v')
+        const videoId = parsed.searchParams.get('v');
         if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
           return Identity.create('youtube', 'movie', videoId);
         }
       }
 
       // TMDB movie — handles both /movie/550/ and /movie/550-fight-club/
-      const tmdbMovie = pathname.match(/^\/movie\/(\d+)/i);
+      const tmdbMovie = pathname.match(/^\/movie\/(\d+)/i)?.[1];
       if (host.endsWith('themoviedb.org') && tmdbMovie) {
-        return Identity.create('tmdb', 'movie', tmdbMovie[1]);
+        return Identity.create('tmdb', 'movie', tmdbMovie);
       }
 
       // TMDB TV — handles both /tv/1399/ and /tv/1399-game-of-thrones/
@@ -180,9 +176,12 @@ export class Identity {
       }
 
       // Bangumi — subject pages (URL does not encode media type; default to tv)
-      const bangumi = pathname.match(/^\/subject\/(\d+)/i);
-      if ((host.endsWith('bgm.tv') || host.endsWith('bangumi.tv') || host.endsWith('chii.in')) && bangumi) {
-        return Identity.create('bangumi', 'tv', bangumi[1]);
+      const bangumi = pathname.match(/^\/subject\/(\d+)/i)?.[1];
+      if (
+        (host.endsWith('bgm.tv') || host.endsWith('bangumi.tv') || host.endsWith('chii.in')) &&
+        bangumi
+      ) {
+        return Identity.create('bangumi', 'tv', bangumi);
       }
     } catch {
       // Invalid URL — return null
@@ -261,8 +260,10 @@ export class Identity {
 
   static buildNeoDBUrl(type: string, catalogUuid: string): string {
     if (catalogUuid.startsWith('show:')) return `https://neodb.social/tv/${catalogUuid.slice(5)}/`;
-    if (catalogUuid.startsWith('season:')) return `https://neodb.social/tv/season/${catalogUuid.slice(7)}/`;
-    if (catalogUuid.startsWith('episode:')) return `https://neodb.social/tv/episode/${catalogUuid.slice(8)}/`;
+    if (catalogUuid.startsWith('season:'))
+      return `https://neodb.social/tv/season/${catalogUuid.slice(7)}/`;
+    if (catalogUuid.startsWith('episode:'))
+      return `https://neodb.social/tv/episode/${catalogUuid.slice(8)}/`;
     const base = type === 'music' ? 'album' : type;
     return `https://neodb.social/${base}/${catalogUuid}/`;
   }
@@ -271,7 +272,8 @@ export class Identity {
     if (type === 'movie') return `https://www.themoviedb.org/movie/${providerId}/`;
 
     if (type === 'tv') {
-      if (providerId.startsWith('show:')) return `https://www.themoviedb.org/tv/${providerId.slice(5)}/`;
+      if (providerId.startsWith('show:'))
+        return `https://www.themoviedb.org/tv/${providerId.slice(5)}/`;
       if (providerId.startsWith('season:')) {
         const [, showId, seasonNo] = providerId.split(':');
         return showId && seasonNo
@@ -318,14 +320,14 @@ export class Identity {
     return `path:${relative.join('/')}`;
   }
 
-/**
-    * Parse a TMDB TV path into a provider ID with prefix.
-    * Supports both slug (/tv/1399-game-of-thrones/) and plain (/tv/1399/) URLs.
-    * e.g. "/tv/123/" → "show:123"
-    *      "/tv/123-game-of-thrones/" → "show:123"
-    *      "/tv/123/season/1/" → "season:123:1"
-    *      "/tv/123-game-of-thrones/season/1/" → "season:123:1"
-    */
+  /**
+   * Parse a TMDB TV path into a provider ID with prefix.
+   * Supports both slug (/tv/1399-game-of-thrones/) and plain (/tv/1399/) URLs.
+   * e.g. "/tv/123/" → "show:123"
+   *      "/tv/123-game-of-thrones/" → "show:123"
+   *      "/tv/123/season/1/" → "season:123:1"
+   *      "/tv/123-game-of-thrones/season/1/" → "season:123:1"
+   */
   private static parseTmdbTvPath(pathname: string): string | null {
     const parts = pathname.split('/').filter(Boolean);
     if (parts[0] !== 'tv') return null;
@@ -337,12 +339,22 @@ export class Identity {
     const numericId = numericMatch[1];
 
     if (!rest.length) return `show:${numericId}`;
-    if (rest.length === 2 && rest[0] === 'season' && /^\d+$/.test(rest[1])) {
-      return `season:${numericId}:${rest[1]}`;
+    // rest.length > 0 ⇒ seg0 exists; the paired length checks guarantee
+    // seg1/seg3 exist whenever the corresponding branch's regex test runs.
+    const [seg0, seg1, seg2, seg3] = rest;
+    if (rest.length === 2 && seg0 === 'season' && seg1 && /^\d+$/.test(seg1)) {
+      return `season:${numericId}:${seg1}`;
     }
-    if (rest.length === 4 && rest[0] === 'season' && /^\d+$/.test(rest[1])
-        && rest[2] === 'episode' && /^\d+$/.test(rest[3])) {
-      return `episode:${numericId}:${rest[1]}:${rest[3]}`;
+    if (
+      rest.length === 4 &&
+      seg0 === 'season' &&
+      seg1 &&
+      /^\d+$/.test(seg1) &&
+      seg2 === 'episode' &&
+      seg3 &&
+      /^\d+$/.test(seg3)
+    ) {
+      return `episode:${numericId}:${seg1}:${seg3}`;
     }
 
     return null;
@@ -362,9 +374,9 @@ export class Identity {
 
   equals(other: Identity): boolean {
     return (
-      this.platform.equals(other.platform)
-      && this.type.equals(other.type)
-      && this.providerId === other.providerId
+      this.platform.equals(other.platform) &&
+      this.type.equals(other.type) &&
+      this.providerId === other.providerId
     );
   }
 

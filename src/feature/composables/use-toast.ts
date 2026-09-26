@@ -5,58 +5,58 @@
  * Works independently of the content script FloatingToast.
  */
 
-import { ref } from 'vue'
-import type { ToastType } from '@/libraries/toast'
-import { TOAST_AUTO_DISMISS_MS } from '@/libraries/toast'
+import { ref } from 'vue';
+import type { ToastType } from '@/libraries/toast';
+import { TOAST_AUTO_DISMISS_MS } from '@/libraries/toast';
 
 interface Toast {
-  id: number
-  type: ToastType
-  title: string
-  message?: string
+  id: number;
+  type: ToastType;
+  title: string;
+  message?: string;
 }
 
-const toasts = ref<Toast[]>([])
-let nextId = 0
+const toasts = ref<Toast[]>([]);
+let nextId = 0;
 
 function addToast(type: Toast['type'], title: string, message?: string): number {
-  const id = nextId++
-  toasts.value.push({ id, type, title, message })
+  const id = nextId++;
+  toasts.value.push({ id, type, title, message });
 
   if (type !== 'loading') {
-    setTimeout(() => removeToast(id), TOAST_AUTO_DISMISS_MS)
+    setTimeout(() => removeToast(id), TOAST_AUTO_DISMISS_MS);
   }
 
-  return id
+  return id;
 }
 
 function removeToast(id: number): void {
-  const idx = toasts.value.findIndex(t => t.id === id)
+  const idx = toasts.value.findIndex((t) => t.id === id);
   if (idx !== -1) {
-    toasts.value.splice(idx, 1)
+    toasts.value.splice(idx, 1);
   }
 }
 
 export function useToast() {
   function success(title: string, message?: string) {
-    addToast('success', title, message)
+    addToast('success', title, message);
   }
 
   function error(title: string, message?: string) {
-    addToast('error', title, message)
+    addToast('error', title, message);
   }
 
   function info(title: string, message?: string) {
-    addToast('info', title, message)
+    addToast('info', title, message);
   }
 
   function loading(title: string, message?: string): number {
-    return addToast('loading', title, message)
+    return addToast('loading', title, message);
   }
 
   function dismiss(id: number) {
-    removeToast(id)
+    removeToast(id);
   }
 
-  return { toasts, success, error, info, loading, dismiss }
+  return { toasts, success, error, info, loading, dismiss };
 }

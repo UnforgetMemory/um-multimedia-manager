@@ -14,20 +14,20 @@
  */
 
 /** 完整 imdb.com 链接或 tt-id 文本 */
-const IMDB_LINK_RE = /imdb\.com\/title\/(tt\d+)/i
+const IMDB_LINK_RE = /imdb\.com\/title\/(tt\d+)/i;
 /** "IMDb: ttxxx" / "IMDb：ttxxx" 标签形态（半角/全角冒号） */
-const IMDB_LABEL_RE = /(?:IMDb|imdb)\s*[:：]?\s*(tt\d{5,})/i
+const IMDB_LABEL_RE = /(?:IMDb|imdb)\s*[:：]?\s*(tt\d{5,})/i;
 /** 裸 tt-id（5+ 位数字，避免 tt123 之类误报） */
-const BARE_TT_RE = /\b(tt\d{5,})\b/i
+const BARE_TT_RE = /\b(tt\d{5,})\b/i;
 
 /** Extract a tt-xxx IMDb id from arbitrary text; null when absent. */
 export function extractImdbIdFromText(text: string): string | null {
-  if (!text) return null
-  const link = text.match(IMDB_LINK_RE)
-  if (link) return link[1].toLowerCase()
-  const label = text.match(IMDB_LABEL_RE)
-  if (label) return label[1].toLowerCase()
-  const bare = text.match(BARE_TT_RE)
-  if (bare) return bare[1].toLowerCase()
-  return null
+  if (!text) return null;
+  const link = text.match(IMDB_LINK_RE)?.[1];
+  if (link) return link.toLowerCase();
+  const label = text.match(IMDB_LABEL_RE)?.[1];
+  if (label) return label.toLowerCase();
+  const bare = text.match(BARE_TT_RE)?.[1];
+  if (bare) return bare.toLowerCase();
+  return null;
 }

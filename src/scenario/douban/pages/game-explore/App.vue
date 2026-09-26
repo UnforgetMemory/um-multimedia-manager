@@ -1,59 +1,60 @@
 <script setup lang="ts">
-import type { GameExploreData, GameExploreItem } from './types'
-import type { StoreRecord } from '@/types'
-import { computed, ref, onMounted } from 'vue'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/UmmStatusBadgeWrapper'
+import type { GameExploreData, GameExploreItem } from './types';
+import type { StoreRecord } from '@/types';
+import { computed, ref, onMounted } from 'vue';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/umm-status-badge-wrapper';
+import { fetchWithTimeout } from '@/libraries/utils/fetch-timeout';
 
 const props = defineProps<{
-  exploreData?: GameExploreData
-  recordMap?: Map<string, StoreRecord>
-}>()
+  exploreData?: GameExploreData;
+  recordMap?: Map<string, StoreRecord>;
+}>();
 
-const data = computed(() => props.exploreData)
+const data = computed(() => props.exploreData);
 
-const allItems = ref<GameExploreItem[]>([])
-const moreCursor = ref(0)
-const totalCount = ref(0)
-const loading = ref(false)
-const hasMore = ref(false)
+const allItems = ref<GameExploreItem[]>([]);
+const moreCursor = ref(0);
+const totalCount = ref(0);
+const loading = ref(false);
+const hasMore = ref(false);
 
 onMounted(() => {
-  allItems.value = data.value?.items ?? []
-  moreCursor.value = 2
-  totalCount.value = 0
-  const initialLen = data.value?.items?.length ?? 0
-  if (initialLen > 0) totalCount.value = initialLen
-  hasMore.value = initialLen > 0
-})
+  allItems.value = data.value?.items ?? [];
+  moreCursor.value = 2;
+  totalCount.value = 0;
+  const initialLen = data.value?.items?.length ?? 0;
+  if (initialLen > 0) totalCount.value = initialLen;
+  hasMore.value = initialLen > 0;
+});
 
-const keyword = computed(() => data.value?.searcher?.keyword ?? '')
-const filters = computed(() => data.value?.filters ?? [])
+const keyword = computed(() => data.value?.searcher?.keyword ?? '');
+const filters = computed(() => data.value?.filters ?? []);
 
 function getRecordStatus(id: number): number {
-  return props.recordMap?.get(String(id))?.status ?? 0
+  return props.recordMap?.get(String(id))?.status ?? 0;
 }
 
 function getRecordRating(id: number): number {
-  return props.recordMap?.get(String(id))?.rating ?? 0
+  return props.recordMap?.get(String(id))?.rating ?? 0;
 }
 
 async function fetchMoreGames(): Promise<void> {
-  if (loading.value || !hasMore.value) return
-  loading.value = true
+  if (loading.value || !hasMore.value) return;
+  loading.value = true;
   try {
-    const params = new URLSearchParams(location.search)
-    params.set('more', String(moreCursor.value))
-    const resp = await fetch(`/j/ilmen/game/search?${params.toString()}`, {
+    const params = new URLSearchParams(location.search);
+    params.set('more', String(moreCursor.value));
+    const resp = await fetchWithTimeout(`/j/ilmen/game/search?${params.toString()}`, {
       credentials: 'include',
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    })
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const json = await resp.json() as {
-      games: Array<Record<string, unknown>>
-      total: number
-      more: number
-    }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = (await resp.json()) as {
+      games: Array<Record<string, unknown>>;
+      total: number;
+      more: number;
+    };
 
     const newGames: GameExploreItem[] = (json.games || []).map((r) => ({
       id: parseInt(String(r['id'] || '0'), 10),
@@ -62,70 +63,73 @@ async function fetchMoreGames(): Promise<void> {
       rating: String(r['rating'] || ''),
       star: String(r['star'] || ''),
       cover: String(r['cover'] || ''),
-      genres: (String(r['genres'] || '')).split(' / ').filter(Boolean),
-      platforms: (String(r['platforms'] || '')).split(' / ').filter(Boolean),
+      genres: String(r['genres'] || '')
+        .split(' / ')
+        .filter(Boolean),
+      platforms: String(r['platforms'] || '')
+        .split(' / ')
+        .filter(Boolean),
       review: r['review']
-        ? { content: String((r['review'] as Record<string, unknown>)['content'] || ''), author: String((r['review'] as Record<string, unknown>)['author'] || '') }
+        ? {
+            content: String((r['review'] as Record<string, unknown>)['content'] || ''),
+            author: String((r['review'] as Record<string, unknown>)['author'] || ''),
+          }
         : null,
       nRatings: parseInt(String(r['n_ratings'] || '0'), 10),
-    }))
+    }));
 
-    allItems.value = [...allItems.value, ...newGames]
-    moreCursor.value = json.more
-    totalCount.value = json.total
-    hasMore.value = json.more > 0
+    allItems.value = [...allItems.value, ...newGames];
+    moreCursor.value = json.more;
+    totalCount.value = json.total;
+    hasMore.value = json.more > 0;
   } catch (err: unknown) {
-    console.warn('[UMM] Failed to load more games:', err)
+    console.warn('[UMM] Failed to load more games:', err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 /** Build filter URL: start from current URL params, toggle only the clicked option */
-function buildFilterUrl(
-  groupName: string,
-  optionValue: string,
-  isUnique: boolean,
-): string {
-  const params = new URLSearchParams(location.search)
+function buildFilterUrl(groupName: string, optionValue: string, isUnique: boolean): string {
+  const params = new URLSearchParams(location.search);
 
   if (isUnique) {
-    params.set(groupName, '')
+    params.set(groupName, '');
   } else {
-    const current = params.get(groupName) || ''
-    const vals = current ? current.split(',').filter(Boolean) : []
-    const idx = vals.indexOf(optionValue)
+    const current = params.get(groupName) || '';
+    const vals = current ? current.split(',').filter(Boolean) : [];
+    const idx = vals.indexOf(optionValue);
     if (idx >= 0) {
-      vals.splice(idx, 1)
+      vals.splice(idx, 1);
     } else {
-      vals.push(optionValue)
+      vals.push(optionValue);
     }
-    params.set(groupName, vals.join(','))
+    params.set(groupName, vals.join(','));
   }
 
-  return `/game/explore?${params.toString()}`
+  return `/game/explore?${params.toString()}`;
 }
 
 function navigate(url: string): void {
-  location.href = url
+  location.href = url;
 }
 
 function buildSortUrl(sortValue: string): string {
-  const params = new URLSearchParams(location.search)
-  params.set('sort', sortValue)
-  return `/game/explore?${params.toString()}`
+  const params = new URLSearchParams(location.search);
+  params.set('sort', sortValue);
+  return `/game/explore?${params.toString()}`;
 }
 
 const currentSort = computed(() => {
-  const params = new URLSearchParams(location.search)
-  return params.get('sort') || 'rating'
-})
+  const params = new URLSearchParams(location.search);
+  return params.get('sort') || 'rating';
+});
 
 /** Read initial search query directly from URL — more reliable than data extraction */
 const initialQuery = computed(() => {
-  const params = new URLSearchParams(location.search)
-  return params.get('q') || ''
-})
+  const params = new URLSearchParams(location.search);
+  return params.get('q') || '';
+});
 </script>
 
 <template vapor>
@@ -140,11 +144,7 @@ const initialQuery = computed(() => {
 
       <!-- Filter bar -->
       <div v-if="filters.length" class="umm-game-filter-bar">
-        <div
-          v-for="group in filters"
-          :key="group.name"
-          class="umm-game-filter-group"
-        >
+        <div v-for="group in filters" :key="group.name" class="umm-game-filter-group">
           <span class="umm-game-filter-label">{{ group.text }}</span>
           <div class="umm-game-filter-options">
             <button
@@ -167,12 +167,16 @@ const initialQuery = computed(() => {
           class="umm-game-sort-btn"
           :class="{ 'umm-game-sort-btn--active': currentSort === 'rating' }"
           @click="navigate(buildSortUrl('rating'))"
-        >评分</button>
+        >
+          评分
+        </button>
         <button
           class="umm-game-sort-btn"
           :class="{ 'umm-game-sort-btn--active': currentSort === 'original_release_date' }"
           @click="navigate(buildSortUrl('original_release_date'))"
-        >按时间排序</button>
+        >
+          按时间排序
+        </button>
       </div>
 
       <!-- Game list (single column) -->
@@ -204,11 +208,15 @@ const initialQuery = computed(() => {
             </div>
             <div class="umm-game-item-rating">
               <span v-if="item.rating" class="umm-game-item-rating-num">{{ item.rating }}</span>
-              <span v-if="item.nRatings > 0" class="umm-game-item-rating-people">{{ item.nRatings }}人评价</span>
+              <span v-if="item.nRatings > 0" class="umm-game-item-rating-people"
+                >{{ item.nRatings }}人评价</span
+              >
             </div>
             <div v-if="item.review" class="umm-game-item-review">
               “{{ item.review.content }}”
-              <span v-if="item.review.author" class="umm-game-item-review-author">--{{ item.review.author }}</span>
+              <span v-if="item.review.author" class="umm-game-item-review-author"
+                >--{{ item.review.author }}</span
+              >
             </div>
           </div>
         </a>

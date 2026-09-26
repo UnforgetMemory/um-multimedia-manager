@@ -17,26 +17,26 @@
 
 export interface SehuatangRiskEnter {
   /** 按钮文案（站点原文，空白归一化；中英各一）。 */
-  label: string
+  label: string;
   /** href 原始值（相对/绝对均可；兜底导航前由编排层绝对化+白名单）。 */
-  href: string
+  href: string;
 }
 
 /** 风控页内容（全部透传站点原文，零改写）。 */
 export interface SehuatangRiskGate {
   /** 域名大字标题（如 SEHUATANG.NET）。 */
-  domain: string
+  domain: string;
   /** 进入按钮（文档序）。 */
-  enters: SehuatangRiskEnter[]
+  enters: SehuatangRiskEnter[];
   /** 警告块标题（如「警告 / WARNING」），无 → null。 */
-  warningTitle: string | null
+  warningTitle: string | null;
   /** 警告段文本（按 DOM 序；中文警告在前，英文在后）。 */
-  warnings: string[]
+  warnings: string[];
 }
 
 /** 空白归一化（风控页源码含大量缩进换行）。 */
 function normalizeText(text: string | null | undefined): string {
-  return (text ?? '').replace(/\s+/g, ' ').trim()
+  return (text ?? '').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -44,9 +44,9 @@ function normalizeText(text: string | null | undefined): string {
  * 双标记 AND：div.domain（非空文本）+ a.enter-btn[href]（≥1）。
  */
 export function isRiskGateDocument(doc: Document): boolean {
-  const domain = doc.querySelector('div.domain')
-  if (!domain || !normalizeText(domain.textContent)) return false
-  return doc.querySelectorAll('a.enter-btn[href]').length > 0
+  const domain = doc.querySelector('div.domain');
+  if (!domain || !normalizeText(domain.textContent)) return false;
+  return doc.querySelectorAll('a.enter-btn[href]').length > 0;
 }
 
 /**
@@ -55,21 +55,21 @@ export function isRiskGateDocument(doc: Document): boolean {
  * 站点 JS 覆写后的最终值，透传即可。
  */
 export function extractRiskGate(doc: Document): SehuatangRiskGate | null {
-  if (!isRiskGateDocument(doc)) return null
+  if (!isRiskGateDocument(doc)) return null;
 
-  const domain = normalizeText(doc.querySelector('div.domain')?.textContent)
+  const domain = normalizeText(doc.querySelector('div.domain')?.textContent);
   const enters: SehuatangRiskEnter[] = Array.from(
     doc.querySelectorAll<HTMLAnchorElement>('a.enter-btn'),
   ).map((a) => ({
     label: normalizeText(a.textContent),
     href: a.getAttribute('href') ?? '',
-  }))
+  }));
 
-  const downContent = doc.querySelector('.down-content')
-  const warningTitle = normalizeText(downContent?.querySelector('h3')?.textContent) || null
+  const downContent = doc.querySelector('.down-content');
+  const warningTitle = normalizeText(downContent?.querySelector('h3')?.textContent) || null;
   const warnings = Array.from(downContent?.querySelectorAll('p') ?? [])
     .map((p) => normalizeText(p.textContent))
-    .filter((text) => text.length > 0)
+    .filter((text) => text.length > 0);
 
-  return { domain, enters, warningTitle, warnings }
+  return { domain, enters, warningTitle, warnings };
 }

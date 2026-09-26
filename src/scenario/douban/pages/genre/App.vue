@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import { UmmImageWrapper } from '@/scenario/douban/components/UmmImageWrapper'
-import type { GenrePageData } from './types'
+import { computed } from 'vue';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
+import type { GenrePageData } from './types';
 
-const props = defineProps<{ data: GenrePageData }>()
-const d = props.data
+const props = defineProps<{ data: GenrePageData }>();
+const d = props.data;
 
-const hasPrev = computed(() => !!d.pagination.prevUrl)
-const hasNext = computed(() => !!d.pagination.nextUrl)
+const hasPrev = computed(() => !!d.pagination.prevUrl);
+const hasNext = computed(() => !!d.pagination.nextUrl);
 
 function goToPage(url: string): void {
-  if (url) window.location.href = url
+  if (url) window.location.href = url;
 }
 </script>
 
@@ -32,7 +32,8 @@ function goToPage(url: string): void {
           :class="link.isCurrent ? 'umm-genre-nav-current' : 'umm-genre-nav-link'"
           target="_blank"
           rel="noopener noreferrer"
-        >{{ link.name }}</a>
+          >{{ link.name }}</a
+        >
       </div>
 
       <!-- Artist grid -->
@@ -46,11 +47,7 @@ function goToPage(url: string): void {
           class="umm-artist-card"
         >
           <div class="umm-artist-avatar">
-            <UmmImageWrapper
-              :src="artist.avatarUrl"
-              :alt="artist.name"
-              aspect-ratio="1"
-            />
+            <UmmImageWrapper :src="artist.avatarUrl" :alt="artist.name" aspect-ratio="1" />
           </div>
           <span class="umm-artist-name">{{ artist.name }}</span>
           <span class="umm-artist-likes">{{ artist.likes }}人喜欢</span>
@@ -59,17 +56,15 @@ function goToPage(url: string): void {
 
       <!-- Pagination -->
       <div class="umm-pagination">
-        <button
-          class="umm-page-btn"
-          :disabled="!hasPrev"
-          @click="goToPage(d.pagination.prevUrl)"
-        >‹ 前页</button>
-        <span class="umm-page-info">{{ d.pagination.currentPage }} / {{ d.pagination.totalPages }}</span>
-        <button
-          class="umm-page-btn"
-          :disabled="!hasNext"
-          @click="goToPage(d.pagination.nextUrl)"
-        >后页 ›</button>
+        <button class="umm-page-btn" :disabled="!hasPrev" @click="goToPage(d.pagination.prevUrl)">
+          ‹ 前页
+        </button>
+        <span class="umm-page-info"
+          >{{ d.pagination.currentPage }} / {{ d.pagination.totalPages }}</span
+        >
+        <button class="umm-page-btn" :disabled="!hasNext" @click="goToPage(d.pagination.nextUrl)">
+          后页 ›
+        </button>
       </div>
     </div>
   </UmmPageLayout>

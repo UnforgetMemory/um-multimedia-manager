@@ -11,7 +11,18 @@
  */
 export class Platform {
   /** Known platform identifiers */
-  static readonly KNOWN = ['douban', 'imdb', 'neodb', 'tmdb', 'bilibili', 'youtube', 'javdb', 'mukaku', 'sehuatang', 'bangumi'] as const;
+  static readonly KNOWN = [
+    'douban',
+    'imdb',
+    'neodb',
+    'tmdb',
+    'bilibili',
+    'youtube',
+    'javdb',
+    'mukaku',
+    'sehuatang',
+    'bangumi',
+  ] as const;
 
   /** Widened string view of KNOWN for `includes` lookups against arbitrary string ids. */
   private static readonly KNOWN_IDS: readonly string[] = Platform.KNOWN;

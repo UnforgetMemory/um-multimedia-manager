@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { UserCelebritiesData } from './types'
-import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue'
-import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue'
-import { usePaginator } from '../../shared/composables/usePaginator'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { UserCelebritiesData } from './types';
+import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
+import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
+import { usePaginator } from '../../shared/composables/use-paginator';
 
 const props = defineProps<{
-  data: UserCelebritiesData
-}>()
+  data: UserCelebritiesData;
+}>();
 
 const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.pageLinks,
   () => props.data.prevPageUrl,
   () => props.data.nextPageUrl,
-)
+);
 </script>
 
 <template vapor>
@@ -49,10 +49,9 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
             <span class="umm-celebrities-name">{{ item.name }}</span>
             <span v-if="item.roles" class="umm-celebrities-roles">{{ item.roles }}</span>
             <div v-if="item.works.length > 0" class="umm-celebrities-works">
-              <span
-                v-for="(w, i) in item.works.slice(0, 3)"
-                :key="w.url"
-              >{{ w.title }}{{ i < Math.min(item.works.length, 3) - 1 ? ' / ' : '' }}</span>
+              <span v-for="(w, i) in item.works.slice(0, 3)" :key="w.url"
+                >{{ w.title }}{{ i < Math.min(item.works.length, 3) - 1 ? ' / ' : '' }}</span
+              >
             </div>
           </div>
         </a>

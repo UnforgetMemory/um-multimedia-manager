@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 import { collectTitleLabel } from '../../shared/collect-title-label';
-import { statusBadgeLabels } from '../../shared/status-labels'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { GameCollectData } from './types'
-import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue'
-import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue'
-import { usePaginator } from '../../shared/composables/usePaginator'
+import { statusBadgeLabels } from '../../shared/status-labels';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { GameCollectData } from './types';
+import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
+import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
+import { usePaginator } from '../../shared/composables/use-paginator';
 
-const props = defineProps<{ data: GameCollectData }>()
+const props = defineProps<{ data: GameCollectData }>();
 
 const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.pageLinks,
   () => props.data.prevPageUrl,
   () => props.data.nextPageUrl,
-)
+);
 
 function parseRating(rating: string): number {
-  const match = rating.match(/allstar(\d+)/)
-  return match ? parseInt(match[1], 10) / 10 : 0
+  const match = rating.match(/allstar(\d+)/);
+  return match ? parseInt(match[1] ?? '0', 10) / 10 : 0;
 }
 
-const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.game, props.data.subType, 'do'))
+const titleLabel = computed(() =>
+  collectTitleLabel(statusBadgeLabels.game, props.data.subType, 'do'),
+);
 </script>
 
 <template vapor>
@@ -52,11 +54,15 @@ const titleLabel = computed(() => collectTitleLabel(statusBadgeLabels.game, prop
             <div class="umm-gc-cover" :style="{ backgroundImage: `url(${item.posterUrl})` }" />
           </div>
           <div class="umm-gc-body">
-            <a v-if="item.url" :href="item.url" class="umm-gc-title" target="_blank">{{ item.title }}</a>
+            <a v-if="item.url" :href="item.url" class="umm-gc-title" target="_blank">{{
+              item.title
+            }}</a>
             <span v-else class="umm-gc-title">{{ item.title }}</span>
             <div v-if="item.platforms" class="umm-gc-platforms">{{ item.platforms }}</div>
             <div class="umm-gc-meta">
-              <span v-if="item.rating" class="umm-gc-rating">{{ parseRating(item.rating) }} 分</span>
+              <span v-if="item.rating" class="umm-gc-rating"
+                >{{ parseRating(item.rating) }} 分</span
+              >
               <span v-if="item.date" class="umm-gc-date">{{ item.date }}</span>
             </div>
             <div v-if="item.comment" class="umm-gc-comment">{{ item.comment }}</div>

@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { UmmMediaCard } from '@/scenario/douban/components/UmmMediaCard'
+import { UmmMediaCard } from '@/scenario/douban/components/umm-media-card';
 
 interface Props {
-  posterUrl: string
-  title: string
-  href: string
-  rate: string
-  intro?: string
-  badgeStatus: number
-  badgeRating: number
-  episodes?: string
-  author?: string
-  type?: 'movie' | 'music' | 'book'
-  mode?: 'scroll' | 'grid'
+  posterUrl: string;
+  title: string;
+  href: string;
+  rate: string;
+  intro?: string;
+  badgeStatus: number;
+  badgeRating: number;
+  episodes?: string;
+  author?: string;
+  type?: 'movie' | 'music' | 'book';
+  mode?: 'scroll' | 'grid';
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const cardProps = {
   posterUrl: props.posterUrl,
@@ -29,7 +29,7 @@ const cardProps = {
   episodes: props.episodes || '',
   type: props.type || 'movie',
   mode: props.mode || 'scroll',
-}
+};
 </script>
 
 <template vapor>

@@ -9,32 +9,32 @@
  */
 
 /** Trailing "(YYYY)" / "（YYYY）" (half/full-width parens, optional inner spaces). */
-const TRAILING_YEAR_RE = /^(.*?)\s*[（(]\s*(\d{4})\s*[)）]\s*$/
+const TRAILING_YEAR_RE = /^(.*?)\s*[（(]\s*(\d{4})\s*[)）]\s*$/;
 
 /** Plausible year window: pre-cinema lower bound, future releases upper bound. */
-const MIN_YEAR = 1800
-const MAX_YEAR = 2100
+const MIN_YEAR = 1800;
+const MAX_YEAR = 2100;
 
 export interface TitleYearSplit {
   /** Title with the trailing year removed (trimmed). */
-  title: string
+  title: string;
   /** Extracted year ("2005"), or null when the title carries no trailing year. */
-  year: string | null
+  year: string | null;
 }
 
 /** Split a trailing parenthesized year off a search-result title. */
 export function splitTitleYear(rawTitle: string | undefined): TitleYearSplit {
   // __DATA__ is external JSON: a malformed item may omit title entirely
-  if (!rawTitle) return { title: '', year: null }
-  const trimmed = rawTitle.trim()
-  if (!trimmed) return { title: '', year: null }
-  const match = trimmed.match(TRAILING_YEAR_RE)
+  if (!rawTitle) return { title: '', year: null };
+  const trimmed = rawTitle.trim();
+  if (!trimmed) return { title: '', year: null };
+  const match = trimmed.match(TRAILING_YEAR_RE);
   if (match) {
-    const year = Number(match[2])
-    const prefix = match[1].trim()
+    const year = Number(match[2]);
+    const prefix = (match[1] ?? '').trim();
     if (prefix && year >= MIN_YEAR && year <= MAX_YEAR) {
-      return { title: prefix, year: match[2] }
+      return { title: prefix, year: match[2] ?? null };
     }
   }
-  return { title: trimmed, year: null }
+  return { title: trimmed, year: null };
 }

@@ -1,8 +1,8 @@
-import { defineComponent, h, type PropType } from 'vue'
-import { UmmImageWrapper } from './UmmImageWrapper'
-import { UmmStatusBadgeWrapper } from './UmmStatusBadgeWrapper'
-import { UmmRating } from './UmmRating'
-import { ASPECT_RATIO } from '@/scenario/douban/shared/media-formats'
+import { defineComponent, h, type PropType } from 'vue';
+import { UmmImageWrapper } from './umm-image-wrapper';
+import { UmmStatusBadgeWrapper } from './umm-status-badge-wrapper';
+import { UmmRating } from './umm-rating';
+import { ASPECT_RATIO } from '@/scenario/douban/shared/media-formats';
 
 export const UmmMediaCard = defineComponent({
   name: 'UmmMediaCard',
@@ -22,12 +22,12 @@ export const UmmMediaCard = defineComponent({
   setup(props) {
     const handleClick = () => {
       if (props.mode === 'grid' && props.href) {
-        window.open(props.href, '_blank')
+        window.open(props.href, '_blank');
       }
-    }
+    };
 
-    const badgeVariant = props.mode === 'grid' ? 'small' : 'inline'
-    const cardAspect = props.type === 'music' ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER
+    const badgeVariant = props.mode === 'grid' ? 'small' : 'inline';
+    const cardAspect = props.type === 'music' ? ASPECT_RATIO.SQUARE : ASPECT_RATIO.POSTER;
 
     if (props.mode === 'grid') {
       return () =>
@@ -52,15 +52,13 @@ export const UmmMediaCard = defineComponent({
                 aspectRatio: cardAspect,
               }),
             ]),
-h('span', { class: 'umm-rec-title' }, props.title),
-      props.author
-        ? h('span', { class: 'umm-rec-author' }, props.author)
-        : null,
-      h(UmmRating, {
+            h('span', { class: 'umm-rec-title' }, props.title),
+            props.author ? h('span', { class: 'umm-rec-author' }, props.author) : null,
+            h(UmmRating, {
               score: props.rating || undefined,
             }),
           ],
-        )
+        );
     }
 
     // scroll mode
@@ -88,9 +86,7 @@ h('span', { class: 'umm-rec-title' }, props.title),
               eager: true,
               aspectRatio: cardAspect,
             }),
-            props.episodes
-              ? h('div', { class: 'umm-episodes' }, props.episodes)
-              : null,
+            props.episodes ? h('div', { class: 'umm-episodes' }, props.episodes) : null,
           ]),
           h('div', { class: 'umm-card-title' }, props.title),
           h(UmmRating, {
@@ -98,6 +94,6 @@ h('span', { class: 'umm-rec-title' }, props.title),
             class: 'umm-card-rating',
           }),
         ],
-      )
+      );
   },
-})
+});

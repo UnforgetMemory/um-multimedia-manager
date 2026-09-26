@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import { UmmImageWrapper } from '@/scenario/douban/components/UmmImageWrapper'
-import type { ArtistsOverviewData } from './types'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
+import type { ArtistsOverviewData } from './types';
 
-defineProps<{ data: ArtistsOverviewData }>()
+defineProps<{ data: ArtistsOverviewData }>();
 </script>
 
 <template vapor>
@@ -22,11 +22,7 @@ defineProps<{ data: ArtistsOverviewData }>()
             class="umm-artist-card"
           >
             <div class="umm-artist-avatar">
-              <UmmImageWrapper
-                :src="artist.avatarUrl"
-                :alt="artist.name"
-                aspect-ratio="1"
-              />
+              <UmmImageWrapper :src="artist.avatarUrl" :alt="artist.name" aspect-ratio="1" />
             </div>
             <span class="umm-artist-name">{{ artist.name }}</span>
           </a>
@@ -46,11 +42,7 @@ defineProps<{ data: ArtistsOverviewData }>()
             class="umm-event-card"
           >
             <div class="umm-event-image">
-              <UmmImageWrapper
-                :src="evt.imageUrl"
-                :alt="evt.title"
-                aspect-ratio="1"
-              />
+              <UmmImageWrapper :src="evt.imageUrl" :alt="evt.title" aspect-ratio="1" />
             </div>
             <div class="umm-event-info">
               <div class="umm-event-desc">{{ evt.description }}</div>
@@ -71,7 +63,8 @@ defineProps<{ data: ArtistsOverviewData }>()
               target="_blank"
               rel="noopener noreferrer"
               class="umm-genre-tag"
-            >{{ genre.name }}</a>
+              >{{ genre.name }}</a
+            >
           </div>
         </div>
       </div>

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue'
-import type { MovieProfileData } from './types'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue';
+import type { MovieProfileData } from './types';
 
 defineProps<{
-  data: MovieProfileData
-}>()
+  data: MovieProfileData;
+}>();
 </script>
 
 <template vapor>
@@ -26,14 +26,16 @@ defineProps<{
       <!-- Stat Pills -->
       <UmmStatBar
         v-if="data.stats.length > 0"
-        :items="data.stats.map(s => ({ label: s.label, value: s.count, url: s.url }))"
+        :items="data.stats.map((s) => ({ label: s.label, value: s.count, url: s.url }))"
       />
 
       <!-- Sections -->
       <div v-for="sec in data.sections" :key="sec.label" class="umm-dash-section">
         <div class="umm-dash-row-head">
           <span class="umm-dash-row-lbl">{{ sec.label }}</span>
-          <a :href="sec.url" class="umm-dash-more" target="_blank">全部 {{ sec.count.toLocaleString() }} →</a>
+          <a :href="sec.url" class="umm-dash-more" target="_blank"
+            >全部 {{ sec.count.toLocaleString() }} →</a
+          >
         </div>
         <div v-if="sec.items.length > 0" class="umm-dash-grid">
           <a
@@ -56,8 +58,12 @@ defineProps<{
       <UmmStatBar
         v-if="data.celebrityCount > 0 || data.reviewCount > 0"
         :items="[
-          ...(data.celebrityCount > 0 ? [{ label: '收藏的影人', value: data.celebrityCount, url: data.celebrityUrl }] : []),
-          ...(data.reviewCount > 0 ? [{ label: '我的影评', value: data.reviewCount, url: data.reviewUrl }] : []),
+          ...(data.celebrityCount > 0
+            ? [{ label: '收藏的影人', value: data.celebrityCount, url: data.celebrityUrl }]
+            : []),
+          ...(data.reviewCount > 0
+            ? [{ label: '我的影评', value: data.reviewCount, url: data.reviewUrl }]
+            : []),
         ]"
       />
 

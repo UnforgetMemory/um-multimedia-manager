@@ -1,23 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { CelebritiesPageData } from './celebrities-data'
+import { computed } from 'vue';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { CelebritiesPageData } from './celebrities-data';
 
-const props = defineProps<{ data: CelebritiesPageData }>()
-const d = props.data
+const props = defineProps<{ data: CelebritiesPageData }>();
+const d = props.data;
 
-const totalCelebrities = computed(() =>
-  d.groups.reduce((sum, g) => sum + g.celebrities.length, 0),
-)
+const totalCelebrities = computed(() => d.groups.reduce((sum, g) => sum + g.celebrities.length, 0));
 
 function openSubject(url: string, e: MouseEvent): void {
-  e.preventDefault()
-  e.stopPropagation()
-  window.open(url, '_blank')
+  e.preventDefault();
+  e.stopPropagation();
+  window.open(url, '_blank');
 }
 
 function openPersonage(url: string): void {
-  window.open(url, '_blank')
+  window.open(url, '_blank');
 }
 </script>
 
@@ -31,16 +29,10 @@ function openPersonage(url: string): void {
       </div>
 
       <!-- Empty state -->
-      <div v-if="d.groups.length === 0" class="umm-celebrity-empty">
-        暂无演职员信息
-      </div>
+      <div v-if="d.groups.length === 0" class="umm-celebrity-empty">暂无演职员信息</div>
 
       <!-- Celebrity groups -->
-      <div
-        v-for="group in d.groups"
-        :key="group.heading"
-        class="umm-celebrity-group"
-      >
+      <div v-for="group in d.groups" :key="group.heading" class="umm-celebrity-group">
         <h2 class="umm-celebrity-group-heading">{{ group.heading }}</h2>
 
         <div class="umm-celebrity-grid">
@@ -74,7 +66,8 @@ function openPersonage(url: string): void {
                   class="umm-celebrity-work-tag"
                   :title="work.title"
                   @click.prevent="openSubject(work.url, $event)"
-                >{{ work.title }}</a>
+                  >{{ work.title }}</a
+                >
               </div>
             </div>
           </a>

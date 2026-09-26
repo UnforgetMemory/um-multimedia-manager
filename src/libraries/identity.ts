@@ -6,14 +6,14 @@
  * - Route pattern constants used by content script router and matches
  *
  * URL parsing logic delegates to the domain Identity class
- * (src/domain/identity/Identity.ts) to eliminate duplication.
+ * (src/domain/identity/identity.ts) to eliminate duplication.
  * This file provides the UrlIdentity DTO adapter + PT site helpers
  * for backward compatibility with content script consumers.
  */
 
-import { Identity as DomainIdentity } from '@/domain/identity/Identity';
-import { Platform } from '@/domain/platform/Platform';
-import { MediaType } from '@/domain/platform/MediaType';
+import { Identity as DomainIdentity } from '@/domain/identity/identity';
+import { Platform } from '@/domain/platform/platform';
+import { MediaType } from '@/domain/platform/media-type';
 import type { Provider } from '@/libraries/config';
 import type { UrlIdentity } from '@/types';
 
@@ -45,12 +45,7 @@ export const UrlResolverBuilder = {
   /**
    * 创建身份信息对象
    */
-  make(
-    type: string,
-    provider: Provider,
-    providerId: string,
-    urlOverride = '',
-  ): UrlIdentity | null {
+  make(type: string, provider: Provider, providerId: string, urlOverride = ''): UrlIdentity | null {
     if (!type || !provider || !providerId) {
       return null;
     }

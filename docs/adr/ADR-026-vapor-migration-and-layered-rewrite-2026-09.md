@@ -68,7 +68,7 @@ umpp P0 以 5 个正交只读 subagent 完成取证（架构分层 / UI-CSS / �
 
 **仅采纳 `vp check`**（Oxfmt + Oxlint + type-check，填补项目「零 lint/format」空白）；**不接管构建**（WXT 拥有构建管线，`vp build` 不认 WXT 入口系统）。已知 `vite-plus@1.0.0-rc.0` 亦为 RC；Oxlint 尚不支持 Vue 模板 lint。
 
-## 实施状态（2026-09-25，随进度更新）
+## 实施状态（2026-09-26，随进度更新）
 
 | 决策 | 状态 | 证据 |
 |---|---|---|
@@ -77,9 +77,10 @@ umpp P0 以 5 个正交只读 subagent 完成取证（架构分层 / UI-CSS / �
 | D3 RC + overrides | ✅ 落地 | `vue` / `@vue/compiler-sfc` = `3.6.0-rc.9` + 11 项 `overrides`；六道门禁全绿，`test:unit` 1212 + 11 已知基线（零新增） |
 | D4 双轨发布 | ✅ 生效 | `main` 未触碰；工作仅在 `dev-2026-09-25` |
 | D5 契约冻结 | ✅ 落地 | `tests/unit/contract-freeze.spec.ts`（20 用例）+ 变异测试验证 |
-| D6 七层骨架 + 守卫 | ✅ 骨架迁移完成（L1–L6 全部归位） | 守卫已落地（`arch:check` exit 0，CI `Static Gates` 阻断）；L1 `libraries/`（89 文件）· L2 `engine/`（19）· L3 `provider/`（6）· L4 `store/`（3）· L5 `feature/`（9）· L6 `scenario/`（241）全部物理归位，六道门禁全绿（含 `git mv` 重命名识别）；`src/` 顶层收敛为七层骨架 + `domain`/`types` |
-| D7 前缀统一 | 🟡 两步落地（3 项中 2 项） | ①overlay 令牌 `--usl-*`（49 名）/ `--sht-*`（5 名）→ `--umm-*` ✅；②注入宿主页的裸选择器收进 `umm` 作用域 ✅（见「D7 落地说明」）；③5 种状态徽章类名合并**未做** |
-| D8 Vite+ `vp check` | 🟡 第一步落地（改用 oxlint 单点） | 引入 `oxlint` + `npm run lint`（`--deny-warnings` 零告警门禁，进 CI `Static Gates`），清零 38 条告警；**未采纳 `vite-plus` 本体**；Oxfmt 全仓格式化待办 |
+| D6 七层骨架 + 守卫 | ✅ 骨架迁移 + 命名守卫完成 | 守卫已落地（`arch:check` exit 0，CI `Static Gates` 阻断）；L1 `libraries/`（89 文件）· L2 `engine/`（19）· L3 `provider/`（6）· L4 `store/`（3）· L5 `feature/`（9）· L6 `scenario/`（241）全部物理归位，六道门禁全绿（含 `git mv` 重命名识别）；`src/` 顶层收敛为七层骨架 + `domain`/`types`；**命名规范守卫 `naming:check` 已落地**（kebab-case 文件 / PascalCase `.vue` / `<domain>-extract.ts` 统一 / BCP-47 locale 豁免；38 个 `git mv` + 158 处 import 重写 + spec 同步改名，`--self-test` 夹具内置），CI `Static Gates` 同列 |
+| D7 前缀统一 | ✅ 三项闭环（③ 裁决为不合并） | ①overlay 令牌 `--usl-*`（49 名）/ `--sht-*`（5 名）→ `--umm-*` ✅；②注入宿主页的裸选择器收进 `umm` 作用域 ✅（见「D7 落地说明」）；③5 种状态徽章**契约对照后裁决不合并**——同名不同构（DOM 契约各异），死块 `SEARCH_BADGE_STYLES` 已删除，「同名≠同行为」入档为合并前置规则 |
+| D8 Vite+ `vp check` | ✅ 第一步 + Oxfmt 落地（vite-plus 本体仍不采纳） | `oxlint` + `npm run lint`（零告警门禁）；**Oxfmt 全仓统一格式化**：`.oxfmtrc.json`（semi / singleQuote / printWidth 100 / LF），631 文件收口，`format` / `format:check` 进 CI `Static Gates`；文本解析守卫改为格式宽容（ds:check 梯度/模板块正则、motion-discipline 引号折行断言）；**未采纳 `vite-plus` 本体**（两轮调研：WXT/Vite 版本轨道不兼容，收益不成立） |
+| TS 严格度（需求 4，带外） | ✅ `noUncheckedIndexedAccess` 开启 | 全仓 301 个索引访问错误**分域清零**（entrypoints 66 / douban pages 109 / tests 61 / 其余 65），`type-check` 全绿；未使用 `any` 抑制、未弱化任何测试 |
 
 ## D2 落地修正（2026-09-26）
 

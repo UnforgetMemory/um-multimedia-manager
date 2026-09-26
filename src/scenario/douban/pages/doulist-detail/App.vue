@@ -7,53 +7,53 @@
  * via record data when available.
  */
 
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import UmmPageLinks from '@/scenario/douban/components/UmmPageLinks.vue';
-import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels'
-import type { DoulistDetailPageData, DoulistDetailItem } from './types'
+import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels';
+import type { DoulistDetailPageData, DoulistDetailItem } from './types';
 
 const props = defineProps<{
-  data: DoulistDetailPageData
-  recordMap?: Map<string, import('@/types').StoreRecord>
-}>()
+  data: DoulistDetailPageData;
+  recordMap?: Map<string, import('@/types').StoreRecord>;
+}>();
 
 function setFilter(url: string) {
-  window.location.href = url
+  window.location.href = url;
 }
 
 // Get full record for an item
 function getItemRecord(item: DoulistDetailItem): import('@/types').StoreRecord | undefined {
-  if (!props.recordMap) return undefined
-  return props.recordMap.get(item.subjectId)
+  if (!props.recordMap) return undefined;
+  return props.recordMap.get(item.subjectId);
 }
 
 // Star display helper (0-10 scale → 5 stars)
 function starRating(rating: number): number {
-  return rating / 2  // 0-10 → 0-5
+  return rating / 2; // 0-10 → 0-5
 }
 
 // Star classes for display
 function starClass(item: DoulistDetailItem, starIndex: number): string {
-  const stars = starRating(item.rating)
-  const filled = starIndex + 1
-  if (stars >= filled) return 'umm-dlist-item-star umm-dlist-item-star--filled'
-  if (stars >= filled - 0.5) return 'umm-dlist-item-star umm-dlist-item-star--half'
-  return 'umm-dlist-item-star'
+  const stars = starRating(item.rating);
+  const filled = starIndex + 1;
+  if (stars >= filled) return 'umm-dlist-item-star umm-dlist-item-star--filled';
+  if (stars >= filled - 0.5) return 'umm-dlist-item-star umm-dlist-item-star--half';
+  return 'umm-dlist-item-star';
 }
 
 // Format count
 function formatCount(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '万'
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
-  return n.toString()
+  if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+  return n.toString();
 }
 
 // Status label helper for doulist items
 function statusBadgeText(status: number, rating: number): string {
-  const labels = statusBadgeLabels.movie
-  if (status === 2) return rating > 0 ? `${labels.done} ${rating}` : labels.done
-  if (status === 1) return labels.wish
-  return ''
+  const labels = statusBadgeLabels.movie;
+  if (status === 2) return rating > 0 ? `${labels.done} ${rating}` : labels.done;
+  if (status === 1) return labels.wish;
+  return '';
 }
 </script>
 
@@ -81,8 +81,11 @@ function statusBadgeText(status: number, rating: number): string {
                 :href="`https://www.douban.com/people/${data.creator.id}/`"
                 class="umm-dlist-creator-name"
                 target="_blank"
-              >{{ data.creator.name }}</a>
-              <span v-if="data.creator.location" class="umm-dlist-creator-location">{{ data.creator.location }}</span>
+                >{{ data.creator.name }}</a
+              >
+              <span v-if="data.creator.location" class="umm-dlist-creator-location">{{
+                data.creator.location
+              }}</span>
             </div>
             <div class="umm-dlist-times">
               <span v-if="data.createdTime">创建 {{ data.createdTime }}</span>
@@ -109,15 +112,13 @@ function statusBadgeText(status: number, rating: number): string {
                 :key="f.url"
                 :class="['umm-dlist-filter-btn', f.active ? 'umm-dlist-filter-btn--active' : '']"
                 @click="setFilter(f.url)"
-              >{{ f.label }}<template v-if="f.count > 0"> ({{ f.count }})</template></button>
+              >
+                {{ f.label }}<template v-if="f.count > 0"> ({{ f.count }})</template>
+              </button>
             </div>
 
             <div v-if="data.items.length > 0" class="umm-dlist-items">
-              <div
-                v-for="item in data.items"
-                :key="item.subjectId"
-                class="umm-dlist-item"
-              >
+              <div v-for="item in data.items" :key="item.subjectId" class="umm-dlist-item">
                 <div class="umm-dlist-item-poster">
                   <a :href="item.subjectUrl" target="_blank">
                     <img :src="item.posterUrl" :alt="item.title" loading="lazy" />
@@ -128,26 +129,24 @@ function statusBadgeText(status: number, rating: number): string {
                     <span
                       v-if="getItemRecord(item)!.status === 2"
                       class="umm-status umm-status--inline umm-status--done"
-                    >{{ statusBadgeText(getItemRecord(item)!.status, getItemRecord(item)!.rating) }}</span>
+                      >{{
+                        statusBadgeText(getItemRecord(item)!.status, getItemRecord(item)!.rating)
+                      }}</span
+                    >
                     <span
                       v-else-if="getItemRecord(item)!.status === 1"
                       class="umm-status umm-status--inline umm-status--wish"
-                    >{{ statusBadgeText(getItemRecord(item)!.status, 0) }}</span>
+                      >{{ statusBadgeText(getItemRecord(item)!.status, 0) }}</span
+                    >
                   </template>
 
-                  <a
-                    :href="item.subjectUrl"
-                    class="umm-dlist-item-title"
-                    target="_blank"
-                  >{{ item.title }}</a>
+                  <a :href="item.subjectUrl" class="umm-dlist-item-title" target="_blank">{{
+                    item.title
+                  }}</a>
 
                   <div v-if="item.rating > 0" class="umm-dlist-item-rating">
                     <span class="umm-dlist-item-stars">
-                      <span
-                        v-for="i in 5"
-                        :key="i"
-                        :class="starClass(item, i - 1)"
-                      />
+                      <span v-for="i in 5" :key="i" :class="starClass(item, i - 1)" />
                     </span>
                     <span class="umm-dlist-item-score">{{ item.rating }}</span>
                     <span class="umm-dlist-item-count">({{ formatCount(item.ratingCount) }})</span>
@@ -157,7 +156,9 @@ function statusBadgeText(status: number, rating: number): string {
                     <template v-if="item.director">导演: {{ item.director }}<br /></template>
                     <template v-if="item.actors">主演: {{ item.actors }}<br /></template>
                     <template v-if="item.genres">{{ item.genres }}<br /></template>
-                    <template v-if="item.region || item.year">{{ [item.region, item.year].filter(Boolean).join(' · ') }}</template>
+                    <template v-if="item.region || item.year">{{
+                      [item.region, item.year].filter(Boolean).join(' · ')
+                    }}</template>
                   </div>
                 </div>
               </div>

@@ -9,83 +9,89 @@
  * Reuses UmmMediaRow/UmmStatusBadge/UmmPageLayout components from movie/music
  * homepage, with type="book" to select correct badge labels and aspect ratio.
  */
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRecordCache } from '../../shared/composables/useRecordCache'
-import { useDoubanSection } from '../homepage/composables/useDoubanSection'
-import { usePageObserver } from '../homepage/composables/useHomepageObserver'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import UmmMediaRow from '../homepage/components/UmmMediaRow.vue'
-import { UmmStatusBadge } from '@/scenario/douban/components/UmmStatusBadge'
-import {
-  parseBookExpress,
-  parsePopularBooks,
-  parseBookActivities,
-} from './extractors'
-import type { BookActivityItem, PopularBookItem } from './types'
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { useDoubanSection } from '../homepage/composables/use-douban-section';
+import { usePageObserver } from '../homepage/composables/use-homepage-observer';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import UmmMediaRow from '../homepage/components/UmmMediaRow.vue';
+import { UmmStatusBadge } from '@/scenario/douban/components/umm-status-badge';
+import { parseBookExpress, parsePopularBooks, parseBookActivities } from './book-homepage-extract';
+import type { BookActivityItem, PopularBookItem } from './types';
 
 // Only ids of currently-visible books are fetched (dbGetBulk), never a
 // full-store scan. Grows as late-parsed books appear; see collectIds().
-const visibleIds = ref<string[]>([])
-const { records, load, unsubscribe } = useRecordCache('book', visibleIds)
+const visibleIds = ref<string[]>([]);
+const { records, load, unsubscribe } = useRecordCache('book', visibleIds);
 
-const { items: expressBooks, refresh: refreshExpress } = useDoubanSection(parseBookExpress, records)
-const { items: popularBooks, refresh: refreshPopular } = useDoubanSection(parsePopularBooks, records)
-const activities = ref<BookActivityItem[]>([])
+const { items: expressBooks, refresh: refreshExpress } = useDoubanSection(
+  parseBookExpress,
+  records,
+);
+const { items: popularBooks, refresh: refreshPopular } = useDoubanSection(
+  parsePopularBooks,
+  records,
+);
+const activities = ref<BookActivityItem[]>([]);
 
 function collectIds() {
-  const ids = new Set<string>()
+  const ids = new Set<string>();
   for (const item of expressBooks.value) {
-    if (item.subjectId) ids.add(item.subjectId)
+    if (item.subjectId) ids.add(item.subjectId);
   }
   for (const item of popularBooks.value) {
-    if (item.subjectId) ids.add(item.subjectId)
+    if (item.subjectId) ids.add(item.subjectId);
   }
-  visibleIds.value = Array.from(ids)
+  visibleIds.value = Array.from(ids);
 }
 
 function refreshFromDom() {
-  collectIds()
-  refreshExpress()
-  refreshPopular()
-  const acts = parseBookActivities()
-  if (acts.length > 0) activities.value = acts
+  collectIds();
+  refreshExpress();
+  refreshPopular();
+  const acts = parseBookActivities();
+  if (acts.length > 0) activities.value = acts;
 }
 
 const { start } = usePageObserver(refreshFromDom, {
   containerSelectors: '.books-express, .popular-books, .books-activities',
-})
+});
 
 // Late-parsed books grow visibleIds → reload so their badges appear.
-watch(visibleIds, () => void load())
+watch(visibleIds, () => void load());
 
 onMounted(async () => {
-  collectIds()
-  await load()
-  activities.value = parseBookActivities()
-  start()
-  setTimeout(refreshFromDom, 800)
-  setTimeout(refreshFromDom, 2500)
-  setTimeout(refreshFromDom, 6000)
-})
+  collectIds();
+  await load();
+  activities.value = parseBookActivities();
+  start();
+  setTimeout(refreshFromDom, 800);
+  setTimeout(refreshFromDom, 2500);
+  setTimeout(refreshFromDom, 6000);
+});
 
-onUnmounted(unsubscribe)
+onUnmounted(unsubscribe);
 
 function recordFor(item: { subjectId: string }) {
-  const rec = records.value.get(item.subjectId)
-  return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 }
+  const rec = records.value.get(item.subjectId);
+  return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 };
 }
 
 function rankClass(rank: number): string {
-  if (rank <= 3) return 'umm-rank-number--top3'
-  return ''
+  if (rank <= 3) return 'umm-rank-number--top3';
+  return '';
 }
 
 function trendIcon(trend: PopularBookItem['trend']): string {
   switch (trend) {
-    case 'up': return '↑'
-    case 'down': return '↓'
-    case 'new': return 'N'
-    default: return '—'
+    case 'up':
+      return '↑';
+    case 'down':
+      return '↓';
+    case 'new':
+      return 'N';
+    default:
+      return '—';
   }
 }
 </script>
@@ -93,13 +99,7 @@ function trendIcon(trend: PopularBookItem['trend']): string {
 <template vapor>
   <UmmPageLayout type="book">
     <div class="umm-top-panel">
-      <UmmMediaRow
-        title="新书速递"
-        :items="expressBooks"
-        :records="records"
-        type="book"
-        grid
-      />
+      <UmmMediaRow title="新书速递" :items="expressBooks" :records="records" type="book" grid />
 
       <div v-if="popularBooks.length > 0" class="umm-section">
         <h2 class="umm-section-hd">每月热门图书榜</h2>
@@ -116,7 +116,7 @@ function trendIcon(trend: PopularBookItem['trend']): string {
               {{ book.rank }}
             </span>
             <div class="umm-ranking-cover">
-              <img :src="book.coverUrl" :alt="book.title" loading="lazy">
+              <img :src="book.coverUrl" :alt="book.title" loading="lazy" />
             </div>
             <div class="umm-ranking-info">
               <span class="umm-ranking-title">
@@ -131,7 +131,9 @@ function trendIcon(trend: PopularBookItem['trend']): string {
               <span class="umm-ranking-meta">
                 {{ book.author }}
                 <template v-if="book.tags.length"> · {{ book.tags.join(' / ') }}</template>
-                <template v-if="book.prevRank"> · {{ trendIcon(book.trend) }}{{ book.prevRank }}</template>
+                <template v-if="book.prevRank">
+                  · {{ trendIcon(book.trend) }}{{ book.prevRank }}</template
+                >
                 <template v-else-if="book.trend === 'new'"> · 新上榜</template>
               </span>
             </div>

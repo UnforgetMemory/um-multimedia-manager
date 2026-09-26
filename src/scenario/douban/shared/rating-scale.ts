@@ -1,4 +1,4 @@
-import { Rating } from '@/domain/record/Rating'
+import { Rating } from '@/domain/record/rating';
 
 /**
  * Douban rating-scale adapters (5-star ↔ 10-scale).
@@ -15,8 +15,8 @@ import { Rating } from '@/domain/record/Rating'
  * 0 (unrated) is preserved as 0.
  */
 export function rating10ToDoubanStars(rating10: number): number {
-  if (!rating10 || rating10 <= 0) return 0
-  return rating10 / 2
+  if (!rating10 || rating10 <= 0) return 0;
+  return rating10 / 2;
 }
 
 /**
@@ -25,8 +25,8 @@ export function rating10ToDoubanStars(rating10: number): number {
  * so range/step validation lives in the domain layer (single source).
  */
 export function doubanStarsToRating10(stars: number): number {
-  if (!stars || stars <= 0) return 0
-  return Rating.fromStars(stars)?.toNumber() ?? 0
+  if (!stars || stars <= 0) return 0;
+  return Rating.fromStars(stars)?.toNumber() ?? 0;
 }
 
 /**
@@ -43,18 +43,17 @@ export function doubanStarsToRating10(stars: number): number {
  * - Everything identical → skip.
  */
 export function shouldWriteRecord(opts: {
-  hasLocal: boolean
-  localStatus: number | undefined
-  localRating: number | undefined
-  newStatus: number
-  newRating10: number
+  hasLocal: boolean;
+  localStatus: number | undefined;
+  localRating: number | undefined;
+  newStatus: number;
+  newRating10: number;
 }): boolean {
-  if (!opts.hasLocal) return true
-  const statusChanged = opts.localStatus !== opts.newStatus
+  if (!opts.hasLocal) return true;
+  const statusChanged = opts.localStatus !== opts.newStatus;
   // A page rating of 0 (unrated) must never overwrite an existing rating;
   // only compare when the page actually provides a new rating.
   const ratingChanged =
-    opts.newRating10 > 0 &&
-    Math.abs((opts.localRating || 0) - opts.newRating10) > 0.01
-  return statusChanged || ratingChanged
+    opts.newRating10 > 0 && Math.abs((opts.localRating || 0) - opts.newRating10) > 0.01;
+  return statusChanged || ratingChanged;
 }

@@ -15,8 +15,8 @@
  * storage. All business rules about what gets synced, skipped, and
  * how conflicts are resolved live here.
  */
-import { StoreRecord } from '@/domain/record/StoreRecord';
-import type { IRecordRepository } from '@/domain/record/IRecordRepository';
+import { StoreRecord } from '@/domain/record/store-record';
+import type { IRecordRepository } from '@/domain/record/i-record-repository';
 
 /** Describes the outcome of a sync operation. */
 export interface SyncResult {
@@ -34,10 +34,10 @@ export interface SyncTarget {
 }
 
 export class RecordService {
-  private readonly repo: IRecordRepository
+  private readonly repo: IRecordRepository;
 
   constructor(repo: IRecordRepository) {
-    this.repo = repo
+    this.repo = repo;
   }
 
   // ==================== Cross-platform sync ====================
@@ -80,10 +80,10 @@ export class RecordService {
         ([platform, id]) => existingPrimary.linkedIds[platform] !== id,
       );
       const primaryChanged =
-        existingPrimary.status.toNumber() !== record.status.toNumber()
-        || existingPrimary.rating.toNumber() !== record.rating.toNumber()
-        || existingPrimary.comment !== record.comment
-        || linksChanged;
+        existingPrimary.status.toNumber() !== record.status.toNumber() ||
+        existingPrimary.rating.toNumber() !== record.rating.toNumber() ||
+        existingPrimary.comment !== record.comment ||
+        linksChanged;
 
       if (primaryChanged) {
         // Merge: incoming status/rating replace existing, linkedIds union.
@@ -152,7 +152,4 @@ export class RecordService {
 
     return { changed, syncedPlatforms };
   }
-
 }
-
-

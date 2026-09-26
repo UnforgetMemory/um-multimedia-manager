@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import type { BookAuthorsData } from './types'
-import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue'
-import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue'
-import { usePaginator } from '../../shared/composables/usePaginator'
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import type { BookAuthorsData } from './types';
+import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
+import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
+import { usePaginator } from '../../shared/composables/use-paginator';
 
 const props = defineProps<{
-  data: BookAuthorsData
-}>()
+  data: BookAuthorsData;
+}>();
 
 const { currentPage, totalPages, onPageChange } = usePaginator(
   () => props.data.pageLinks,
   () => props.data.prevPageUrl,
   () => props.data.nextPageUrl,
-)
+);
 </script>
 
 <template vapor>
@@ -41,18 +41,14 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
           class="umm-authors-card"
           target="_blank"
         >
-          <div
-            class="umm-authors-photo"
-            :style="{ backgroundImage: `url(${item.photoUrl})` }"
-          />
+          <div class="umm-authors-photo" :style="{ backgroundImage: `url(${item.photoUrl})` }" />
           <div class="umm-authors-body">
             <span class="umm-authors-name">{{ item.name }}</span>
             <span v-if="item.roles" class="umm-authors-roles">{{ item.roles }}</span>
             <div v-if="item.works.length > 0" class="umm-authors-works">
-              <span
-                v-for="(w, i) in item.works.slice(0, 3)"
-                :key="w.url"
-              >{{ w.title }}{{ i < Math.min(item.works.length, 3) - 1 ? ' / ' : '' }}</span>
+              <span v-for="(w, i) in item.works.slice(0, 3)" :key="w.url"
+                >{{ w.title }}{{ i < Math.min(item.works.length, 3) - 1 ? ' / ' : '' }}</span
+              >
             </div>
           </div>
         </a>

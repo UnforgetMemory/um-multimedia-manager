@@ -16,13 +16,17 @@ npm test                # 全部 Playwright 测试
 npm run i18n:check      # i18n 键完整性检查
 npm run arch:check      # 架构分层守卫（七层依赖方向；exit 1 即有违规）
 npm run ds:check        # 设计令牌门禁（三层令牌 + 对比度/对称断言）
+npm run scope:check     # 样式作用域守卫（注入宿主页面的样式禁止裸选择器，ADR-026 D7）
+npm run naming:check    # 文件命名守卫（kebab-case / PascalCase .vue / <domain>-extract 统一，ADR-026 D6）
 npm run lint            # oxlint 静态检查（正确性规则；--deny-warnings 零警告门禁）
+npm run format          # Oxfmt 全量格式化（统一风格：semi/单引号/printWidth 100/LF，ADR-026 D8）
+npm run format:check    # 格式化门禁（CI Static Gates 同列）
 npm run package:patch   # 版本号 + 构建 + 打包（minor/major 同理）
 npm run zip             # 构建 + 打包 Chrome 商店包
 ```
 
-质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `i18n:check` → `lint` → `build`（format 尚未引入，见 ADR-026 D8）。
-CI 侧：`Type Check` → `Static Gates`（arch/ds/i18n/lint）→ `Build (chrome|firefox)`，门禁失败即阻断构建。
+质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `scope:check` → `naming:check` → `i18n:check` → `lint` → `format:check` → `build`（见 ADR-026 D8）。
+CI 侧：`Type Check` → `Static Gates`（arch/ds/scope/naming/i18n/lint/format）→ `Build (chrome|firefox)`，门禁失败即阻断构建。
 
 ## 环境
 

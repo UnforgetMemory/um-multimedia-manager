@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
+import { computed } from 'vue';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import {
   recordStatusBadge,
   type PersonageCreationsPageData,
   type CreationItem,
   type RecordStatusBadge,
-} from './personage-creations-data'
+} from './personage-creations-data';
 
-const props = defineProps<{ data: PersonageCreationsPageData }>()
-const d = props.data
+const props = defineProps<{ data: PersonageCreationsPageData }>();
+const d = props.data;
 
 interface CreationWithBadge extends CreationItem {
-  badge: RecordStatusBadge | null
+  badge: RecordStatusBadge | null;
 }
 
 /** Decorate creations with their record-status badge (pure mapping). */
@@ -21,47 +21,47 @@ const creations = computed<CreationWithBadge[]>(() =>
     ...c,
     badge: c.recordStatus ? recordStatusBadge(c.recordStatus) : null,
   })),
-)
+);
 
 const sortOptions = [
   { key: 'time', label: '按时间排序' },
   { key: 'collection', label: '按标记排序' },
   { key: 'vote', label: '按评价排序' },
-] as const
+] as const;
 
 const typeTabs = [
   { key: 'filmmaker', label: '影视' },
   { key: 'writer', label: '图书' },
   { key: 'musician', label: '音乐' },
-] as const
+] as const;
 
 /** Base URL for filter links, preserving current sort/type/role state */
 function filterUrl(params: Record<string, string>): string {
-  const url = new URL(location.href)
+  const url = new URL(location.href);
   for (const [key, value] of Object.entries(params)) {
-    if (value) url.searchParams.set(key, value)
-    else url.searchParams.delete(key)
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
   }
-  url.searchParams.delete('start') // pagination resets on filter change
-  return url.toString()
+  url.searchParams.delete('start'); // pagination resets on filter change
+  return url.toString();
 }
 
 function openUrl(url: string): void {
-  if (url) window.open(url, '_blank')
+  if (url) window.open(url, '_blank');
 }
 
 function getCreationKey(creation: CreationItem, index: number): string {
-  return `${index}-${creation.recordStatus ?? 0}-${creation.recordRating ?? 0}`
+  return `${index}-${creation.recordStatus ?? 0}-${creation.recordRating ?? 0}`;
 }
 
 const roleOptions = computed(() => [
   { label: '全部', role: '', url: filterUrl({ role: '' }), active: !d.currentRole },
   ...d.roleOptions,
-])
+]);
 
 /** e.g. "演员 - 配音" → "演员 · 配音" */
 function formatRole(role: string): string {
-  return role.replace(/\s*-\s*/g, ' · ').trim()
+  return role.replace(/\s*-\s*/g, ' · ').trim();
 }
 </script>
 
@@ -90,7 +90,9 @@ function formatRole(role: string): string {
               class="umm-creations-tab"
               :class="{ 'umm-creations-tab--active': d.currentType === tab.key }"
               @click="openUrl(filterUrl({ type: tab.key }))"
-            >{{ tab.label }}</button>
+            >
+              {{ tab.label }}
+            </button>
           </div>
 
           <!-- Sort options -->
@@ -101,7 +103,9 @@ function formatRole(role: string): string {
               class="umm-creations-sort-btn"
               :class="{ 'umm-creations-sort-btn--active': d.currentSort === opt.key }"
               @click="openUrl(filterUrl({ sortby: opt.key }))"
-            >{{ opt.label }}</button>
+            >
+              {{ opt.label }}
+            </button>
           </div>
 
           <!-- Role filter -->
@@ -115,7 +119,8 @@ function formatRole(role: string): string {
                 class="umm-creations-role-chip"
                 :class="{ 'umm-creations-role-chip--active': opt.active }"
                 @click.prevent="openUrl(opt.url)"
-              >{{ opt.label }}</a>
+                >{{ opt.label }}</a
+              >
             </div>
           </div>
         </div>
@@ -140,10 +145,15 @@ function formatRole(role: string): string {
                   :href="creation.url"
                   class="umm-creation-title"
                   @click.prevent="openUrl(creation.url)"
-                >{{ creation.title }}</a>
+                  >{{ creation.title }}</a
+                >
                 <span v-if="creation.year" class="umm-creation-year">({{ creation.year }})</span>
-                <span v-if="creation.status" class="umm-creation-status">{{ creation.status }}</span>
-                <span v-if="creation.role" class="umm-creation-role">{{ formatRole(creation.role) }}</span>
+                <span v-if="creation.status" class="umm-creation-status">{{
+                  creation.status
+                }}</span>
+                <span v-if="creation.role" class="umm-creation-role">{{
+                  formatRole(creation.role)
+                }}</span>
               </div>
 
               <!-- Director & Cast -->
@@ -170,26 +180,22 @@ function formatRole(role: string): string {
               :class="'umm-creation-badge--' + creation.badge.variant"
             >
               <span>{{ creation.badge.label }}</span>
-              <span v-if="creation.recordRating" class="umm-creation-badge-rating">{{ creation.recordRating }}</span>
+              <span v-if="creation.recordRating" class="umm-creation-badge-rating">{{
+                creation.recordRating
+              }}</span>
             </div>
           </div>
         </div>
 
         <!-- Pagination -->
         <div v-if="d.totalPages > 1" class="umm-creations-paginator">
-          <button
-            v-if="d.hasPrev"
-            class="umm-paginator-btn"
-            @click="openUrl(d.prevUrl)"
-          >&lt; 前页</button>
-          <span class="umm-paginator-info">
-            第 {{ d.currentPage }} / {{ d.totalPages }} 页
-          </span>
-          <button
-            v-if="d.hasNext"
-            class="umm-paginator-btn"
-            @click="openUrl(d.nextUrl)"
-          >后页 &gt;</button>
+          <button v-if="d.hasPrev" class="umm-paginator-btn" @click="openUrl(d.prevUrl)">
+            &lt; 前页
+          </button>
+          <span class="umm-paginator-info"> 第 {{ d.currentPage }} / {{ d.totalPages }} 页 </span>
+          <button v-if="d.hasNext" class="umm-paginator-btn" @click="openUrl(d.nextUrl)">
+            后页 &gt;
+          </button>
         </div>
       </template>
     </div>

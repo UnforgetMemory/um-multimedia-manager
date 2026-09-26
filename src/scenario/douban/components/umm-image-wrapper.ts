@@ -1,5 +1,5 @@
-import { defineComponent, h, type PropType } from 'vue'
-import { UmmImage } from './UmmImage'
+import { defineComponent, h, type PropType } from 'vue';
+import { UmmImage } from './umm-image';
 
 export const UmmImageWrapper = defineComponent({
   name: 'UmmImageWrapper',
@@ -12,6 +12,6 @@ export const UmmImageWrapper = defineComponent({
     href: { type: String, default: undefined },
   },
   setup(props) {
-    return () => h(UmmImage, { ...props })
+    return () => h(UmmImage, { ...props });
   },
-})
+});

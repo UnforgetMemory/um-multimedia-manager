@@ -1,40 +1,45 @@
 <script setup lang="ts">
-import type { AlbumsPageData, AlbumVersionItem } from './types'
-import type { StoreRecord } from '@/types'
-import { computed } from 'vue'
-import { UmmPageLayout } from '@/scenario/douban/components/UmmPageLayout'
-import { UmmImageWrapper } from '@/scenario/douban/components/UmmImageWrapper'
-import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/UmmStatusBadgeWrapper'
-import { UmmRating } from '@/scenario/douban/components/UmmRating'
-import { ASPECT_RATIO, MEDIA_FORMATS, FORMAT_LABELS, FORMAT_COLORS } from '@/scenario/douban/shared/media-formats'
+import type { AlbumsPageData, AlbumVersionItem } from './types';
+import type { StoreRecord } from '@/types';
+import { computed } from 'vue';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
+import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/umm-status-badge-wrapper';
+import { UmmRating } from '@/scenario/douban/components/umm-rating';
+import {
+  ASPECT_RATIO,
+  MEDIA_FORMATS,
+  FORMAT_LABELS,
+  FORMAT_COLORS,
+} from '@/scenario/douban/shared/media-formats';
 
 const props = defineProps<{
-  data: AlbumsPageData
-  recordMap: Map<string, StoreRecord>
-}>()
+  data: AlbumsPageData;
+  recordMap: Map<string, StoreRecord>;
+}>();
 
 function getRecordStatus(item: AlbumVersionItem): { status: number; rating: number } {
-  const rec = props.recordMap.get(String(item.id))
-  if (!rec) return { status: 0, rating: 0 }
-  return { status: rec.status ?? 0, rating: rec.rating ?? 0 }
+  const rec = props.recordMap.get(String(item.id));
+  if (!rec) return { status: 0, rating: 0 };
+  return { status: rec.status ?? 0, rating: rec.rating ?? 0 };
 }
 
 function extractMediaFormat(abstract: string): { label: string; colorClass: string } | null {
-  if (!abstract) return null
-  const segments = abstract.split(' / ')
+  if (!abstract) return null;
+  const segments = abstract.split(' / ');
   for (const seg of segments) {
-    const trimmed = seg.trim()
+    const trimmed = seg.trim();
     if (MEDIA_FORMATS.has(trimmed)) {
-      const label = FORMAT_LABELS[trimmed] || trimmed
-      return { label, colorClass: FORMAT_COLORS[label] || '' }
+      const label = FORMAT_LABELS[trimmed] || trimmed;
+      return { label, colorClass: FORMAT_COLORS[label] || '' };
     }
   }
-  return null
+  return null;
 }
 
 const chipData = computed(() => {
-  return props.data.versions.map((v) => extractMediaFormat(v.abstract))
-})
+  return props.data.versions.map((v) => extractMediaFormat(v.abstract));
+});
 </script>
 
 <template vapor>
@@ -50,7 +55,8 @@ const chipData = computed(() => {
           v-for="(item, i) in data.versions"
           :key="item.id"
           :href="item.url"
-          target="_blank" rel="noopener noreferrer"
+          target="_blank"
+          rel="noopener noreferrer"
           class="umm-album-card"
         >
           <div class="umm-album-cover-wrap">
@@ -60,7 +66,9 @@ const chipData = computed(() => {
               :aspect-ratio="ASPECT_RATIO.SQUARE"
             />
             <div v-if="chipData[i]" class="umm-album-media-row">
-              <span class="umm-album-media-chip" :class="chipData[i]!.colorClass">{{ chipData[i]!.label }}</span>
+              <span class="umm-album-media-chip" :class="chipData[i]!.colorClass">{{
+                chipData[i]!.label
+              }}</span>
             </div>
           </div>
 

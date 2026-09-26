@@ -1,15 +1,15 @@
-import { onUnmounted } from 'vue'
-import { throttle } from '@/libraries/utils'
+import { onUnmounted } from 'vue';
+import { throttle } from '@/libraries/utils';
 
 export interface PageObserverOptions {
   /** CSS selectors for containers to watch for injected content */
-  containerSelectors: string
+  containerSelectors: string;
   /** Polling interval in ms (default: 1000) */
-  pollIntervalMs?: number
+  pollIntervalMs?: number;
   /** Max polling duration in ms (default: 60000) */
-  pollDurationMs?: number
+  pollDurationMs?: number;
   /** Throttle window in ms (default: 500) */
-  throttleMs?: number
+  throttleMs?: number;
 }
 
 /**
@@ -22,88 +22,113 @@ export function usePageObserver(callback: () => void, options: PageObserverOptio
     pollIntervalMs = 1000,
     pollDurationMs = 60000,
     throttleMs = 500,
-  } = options
+  } = options;
 
-  let observer: MutationObserver | null = null
-  let checkInterval: ReturnType<typeof setInterval> | null = null
-  let pollingTimeout: ReturnType<typeof setTimeout> | null = null
-  const observedContainers = new Set<Element>()
-  const throttledCallback = throttle(callback, throttleMs)
+  let observer: MutationObserver | null = null;
+  let checkInterval: ReturnType<typeof setInterval> | null = null;
+  let pollingTimeout: ReturnType<typeof setTimeout> | null = null;
+  const observedContainers = new Set<Element>();
+  const throttledCallback = throttle(callback, throttleMs);
 
   function refreshObserverTargets(): void {
-    const targets = document.querySelectorAll(containerSelectors)
-    targets.forEach(target => {
+    const targets = document.querySelectorAll(containerSelectors);
+    targets.forEach((target) => {
       if (!observedContainers.has(target)) {
-        observedContainers.add(target)
-        observer?.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
+        observedContainers.add(target);
+        observer?.observe(target, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class'],
+        });
       }
-    })
+    });
 
     // Drop containers that have left the DOM so we don't retain stale
     // element references for the page's lifetime (SPA navigation can
     // replace section roots while the overlay stays mounted).
     for (const stale of observedContainers) {
       if (!document.contains(stale)) {
-        observedContainers.delete(stale)
+        observedContainers.delete(stale);
       }
     }
   }
 
   function start(): void {
-    if (observer) return
+    if (observer) return;
 
-    observer = new MutationObserver(mutations => {
-      let shouldTrigger = false
+    observer = new MutationObserver((mutations) => {
+      let shouldTrigger = false;
       for (const mutation of mutations) {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           for (const node of Array.from(mutation.addedNodes)) {
-            if (node.nodeType !== Node.ELEMENT_NODE) continue
-            const elNode = node as Element
-            if (elNode.matches?.(containerSelectors)) { shouldTrigger = true; break }
-            if (elNode.querySelector?.(containerSelectors)) { shouldTrigger = true; break }
+            if (node.nodeType !== Node.ELEMENT_NODE) continue;
+            const elNode = node as Element;
+            if (elNode.matches?.(containerSelectors)) {
+              shouldTrigger = true;
+              break;
+            }
+            if (elNode.querySelector?.(containerSelectors)) {
+              shouldTrigger = true;
+              break;
+            }
           }
         }
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          const target = mutation.target as Element
-          if (target.closest?.(containerSelectors)) { shouldTrigger = true }
+          const target = mutation.target as Element;
+          if (target.closest?.(containerSelectors)) {
+            shouldTrigger = true;
+          }
         }
       }
       if (shouldTrigger) {
-        refreshObserverTargets()
-        throttledCallback()
+        refreshObserverTargets();
+        throttledCallback();
       }
-    })
+    });
 
-    refreshObserverTargets()
-    observer.observe(document.body, { childList: true, subtree: true })
+    refreshObserverTargets();
+    observer.observe(document.body, { childList: true, subtree: true });
 
     checkInterval = setInterval(() => {
-      const targets = document.querySelectorAll(containerSelectors)
-      let foundNew = false
-      targets.forEach(t => { if (!observedContainers.has(t)) foundNew = true })
+      const targets = document.querySelectorAll(containerSelectors);
+      let foundNew = false;
+      targets.forEach((t) => {
+        if (!observedContainers.has(t)) foundNew = true;
+      });
       if (foundNew) {
-        refreshObserverTargets()
-        throttledCallback()
+        refreshObserverTargets();
+        throttledCallback();
       }
-    }, pollIntervalMs)
+    }, pollIntervalMs);
 
     pollingTimeout = setTimeout(() => {
-      if (checkInterval) { clearInterval(checkInterval); checkInterval = null }
-    }, pollDurationMs)
+      if (checkInterval) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+      }
+    }, pollDurationMs);
 
-    throttledCallback()
+    throttledCallback();
   }
 
   function stop(): void {
-    observer?.disconnect(); observer = null
-    if (checkInterval) { clearInterval(checkInterval); checkInterval = null }
-    if (pollingTimeout) { clearTimeout(pollingTimeout); pollingTimeout = null }
-    observedContainers.clear()
+    observer?.disconnect();
+    observer = null;
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    if (pollingTimeout) {
+      clearTimeout(pollingTimeout);
+      pollingTimeout = null;
+    }
+    observedContainers.clear();
   }
 
-  onUnmounted(stop)
-  return { start, stop }
+  onUnmounted(stop);
+  return { start, stop };
 }
 
 // Legacy alias — re-export for backward compatibility during migration
-export { usePageObserver as useHomepageObserver }
+export { usePageObserver as useHomepageObserver };

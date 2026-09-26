@@ -14,7 +14,7 @@
  *   overlayId: 'umm-douban-overlay',
  *   importApp: () => import('./pages/genre/App.vue'),
  *   async beforeMount() {
- *     const { extractGenrePage } = await import('./pages/genre/extractors')
+ *     const { extractGenrePage } = await import('./pages/genre/genre-extract')
  *     const data = extractGenrePage()
  *     if (!data) throw new Error('[UMM] Could not extract genre page data')
  *     hideNavForPage({ type: 'genre' })
@@ -25,11 +25,11 @@
  * ```
  */
 
-import type { Component, App } from 'vue'
-import type { PageType } from './shared/url-detector'
-import { mountUmmOverlay } from './overlay'
-import { composeStylesForPage } from './css-composer'
-import { cssMap } from './css-map'
+import type { Component, App } from 'vue';
+import type { PageType } from './shared/url-detector';
+import { mountUmmOverlay } from './overlay';
+import { composeStylesForPage } from './css-composer';
+import { cssMap } from './css-map';
 
 /**
  * Configuration for defining a Douban page mount function.
@@ -44,13 +44,13 @@ export interface PageMountConfig<T = undefined> {
    * Must match a key in `PAGE_CSS_PRESETS` inside css-composer.ts
    * (e.g. `'detail'`, `'search'`, `'homepage'`).
    */
-  cssPreset: PageType['type']
+  cssPreset: PageType['type'];
 
   /**
    * The `id` attribute of the shadow DOM overlay element, created by
    * `createOverlay()` in overlay.ts at document_start.
    */
-  overlayId: string
+  overlayId: string;
 
   /**
    * Dynamic import of the root Vue component for this page.
@@ -58,7 +58,7 @@ export interface PageMountConfig<T = undefined> {
    *
    * Example: `() => import('./pages/detail/App.vue')`
    */
-  importApp: () => Promise<{ default: Component }>
+  importApp: () => Promise<{ default: Component }>;
 
   /**
    * Optional async setup that runs inside the overlay's Shadow DOM before
@@ -73,7 +73,7 @@ export interface PageMountConfig<T = undefined> {
    * The return value is passed as the `data` argument to `createApp` and
    * `afterMount`.
    */
-  beforeMount?: (shadow: ShadowRoot) => Promise<T>
+  beforeMount?: (shadow: ShadowRoot) => Promise<T>;
 
   /**
    * Create the Vue app instance.
@@ -82,13 +82,18 @@ export interface PageMountConfig<T = undefined> {
    * @param data - The value returned by `beforeMount`, or `undefined` if
    *   `beforeMount` is not configured.
    */
-  createApp: (RootCmp: Component, data: T) => App
+  createApp: (RootCmp: Component, data: T) => App;
 
   /**
    * Optional post-mount hook for side effects such as polling for record
    * updates or registering global cleanup handlers.
    */
-  afterMount?: (shadow: ShadowRoot, app: App, container: HTMLDivElement, data: T) => void | Promise<void>
+  afterMount?: (
+    shadow: ShadowRoot,
+    app: App,
+    container: HTMLDivElement,
+    data: T,
+  ) => void | Promise<void>;
 }
 
 /**
@@ -102,29 +107,27 @@ export interface PageMountConfig<T = undefined> {
  * @param config - Page mount configuration.
  * @returns An async function that performs the mount when called.
  */
-export function definePageMount<T = undefined>(
-  config: PageMountConfig<T>,
-): () => Promise<void> {
+export function definePageMount<T = undefined>(config: PageMountConfig<T>): () => Promise<void> {
   return async () => {
-    const css = composeStylesForPage(config.cssPreset, cssMap)
-    const { default: RootCmp } = await config.importApp()
+    const css = composeStylesForPage(config.cssPreset, cssMap);
+    const { default: RootCmp } = await config.importApp();
 
     mountUmmOverlay({
       overlayId: config.overlayId,
       css,
       async beforeMount(shadow) {
         if (config.beforeMount) {
-          return await config.beforeMount(shadow)
+          return await config.beforeMount(shadow);
         }
       },
       createApp(_shadow, ctx) {
-        return config.createApp(RootCmp, ctx as T)
+        return config.createApp(RootCmp, ctx as T);
       },
       afterMount(shadow, app, container, ctx) {
         if (config.afterMount) {
-          return config.afterMount(shadow, app, container, ctx as T)
+          return config.afterMount(shadow, app, container, ctx as T);
         }
       },
-    })
-  }
+    });
+  };
 }

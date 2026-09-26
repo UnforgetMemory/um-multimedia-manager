@@ -10,8 +10,8 @@
  *   const map = await loadRecordMap()           // load all, strip type:: prefix
  */
 
-import type { StoreRecord } from '@/types'
-import { loadRecordEntries } from './record-cache-core'
+import type { StoreRecord } from '@/types';
+import { loadRecordEntries } from './record-cache-core';
 
 /**
  * Load douban_records from IndexedDB into a Map.
@@ -26,8 +26,11 @@ import { loadRecordEntries } from './record-cache-core'
  *              ids are treated as full `{type}::` keys. When omitted,
  *              falls back to dbGetAll over the whole store.
  */
-export async function loadRecordMap(prefix?: string, ids?: string[]): Promise<Map<string, StoreRecord>> {
-  return loadRecordEntries(prefix, ids)
+export async function loadRecordMap(
+  prefix?: string,
+  ids?: string[],
+): Promise<Map<string, StoreRecord>> {
+  return loadRecordEntries(prefix, ids);
 }
 
-export { useRecordCache } from './composables/useRecordCache'
+export { useRecordCache } from './composables/use-record-cache';
