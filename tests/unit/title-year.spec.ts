@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { splitTitleYear } from '@/content/douban/shared/title-year'
+import { splitTitleYear } from '@/scenario/douban/shared/title-year'
 
 test.describe('splitTitleYear', () => {
   test('extracts trailing half-width year and strips it from title', () => {

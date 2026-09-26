@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { buildCrossPlatformTargets } from '@/content/douban/shared/cross-platform-links'
+import { buildCrossPlatformTargets } from '@/scenario/douban/shared/cross-platform-links'
 
 /**
  * buildCrossPlatformTargets 纯函数特征测试（2026-08-29，Wave 2.2）。

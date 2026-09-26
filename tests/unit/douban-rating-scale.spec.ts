@@ -3,7 +3,7 @@ import {
   rating10ToDoubanStars,
   doubanStarsToRating10,
   shouldWriteRecord,
-} from '@/content/douban/shared/rating-scale'
+} from '@/scenario/douban/shared/rating-scale'
 
 /**
  * 豆瓣评分制式适配全链路测试。

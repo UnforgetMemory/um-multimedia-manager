@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { parseSearchResultRow, isSearchNoiseForum } from '@/content/sehuatang/extract-search'
-import { initSearchClickDimmer } from '@/content/sehuatang/app-search'
+import { parseSearchResultRow, isSearchNoiseForum } from '@/scenario/sehuatang/extract-search'
+import { initSearchClickDimmer } from '@/scenario/sehuatang/app-search'
 
 /**
  * 色花堂搜索页三件套单元测试：

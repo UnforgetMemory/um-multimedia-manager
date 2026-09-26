@@ -4,7 +4,7 @@ import {
   JAV_IDS_STORE_NAME,
   USAV_IDS_STORE_NAME,
   SEHUATANG_IDS_STORE_NAME,
-} from '@/features/adult-av/models'
+} from '@/provider/adult-av/models'
 import type { StoreRecord, StoreRecordSnapshot } from '@/types'
 import type { MediaDatabase } from '@/engine/database/models'
 

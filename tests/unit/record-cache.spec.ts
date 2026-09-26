@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test'
-import { loadRecordEntries, type StoreApi } from '@/content/douban/shared/record-cache-core'
-import { loadRecordMap } from '@/content/douban/shared/load-record-map'
-import { useRecordCache } from '@/content/douban/shared/composables/useRecordCache'
+import { loadRecordEntries, type StoreApi } from '@/scenario/douban/shared/record-cache-core'
+import { loadRecordMap } from '@/scenario/douban/shared/load-record-map'
+import { useRecordCache } from '@/scenario/douban/shared/composables/useRecordCache'
 import {
   subjectTypeFromHref,
   candidateRecordKeys,
   matchesVisibleId,
-} from '@/content/douban/shared/subject-keys'
+} from '@/scenario/douban/shared/subject-keys'
 import type { StoreRecord } from '@/types'
 
 // ==================== Fixture ====================

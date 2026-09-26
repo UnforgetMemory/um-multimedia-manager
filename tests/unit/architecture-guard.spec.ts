@@ -55,18 +55,18 @@ const LEGAL_TREE: Record<string, string> = {
   'libraries/utils/pure.ts': 'export const pure = 1\n',
   'domain/entity.ts': "import { pure } from '@/libraries/utils/pure'\nexport const entity = pure\n",
   'engine/database/models.ts': "import { pure } from '@/libraries/utils/pure'\nexport const db = pure\n",
-  'features/webdav/api.ts':
+  'provider/webdav/api.ts':
     "import { db } from '@/engine/database/models'\nexport const api = db\n",
   // 内容脚本必须经「数据库门面」bare 导入，不得走 models/api 深路径
-  'content/page.ts':
-    "import { Store } from '@/engine/database'\nimport { api } from '@/features/webdav/api'\nexport const page = Store + api\n",
-  'stores/app.ts': "import { page } from '@/content/page'\nexport const app = page\n",
-  'shared/ui/button/Button.vue':
+  'scenario/page.ts':
+    "import { Store } from '@/engine/database'\nimport { api } from '@/provider/webdav/api'\nexport const page = Store + api\n",
+  'store/app.ts': "import { page } from '@/scenario/page'\nexport const app = page\n",
+  'feature/Button.vue':
     "<script setup lang=\"ts\">\nimport { pure } from '@/libraries/utils/pure'\n</script>\n\n<template><button>{{ pure }}</button></template>\n",
   'entrypoints/content/handlers/ok.ts':
     "import { Store } from '@/engine/database'\nexport const s = Store\n",
   'entrypoints/background.ts':
-    "import { api } from '@/features/webdav/api'\nexport const bg = api\n",
+    "import { api } from '@/provider/webdav/api'\nexport const bg = api\n",
 }
 
 /** 违规夹具：在合法树基础上逐个注入已知违规形态。 */
@@ -75,7 +75,7 @@ const VIOLATING_TREE: Record<string, string> = {
   // C 类：纯层（libraries）依赖业务层（engine）
   'libraries/utils/bad-lib.ts': "import { db } from '@/engine/database/models'\nexport const bad = db\n",
   // D 类：domain 依赖业务层（store）
-  'domain/bad-domain.ts': "import { app } from '@/stores/app'\nexport const bad = app\n",
+  'domain/bad-domain.ts': "import { app } from '@/store/app'\nexport const bad = app\n",
   // B 类：向上依赖（engine → app）—— 三种曾被漏检的导入写法
   'engine/database/bad-up.ts': "import { bg } from '@/entrypoints/background'\nexport const bad = bg\n",
   'engine/database/bad-import-equals.ts':
@@ -83,7 +83,7 @@ const VIOLATING_TREE: Record<string, string> = {
   'engine/database/bad-template.ts':
     "export async function load() {\n  return import(`@/entrypoints/background`)\n}\n",
   // E1 类：内容脚本直连 IndexedDB
-  'content/bad-raw.ts': "export function boom() {\n  return indexedDB.open('probe')\n}\n",
+  'scenario/bad-raw.ts': "export function boom() {\n  return indexedDB.open('probe')\n}\n",
   // E2 类：内容脚本深路径绕过 database 门面 —— 含 require 写法
   'entrypoints/content/handlers/bad-facade.ts':
     "import { db } from '@/engine/database/models'\nexport const bad = db\n",
@@ -103,7 +103,7 @@ const PARTIAL_VALIDATION_TREE: Record<string, string> = {
     '  return { data: {}, meta: blob }',
     '}',
   ].join('\n'),
-  'features/webdav/loader.ts': [
+  'provider/webdav/loader.ts': [
     "import { unpackageDataset } from '@/libraries/utils/zip-utils'",
     "import { validateDatasetVersion } from '@/engine/migration/models'",
     'export async function a(blob) {',
@@ -154,7 +154,7 @@ test.describe('架构分层守卫 · 双向验证', () => {
 
     // E1 内容脚本直连 IndexedDB
     expect(out).toContain('E. 内容脚本直连 IndexedDB')
-    expect(out).toContain('content/bad-raw.ts')
+    expect(out).toContain('scenario/bad-raw.ts')
 
     // E2 内容脚本绕过 database 门面
     expect(out).toContain('E. 内容脚本绕过 database 门面')
@@ -190,7 +190,7 @@ test.describe('架构分层守卫 · 双向验证', () => {
 
     // 经门面 bare 导入是允许的；只有深路径才算绕过
     expect(out).not.toContain('绕过 database 门面')
-    // 合法的 shared/ui → utils 也不会被判为 libraries 纯度违规
+    // 合法的 feature → libraries 也不会被判为 libraries 纯度违规
     expect(out).not.toContain('libraries 纯度')
 
     fs.rmSync(dir, { recursive: true, force: true })
@@ -204,7 +204,7 @@ test.describe('架构分层守卫 · 双向验证', () => {
 
     expect(status).toBe(1)
     expect(out).toContain('F. unpackageDataset 调用点(第 9 行)缺少版本校验')
-    expect(out).toContain('features/webdav/loader.ts')
+    expect(out).toContain('provider/webdav/loader.ts')
     // 带校验的第一处调用点不得被误报
     expect(out).not.toContain('第 4 行')
 

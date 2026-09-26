@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
-import { parseRating } from '@/content/douban/shared/douban-extract'
-import { isSafeDoubanUrl } from '@/content/douban/shared/composables/usePaginator'
-import { withRetry } from '@/content/douban/shared/retry'
+import { parseRating } from '@/scenario/douban/shared/douban-extract'
+import { isSafeDoubanUrl } from '@/scenario/douban/shared/composables/usePaginator'
+import { withRetry } from '@/scenario/douban/shared/retry'
 import { dateKey } from '@/libraries/utils'
 
 test.describe('parseRating', () => {

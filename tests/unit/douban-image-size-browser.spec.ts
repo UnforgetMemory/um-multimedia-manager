@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { DOUBAN_IMAGE_SIZE, upgradeDoubanImageSrc } from '@/content/douban/shared/image-size'
+import { DOUBAN_IMAGE_SIZE, upgradeDoubanImageSrc } from '@/scenario/douban/shared/image-size'
 
 /**
  * Real Chromium DOM contract for Douban CDN size upgrade.

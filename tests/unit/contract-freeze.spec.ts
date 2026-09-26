@@ -19,12 +19,12 @@ import {
   isUsAvId,
   normalizeAvId,
   storeForAvIdKind,
-} from '@/features/adult-av/models'
+} from '@/provider/adult-av/models'
 import {
   DETAIL_STORE_NAME,
   SEHUATANG_CACHE_DB_NAME,
   SEHUATANG_CACHE_DB_VERSION,
-} from '@/features/sehuatang-cache/models'
+} from '@/provider/sehuatang-cache/models'
 import type {
   MessagePayloadMap,
   MessageType,

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { onCrossPlatformSave } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
+import { onCrossPlatformSave } from '@/scenario/douban/pages/detail/composables/useCrossPlatformSync'
 import type { StoreRecord, UrlIdentity } from '@/types'
 
 /**

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { autoDetectPlatform } from '@/features/adult-av/auto-detect'
+import { autoDetectPlatform } from '@/provider/adult-av/auto-detect'
 
 /**
  * autoDetectPlatform — options page platform auto-detection (RatingTab/LinkedTab).

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { runSehuatangSearchApp } from '@/content/sehuatang/app-search'
-import { runSehuatangIndexApp } from '@/content/sehuatang/app-home'
+import { runSehuatangSearchApp } from '@/scenario/sehuatang/app-search'
+import { runSehuatangIndexApp } from '@/scenario/sehuatang/app-home'
 
 /**
  * 色花堂页面端到端渲染测试（app-search / app-home，灵动岛统一布局）。

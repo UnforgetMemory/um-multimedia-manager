@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import {
   interestBarLabels,
   statusBadgeLabels,
-} from '@/content/douban/shared/status-labels'
+} from '@/scenario/douban/shared/status-labels'
 
 /**
  * Status → label mapping 国标化测试。

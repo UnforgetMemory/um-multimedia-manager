@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { collectTitleLabel } from '@/content/douban/shared/collect-title-label'
+import { collectTitleLabel } from '@/scenario/douban/shared/collect-title-label'
 
 /**
  * collectTitleLabel — collect-page title label helper (H4-⑤, 2026-08-08).

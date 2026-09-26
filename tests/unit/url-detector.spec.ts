@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { detectPageType } from '@/content/douban/shared/url-detector'
+import { detectPageType } from '@/scenario/douban/shared/url-detector'
 
 /**
  * detectPageType — unified Douban page-type detection (single source of truth).

@@ -8,7 +8,7 @@ import {
   isOverlayPage,
   extractThreadTidFromUrl,
   extractSearchKeyword,
-} from '@/content/sehuatang/url'
+} from '@/scenario/sehuatang/url'
 
 /**
  * 色花堂 URL 判型（document_start 早期入口建壳 / document_idle 主入口

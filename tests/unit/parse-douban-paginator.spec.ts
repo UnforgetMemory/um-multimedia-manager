@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { parseDoubanPaginator } from '@/content/douban/shared/parse-douban-paginator'
+import { parseDoubanPaginator } from '@/scenario/douban/shared/parse-douban-paginator'
 
 /**
  * 豆瓣 `.paginator` DOM 解析纯函数测试（audit §2.2 T4）。

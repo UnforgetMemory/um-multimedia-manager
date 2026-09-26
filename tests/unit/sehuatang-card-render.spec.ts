@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { buildCard, renderSkeleton, cardTrackKeys } from '@/content/sehuatang/card-render'
+import { buildCard, renderSkeleton, cardTrackKeys } from '@/scenario/sehuatang/card-render'
 import type { SehuatangThread } from '@/entrypoints/content/handlers/sehuatang-extract'
 
 /**

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { IDBFactory } from 'fake-indexeddb'
 import { handleAdultAvBatchAdd } from '@/entrypoints/background/handlers/adult-av'
-import { JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME, SEHUATANG_IDS_STORE_NAME } from '@/features/adult-av/models'
+import { JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME, SEHUATANG_IDS_STORE_NAME } from '@/provider/adult-av/models'
 import type { StoreRecord, AdultAvIdInput } from '@/types'
 import type { MediaDatabase } from '@/engine/database/models'
 

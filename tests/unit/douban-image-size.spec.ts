@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { DOUBAN_IMAGE_SIZE, upgradeDoubanImageSrc } from '@/content/douban/shared/image-size'
+import { DOUBAN_IMAGE_SIZE, upgradeDoubanImageSrc } from '@/scenario/douban/shared/image-size'
 
 /**
  * Douban CDN size upgrade (5.16.1). Pure helper — regression lock so a

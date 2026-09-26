@@ -6,7 +6,7 @@ import {
   MAX_ENTRIES,
   DETAIL_STORE_NAME,
   type SehuatangDetailCacheEntry,
-} from '@/features/sehuatang-cache/models'
+} from '@/provider/sehuatang-cache/models'
 
 /**
  * Sehuatang detail cache — DB layer tests (ADR-024 D2).

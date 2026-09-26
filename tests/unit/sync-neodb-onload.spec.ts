@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { syncNeoDBOnLoad } from '@/content/douban/pages/detail/composables/useCrossPlatformSync'
+import { syncNeoDBOnLoad } from '@/scenario/douban/pages/detail/composables/useCrossPlatformSync'
 import type { StoreRecord, UrlIdentity } from '@/types'
 
 /**

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { ASPECT_RATIO, MEDIA_FORMATS, FORMAT_LABELS, FORMAT_COLORS } from '@/content/douban/shared/media-formats'
+import { ASPECT_RATIO, MEDIA_FORMATS, FORMAT_LABELS, FORMAT_COLORS } from '@/scenario/douban/shared/media-formats'
 
 /**
  * media-formats — shared media-format + aspect-ratio constants (rehomed from

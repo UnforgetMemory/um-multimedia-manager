@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { fetchCatalogByUrl, NeoDBError } from '@/features/neodb/api'
+import { fetchCatalogByUrl, NeoDBError } from '@/provider/neodb/api'
 
 /**
  * NeoDB fetch timeout contract (Wave B1): each attempt aborts after 30s

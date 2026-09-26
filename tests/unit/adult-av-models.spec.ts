@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { normalizeAvId, extractBaseId, isTidTrackKey } from '@/features/adult-av/models'
+import { normalizeAvId, extractBaseId, isTidTrackKey } from '@/provider/adult-av/models'
 
 /**
  * adult-av key normalization (2026-08-08).

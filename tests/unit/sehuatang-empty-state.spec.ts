@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { buildEmptyState, isEmptyHiddenState, syncEmptyHiddenState } from '@/content/sehuatang/empty-state'
+import { buildEmptyState, isEmptyHiddenState, syncEmptyHiddenState } from '@/scenario/sehuatang/empty-state'
 
 /**
  * 色花堂列表页「全部已看过」空态测试（empty-state）。

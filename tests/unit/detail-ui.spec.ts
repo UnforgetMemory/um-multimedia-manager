@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { metaToChips, ratingBarWidth, starClass } from '@/content/douban/shared/detail-ui'
+import { metaToChips, ratingBarWidth, starClass } from '@/scenario/douban/shared/detail-ui'
 
 /**
  * detail-ui.ts 纯函数单元测试。

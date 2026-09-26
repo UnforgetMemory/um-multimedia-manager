@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { parseDoubanPaginator, parseDoubanPaginatorDetail } from '@/content/douban/shared/parse-douban-paginator'
+import { parseDoubanPaginator, parseDoubanPaginatorDetail } from '@/scenario/douban/shared/parse-douban-paginator'
 
 /**
  * 富契约分页解析（audit §2.2 T4 第二波，2026-08-08 H3）。

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { extractImdbIdFromText, extractImdbIdFromItem, type SearchItemLike } from '@/content/douban/shared/imdb-extract'
+import { extractImdbIdFromText, extractImdbIdFromItem, type SearchItemLike } from '@/scenario/douban/shared/imdb-extract'
 
 /**
  * 搜索组件 IMDb 链接识别 + tt-xxx ID 提取测试。

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { reportSaveFailure, consumeSaveFailure } from '@/content/sehuatang/save-failure'
+import { reportSaveFailure, consumeSaveFailure } from '@/scenario/sehuatang/save-failure'
 
 /**
  * 跨页保存失败诊断契约（2026-09-25 自 app.ts 拆出）。

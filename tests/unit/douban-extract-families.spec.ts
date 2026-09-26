@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom'
 import {
   extractUserProfileInfo,
   extractCollectPageShell,
-} from '@/content/douban/shared/douban-extract'
+} from '@/scenario/douban/shared/douban-extract'
 
 /**
  * extractUserProfileInfo / extractCollectPageShell 单元测试（audit §2.4 T14）。

@@ -9,10 +9,10 @@ import {
   RISK_CSS,
   EMPTY_CSS,
   uslVarsForHost,
-} from '@/content/sehuatang/styles'
+} from '@/scenario/sehuatang/styles'
 
 /**
- * 色花堂 overlay Shadow DOM 样式表（src/content/sehuatang/styles.ts）断言。
+ * 色花堂 overlay Shadow DOM 样式表（src/scenario/sehuatang/styles.ts）断言。
  *
  * 样式单一事实源收编后（ADR-024 D4），原 controls/effects spec 内的
  * 运行时注入断言统一迁移至此：:host 变量重宿主、hide-viewed 运行时规则

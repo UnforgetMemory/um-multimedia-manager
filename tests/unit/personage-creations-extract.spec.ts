@@ -7,7 +7,7 @@ import {
   extractPersonageCreationsPageData,
   recordStatusBadge,
   type PersonageCreationsPageData,
-} from '@/content/douban/pages/personage-creations/personage-creations-data'
+} from '@/scenario/douban/pages/personage-creations/personage-creations-data'
 
 /**
  * personage-creations 数据提取单元测试。

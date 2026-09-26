@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { JSDOM } from 'jsdom'
-import { isRiskGateDocument, extractRiskGate } from '@/content/sehuatang/extract-risk'
+import { isRiskGateDocument, extractRiskGate } from '@/scenario/sehuatang/extract-risk'
 
 /**
  * 色花堂风控页（年龄门）检测与提取测试（extract-risk）。
