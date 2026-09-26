@@ -1,7 +1,7 @@
 /**
  * IndexedDB schema migration (extracted from MediaDatabase.init, 2026-08-07 D1).
  *
- * All version-bump logic v6→v13 lives here. The function runs inside
+ * All version-bump logic v6→v15 lives here. The function runs inside
  * onupgradeneeded on the LIVE versionchange upgrade transaction
  * (request.transaction) — calling db.transaction() here throws
  * InvalidStateError per spec, which aborts the upgrade and bricks the DB.
@@ -13,25 +13,28 @@
  */
 
 export interface MigrationStoreNames {
-  DOUBAN: string
-  IMDB: string
-  NEODB: string
-  TMDB: string
-  BILIBILI: string
-  YOUTUBE: string
-  BANGUMI: string
-  TTL_CACHE: string
-  PT_ID_CACHE: string
-  JAV_IDS: string
-  USAV_IDS: string
-  SEHUATANG_IDS: string
+  DOUBAN: string;
+  IMDB: string;
+  NEODB: string;
+  TMDB: string;
+  BILIBILI: string;
+  YOUTUBE: string;
+  BANGUMI: string;
+  TTL_CACHE: string;
+  PT_ID_CACHE: string;
+  JAV_IDS: string;
+  USAV_IDS: string;
+  SEHUATANG_IDS: string;
 }
 
 export interface MigrateDeps {
-  DB_VERSION: number
-  STORE_NAMES: MigrationStoreNames
-  RECORD_STORES: readonly string[]
-  normalizeVideoKey: (oldKey: string) => string
+  DB_VERSION: number;
+  STORE_NAMES: MigrationStoreNames;
+  RECORD_STORES: readonly string[];
+  normalizeVideoKey: (oldKey: string) => string;
+  /** 成人三表 avId 索引名（v15）与键→索引值推导函数。 */
+  ADULT_AV_ID_INDEX: string;
+  adultAvIdFromKey: (key: string) => string;
 }
 
 /**
@@ -44,40 +47,47 @@ export function migrateSchema(
   request: IDBOpenDBRequest,
   deps: MigrateDeps,
 ): void {
-  const { DB_VERSION, STORE_NAMES, RECORD_STORES, normalizeVideoKey } = deps
+  const {
+    DB_VERSION,
+    STORE_NAMES,
+    RECORD_STORES,
+    normalizeVideoKey,
+    ADULT_AV_ID_INDEX,
+    adultAvIdFromKey,
+  } = deps;
 
-  console.log(`[DB] Upgrading from v${oldVersion} to v${DB_VERSION}`)
+  console.log(`[DB] Upgrading from v${oldVersion} to v${DB_VERSION}`);
 
   if (oldVersion < 6) {
     // Fresh install or pre-v6: drop everything and create all stores
-    const existing = Array.from(db.objectStoreNames)
+    const existing = Array.from(db.objectStoreNames);
     for (const name of existing) {
-      db.deleteObjectStore(name)
+      db.deleteObjectStore(name);
     }
 
     for (const name of RECORD_STORES) {
-      const store = db.createObjectStore(name)
-      store.createIndex('status', 'status', { unique: false })
-      store.createIndex('updatedAt', 'updatedAt', { unique: false })
+      const store = db.createObjectStore(name);
+      store.createIndex('status', 'status', { unique: false });
+      store.createIndex('updatedAt', 'updatedAt', { unique: false });
     }
 
-    const ttlCache = db.createObjectStore(STORE_NAMES.TTL_CACHE)
-    ttlCache.createIndex('expiry', 'expiry', { unique: false })
+    const ttlCache = db.createObjectStore(STORE_NAMES.TTL_CACHE);
+    ttlCache.createIndex('expiry', 'expiry', { unique: false });
 
     // L8: sync_logs was a dead store (never written by any code path) and
     // is no longer created for fresh installs. Existing databases keep a
     // harmless empty sync_logs store — deliberately NO version bump to
     // avoid forcing a migration on every existing user.
 
-    console.log(`[DB] Created v6 schema from scratch`)
+    console.log(`[DB] Created v6 schema from scratch`);
   }
 
   // v6→v7: add pt_id_cache store, preserve existing data
   if (oldVersion < 7) {
     if (!db.objectStoreNames.contains(STORE_NAMES.PT_ID_CACHE)) {
-      const ptCache = db.createObjectStore(STORE_NAMES.PT_ID_CACHE)
-      ptCache.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added pt_id_cache store')
+      const ptCache = db.createObjectStore(STORE_NAMES.PT_ID_CACHE);
+      ptCache.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added pt_id_cache store');
     }
   }
 
@@ -87,48 +97,48 @@ export function migrateSchema(
   // dead stores for fresh installs, mirroring the sync_logs decision).
   if (oldVersion >= 6 && oldVersion < 8) {
     if (!db.objectStoreNames.contains('sehuatang_avids')) {
-      const avStore = db.createObjectStore('sehuatang_avids')
-      avStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added sehuatang_avids store')
+      const avStore = db.createObjectStore('sehuatang_avids');
+      avStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added sehuatang_avids store');
     }
   }
 
   // v8→v9: rename sehuatang_avids → jav_ids, migrate data
   if (oldVersion < 9) {
     if (!db.objectStoreNames.contains(STORE_NAMES.JAV_IDS)) {
-      const avStore = db.createObjectStore(STORE_NAMES.JAV_IDS)
-      avStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Created jav_ids store')
+      const avStore = db.createObjectStore(STORE_NAMES.JAV_IDS);
+      avStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Created jav_ids store');
     }
   }
 
   // v9→v10: add bilibili_records store
   if (oldVersion < 10) {
     if (!db.objectStoreNames.contains(STORE_NAMES.BILIBILI)) {
-      const biliStore = db.createObjectStore(STORE_NAMES.BILIBILI)
-      biliStore.createIndex('status', 'status', { unique: false })
-      biliStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added bilibili_records store')
+      const biliStore = db.createObjectStore(STORE_NAMES.BILIBILI);
+      biliStore.createIndex('status', 'status', { unique: false });
+      biliStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added bilibili_records store');
     }
   }
 
   // v10→v11: add youtube_records store
   if (oldVersion < 11) {
     if (!db.objectStoreNames.contains(STORE_NAMES.YOUTUBE)) {
-      const ytStore = db.createObjectStore(STORE_NAMES.YOUTUBE)
-      ytStore.createIndex('status', 'status', { unique: false })
-      ytStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added youtube_records store')
+      const ytStore = db.createObjectStore(STORE_NAMES.YOUTUBE);
+      ytStore.createIndex('status', 'status', { unique: false });
+      ytStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added youtube_records store');
     }
   }
 
   // v11→v12: add bangumi_records store
   if (oldVersion < 12) {
     if (!db.objectStoreNames.contains(STORE_NAMES.BANGUMI)) {
-      const bangumiStore = db.createObjectStore(STORE_NAMES.BANGUMI)
-      bangumiStore.createIndex('status', 'status', { unique: false })
-      bangumiStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added bangumi_records store')
+      const bangumiStore = db.createObjectStore(STORE_NAMES.BANGUMI);
+      bangumiStore.createIndex('status', 'status', { unique: false });
+      bangumiStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added bangumi_records store');
     }
   }
 
@@ -142,9 +152,9 @@ export function migrateSchema(
     // request error is preventDefault()ed so a mid-migration failure only
     // logs a warning and does NOT abort the upgrade (the store schema itself
     // is already in place from the createObjectStore blocks above).
-    const upgradeTx = request.transaction
+    const upgradeTx = request.transaction;
     if (!upgradeTx) {
-      console.warn('[DB] v13: no upgrade transaction available, skipping data migration')
+      console.warn('[DB] v13: no upgrade transaction available, skipping data migration');
     } else {
       try {
         // M4: The v8→v9 block only created jav_ids without copying data from
@@ -159,127 +169,161 @@ export function migrateSchema(
           db.objectStoreNames.contains('sehuatang_avids') &&
           db.objectStoreNames.contains(STORE_NAMES.JAV_IDS)
         ) {
-          const srcStore = upgradeTx.objectStore('sehuatang_avids')
-          const dstStore = upgradeTx.objectStore(STORE_NAMES.JAV_IDS)
-          const cursorReq = srcStore.openCursor()
-          let copied = 0
+          const srcStore = upgradeTx.objectStore('sehuatang_avids');
+          const dstStore = upgradeTx.objectStore(STORE_NAMES.JAV_IDS);
+          const cursorReq = srcStore.openCursor();
+          let copied = 0;
           cursorReq.onsuccess = () => {
-            const cursor = cursorReq.result
+            const cursor = cursorReq.result;
             if (!cursor) {
-              console.log(`[DB] v13: copied ${copied} entries from sehuatang_avids to jav_ids`)
-              return
+              console.log(`[DB] v13: copied ${copied} entries from sehuatang_avids to jav_ids`);
+              return;
             }
-            const existingReq = dstStore.get(cursor.key)
+            const existingReq = dstStore.get(cursor.key);
             existingReq.onsuccess = () => {
               if (existingReq.result === undefined) {
-                const putReq = dstStore.put(cursor.value, cursor.key)
+                // avId 同步派生写入：v13 复制发生在 upgrade 事务上，可能与
+                // v15 回填游标的快照时序交错，复制时直接补齐保证索引不缺行。
+                const putReq = dstStore.put(
+                  { ...(cursor.value as object), avId: adultAvIdFromKey(String(cursor.key)) },
+                  cursor.key,
+                );
                 putReq.onsuccess = () => {
-                  copied++
-                }
+                  copied++;
+                };
                 putReq.onerror = (ev) => {
                   // preventDefault keeps the upgrade transaction alive —
                   // an unhandled failed request would abort it, freezing
                   // the DB version and re-running this migration on every open.
-                  ev.preventDefault()
-                  console.warn('[DB] v13: sehuatang_avids → jav_ids write failed, skipping key:', cursor.key, putReq.error)
-                }
+                  ev.preventDefault();
+                  console.warn(
+                    '[DB] v13: sehuatang_avids → jav_ids write failed, skipping key:',
+                    cursor.key,
+                    putReq.error,
+                  );
+                };
               }
-              cursor.continue()
-            }
+              cursor.continue();
+            };
             existingReq.onerror = (ev) => {
               // preventDefault keeps the upgrade transaction alive —
               // an unhandled failed request would abort it.
-              ev.preventDefault()
-              console.warn('[DB] v13: sehuatang_avids → jav_ids read failed, skipping key:', cursor.key)
-              cursor.continue()
-            }
-          }
+              ev.preventDefault();
+              console.warn(
+                '[DB] v13: sehuatang_avids → jav_ids read failed, skipping key:',
+                cursor.key,
+              );
+              cursor.continue();
+            };
+          };
           cursorReq.onerror = (ev) => {
-            ev.preventDefault()
-            console.warn('[DB] v13: sehuatang_avids → jav_ids copy partial/failed:', cursorReq.error)
-          }
+            ev.preventDefault();
+            console.warn(
+              '[DB] v13: sehuatang_avids → jav_ids copy partial/failed:',
+              cursorReq.error,
+            );
+          };
         }
 
         // decision-3: rewrite legacy video keys in bilibili_records and
         // youtube_records from 'video::X' / bare 'X' to the canonical
         // 'movie::X' format. Runs on the same upgrade transaction.
         const normalizeStoreKeys = (storeName: string): void => {
-          const store = upgradeTx.objectStore(storeName)
-          const cursorReq = store.openCursor()
-          let moved = 0
+          const store = upgradeTx.objectStore(storeName);
+          const cursorReq = store.openCursor();
+          let moved = 0;
           cursorReq.onsuccess = () => {
-            const cursor = cursorReq.result
+            const cursor = cursorReq.result;
             if (!cursor) {
-              console.log(`[DB] v13: normalized ${moved} keys in ${storeName}`)
-              return
+              console.log(`[DB] v13: normalized ${moved} keys in ${storeName}`);
+              return;
             }
-            const oldKey = cursor.key
+            const oldKey = cursor.key;
             if (typeof oldKey !== 'string') {
-              cursor.continue()
-              return
+              cursor.continue();
+              return;
             }
-            const newKey = normalizeVideoKey(oldKey)
+            const newKey = normalizeVideoKey(oldKey);
             if (newKey === oldKey) {
               // 'movie::…' is already canonical; any other prefixed key
               // ('tv::…', 'music::…', …) is untouched — report it so the
               // unexpected-format key is visible in the logs.
               if (!oldKey.startsWith('movie::')) {
-                console.log(`[DB] v13: key with unrecognized prefix left as-is in ${storeName}: ${oldKey}`)
+                console.log(
+                  `[DB] v13: key with unrecognized prefix left as-is in ${storeName}: ${oldKey}`,
+                );
               }
-              cursor.continue()
-              return
+              cursor.continue();
+              return;
             }
-            const collisionReq = store.get(newKey)
+            const collisionReq = store.get(newKey);
             collisionReq.onsuccess = () => {
               if (collisionReq.result === undefined) {
                 // No collision: move the value to the canonical key. Only
                 // drop the legacy key AFTER the move succeeds — a failed
                 // write keeps the legacy entry so no data is lost.
-                const putReq = store.put(cursor.value, newKey)
+                const putReq = store.put(cursor.value, newKey);
                 putReq.onsuccess = () => {
-                  const deleteReq = store.delete(oldKey)
+                  const deleteReq = store.delete(oldKey);
                   deleteReq.onerror = (ev) => {
-                    ev.preventDefault()
-                    console.warn(`[DB] v13: legacy key delete failed in ${storeName}: ${oldKey}`, deleteReq.error)
-                  }
-                  moved++
-                  cursor.continue()
-                }
+                    ev.preventDefault();
+                    console.warn(
+                      `[DB] v13: legacy key delete failed in ${storeName}: ${oldKey}`,
+                      deleteReq.error,
+                    );
+                  };
+                  moved++;
+                  cursor.continue();
+                };
                 putReq.onerror = (ev) => {
-                  ev.preventDefault()
-                  console.warn(`[DB] v13: write failed in ${storeName}, keeping legacy key ${oldKey}:`, putReq.error)
-                  cursor.continue()
-                }
-                return
+                  ev.preventDefault();
+                  console.warn(
+                    `[DB] v13: write failed in ${storeName}, keeping legacy key ${oldKey}:`,
+                    putReq.error,
+                  );
+                  cursor.continue();
+                };
+                return;
               }
               // Collision: keep the existing newKey entry, drop the legacy key.
-              const deleteReq = store.delete(oldKey)
+              const deleteReq = store.delete(oldKey);
               deleteReq.onerror = (ev) => {
-                ev.preventDefault()
-                console.warn(`[DB] v13: collision-case legacy key delete failed in ${storeName}: ${oldKey}`, deleteReq.error)
-              }
-              moved++
-              cursor.continue()
-            }
+                ev.preventDefault();
+                console.warn(
+                  `[DB] v13: collision-case legacy key delete failed in ${storeName}: ${oldKey}`,
+                  deleteReq.error,
+                );
+              };
+              moved++;
+              cursor.continue();
+            };
             collisionReq.onerror = (ev) => {
-              ev.preventDefault()
-              console.warn(`[DB] v13: collision check failed in ${storeName}, keeping legacy key ${oldKey}:`, collisionReq.error)
-              cursor.continue()
-            }
-          }
+              ev.preventDefault();
+              console.warn(
+                `[DB] v13: collision check failed in ${storeName}, keeping legacy key ${oldKey}:`,
+                collisionReq.error,
+              );
+              cursor.continue();
+            };
+          };
           cursorReq.onerror = (ev) => {
-            ev.preventDefault()
-            console.warn(`[DB] v13: key normalization partial/failed for ${storeName}:`, cursorReq.error)
-          }
-        }
-        if (db.objectStoreNames.contains(STORE_NAMES.BILIBILI)) normalizeStoreKeys(STORE_NAMES.BILIBILI)
-        if (db.objectStoreNames.contains(STORE_NAMES.YOUTUBE)) normalizeStoreKeys(STORE_NAMES.YOUTUBE)
+            ev.preventDefault();
+            console.warn(
+              `[DB] v13: key normalization partial/failed for ${storeName}:`,
+              cursorReq.error,
+            );
+          };
+        };
+        if (db.objectStoreNames.contains(STORE_NAMES.BILIBILI))
+          normalizeStoreKeys(STORE_NAMES.BILIBILI);
+        if (db.objectStoreNames.contains(STORE_NAMES.YOUTUBE))
+          normalizeStoreKeys(STORE_NAMES.YOUTUBE);
       } catch (err: unknown) {
         // Failure-safe: a mid-migration error must NOT abort the upgrade.
         // The store schema is already correct from the createObjectStore
         // blocks above, so the DB stays usable even if the data copy / key
         // rewrite is skipped.
-        console.warn('[DB] v13 migration partial/failed:', err)
+        console.warn('[DB] v13 migration partial/failed:', err);
       }
     }
   }
@@ -289,16 +333,71 @@ export function migrateSchema(
   // 不搬迁，读侧三表合并查询永久兼容；此处只建表，零数据移动（风险面最小）。
   if (oldVersion < 14) {
     if (!db.objectStoreNames.contains(STORE_NAMES.USAV_IDS)) {
-      const usavStore = db.createObjectStore(STORE_NAMES.USAV_IDS)
-      usavStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added usav_ids store')
+      const usavStore = db.createObjectStore(STORE_NAMES.USAV_IDS);
+      usavStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added usav_ids store');
     }
     if (!db.objectStoreNames.contains(STORE_NAMES.SEHUATANG_IDS)) {
-      const shtStore = db.createObjectStore(STORE_NAMES.SEHUATANG_IDS)
-      shtStore.createIndex('updatedAt', 'updatedAt', { unique: false })
-      console.log('[DB] Added sehuatang_ids store')
+      const shtStore = db.createObjectStore(STORE_NAMES.SEHUATANG_IDS);
+      shtStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      console.log('[DB] Added sehuatang_ids store');
     }
   }
 
-  console.log(`[DB] Upgrade complete: now at v${DB_VERSION}`)
+  // v14→v15: 成人番号三表（jav_ids / usav_ids / sehuatang_ids）补 `avId` 索引
+  // （键去掉 `${source}::` 前缀后的番号后缀），并在 upgrade 事务上回填存量
+  // 记录（值内补写与键一致的 avId 字段），消除 ADULT_AV_CHECK L2 全表扫描。
+  // 回填后索引覆盖全部存量记录，L2 索引查询与旧逐条后缀判断逐值等价。
+  if (oldVersion < 15) {
+    const upgradeTx = request.transaction;
+    if (!upgradeTx) {
+      console.warn('[DB] v15: no upgrade transaction available, skipping avId index/backfill');
+    } else {
+      const adultStores = [STORE_NAMES.JAV_IDS, STORE_NAMES.USAV_IDS, STORE_NAMES.SEHUATANG_IDS];
+      for (const storeName of adultStores) {
+        if (!db.objectStoreNames.contains(storeName)) continue;
+        const store = upgradeTx.objectStore(storeName);
+        if (!store.indexNames.contains(ADULT_AV_ID_INDEX)) {
+          store.createIndex(ADULT_AV_ID_INDEX, ADULT_AV_ID_INDEX, { unique: false });
+          console.log(`[DB] v15: added ${ADULT_AV_ID_INDEX} index to ${storeName}`);
+        }
+        // 回填游标（与建索引同一 upgrade 事务）：值内 avId ≠ 键后缀时补齐，
+        // 否则该记录不会出现在索引中（旧库存量记录一律缺字段）。
+        const cursorReq = store.openCursor();
+        let backfilled = 0;
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result;
+          if (!cursor) {
+            console.log(`[DB] v15: backfilled ${backfilled} records in ${storeName}`);
+            return;
+          }
+          const key = cursor.key;
+          if (typeof key === 'string') {
+            const value = cursor.value as { avId?: unknown } | undefined;
+            const expected = adultAvIdFromKey(key);
+            if (value?.avId !== expected) {
+              const updateReq = cursor.update({ ...value, avId: expected });
+              updateReq.onerror = (ev) => {
+                // preventDefault keeps the upgrade transaction alive.
+                ev.preventDefault();
+                console.warn(
+                  `[DB] v15: avId backfill failed in ${storeName}, skipping key:`,
+                  key,
+                  updateReq.error,
+                );
+              };
+              backfilled++;
+            }
+          }
+          cursor.continue();
+        };
+        cursorReq.onerror = (ev) => {
+          ev.preventDefault();
+          console.warn(`[DB] v15: avId backfill cursor failed for ${storeName}:`, cursorReq.error);
+        };
+      }
+    }
+  }
+
+  console.log(`[DB] Upgrade complete: now at v${DB_VERSION}`);
 }

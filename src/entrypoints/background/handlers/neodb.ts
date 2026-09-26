@@ -5,124 +5,137 @@
  * Extracted from background.ts for modularity.
  */
 
-import * as NeoDB from '@/provider/neodb/api'
-import { infoLog, warnLog, errorLog } from '@/libraries/utils/logger'
-import { sleep } from '@/libraries/utils'
-import { settingsItems } from '@/engine/settings/items'
-import type { MessagePayloadMap } from '@/types'
-import type { SendResponse } from '@/libraries/utils/error-message'
+import * as NeoDB from '@/provider/neodb/api';
+import { infoLog, warnLog, errorLog } from '@/libraries/utils/logger';
+import { sleep } from '@/libraries/utils';
+import { settingsItems } from '@/engine/settings/items';
+import type { MessagePayloadMap } from '@/types';
+import type { SendResponse } from '@/libraries/utils/error-message';
 
 /** Build Douban URL from provider info */
 function buildDoubanUrl(type: string, providerId: string): string {
-  const domain = type === 'music' ? 'music.douban.com'
-    : type === 'book' ? 'book.douban.com'
-    : type === 'game' ? 'www.douban.com'
-    : 'movie.douban.com'
-  const path = type === 'game' ? `game` : 'subject'
-  return `https://${domain}/${path}/${providerId}/`
+  const domain =
+    type === 'music'
+      ? 'music.douban.com'
+      : type === 'book'
+        ? 'book.douban.com'
+        : type === 'game'
+          ? 'www.douban.com'
+          : 'movie.douban.com';
+  const path = type === 'game' ? `game` : 'subject';
+  return `https://${domain}/${path}/${providerId}/`;
 }
 
 /** Map numeric status to NeoDB shelf type */
 function statusToShelfType(status: number): 'complete' | 'progress' | 'wishlist' {
-  if (status === 2) return 'complete'
-  if (status === 1 || status === 3) return 'progress'
-  return 'wishlist'
+  if (status === 2) return 'complete';
+  if (status === 1 || status === 3) return 'progress';
+  return 'wishlist';
 }
 
 /** NEODB_PUSH_RATING — push rating from Douban to NeoDB */
 export async function handleNeoDBPushRating(
   payload: MessagePayloadMap['NEODB_PUSH_RATING'],
-  sendResponse: SendResponse
+  sendResponse: SendResponse,
 ) {
   try {
-    const record = payload?.record
+    const record = payload?.record;
     if (!record?.providerId || !record?.type || !record?.provider) {
-      sendResponse({ success: false, message: 'Missing required fields' })
-      return
+      sendResponse({ success: false, message: 'Missing required fields' });
+      return;
     }
 
     // Get NeoDB token (typed storage item — same physical key as legacy reads)
-    const token = await settingsItems().neodbToken.getValue()
+    const token = await settingsItems().neodbToken.getValue();
     if (!token) {
-      sendResponse({ success: false, message: 'NeoDB token not configured' })
-      return
+      sendResponse({ success: false, message: 'NeoDB token not configured' });
+      return;
     }
 
-    const doubanUrl = buildDoubanUrl(record.type, record.providerId)
-    infoLog('[NeoDB] Fetching catalog for:', doubanUrl)
+    const doubanUrl = buildDoubanUrl(record.type, record.providerId);
+    infoLog('[NeoDB] Fetching catalog for:', doubanUrl);
 
     // 1. Fetch catalog UUID with retry for 404
-    let catalog: { uuid: string } | null = null
-    const maxRetries = 3
-    const retryDelays = [2000, 3000, 5000]
+    let catalog: { uuid: string } | null = null;
+    const maxRetries = 3;
+    const retryDelays = [2000, 3000, 5000];
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token)
-        infoLog('[NeoDB] Catalog result:', { uuid: catalog.uuid, hasUuid: !!catalog.uuid, attempt })
-        break
+        catalog = await NeoDB.fetchCatalogByUrl(doubanUrl, token);
+        infoLog('[NeoDB] Catalog result:', {
+          uuid: catalog.uuid,
+          hasUuid: !!catalog.uuid,
+          attempt,
+        });
+        break;
       } catch (fetchErr: unknown) {
         if (fetchErr instanceof NeoDB.NeoDBError) {
           if (fetchErr.status === 429) {
-            warnLog('[NeoDB] Rate limited (429) — NeoDB 无法抓取该作品数据')
-            sendResponse({ success: false, message: '[429] NeoDB 无法抓取该作品数据' })
-            return
+            warnLog('[NeoDB] Rate limited (429) — NeoDB 无法抓取该作品数据');
+            sendResponse({ success: false, message: '[429] NeoDB 无法抓取该作品数据' });
+            return;
           }
           if (fetchErr.status === 404 && attempt < maxRetries) {
-            const delay = retryDelays[attempt]
-            warnLog(`[NeoDB] Catalog not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
-            await sleep(delay)
+            // WHY !: attempt < maxRetries(3) === retryDelays.length ⇒ index always in range
+            const delay = retryDelays[attempt]!;
+            warnLog(
+              `[NeoDB] Catalog not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`,
+            );
+            await sleep(delay);
           } else {
-            throw fetchErr
+            throw fetchErr;
           }
         } else {
-          throw fetchErr
+          throw fetchErr;
         }
       }
     }
 
     if (!catalog?.uuid) {
-      sendResponse({ success: false, message: 'NeoDB 未找到该作品（已重试多次）' })
-      return
+      sendResponse({ success: false, message: 'NeoDB 未找到该作品（已重试多次）' });
+      return;
     }
 
     // 2. Mark on shelf with retry for 404 only
-    const shelfType = statusToShelfType(record.status ?? 0)
-    const rating = record.rating ?? 0
-    const comment = record.comment ?? ''
-    let shelfItem: NeoDB.ShelfItemResponse | null = null
+    const shelfType = statusToShelfType(record.status ?? 0);
+    const rating = record.rating ?? 0;
+    const comment = record.comment ?? '';
+    let shelfItem: NeoDB.ShelfItemResponse | null = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, comment, token)
-        break
+        shelfItem = await NeoDB.markItem(catalog.uuid, shelfType, rating, comment, token);
+        break;
       } catch (markErr: unknown) {
         if (markErr instanceof NeoDB.NeoDBError) {
           if (markErr.status === 429) {
-            warnLog('[NeoDB] Rate limited (429) on markItem')
-            sendResponse({ success: false, message: '[429] NeoDB 请求过于频繁' })
-            return
+            warnLog('[NeoDB] Rate limited (429) on markItem');
+            sendResponse({ success: false, message: '[429] NeoDB 请求过于频繁' });
+            return;
           }
           if (markErr.status === 404 && attempt < maxRetries) {
-            const delay = retryDelays[attempt]
-            warnLog(`[NeoDB] Mark item failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`)
-            await sleep(delay)
+            // WHY !: attempt < maxRetries(3) === retryDelays.length ⇒ index always in range
+            const delay = retryDelays[attempt]!;
+            warnLog(
+              `[NeoDB] Mark item failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`,
+            );
+            await sleep(delay);
           } else {
-            throw markErr
+            throw markErr;
           }
         } else {
-          throw markErr
+          throw markErr;
         }
       }
     }
 
-    infoLog('[NeoDB] Push success:', { catalogUuid: catalog.uuid, shelfItemUuid: shelfItem?.uuid })
-    sendResponse({ success: true, shelfItem, catalogUuid: catalog.uuid })
+    infoLog('[NeoDB] Push success:', { catalogUuid: catalog.uuid, shelfItemUuid: shelfItem?.uuid });
+    sendResponse({ success: true, shelfItem, catalogUuid: catalog.uuid });
   } catch (err: unknown) {
-    const msg = err instanceof NeoDB.NeoDBError
-      ? err.message
-      : (err as Error)?.message || '推送失败'
-    errorLog('NeoDB push failed:', msg)
-    sendResponse({ success: false, message: msg })
+    const msg =
+      err instanceof NeoDB.NeoDBError ? err.message : (err as Error)?.message || '推送失败';
+    errorLog('NeoDB push failed:', msg);
+    sendResponse({ success: false, message: msg });
   }
 }

@@ -1,7 +1,7 @@
 /**
  * Priority-based FIFO queue for DataScheduler.
  *
- * Three internal arrays for HIGH / MEDIUM / LOW priority levels.
+ * Three buckets for HIGH / MEDIUM / LOW priority levels.
  * FIFO within each priority level. Fully synchronous (in-memory).
  * Max queue size is enforced at enqueue time.
  *
@@ -9,35 +9,49 @@
  * (O(n) per call); the consumed prefix is compacted lazily.
  */
 
-import type { QueuedTask, PriorityLevel } from './types'
-import { PRIORITY_ORDER, MAX_QUEUE_SIZE } from './types'
+import type { QueuedTask, PriorityLevel } from './types';
+import { MAX_QUEUE_SIZE } from './types';
+
+/** Buckets keyed by priority level; array order = dequeue preference order. */
+const PRIORITY_LEVELS: readonly PriorityLevel[] = ['HIGH', 'MEDIUM', 'LOW'];
+
+interface Bucket {
+  /** FIFO task array (with a lazily-compacted consumed prefix) */
+  tasks: QueuedTask[];
+  /** Next live index into `tasks` */
+  head: number;
+}
 
 export class PriorityQueue {
-  /** One FIFO array per priority level */
-  private readonly queues: QueuedTask[][] = [[], [], []]
-  /** Next live index per bucket */
-  private readonly heads: number[] = [0, 0, 0]
+  private readonly buckets: Record<PriorityLevel, Bucket> = {
+    HIGH: { tasks: [], head: 0 },
+    MEDIUM: { tasks: [], head: 0 },
+    LOW: { tasks: [], head: 0 },
+  };
 
-  private liveCount(bucket: number): number {
-    return this.queues[bucket].length - this.heads[bucket]
+  private liveCount(bucket: Bucket): number {
+    return bucket.tasks.length - bucket.head;
   }
 
-  private compact(bucket: number): void {
-    const head = this.heads[bucket]
-    if (head >= 64 && head * 2 >= this.queues[bucket].length) {
-      this.queues[bucket] = this.queues[bucket].slice(head)
-      this.heads[bucket] = 0
+  private compact(bucket: Bucket): void {
+    if (bucket.head >= 64 && bucket.head * 2 >= bucket.tasks.length) {
+      bucket.tasks = bucket.tasks.slice(bucket.head);
+      bucket.head = 0;
     }
   }
 
   /** Total number of tasks across all priority levels. */
   size(): number {
-    return this.liveCount(0) + this.liveCount(1) + this.liveCount(2)
+    let total = 0;
+    for (const level of PRIORITY_LEVELS) {
+      total += this.liveCount(this.buckets[level]);
+    }
+    return total;
   }
 
   /** True when there are zero queued tasks. */
   isEmpty(): boolean {
-    return this.size() === 0
+    return this.size() === 0;
   }
 
   /**
@@ -45,10 +59,9 @@ export class PriorityQueue {
    * Returns false if the queue is full.
    */
   enqueue(task: QueuedTask): boolean {
-    if (this.size() >= MAX_QUEUE_SIZE) return false
-    const bucket = PRIORITY_ORDER[task.priority]
-    this.queues[bucket].push(task)
-    return true
+    if (this.size() >= MAX_QUEUE_SIZE) return false;
+    this.buckets[task.priority].tasks.push(task);
+    return true;
   }
 
   /**
@@ -56,25 +69,30 @@ export class PriorityQueue {
    * Returns null when all queues are empty.
    */
   dequeue(): QueuedTask | null {
-    for (let i = 0; i < this.queues.length; i++) {
-      if (this.liveCount(i) > 0) {
-        const task = this.queues[i][this.heads[i]]
-        this.heads[i]++
-        this.compact(i)
-        return task
+    for (const level of PRIORITY_LEVELS) {
+      const bucket = this.buckets[level];
+      if (this.liveCount(bucket) > 0) {
+        // liveCount > 0 ⇒ head < tasks.length: the element always exists;
+        // the ?? null branch is only a type-level guard for that impossible case.
+        const task = bucket.tasks[bucket.head] ?? null;
+        bucket.head++;
+        this.compact(bucket);
+        return task;
       }
     }
-    return null
+    return null;
   }
 
   /** Peek at the next task without removing it. */
   peek(): QueuedTask | null {
-    for (let i = 0; i < this.queues.length; i++) {
-      if (this.liveCount(i) > 0) {
-        return this.queues[i][this.heads[i]]
+    for (const level of PRIORITY_LEVELS) {
+      const bucket = this.buckets[level];
+      if (this.liveCount(bucket) > 0) {
+        // Same invariant as dequeue(): liveCount > 0 guarantees the element exists.
+        return bucket.tasks[bucket.head] ?? null;
       }
     }
-    return null
+    return null;
   }
 
   /**
@@ -82,40 +100,44 @@ export class PriorityQueue {
    * Returns true if the task was found and removed.
    */
   remove(id: string): boolean {
-    for (let i = 0; i < this.queues.length; i++) {
-      for (let j = this.heads[i]; j < this.queues[i].length; j++) {
-        if (this.queues[i][j].id === id) {
-          this.queues[i].splice(j, 1)
-          return true
+    for (const level of PRIORITY_LEVELS) {
+      const bucket = this.buckets[level];
+      for (let j = bucket.head; j < bucket.tasks.length; j++) {
+        // j < tasks.length guarantees the element exists; ?. is only a
+        // type-level accommodation for noUncheckedIndexedAccess.
+        if (bucket.tasks[j]?.id === id) {
+          bucket.tasks.splice(j, 1);
+          return true;
         }
       }
     }
-    return false
+    return false;
   }
 
   /** Return all queued task ids (for monitoring). */
   ids(): string[] {
-    const result: string[] = []
-    for (let i = 0; i < this.queues.length; i++) {
-      for (let j = this.heads[i]; j < this.queues[i].length; j++) {
-        result.push(this.queues[i][j].id)
+    const result: string[] = [];
+    for (const level of PRIORITY_LEVELS) {
+      const bucket = this.buckets[level];
+      for (let j = bucket.head; j < bucket.tasks.length; j++) {
+        const task = bucket.tasks[j];
+        if (task) result.push(task.id);
       }
     }
-    return result
+    return result;
   }
 
   /** Count of tasks at a specific priority level. */
   countByPriority(priority: PriorityLevel): number {
-    return this.liveCount(PRIORITY_ORDER[priority])
+    return this.liveCount(this.buckets[priority]);
   }
 
   /** Remove every queued task. */
   clear(): void {
-    this.queues[0] = []
-    this.queues[1] = []
-    this.queues[2] = []
-    this.heads[0] = 0
-    this.heads[1] = 0
-    this.heads[2] = 0
+    for (const level of PRIORITY_LEVELS) {
+      const bucket = this.buckets[level];
+      bucket.tasks = [];
+      bucket.head = 0;
+    }
   }
 }

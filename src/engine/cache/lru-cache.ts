@@ -7,109 +7,117 @@
  */
 
 export interface LruCacheOptions {
-  maxSize: number
-  defaultTtlMs: number
+  maxSize: number;
+  defaultTtlMs: number;
 }
 
 export interface LruCacheStats {
-  entries: number
-  hits: number
-  misses: number
-  evictions: number
-  hitRate: number
-  estimatedSizeBytes: number
+  entries: number;
+  hits: number;
+  misses: number;
+  evictions: number;
+  hitRate: number;
+  estimatedSizeBytes: number;
 }
 
 interface LruEntry<T> {
-  data: T
-  expiresAt: number
-  lastAccessed: number
+  data: T;
+  expiresAt: number;
+  lastAccessed: number;
 }
+
+/**
+ * L1 缓存容量/TTL 魔法数字的唯一事实源（审计 §P-C3 收敛）：
+ * MediaDatabase.readCache、CacheManager（background 装配）与 LruCache 默认值
+ * 全部引用这两个常量，禁止在调用点重复字面量。
+ */
+export const DEFAULT_LRU_MAX_SIZE = 500;
+export const DEFAULT_LRU_TTL_MS = 30_000;
 
 const DEFAULT_OPTIONS: LruCacheOptions = {
-  maxSize: 500,
-  defaultTtlMs: 30_000,
-}
+  maxSize: DEFAULT_LRU_MAX_SIZE,
+  defaultTtlMs: DEFAULT_LRU_TTL_MS,
+};
 
 export class LruCache<T = unknown> {
-  private readonly map = new Map<string, LruEntry<T>>()
-  private readonly opts: LruCacheOptions
-  private hits = 0
-  private misses = 0
-  private evictions = 0
+  private readonly map = new Map<string, LruEntry<T>>();
+  private readonly opts: LruCacheOptions;
+  private hits = 0;
+  private misses = 0;
+  private evictions = 0;
 
   constructor(opts?: Partial<LruCacheOptions>) {
-    this.opts = { ...DEFAULT_OPTIONS, ...opts }
+    this.opts = { ...DEFAULT_OPTIONS, ...opts };
   }
 
   get size(): number {
-    return this.map.size
+    return this.map.size;
   }
 
   get(key: string): T | undefined {
-    const entry = this.map.get(key)
+    const entry = this.map.get(key);
     if (!entry) {
-      this.misses++
-      return undefined
+      this.misses++;
+      return undefined;
     }
     if (Date.now() >= entry.expiresAt) {
-      this.map.delete(key)
-      this.misses++
-      return undefined
+      this.map.delete(key);
+      this.misses++;
+      return undefined;
     }
-    entry.lastAccessed = Date.now()
-    this.hits++
-    return entry.data
+    entry.lastAccessed = Date.now();
+    this.hits++;
+    return entry.data;
   }
 
   set(key: string, value: T, ttlMs?: number): void {
     if (this.map.size >= this.opts.maxSize && !this.map.has(key)) {
-      this.evictLru()
+      this.evictLru();
     }
-    const ttl = ttlMs ?? this.opts.defaultTtlMs
+    const ttl = ttlMs ?? this.opts.defaultTtlMs;
     this.map.set(key, {
       data: value,
       expiresAt: Date.now() + ttl,
       lastAccessed: Date.now(),
-    })
+    });
   }
 
   has(key: string): boolean {
-    const entry = this.map.get(key)
-    if (!entry) return false
+    const entry = this.map.get(key);
+    if (!entry) return false;
     if (Date.now() >= entry.expiresAt) {
-      this.map.delete(key)
-      return false
+      this.map.delete(key);
+      return false;
     }
-    return true
+    return true;
   }
 
   delete(key: string): boolean {
-    return this.map.delete(key)
+    return this.map.delete(key);
   }
 
   /** Delete all entries whose key starts with the given prefix. */
   deleteByPrefix(prefix: string): number {
-    let count = 0
+    let count = 0;
     for (const key of this.map.keys()) {
       if (key.startsWith(prefix)) {
-        this.map.delete(key)
-        count++
+        this.map.delete(key);
+        count++;
       }
     }
-    return count
+    return count;
   }
 
   clear(): void {
-    this.map.clear()
-    this.hits = 0
-    this.misses = 0
-    this.evictions = 0
+    this.map.clear();
+    this.hits = 0;
+    this.misses = 0;
+    this.evictions = 0;
   }
 
   getStats(): LruCacheStats {
-    const total = this.hits + this.misses
-    const estimatedSizeBytes = this.estimateSize()
+    const total = this.hits + this.misses;
+    const estimatedSizeBytes = this.estimateSize();
     return {
       entries: this.map.size,
       hits: this.hits,
@@ -117,34 +125,34 @@ export class LruCache<T = unknown> {
       evictions: this.evictions,
       hitRate: total > 0 ? this.hits / total : 0,
       estimatedSizeBytes,
-    }
+    };
   }
 
   private evictLru(): void {
-    let oldestKey: string | undefined
-    let oldestTime = Infinity
+    let oldestKey: string | undefined;
+    let oldestTime = Infinity;
     for (const [key, entry] of this.map) {
       if (entry.lastAccessed < oldestTime) {
-        oldestTime = entry.lastAccessed
-        oldestKey = key
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
       }
     }
     if (oldestKey) {
-      this.map.delete(oldestKey)
-      this.evictions++
+      this.map.delete(oldestKey);
+      this.evictions++;
     }
   }
 
   private estimateSize(): number {
-    let total = 0
+    let total = 0;
     for (const [key, entry] of this.map) {
-      total += key.length * 2
+      total += key.length * 2;
       try {
-        total += JSON.stringify(entry.data).length * 2
+        total += JSON.stringify(entry.data).length * 2;
       } catch {
-        total += 128
+        total += 128;
       }
     }
-    return total
+    return total;
   }
 }

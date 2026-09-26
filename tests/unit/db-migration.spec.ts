@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test'
-import { IDBFactory } from 'fake-indexeddb'
-import { MediaDatabase, DB_NAME, STORE_NAMES } from '@/engine/database/models'
+import { test, expect } from '@playwright/test';
+import { IDBFactory } from 'fake-indexeddb';
+import { MediaDatabase, DB_NAME, STORE_NAMES } from '@/engine/database/models';
 
 /**
  * v13 migration regression test — runs the REAL MediaDatabase against
@@ -17,16 +17,16 @@ import { MediaDatabase, DB_NAME, STORE_NAMES } from '@/engine/database/models'
 
 /** Install a fresh in-memory IndexedDB as the global before any open. */
 function freshIndexedDB(): void {
-  const g = globalThis as unknown as { indexedDB: IDBFactory }
-  g.indexedDB = new IDBFactory()
+  const g = globalThis as unknown as { indexedDB: IDBFactory };
+  g.indexedDB = new IDBFactory();
 }
 
 /** Seed a v12-shaped DB: legacy 'video::' keys in bilibili_records + sehuatang_avids entries. */
 function createV12Database(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 12)
+    const req = indexedDB.open(DB_NAME, 12);
     req.onupgradeneeded = (ev) => {
-      const db = (ev.target as IDBOpenDBRequest).result
+      const db = (ev.target as IDBOpenDBRequest).result;
       // Mirror the v12 schema (the stores the v13 migration depends on).
       for (const name of [
         STORE_NAMES.DOUBAN,
@@ -42,89 +42,95 @@ function createV12Database(): Promise<void> {
         'sehuatang_avids',
       ]) {
         if (!db.objectStoreNames.contains(name)) {
-          const store = db.createObjectStore(name)
-          store.createIndex('status', 'status', { unique: false })
-          store.createIndex('updatedAt', 'updatedAt', { unique: false })
+          const store = db.createObjectStore(name);
+          store.createIndex('status', 'status', { unique: false });
+          store.createIndex('updatedAt', 'updatedAt', { unique: false });
         }
       }
-    }
+    };
     req.onsuccess = () => {
-      const db = req.result
+      const db = req.result;
       const legacyRecord = (id: string) => ({
         title: `B ${id}`,
         status: 2,
         rating: 8,
         url: `https://www.bilibili.com/video/${id}`,
         updatedAt: '2025-01-01T00:00:00.000Z',
-      })
+      });
       const tx = db.transaction(
         [STORE_NAMES.BILIBILI, STORE_NAMES.JAV_IDS, 'sehuatang_avids'],
         'readwrite',
-      )
-      const bili = tx.objectStore(STORE_NAMES.BILIBILI)
-      bili.put(legacyRecord('BV1xx'), 'video::BV1xx') // legacy prefix → movie::BV1xx
-      bili.put(legacyRecord('BV2xx'), 'BV2xx') // bare key → movie::BV2xx
-      bili.put(legacyRecord('BV3xx'), 'movie::BV3xx') // already canonical → unchanged
-      const sehuatang = tx.objectStore('sehuatang_avids')
-      sehuatang.put({ url: 'https://sehuatang.net/1', updatedAt: '2025-01-01T00:00:00.000Z' }, 'av1')
-      sehuatang.put({ url: 'https://sehuatang.net/2', updatedAt: '2025-01-01T00:00:00.000Z' }, 'av2')
+      );
+      const bili = tx.objectStore(STORE_NAMES.BILIBILI);
+      bili.put(legacyRecord('BV1xx'), 'video::BV1xx'); // legacy prefix → movie::BV1xx
+      bili.put(legacyRecord('BV2xx'), 'BV2xx'); // bare key → movie::BV2xx
+      bili.put(legacyRecord('BV3xx'), 'movie::BV3xx'); // already canonical → unchanged
+      const sehuatang = tx.objectStore('sehuatang_avids');
+      sehuatang.put(
+        { url: 'https://sehuatang.net/1', updatedAt: '2025-01-01T00:00:00.000Z' },
+        'av1',
+      );
+      sehuatang.put(
+        { url: 'https://sehuatang.net/2', updatedAt: '2025-01-01T00:00:00.000Z' },
+        'av2',
+      );
       // Pre-existing jav_ids entry must win over the stale copy.
-      const jav = tx.objectStore(STORE_NAMES.JAV_IDS)
-      jav.put({ url: 'https://javdb.com/1', updatedAt: '2025-02-01T00:00:00.000Z' }, 'av1')
+      const jav = tx.objectStore(STORE_NAMES.JAV_IDS);
+      jav.put({ url: 'https://javdb.com/1', updatedAt: '2025-02-01T00:00:00.000Z' }, 'av1');
       tx.oncomplete = () => {
-        db.close()
-        resolve()
-      }
-      tx.onerror = () => reject(tx.error)
-      tx.onabort = () => reject(tx.error)
-    }
-    req.onerror = () => reject(req.error)
-  })
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    };
+    req.onerror = () => reject(req.error);
+  });
 }
 
 test.describe('DB v13 migration (upgrade transaction)', () => {
-  test('opens at current version (v14) from a v12 DB, normalizes keys, copies jav_ids without aborting', async () => {
-    freshIndexedDB()
-    await createV12Database()
+  test('opens at current version (v15) from a v12 DB, normalizes keys, copies jav_ids without aborting', async () => {
+    freshIndexedDB();
+    await createV12Database();
 
-    const mdb = new MediaDatabase()
+    const mdb = new MediaDatabase();
     // Regression: before the fix this REJECTED (InvalidStateError/AbortError)
     // because onupgradeneeded created NEW transactions while the upgrade
     // transaction was still live.
-    await mdb.init()
+    await mdb.init();
 
     // decision-3: legacy keys normalized to the canonical movie:: format.
-    const bili = await mdb.getAll(STORE_NAMES.BILIBILI)
-    const keys = bili.map((e) => e.key).sort()
-    expect(keys).toEqual(['movie::BV1xx', 'movie::BV2xx', 'movie::BV3xx'])
+    const bili = await mdb.getAll(STORE_NAMES.BILIBILI);
+    const keys = bili.map((e) => e.key).sort();
+    expect(keys).toEqual(['movie::BV1xx', 'movie::BV2xx', 'movie::BV3xx']);
     // Records are normalized on read (legacy seed → current schema version).
-    expect(bili.every((e) => e.record.schemaVersion === 2)).toBe(true)
+    expect(bili.every((e) => e.record.schemaVersion === 2)).toBe(true);
 
     // M4: sehuatang_avids copied into jav_ids; existing jav_ids entry wins.
-    const jav = await mdb.getAll(STORE_NAMES.JAV_IDS)
-    const javMap = new Map(jav.map((e) => [e.key, e.record as { url: string }]))
-    expect(javMap.size).toBe(2)
-    expect(javMap.get('av1')?.url).toBe('https://javdb.com/1') // NOT overwritten by stale copy
-    expect(javMap.get('av2')?.url).toBe('https://sehuatang.net/2') // copied from legacy store
+    const jav = await mdb.getAll(STORE_NAMES.JAV_IDS);
+    const javMap = new Map(jav.map((e) => [e.key, e.record as { url: string }]));
+    expect(javMap.size).toBe(2);
+    expect(javMap.get('av1')?.url).toBe('https://javdb.com/1'); // NOT overwritten by stale copy
+    expect(javMap.get('av2')?.url).toBe('https://sehuatang.net/2'); // copied from legacy store
 
     // batchGet returns the same normalized shape as getAll.
     const got = await mdb.batchGet<{ schemaVersion?: number }>(STORE_NAMES.BILIBILI, [
       'movie::BV1xx',
       'missing::key',
-    ])
-    expect(got.get('movie::BV1xx')?.schemaVersion).toBe(2)
-    expect(got.has('missing::key')).toBe(false)
+    ]);
+    expect(got.get('movie::BV1xx')?.schemaVersion).toBe(2);
+    expect(got.has('missing::key')).toBe(false);
 
-    mdb.close()
-  })
-})
+    mdb.close();
+  });
+});
 
 /** Seed a v13-shaped DB: jav_ids holds legacy mixed keys (jp + us + TID). */
 function createV13Database(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 13)
+    const req = indexedDB.open(DB_NAME, 13);
     req.onupgradeneeded = (ev) => {
-      const db = (ev.target as IDBOpenDBRequest).result
+      const db = (ev.target as IDBOpenDBRequest).result;
       for (const name of [
         STORE_NAMES.DOUBAN,
         STORE_NAMES.IMDB,
@@ -138,50 +144,55 @@ function createV13Database(): Promise<void> {
         STORE_NAMES.JAV_IDS,
       ]) {
         if (!db.objectStoreNames.contains(name)) {
-          const store = db.createObjectStore(name)
-          store.createIndex('status', 'status', { unique: false })
-          store.createIndex('updatedAt', 'updatedAt', { unique: false })
+          const store = db.createObjectStore(name);
+          store.createIndex('status', 'status', { unique: false });
+          store.createIndex('updatedAt', 'updatedAt', { unique: false });
         }
       }
-    }
+    };
     req.onsuccess = () => {
-      const db = req.result
-      const tx = db.transaction([STORE_NAMES.JAV_IDS], 'readwrite')
-      const jav = tx.objectStore(STORE_NAMES.JAV_IDS)
-      const rec = (status: number) => ({ url: '', status, rating: 0, updatedAt: '2025-01-01T00:00:00.000Z' })
-      jav.put(rec(2), 'sehuatang::SSIS-001') // 日系
-      jav.put(rec(2), 'sehuatang::BIGTITSROUNDASSES.23.06.10') // 美欧（旧版混存落错表）
-      jav.put(rec(2), 'sehuatang::TID-3664524') // TID 兜底残留
+      const db = req.result;
+      const tx = db.transaction([STORE_NAMES.JAV_IDS], 'readwrite');
+      const jav = tx.objectStore(STORE_NAMES.JAV_IDS);
+      const rec = (status: number) => ({
+        url: '',
+        status,
+        rating: 0,
+        updatedAt: '2025-01-01T00:00:00.000Z',
+      });
+      jav.put(rec(2), 'sehuatang::SSIS-001'); // 日系
+      jav.put(rec(2), 'sehuatang::BIGTITSROUNDASSES.23.06.10'); // 美欧（旧版混存落错表）
+      jav.put(rec(2), 'sehuatang::TID-3664524'); // TID 兜底残留
       tx.oncomplete = () => {
-        db.close()
-        resolve()
-      }
-      tx.onerror = () => reject(tx.error)
-      tx.onabort = () => reject(tx.error)
-    }
-    req.onerror = () => reject(req.error)
-  })
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    };
+    req.onerror = () => reject(req.error);
+  });
 }
 
 test.describe('DB v14 migration (ADR-025 三表拆分)', () => {
   test('v13 → v14 建 usav_ids/sehuatang_ids；存量 jav_ids 不搬迁（读侧合并兜底）', async () => {
-    freshIndexedDB()
-    await createV13Database()
+    freshIndexedDB();
+    await createV13Database();
 
-    const mdb = new MediaDatabase()
-    await mdb.init()
+    const mdb = new MediaDatabase();
+    await mdb.init();
 
     // 新表存在且为空 —— 用户裁决 Q2：零数据移动（风险面最小）
-    expect(await mdb.getAll(STORE_NAMES.USAV_IDS)).toEqual([])
-    expect(await mdb.getAll(STORE_NAMES.SEHUATANG_IDS)).toEqual([])
+    expect(await mdb.getAll(STORE_NAMES.USAV_IDS)).toEqual([]);
+    expect(await mdb.getAll(STORE_NAMES.SEHUATANG_IDS)).toEqual([]);
 
     // 存量混合键原样保留在 jav_ids（不搬迁；由读侧三表合并永久兼容）
-    const jav = await mdb.getAll(STORE_NAMES.JAV_IDS)
+    const jav = await mdb.getAll(STORE_NAMES.JAV_IDS);
     expect(jav.map((e) => e.key).sort()).toEqual([
       'sehuatang::BIGTITSROUNDASSES.23.06.10',
       'sehuatang::SSIS-001',
       'sehuatang::TID-3664524',
-    ])
+    ]);
 
     // 迁移后 schema 完整：新表可正常写入
     await mdb.put(STORE_NAMES.SEHUATANG_IDS, 'sehuatang::TID-999', {
@@ -190,9 +201,9 @@ test.describe('DB v14 migration (ADR-025 三表拆分)', () => {
       rating: 0,
       updatedAt: new Date().toISOString(),
       linkedIds: {},
-    })
-    expect((await mdb.get(STORE_NAMES.SEHUATANG_IDS, 'sehuatang::TID-999'))?.status).toBe(2)
+    });
+    expect((await mdb.get(STORE_NAMES.SEHUATANG_IDS, 'sehuatang::TID-999'))?.status).toBe(2);
 
-    mdb.close()
-  })
-})
+    mdb.close();
+  });
+});

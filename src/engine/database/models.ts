@@ -18,145 +18,189 @@
  * v6 migration drops all old stores and creates fresh per-platform stores.
  */
 
-import type { StoreRecord, PtIdCacheEntry } from '@/types'
-import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCacheVersion, MigrationError } from '@/engine/migration/models'
-import { LruCache } from '@/engine/cache/lru-cache'
-import { queryPage as queryPageUtil, batchGet as batchGetUtil } from './query-utils'
-import type { PageQueryOptions, PageResult } from './query-utils'
-import type { WriteResult } from '@/feature/optimistic-lock/types'
-import { migrateSchema } from './migrate'
+import type { StoreRecord, PtIdCacheEntry } from '@/types';
+import {
+  normalizeStoreRecord,
+  stampRecordVersion,
+  normalizeCacheEntry,
+  stampCacheVersion,
+  MigrationError,
+} from '@/engine/migration/models';
+import { LruCache, DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL_MS } from '@/engine/cache/lru-cache';
+import { queryPage as queryPageUtil, batchGet as batchGetUtil } from './query-utils';
+import type { PageQueryOptions, PageResult } from './query-utils';
+import type { WriteResult } from '@/feature/optimistic-lock/types';
+import { migrateSchema } from './migrate';
 
 // Schema constants + pure key helpers moved to ./schema (2026-09-26 god-file split);
 // re-exported so existing '@engine/database/models' consumers are unaffected.
-export { DB_NAME, DB_VERSION, STORE_NAMES, RECORD_STORES, ADULT_STORES, BACKUP_STORES, isWatchedStatus, normalizeVideoKey, normalizeStoreRecordKey } from './schema'
-import { DB_NAME, DB_VERSION, RECORD_STORES, ADULT_STORES, STORE_NAMES, normalizeVideoKey } from './schema'
+export {
+  DB_NAME,
+  DB_VERSION,
+  STORE_NAMES,
+  RECORD_STORES,
+  ADULT_STORES,
+  BACKUP_STORES,
+  isWatchedStatus,
+  normalizeVideoKey,
+  normalizeStoreRecordKey,
+  ADULT_AV_ID_INDEX,
+  adultAvIdFromKey,
+} from './schema';
+import {
+  DB_NAME,
+  DB_VERSION,
+  RECORD_STORES,
+  ADULT_STORES,
+  STORE_NAMES,
+  normalizeVideoKey,
+  ADULT_AV_ID_INDEX,
+  adultAvIdFromKey,
+} from './schema';
+
+/** 成人三表集合（写侧 avId 派生字段维护的判定源）。 */
+const ADULT_STORE_SET: ReadonlySet<string> = new Set<string>(ADULT_STORES);
+
+/**
+ * 写侧单一维护点：成人三表的记录值内同步派生 `avId` = 键后缀
+ * （ADULT_AV_ID_INDEX 索引字段），保证 L2 索引查询与键始终一致。
+ * 非成人表原样返回（不新增字段）。
+ */
+function withAdultIndexFields(storeName: string, key: string, record: StoreRecord): StoreRecord {
+  if (!ADULT_STORE_SET.has(storeName)) return record;
+  return { ...record, avId: adultAvIdFromKey(key) };
+}
 
 export class MediaDatabase {
-  private db: IDBDatabase | null = null
-  private initPromise: Promise<void> | null = null
-  private readCache = new LruCache<StoreRecord | null | Array<{ key: string; record: StoreRecord }>>({
-    maxSize: 500,
-    defaultTtlMs: 30_000,
-  })
+  private db: IDBDatabase | null = null;
+  private initPromise: Promise<void> | null = null;
+  private readCache = new LruCache<
+    StoreRecord | null | Array<{ key: string; record: StoreRecord }>
+  >({
+    maxSize: DEFAULT_LRU_MAX_SIZE,
+    defaultTtlMs: DEFAULT_LRU_TTL_MS,
+  });
 
   // ==================== Initialization ====================
 
   async init(): Promise<void> {
-    if (this.db) return
-    if (this.initPromise) return this.initPromise
+    if (this.db) return;
+    if (this.initPromise) return this.initPromise;
 
     this.initPromise = new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION)
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        const oldVersion = event.oldVersion
+        const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
 
         migrateSchema(db, oldVersion, request, {
           DB_VERSION,
           STORE_NAMES,
           RECORD_STORES,
           normalizeVideoKey,
-        })
-      }
+          ADULT_AV_ID_INDEX,
+          adultAvIdFromKey,
+        });
+      };
 
       request.onsuccess = (event) => {
-        this.db = (event.target as IDBOpenDBRequest).result
+        this.db = (event.target as IDBOpenDBRequest).result;
 
         // Handle unexpected close (e.g. extension update)
         this.db.onversionchange = () => {
-          this.db?.close()
-          this.db = null
-          this.initPromise = null
-        }
+          this.db?.close();
+          this.db = null;
+          this.initPromise = null;
+        };
 
         // Handle error events on db
         this.db.onerror = () => {
-          console.warn('[DB] Unhandled database error event')
-        }
+          console.warn('[DB] Unhandled database error event');
+        };
 
-        resolve()
-      }
+        resolve();
+      };
 
       request.onerror = (event) => {
-        this.initPromise = null
-        const error = (event.target as IDBOpenDBRequest).error
-        console.error('[DB] Failed to open database:', error)
-        reject(error || new Error('Failed to open IndexedDB'))
-      }
+        this.initPromise = null;
+        const error = (event.target as IDBOpenDBRequest).error;
+        console.error('[DB] Failed to open database:', error);
+        reject(error || new Error('Failed to open IndexedDB'));
+      };
 
       request.onblocked = () => {
-        console.warn('[DB] Database open blocked — close other tabs/windows')
-      }
-    })
+        console.warn('[DB] Database open blocked — close other tabs/windows');
+      };
+    });
 
-    return this.initPromise
+    return this.initPromise;
   }
 
   /** Re-initialize after close */
   private async ensureDB(): Promise<IDBDatabase> {
-    if (!this.db) await this.init()
-    return this.db!
+    if (!this.db) await this.init();
+    return this.db!;
   }
 
   /** Create a transaction and return the object store helper */
   private async storeOp<T>(
     storeName: string,
     mode: IDBTransactionMode,
-    cb: (store: IDBObjectStore) => IDBRequest<T>
+    cb: (store: IDBObjectStore) => IDBRequest<T>,
   ): Promise<T> {
-    const db = await this.ensureDB()
+    const db = await this.ensureDB();
     return new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(storeName, mode)
-      const store = tx.objectStore(storeName)
-      const request = cb(store)
+      const tx = db.transaction(storeName, mode);
+      const store = tx.objectStore(storeName);
+      const request = cb(store);
 
-      request.onsuccess = () => resolve(request.result)
+      request.onsuccess = () => resolve(request.result);
       request.onerror = () => {
-        console.error(`[DB] Error on ${storeName}:`, request.error)
-        reject(request.error)
-      }
+        console.error(`[DB] Error on ${storeName}:`, request.error);
+        reject(request.error);
+      };
       tx.onerror = () => {
-        console.error(`[DB] Transaction error on ${storeName}:`, tx.error)
-        reject(tx.error)
-      }
-    })
+        console.error(`[DB] Transaction error on ${storeName}:`, tx.error);
+        reject(tx.error);
+      };
+    });
   }
 
   private invalidateStoreCache(storeName: string): void {
-    this.readCache.deleteByPrefix(`${storeName}::`)
-    this.readCache.delete(`__list__${storeName}`)
+    this.readCache.deleteByPrefix(`${storeName}::`);
+    this.readCache.delete(`__list__${storeName}`);
   }
 
   // ==================== Public API ====================
 
   /** Get a single record by key. Returns null if not found. Normalizes on read. */
   async get(storeName: string, key: string): Promise<StoreRecord | null> {
-    const cacheKey = `${storeName}::${key}`
-    const cached = this.readCache.get(cacheKey) as StoreRecord | null | undefined
-    if (cached !== undefined) return cached
+    const cacheKey = `${storeName}::${key}`;
+    const cached = this.readCache.get(cacheKey) as StoreRecord | null | undefined;
+    if (cached !== undefined) return cached;
 
-    const result = await this.storeOp(storeName, 'readonly', store => store.get(key))
+    const result = await this.storeOp(storeName, 'readonly', (store) => store.get(key));
     if (!result) {
-      this.readCache.set(cacheKey, null)
-      return null
+      this.readCache.set(cacheKey, null);
+      return null;
     }
 
     try {
-      const { record, migrated } = normalizeStoreRecord(result)
+      const { record, migrated } = normalizeStoreRecord(result);
       if (migrated) {
-        this.batchPut(storeName, [{ key, record }]).catch(err => {
-          console.warn(`[DB] Failed to write back migrated record ${key}:`, err)
-        })
+        this.batchPut(storeName, [{ key, record }]).catch((err) => {
+          console.warn(`[DB] Failed to write back migrated record ${key}:`, err);
+        });
       }
-      this.readCache.set(cacheKey, record)
-      return record
+      this.readCache.set(cacheKey, record);
+      return record;
     } catch (err: unknown) {
       if (err instanceof MigrationError) {
-        console.error(`[DB] Migration failed for ${storeName}/${key}:`, err.message, err.details)
-        return result as StoreRecord
+        console.error(`[DB] Migration failed for ${storeName}/${key}:`, err.message, err.details);
+        return result as StoreRecord;
       }
-      throw err
+      throw err;
     }
   }
 
@@ -167,32 +211,34 @@ export class MediaDatabase {
       ...record,
       linkedIds: { ...record.linkedIds },
       updatedAt: record.updatedAt || new Date().toISOString(),
-    }
+    };
+    // 成人三表：写侧同步维护 avId 派生索引字段（键后缀）。
+    const pending = withAdultIndexFields(storeName, key, base);
 
     // Read version and write in a single transaction to prevent race condition
     // where two concurrent calls both read version 0 and both write version 1.
-    const db = await this.ensureDB()
+    const db = await this.ensureDB();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite')
-      const store = tx.objectStore(storeName)
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
 
-      const getReq = store.get(key)
+      const getReq = store.get(key);
       getReq.onsuccess = () => {
-        const current = (getReq.result as StoreRecord | null) ?? null
-        const nextVersion = (current?.recordVersion ?? 0) + 1
-        store.put(stampRecordVersion({ ...base, recordVersion: nextVersion }), key)
-      }
+        const current = (getReq.result as StoreRecord | null) ?? null;
+        const nextVersion = (current?.recordVersion ?? 0) + 1;
+        store.put(stampRecordVersion({ ...pending, recordVersion: nextVersion }), key);
+      };
       getReq.onerror = () => {
         // Fallback: write without version check
-        store.put(stampRecordVersion({ ...base, recordVersion: 1 }), key)
-      }
+        store.put(stampRecordVersion({ ...pending, recordVersion: 1 }), key);
+      };
 
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(tx.error)
-      tx.onabort = () => reject(tx.error)
-    })
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
 
-    this.invalidateStoreCache(storeName)
+    this.invalidateStoreCache(storeName);
   }
 
   /**
@@ -201,39 +247,44 @@ export class MediaDatabase {
    * recordVersion inside the same transaction and increments it (missing
    * keys start at 1). The store cache is invalidated once after commit.
    */
-  async batchPut(storeName: string, records: Array<{ key: string; record: StoreRecord }>): Promise<void> {
-    if (records.length === 0) return
+  async batchPut(
+    storeName: string,
+    records: Array<{ key: string; record: StoreRecord }>,
+  ): Promise<void> {
+    if (records.length === 0) return;
 
-    const db = await this.ensureDB()
+    const db = await this.ensureDB();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite')
-      const store = tx.objectStore(storeName)
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
 
       for (const { key, record } of records) {
         const base: StoreRecord = {
           ...record,
           linkedIds: { ...record.linkedIds },
           updatedAt: record.updatedAt || new Date().toISOString(),
-        }
+        };
+        // 成人三表：写侧同步维护 avId 派生索引字段（与 put() 同一维护点语义）。
+        const pending = withAdultIndexFields(storeName, key, base);
 
-        const getReq = store.get(key)
+        const getReq = store.get(key);
         getReq.onsuccess = () => {
-          const current = (getReq.result as StoreRecord | null) ?? null
-          const nextVersion = (current?.recordVersion ?? 0) + 1
-          store.put(stampRecordVersion({ ...base, recordVersion: nextVersion }), key)
-        }
+          const current = (getReq.result as StoreRecord | null) ?? null;
+          const nextVersion = (current?.recordVersion ?? 0) + 1;
+          store.put(stampRecordVersion({ ...pending, recordVersion: nextVersion }), key);
+        };
         getReq.onerror = () => {
           // Fallback: write without version check
-          store.put(stampRecordVersion({ ...base, recordVersion: 1 }), key)
-        }
+          store.put(stampRecordVersion({ ...pending, recordVersion: 1 }), key);
+        };
       }
 
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(tx.error)
-      tx.onabort = () => reject(tx.error)
-    })
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
 
-    this.invalidateStoreCache(storeName)
+    this.invalidateStoreCache(storeName);
   }
 
   /**
@@ -248,80 +299,84 @@ export class MediaDatabase {
     record: StoreRecord,
     expectedVersion: number,
   ): Promise<WriteResult> {
-    const current = await this.get(storeName, key)
-    const currentVersion = current?.recordVersion ?? 0
+    const current = await this.get(storeName, key);
+    const currentVersion = current?.recordVersion ?? 0;
 
     if (currentVersion !== expectedVersion) {
       console.warn(
         `[OptimisticLock] Conflict ${storeName}::${key}: ` +
-        `current=v${currentVersion}, expected=v${expectedVersion}`,
-      )
+          `current=v${currentVersion}, expected=v${expectedVersion}`,
+      );
       return {
         ok: false,
         conflict: { currentVersion, expectedVersion },
-      }
+      };
     }
 
     // put() re-reads version in-tx and stamps current+1 (== expected+1 here).
-    await this.put(storeName, key, record)
-    return { ok: true, version: expectedVersion + 1 }
+    await this.put(storeName, key, record);
+    return { ok: true, version: expectedVersion + 1 };
   }
-
 
   /** Delete a record by key. */
   async delete(storeName: string, key: string): Promise<void> {
-    await this.storeOp(storeName, 'readwrite', store => store.delete(key))
-    this.invalidateStoreCache(storeName)
+    await this.storeOp(storeName, 'readwrite', (store) => store.delete(key));
+    this.invalidateStoreCache(storeName);
   }
 
   /** Get all records from a store. Normalizes each record on read. */
   async getAll(storeName: string): Promise<Array<{ key: string; record: StoreRecord }>> {
-    const listCacheKey = `__list__${storeName}`
-    const cached = this.readCache.get(listCacheKey) as Array<{ key: string; record: StoreRecord }> | undefined
-    if (cached !== undefined) return cached
+    const listCacheKey = `__list__${storeName}`;
+    const cached = this.readCache.get(listCacheKey) as
+      | Array<{ key: string; record: StoreRecord }>
+      | undefined;
+    if (cached !== undefined) return cached;
 
-    const db = await this.ensureDB()
+    const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly')
-      const store = tx.objectStore(storeName)
-      const request = store.openCursor()
-      const results: Array<{ key: string; record: StoreRecord }> = []
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const request = store.openCursor();
+      const results: Array<{ key: string; record: StoreRecord }> = [];
       // L7: collect migrated records during the cursor pass and write them
       // back in a single batchPut after the readonly tx completes, instead of
       // fire-and-forget put() per record (storm on first read after upgrade).
-      const migratedRecords: Array<{ key: string; record: StoreRecord }> = []
+      const migratedRecords: Array<{ key: string; record: StoreRecord }> = [];
 
       request.onsuccess = () => {
-        const cursor = request.result
+        const cursor = request.result;
         if (cursor) {
           try {
-            const { record, migrated } = normalizeStoreRecord(cursor.value)
-            results.push({ key: cursor.key as string, record })
+            const { record, migrated } = normalizeStoreRecord(cursor.value);
+            results.push({ key: cursor.key as string, record });
             if (migrated) {
-              migratedRecords.push({ key: cursor.key as string, record })
+              migratedRecords.push({ key: cursor.key as string, record });
             }
           } catch (err: unknown) {
             if (err instanceof MigrationError) {
-              console.error(`[DB] Migration failed for ${storeName}/${cursor.key}:`, err.message)
-              results.push({ key: cursor.key as string, record: cursor.value as StoreRecord })
+              console.error(`[DB] Migration failed for ${storeName}/${cursor.key}:`, err.message);
+              results.push({ key: cursor.key as string, record: cursor.value as StoreRecord });
             } else {
-              throw err
+              throw err;
             }
           }
-          cursor.continue()
+          cursor.continue();
         } else {
-          this.readCache.set(listCacheKey, results, 5_000)
+          this.readCache.set(listCacheKey, results, 5_000);
           if (migratedRecords.length > 0) {
-            this.batchPut(storeName, migratedRecords).catch(err => {
-              console.warn(`[DB] Failed to write back ${migratedRecords.length} migrated records in ${storeName}:`, err)
-            })
+            this.batchPut(storeName, migratedRecords).catch((err) => {
+              console.warn(
+                `[DB] Failed to write back ${migratedRecords.length} migrated records in ${storeName}:`,
+                err,
+              );
+            });
           }
-          resolve(results)
+          resolve(results);
         }
-      }
-      request.onerror = () => reject(request.error)
-      tx.onerror = () => reject(tx.error)
-    })
+      };
+      request.onerror = () => reject(request.error);
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   // ==================== Paginated Query ====================
@@ -334,10 +389,10 @@ export class MediaDatabase {
     storeName: string,
     opts?: PageQueryOptions,
   ): Promise<PageResult<T>> {
-    const db = await this.ensureDB()
-    const tx = db.transaction(storeName, 'readonly')
-    const store = tx.objectStore(storeName)
-    return queryPageUtil<T>(store, opts)
+    const db = await this.ensureDB();
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    return queryPageUtil<T>(store, opts);
   }
 
   // ==================== Batch Operations ====================
@@ -350,15 +405,65 @@ export class MediaDatabase {
     storeName: string,
     keys: IDBValidKey[],
   ): Promise<Map<IDBValidKey, T>> {
-    const db = await this.ensureDB()
-    const tx = db.transaction(storeName, 'readonly')
-    const store = tx.objectStore(storeName)
-    return batchGetUtil<T>(store, keys)
+    const db = await this.ensureDB();
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    return batchGetUtil<T>(store, keys);
   }
 
   /** Count records in a store. */
   async count(storeName: string): Promise<number> {
-    return this.storeOp(storeName, 'readonly', store => store.count())
+    return this.storeOp(storeName, 'readonly', (store) => store.count());
+  }
+
+  /**
+   * Exact-match lookup on a secondary index. Returns every entry whose index
+   * value equals `query`, as `{ key, record }` pairs ordered by primary key,
+   * with records normalized the same way as getAll() (whitelist + record-level
+   * migration; no write-back — bulk readers still repair via getAll()).
+   *
+   * Used by ADULT_AV_CHECK L2 (`avId` index) to replace the old full-store
+   * cursor scan; results are value-identical to the old suffix comparison
+   * because the write side (put/batchPut) and the v15 migration backfill keep
+   * the indexed field in sync with the key suffix.
+   */
+  async getByIndex<T = StoreRecord>(
+    storeName: string,
+    indexName: string,
+    query: IDBValidKey,
+  ): Promise<Array<{ key: string; record: T }>> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const request = store.index(indexName).openCursor(IDBKeyRange.only(query));
+      const results: Array<{ key: string; record: T }> = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(results);
+          return;
+        }
+        try {
+          const { record } = normalizeStoreRecord(cursor.value);
+          results.push({ key: cursor.primaryKey as string, record: record as T });
+        } catch (err: unknown) {
+          if (err instanceof MigrationError) {
+            console.error(
+              `[DB] Migration failed for ${storeName}/${cursor.primaryKey}:`,
+              err.message,
+            );
+            results.push({ key: cursor.primaryKey as string, record: cursor.value as T });
+          } else {
+            throw err;
+          }
+        }
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   /**
@@ -387,204 +492,207 @@ export class MediaDatabase {
    * Returns a Set of record primary keys (e.g., "movie::37332784").
    */
   async getWatchedIds(storeName: string): Promise<Set<string>> {
-    const db = await this.ensureDB()
+    const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly')
-      const store = tx.objectStore(storeName)
-      const index = store.index('status')
-      const ids = new Set<string>()
-      let pending = 2
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const index = store.index('status');
+      const ids = new Set<string>();
+      let pending = 2;
       // Guard against double settlement (e.g. one cursor errors while the
       // other finishes, or tx.onerror fires after resolve) — JS ignores the
       // second call.
-      let settled = false
+      let settled = false;
 
       const finish = () => {
-        pending--
+        pending--;
         if (pending === 0) {
           if (!settled) {
-            settled = true
-            resolve(ids)
+            settled = true;
+            resolve(ids);
           }
         }
-      }
+      };
 
       // Key-only cursor: `cursor.primaryKey` is the record's primary key.
       const walk = (request: IDBRequest<IDBCursor | null>): void => {
         request.onsuccess = () => {
-          const cursor = request.result
+          const cursor = request.result;
           if (cursor) {
-            ids.add(cursor.primaryKey as string)
-            cursor.continue()
+            ids.add(cursor.primaryKey as string);
+            cursor.continue();
           } else {
-            finish()
+            finish();
           }
-        }
+        };
         request.onerror = () => {
-          console.error(`[DB] getWatchedIds(${storeName}) status-index cursor failed:`, request.error)
+          console.error(
+            `[DB] getWatchedIds(${storeName}) status-index cursor failed:`,
+            request.error,
+          );
           if (!settled) {
-            settled = true
-            reject(request.error)
+            settled = true;
+            reject(request.error);
           }
-        }
-      }
+        };
+      };
 
       // Cursor 1: numeric status 2 (watched). Cursor 2: legacy string 'done'.
       // A record cannot have both statuses, so the union is the exact watched set.
-      walk(index.openKeyCursor(IDBKeyRange.only(2)))
-      walk(index.openKeyCursor(IDBKeyRange.only('done')))
+      walk(index.openKeyCursor(IDBKeyRange.only(2)));
+      walk(index.openKeyCursor(IDBKeyRange.only('done')));
 
       tx.onerror = () => {
-        console.error(`[DB] Transaction error on ${storeName}:`, tx.error)
+        console.error(`[DB] Transaction error on ${storeName}:`, tx.error);
         if (!settled) {
-          settled = true
-          reject(tx.error)
+          settled = true;
+          reject(tx.error);
         }
-      }
-    })
+      };
+    });
   }
 
   // ==================== PT ID Cache ====================
 
   /** Get a PT ID cache entry by URL. Normalizes on read. */
   async getCacheEntry(ptUrl: string): Promise<PtIdCacheEntry | null> {
-    const db = await this.ensureDB()
+    const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readonly')
-      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE)
-      const request = store.get(ptUrl)
+      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readonly');
+      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE);
+      const request = store.get(ptUrl);
 
       request.onsuccess = () => {
         if (!request.result) {
-          resolve(null)
-          return
+          resolve(null);
+          return;
         }
         try {
-          const { record, migrated } = normalizeCacheEntry(request.result)
+          const { record, migrated } = normalizeCacheEntry(request.result);
           if (migrated) {
-            this.putCacheEntry(record).catch(err => {
-              console.warn(`[DB] Failed to write back migrated cache entry ${ptUrl}:`, err)
-            })
+            this.putCacheEntry(record).catch((err) => {
+              console.warn(`[DB] Failed to write back migrated cache entry ${ptUrl}:`, err);
+            });
           }
-          resolve(record)
+          resolve(record);
         } catch (err: unknown) {
           if (err instanceof MigrationError) {
-            console.error(`[DB] Cache migration failed for ${ptUrl}:`, err.message)
-            resolve(request.result as PtIdCacheEntry)
+            console.error(`[DB] Cache migration failed for ${ptUrl}:`, err.message);
+            resolve(request.result as PtIdCacheEntry);
           } else {
-            reject(err)
+            reject(err);
           }
         }
-      }
-      request.onerror = () => reject(request.error)
-      tx.onerror = () => reject(tx.error)
-    })
+      };
+      request.onerror = () => reject(request.error);
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   /** Batch get PT ID cache entries by URL in a single transaction. Missing keys are omitted. */
   async getCacheEntries(ptUrls: string[]): Promise<Record<string, PtIdCacheEntry>> {
-    if (ptUrls.length === 0) return {}
-    const db = await this.ensureDB()
+    if (ptUrls.length === 0) return {};
+    const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readonly')
-      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE)
-      const entries: Record<string, PtIdCacheEntry> = {}
+      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readonly');
+      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE);
+      const entries: Record<string, PtIdCacheEntry> = {};
 
       for (const ptUrl of ptUrls) {
-        const request = store.get(ptUrl)
+        const request = store.get(ptUrl);
         request.onsuccess = () => {
-          if (!request.result) return
+          if (!request.result) return;
           try {
-            const { record, migrated } = normalizeCacheEntry(request.result)
+            const { record, migrated } = normalizeCacheEntry(request.result);
             if (migrated) {
-              this.putCacheEntry(record).catch(err => {
-                console.warn(`[DB] Failed to write back migrated cache entry ${ptUrl}:`, err)
-              })
+              this.putCacheEntry(record).catch((err) => {
+                console.warn(`[DB] Failed to write back migrated cache entry ${ptUrl}:`, err);
+              });
             }
-            entries[ptUrl] = record
+            entries[ptUrl] = record;
           } catch (err: unknown) {
             if (err instanceof MigrationError) {
-              console.error(`[DB] Cache migration failed for ${ptUrl}:`, err.message)
-              entries[ptUrl] = request.result as PtIdCacheEntry
+              console.error(`[DB] Cache migration failed for ${ptUrl}:`, err.message);
+              entries[ptUrl] = request.result as PtIdCacheEntry;
             } else {
-              reject(err)
+              reject(err);
             }
           }
-        }
+        };
       }
 
-      tx.oncomplete = () => resolve(entries)
-      tx.onerror = () => reject(tx.error)
-    })
+      tx.oncomplete = () => resolve(entries);
+      tx.onerror = () => reject(tx.error);
+    });
   }
   async putCacheEntry(entry: PtIdCacheEntry): Promise<void> {
-    const db = await this.ensureDB()
-    const stamped = stampCacheVersion(entry)
+    const db = await this.ensureDB();
+    const stamped = stampCacheVersion(entry);
     return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readwrite')
-      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE)
-      const request = store.put(stamped, stamped.ptUrl)
-      request.onsuccess = () => resolve()
-      request.onerror = () => reject(request.error)
-      tx.onerror = () => reject(tx.error)
-    })
+      const tx = db.transaction(STORE_NAMES.PT_ID_CACHE, 'readwrite');
+      const store = tx.objectStore(STORE_NAMES.PT_ID_CACHE);
+      const request = store.put(stamped, stamped.ptUrl);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+      tx.onerror = () => reject(tx.error);
+    });
   }
   // ==================== Bulk Operations ====================
 
   /** Get all records from all record stores + adult stores (for export). */
   async getAllStores(): Promise<Record<string, Record<string, StoreRecord>>> {
-    const result: Record<string, Record<string, StoreRecord>> = {}
+    const result: Record<string, Record<string, StoreRecord>> = {};
 
     for (const storeName of RECORD_STORES) {
-      const entries = await this.getAll(storeName)
-      const map: Record<string, StoreRecord> = {}
+      const entries = await this.getAll(storeName);
+      const map: Record<string, StoreRecord> = {};
       for (const entry of entries) {
-        map[entry.key] = entry.record
+        map[entry.key] = entry.record;
       }
-      result[storeName] = map
+      result[storeName] = map;
     }
 
     // Include adult stores (not in RECORD_STORES but need export support)
     for (const storeName of ADULT_STORES) {
-      const entries = await this.getAll(storeName)
+      const entries = await this.getAll(storeName);
       if (entries.length > 0) {
-        const map: Record<string, StoreRecord> = {}
+        const map: Record<string, StoreRecord> = {};
         for (const entry of entries) {
-          map[entry.key] = entry.record
+          map[entry.key] = entry.record;
         }
-        result[storeName] = map
+        result[storeName] = map;
       }
     }
 
-    return result
+    return result;
   }
 
   /** Clear all records from all stores. */
   async clearAll(): Promise<void> {
-    const db = await this.ensureDB()
-    const allStoreNames = Array.from(db.objectStoreNames)
+    const db = await this.ensureDB();
+    const allStoreNames = Array.from(db.objectStoreNames);
     return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(allStoreNames, 'readwrite')
+      const tx = db.transaction(allStoreNames, 'readwrite');
       for (const name of allStoreNames) {
-        tx.objectStore(name).clear()
+        tx.objectStore(name).clear();
       }
       tx.oncomplete = () => {
-        this.readCache.clear()
-        resolve()
-      }
-      tx.onerror = () => reject(tx.error)
-    })
+        this.readCache.clear();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   /** Close the database connection. */
   close(): void {
     if (this.db) {
-      this.db.close()
-      this.db = null
-      this.initPromise = null
+      this.db.close();
+      this.db = null;
+      this.initPromise = null;
     }
   }
 }
 
 /** Singleton instance */
-export const mediaDB = new MediaDatabase()
+export const mediaDB = new MediaDatabase();

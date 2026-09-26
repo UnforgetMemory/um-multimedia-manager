@@ -16,8 +16,8 @@
  * original is never modified. Use {@link toSnapshot} to serialise
  * for persistence.
  */
-import { Status } from '@/domain/record/Status';
-import { Rating } from '@/domain/record/Rating';
+import { Status } from '@/domain/record/status';
+import { Rating } from '@/domain/record/rating';
 
 export class StoreRecord {
   /** Canonical URL of the media on this platform. */
@@ -188,8 +188,10 @@ export class StoreRecord {
   /** Merge links from another record. Existing keys are overwritten. */
   mergeLinks(other: StoreRecord): StoreRecord {
     const next = { ...this.linkedIds, ...other.linkedIds };
-    if (Object.keys(next).length === Object.keys(this.linkedIds).length
-        && Object.entries(next).every(([k, v]) => this.linkedIds[k] === v)) {
+    if (
+      Object.keys(next).length === Object.keys(this.linkedIds).length &&
+      Object.entries(next).every(([k, v]) => this.linkedIds[k] === v)
+    ) {
       return this;
     }
     return new StoreRecord({
@@ -259,6 +261,13 @@ export interface StoreRecordSnapshot {
   linkedIds: Record<string, string>;
   schemaVersion?: number;
   recordVersion?: number;
+  /**
+   * DB 层派生索引字段（v15，仅成人三表 jav_ids/usav_ids/sehuatang_ids 使用）：
+   * store 键去掉 `${source}::` 前缀后的番号后缀，供 `avId` 索引精确查询。
+   * 非领域状态——由写侧（MediaDatabase.put/batchPut）按键重算维护；
+   * 读侧白名单（normalizeStoreRecord）会剥离它，域内工厂不产出该字段。
+   */
+  avId?: string;
 }
 
 /** Parameters for constructing a StoreRecord. */

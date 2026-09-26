@@ -10,8 +10,8 @@
  * STATS 按表各自计数（用户裁决），jp 计数保留 TID 残留过滤。
  */
 
-import type { AdultAvId, StoreRecord, StoreRecordSnapshot, MessagePayloadMap } from '@/types'
-import { mediaDB, type MediaDatabase } from '@/engine/database/models'
+import type { AdultAvId, StoreRecord, StoreRecordSnapshot, MessagePayloadMap } from '@/types';
+import { mediaDB, ADULT_AV_ID_INDEX, type MediaDatabase } from '@/engine/database/models';
 import {
   JAV_IDS_STORE_NAME,
   USAV_IDS_STORE_NAME,
@@ -20,165 +20,193 @@ import {
   isTidTrackKey,
   classifyAvId,
   storeForAvIdKind,
-} from '@/provider/adult-av/models'
-import { broadcast } from '@/libraries/utils/event-bus'
-import type { SendResponse } from '@/libraries/utils/error-message'
-import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
+} from '@/provider/adult-av/models';
+import { broadcast } from '@/libraries/utils/event-bus';
+import type { SendResponse } from '@/libraries/utils/error-message';
+import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation';
 
-const KNOWN_SOURCES = ['javdb', 'sehuatang']
+const KNOWN_SOURCES = ['javdb', 'sehuatang'];
 
 /** 番号两表（真实番号记录）；帖子浏览记录独立在 sehuatang_ids。 */
-const AV_ID_STORES = [JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME] as const
+const AV_ID_STORES = [JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME] as const;
 /** 已看判定覆盖的全部三表（含帖子浏览记录——dimmer 兜底链）。 */
-const ALL_WATCHED_STORES = [JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME, SEHUATANG_IDS_STORE_NAME] as const
+const ALL_WATCHED_STORES = [
+  JAV_IDS_STORE_NAME,
+  USAV_IDS_STORE_NAME,
+  SEHUATANG_IDS_STORE_NAME,
+] as const;
 
 /** 收集三表全部 status>=2 记录的键后缀（:: 后部分）并入 watched 集合。 */
 async function collectWatchedSuffixes(db: Pick<MediaDatabase, 'getAll'>): Promise<Set<string>> {
-  const watched = new Set<string>()
+  const watched = new Set<string>();
   for (const storeName of ALL_WATCHED_STORES) {
-    const entries = await db.getAll(storeName)
+    const entries = await db.getAll(storeName);
     for (const entry of entries) {
       if ((entry.record.status ?? 0) >= 2) {
-        const suffix = entry.key.includes('::') ? entry.key.slice(entry.key.indexOf('::') + 2) : entry.key
-        watched.add(suffix)
+        const suffix = entry.key.includes('::')
+          ? entry.key.slice(entry.key.indexOf('::') + 2)
+          : entry.key;
+        watched.add(suffix);
       }
     }
   }
-  return watched
+  return watched;
 }
 
 /** ADULT_AV_CHECK — check if AV ID exists across ALL sources and ALL three stores */
 export async function handleAdultAvCheck(
   payload: MessagePayloadMap['ADULT_AV_CHECK'],
   sendResponse: SendResponse,
-  db: Pick<MediaDatabase, 'get' | 'getAll'> = mediaDB
+  db: Pick<MediaDatabase, 'get' | 'getByIndex'> = mediaDB,
 ) {
-  const { id } = payload
-  if (!id) { sendResponse({ success: false, error: 'Missing id' }); return }
+  const { id } = payload;
+  if (!id) {
+    sendResponse({ success: false, error: 'Missing id' });
+    return;
+  }
 
-  const cleanId = normalizeAvId(id)
-  const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
+  const cleanId = normalizeAvId(id);
+  const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '');
   // 候选键去重：无后缀时 cleanId === baseId，同一候选只查一次（L1/L2 共用）。
-  const candidates = baseId !== cleanId ? [cleanId, baseId] : [cleanId]
-  let found: { key: string; record: StoreRecordSnapshot } | null = null
-  let watched = false
+  const candidates = baseId !== cleanId ? [cleanId, baseId] : [cleanId];
+  let found: { key: string; record: StoreRecordSnapshot } | null = null;
+  let watched = false;
 
   // Level 1: known sources exact match, across all three stores
   outer: for (const storeName of ALL_WATCHED_STORES) {
     for (const source of KNOWN_SOURCES) {
       for (const candidate of candidates) {
-        const key = `${source}::${candidate}`
-        const record = await db.get(storeName, key)
+        const key = `${source}::${candidate}`;
+        const record = await db.get(storeName, key);
         if (record) {
-          found = { key, record }
-          watched = (record.status ?? 0) >= 2
-          break outer
+          found = { key, record };
+          watched = (record.status ?? 0) >= 2;
+          break outer;
         }
       }
     }
   }
 
-  // Level 2: cursor scan — match any key ending with ::id (all sources, all three stores)
+  // Level 2: `avId` 索引精确查询（v15 起；替代旧全表游标扫描）。
+  // 等价性：avId 索引值恒等于键的 `::` 后缀（写侧 put/batchPut 维护 + v15
+  // 迁移回填），三表按 ALL_WATCHED_STORES 顺序、表内取主键序最先命中条目
+  // ——与旧「getAll 游标（主键升序）逐条后缀比对、首个命中即停」逐值一致。
   if (!found) {
     outer2: for (const storeName of ALL_WATCHED_STORES) {
-      const allEntries = await db.getAll(storeName)
-      for (const entry of allEntries) {
-        const keySuffix = entry.key.includes('::') ? entry.key.slice(entry.key.indexOf('::') + 2) : entry.key
-        if (candidates.includes(keySuffix)) {
-          found = { key: entry.key, record: entry.record }
-          watched = (entry.record.status ?? 0) >= 2
-          break outer2
+      const matches = new Map<string, StoreRecordSnapshot>();
+      for (const candidate of candidates) {
+        const hits = await db.getByIndex(storeName, ADULT_AV_ID_INDEX, candidate);
+        for (const hit of hits) {
+          if (!matches.has(hit.key)) matches.set(hit.key, hit.record);
         }
+      }
+      let bestKey: string | undefined;
+      for (const k of matches.keys()) {
+        if (bestKey === undefined || k < bestKey) bestKey = k;
+      }
+      if (bestKey !== undefined) {
+        const record = matches.get(bestKey)!;
+        found = { key: bestKey, record };
+        watched = (record.status ?? 0) >= 2;
+        break outer2;
       }
     }
   }
 
-  sendResponse({ success: true, exists: !!found, watched, record: found?.record })
+  sendResponse({ success: true, exists: !!found, watched, record: found?.record });
 }
 
 /** ADULT_AV_CHECK_BATCH — batch check: which of these IDs are watched? */
 export async function handleAdultAvCheckBatch(
   payload: MessagePayloadMap['ADULT_AV_CHECK_BATCH'],
   sendResponse: SendResponse,
-  db: Pick<MediaDatabase, 'getAll'> = mediaDB
+  db: Pick<MediaDatabase, 'getAll'> = mediaDB,
 ) {
-  const { ids } = payload
+  const { ids } = payload;
   if (!Array.isArray(ids) || ids.length === 0) {
-    sendResponse({ success: true, watched: [] })
-    return
+    sendResponse({ success: true, watched: [] });
+    return;
   }
 
   // 三表合并 watched 后缀集合（存量混合/旧备份恢复兼容）。
-  const watchedBase = await collectWatchedSuffixes(db)
+  const watchedBase = await collectWatchedSuffixes(db);
 
   // Match each input ID against the watched set
-  const watched: string[] = []
+  const watched: string[] = [];
   for (const rawId of ids) {
-    const cleanId = normalizeAvId(rawId)
-    const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '')
+    const cleanId = normalizeAvId(rawId);
+    const baseId = cleanId.replace(/-(U|C|UC|CU)$/i, '');
     if (watchedBase.has(cleanId) || watchedBase.has(baseId)) {
-      watched.push(cleanId)
+      watched.push(cleanId);
     }
   }
 
-  sendResponse({ success: true, watched })
+  sendResponse({ success: true, watched });
 }
 
 /** ADULT_AV_ADD — add single AV ID（分类写入目标表） */
 export async function handleAdultAvAdd(
   payload: MessagePayloadMap['ADULT_AV_ADD'],
-  sendResponse: SendResponse
+  sendResponse: SendResponse,
 ) {
-  const { source, id, rating = 0, url = '' } = payload
-  if (!id || !source) { sendResponse({ success: false, error: 'Missing source or id' }); return }
+  const { source, id, rating = 0, url = '' } = payload;
+  if (!id || !source) {
+    sendResponse({ success: false, error: 'Missing source or id' });
+    return;
+  }
 
-  const cleanId = normalizeAvId(id)
-  const storeName = storeForAvIdKind(classifyAvId(cleanId))
-  const key = `${source}::${cleanId}`
+  const cleanId = normalizeAvId(id);
+  const storeName = storeForAvIdKind(classifyAvId(cleanId));
+  const key = `${source}::${cleanId}`;
   await mediaDB.put(storeName, key, {
     url,
     status: 2,
     rating: Math.max(0, Math.min(10, Math.round(rating))),
     updatedAt: new Date().toISOString(),
     linkedIds: {},
-  })
-  broadcast('record:updated', { storeName, key })
+  });
+  broadcast('record:updated', { storeName, key });
 
   // Invalidate scheduler L1 cache so DB_GET_ALL / adult list see fresh data.
-  const cm = getCacheManager()
-  if (cm) invalidateSchedulerStore(cm, storeName, [key])
+  const cm = getCacheManager();
+  if (cm) invalidateSchedulerStore(cm, storeName, [key]);
 
-  sendResponse({ success: true })
+  sendResponse({ success: true });
 }
 
 /** ADULT_AV_BATCH_ADD — add multiple AV IDs（逐条分类，按表分组批量写） */
 export async function handleAdultAvBatchAdd(
   payload: MessagePayloadMap['ADULT_AV_BATCH_ADD'],
   sendResponse: SendResponse,
-  db: Pick<MediaDatabase, 'batchGet' | 'batchPut'> = mediaDB
+  db: Pick<MediaDatabase, 'batchGet' | 'batchPut'> = mediaDB,
 ) {
-  const { source, items } = payload
+  const { source, items } = payload;
   if (!source || !Array.isArray(items) || items.length === 0) {
-    sendResponse({ success: false, error: 'Invalid payload' }); return
+    sendResponse({ success: false, error: 'Invalid payload' });
+    return;
   }
 
-  const valid = items.filter((i) => i.id)
+  const valid = items.filter((i) => i.id);
   // 先派生写入键与目标表（normalizeAvId 只算一次），再按表分组——每组独立
   // batchGet/batchPut。Map.groupBy 为 ES2024（Chrome 117+ / Node 22+），与
   // manifest 的 minimum_chrome_version=119 基线兼容。
   const derived = valid.map((item) => {
-    const cleanId = normalizeAvId(item.id)
-    return { key: `${source}::${cleanId}`, storeName: storeForAvIdKind(classifyAvId(cleanId)), item }
-  })
-  const groups = Map.groupBy(derived, (entry) => entry.storeName)
+    const cleanId = normalizeAvId(item.id);
+    return {
+      key: `${source}::${cleanId}`,
+      storeName: storeForAvIdKind(classifyAvId(cleanId)),
+      item,
+    };
+  });
+  const groups = Map.groupBy(derived, (entry) => entry.storeName);
 
-  let addedCount = 0
-  const writtenKeys: Array<{ storeName: string; key: string }> = []
+  let addedCount = 0;
+  const writtenKeys: Array<{ storeName: string; key: string }> = [];
   for (const [storeName, group] of groups) {
-    const keys = group.map((g) => g.key)
-    const existing = await db.batchGet(storeName, keys)
+    const keys = group.map((g) => g.key);
+    const existing = await db.batchGet(storeName, keys);
     const batch: Array<{ key: string; record: StoreRecord }> = group.map(({ key, item }) => {
-      const prev = existing.get(key)
+      const prev = existing.get(key);
       return {
         key,
         record: {
@@ -188,71 +216,71 @@ export async function handleAdultAvBatchAdd(
           updatedAt: item.updatedAt || new Date().toISOString(),
           linkedIds: prev?.linkedIds || {},
         },
-      }
-    })
-    if (batch.length > 0) await db.batchPut(storeName, batch)
-    addedCount += batch.length
-    for (const key of keys) writtenKeys.push({ storeName, key })
+      };
+    });
+    if (batch.length > 0) await db.batchPut(storeName, batch);
+    addedCount += batch.length;
+    for (const key of keys) writtenKeys.push({ storeName, key });
   }
 
   // Invalidate scheduler L1 cache and notify UI consumers (adult list, DB_GET_ALL).
-  const cm = getCacheManager()
+  const cm = getCacheManager();
   for (const { storeName, key } of writtenKeys) {
-    if (cm) invalidateSchedulerStore(cm, storeName, [key])
+    if (cm) invalidateSchedulerStore(cm, storeName, [key]);
   }
-  broadcast('record:updated', { storeName: JAV_IDS_STORE_NAME, key: '*', bulk: true })
-  broadcast('sync:completed', { addedCount, source })
-  sendResponse({ success: true, addedCount })
+  broadcast('record:updated', { storeName: JAV_IDS_STORE_NAME, key: '*', bulk: true });
+  broadcast('sync:completed', { addedCount, source });
+  sendResponse({ success: true, addedCount });
 }
 
 /** ADULT_AV_GET_ALL — list all AV IDs（番号两表合并；帖子浏览记录不入列），optionally filtered by source */
 export async function handleAdultAvGetAll(
   payload: MessagePayloadMap['ADULT_AV_GET_ALL'] | undefined,
   sendResponse: SendResponse,
-  db: Pick<MediaDatabase, 'getAll'> = mediaDB
+  db: Pick<MediaDatabase, 'getAll'> = mediaDB,
 ) {
-  const { source } = payload || {}
-  let entries: Array<{ key: string; record: StoreRecordSnapshot }> = []
+  const { source } = payload || {};
+  let entries: Array<{ key: string; record: StoreRecordSnapshot }> = [];
   for (const storeName of AV_ID_STORES) {
-    entries = entries.concat(await db.getAll(storeName))
+    entries = entries.concat(await db.getAll(storeName));
   }
   // 消费侧过滤站点内跟踪键（TID-<tid> 存量残留）：历史总阅/统计/查询面板
   // 只呈现真实番号记录；新 TID 记录落在 sehuatang_ids（不在合并范围）。
-  entries = entries.filter(e => !isTidTrackKey(e.key))
+  entries = entries.filter((e) => !isTidTrackKey(e.key));
   if (source) {
-    entries = entries.filter(e => e.key.startsWith(`${source}::`))
+    entries = entries.filter((e) => e.key.startsWith(`${source}::`));
   }
 
-  const items: AdultAvId[] = entries.map(e => {
+  const items: AdultAvId[] = entries.map((e) => {
     // Key prefix is arbitrary at runtime — cast at this trust boundary.
-    const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown'
-    const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key
+    const s = e.key.includes('::') ? e.key.slice(0, e.key.indexOf('::')) : 'unknown';
+    const avId = e.key.includes('::') ? e.key.slice(e.key.indexOf('::') + 2) : e.key;
     return {
       source: s as AdultAvId['source'],
       id: avId,
       url: e.record.url || '',
       rating: e.record.rating || 0,
       updatedAt: e.record.updatedAt,
-    }
-  })
+    };
+  });
 
-  sendResponse({ success: true, items })
+  sendResponse({ success: true, items });
 }
 
 /** ADULT_AV_STATS — 三段已看统计（ADR-025 D5 各自按表计数）：日系 / 美欧 / 帖子。 */
 export async function handleAdultAvStats(
   _payload: MessagePayloadMap['ADULT_AV_STATS'] | undefined,
   sendResponse: SendResponse,
-  db: Pick<MediaDatabase, 'getAll'> = mediaDB
+  db: Pick<MediaDatabase, 'getAll'> = mediaDB,
 ) {
   const countWatched = (entries: Array<{ record: StoreRecordSnapshot }>) =>
-    entries.filter((e) => (e.record.status ?? 0) >= 2).length
+    entries.filter((e) => (e.record.status ?? 0) >= 2).length;
 
-  const javEntries = await db.getAll(JAV_IDS_STORE_NAME)
+  const javEntries = await db.getAll(JAV_IDS_STORE_NAME);
   // jp 计数排除存量 TID 残留键（消费侧过滤纪律与 GET_ALL 对齐）。
-  const jp = countWatched(javEntries.filter((e) => !isTidTrackKey(e.key)))
-  const us = countWatched(await db.getAll(USAV_IDS_STORE_NAME))
-  const tid = countWatched(await db.getAll(SEHUATANG_IDS_STORE_NAME))
+  const jp = countWatched(javEntries.filter((e) => !isTidTrackKey(e.key)));
+  const us = countWatched(await db.getAll(USAV_IDS_STORE_NAME));
+  const tid = countWatched(await db.getAll(SEHUATANG_IDS_STORE_NAME));
 
-  sendResponse({ success: true, jp, us, tid })
+  sendResponse({ success: true, jp, us, tid });
 }

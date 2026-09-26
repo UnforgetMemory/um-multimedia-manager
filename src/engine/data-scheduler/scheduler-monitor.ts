@@ -8,18 +8,18 @@
  * stats API, etc.).
  */
 
-import type { MonitorMetrics, SchedulerEvent, EventListener } from './types'
+import type { MonitorMetrics, SchedulerEvent, EventListener } from './types';
 
-const MAX_RESPONSE_TIMES = 10_000
+const MAX_RESPONSE_TIMES = 10_000;
 
 export class SchedulerMonitor {
-  private responseTimes: number[] = []
-  private totalRequests = 0
-  private totalErrors = 0
-  private totalCacheHits = 0
-  private totalCacheMisses = 0
-  private _queueDepth = 0
-  private readonly listeners = new Set<EventListener>()
+  private responseTimes: number[] = [];
+  private totalRequests = 0;
+  private totalErrors = 0;
+  private totalCacheHits = 0;
+  private totalCacheMisses = 0;
+  private _queueDepth = 0;
+  private readonly listeners = new Set<EventListener>();
 
   // ==================== Event Recording ====================
 
@@ -28,7 +28,7 @@ export class SchedulerMonitor {
     // Notify listeners
     for (const listener of this.listeners) {
       try {
-        listener(event)
+        listener(event);
       } catch {
         // Silently swallow listener errors
       }
@@ -36,25 +36,25 @@ export class SchedulerMonitor {
 
     switch (event.type) {
       case 'task:completed':
-        this.totalRequests++
+        this.totalRequests++;
         if (event.duration !== undefined) {
-          this.responseTimes.push(event.duration)
+          this.responseTimes.push(event.duration);
           if (this.responseTimes.length > MAX_RESPONSE_TIMES) {
-            this.responseTimes.shift()
+            this.responseTimes.shift();
           }
         }
-        break
+        break;
       case 'task:failed':
       case 'task:timeout':
-        this.totalRequests++
-        this.totalErrors++
-        break
+        this.totalRequests++;
+        this.totalErrors++;
+        break;
       case 'cache:hit':
-        this.totalCacheHits++
-        break
+        this.totalCacheHits++;
+        break;
       case 'cache:miss':
-        this.totalCacheMisses++
-        break
+        this.totalCacheMisses++;
+        break;
       // task:retrying, task:late-settled and rate:limited are informational-only
       // (not counted — late-settled duplicates a task already counted as failed)
     }
@@ -64,25 +64,27 @@ export class SchedulerMonitor {
 
   /** Register a listener. Returns an unsubscribe function. */
   onEvent(listener: EventListener): () => void {
-    this.listeners.add(listener)
+    this.listeners.add(listener);
     return () => {
-      this.listeners.delete(listener)
-    }
+      this.listeners.delete(listener);
+    };
   }
 
   // ==================== Metrics ====================
 
   /** Compute a percentile value from sorted response times. */
   private percentile(sorted: number[], p: number): number {
-    if (sorted.length === 0) return 0
-    const index = Math.ceil((p / 100) * sorted.length) - 1
-    return sorted[Math.max(0, index)]
+    if (sorted.length === 0) return 0;
+    const index = Math.ceil((p / 100) * sorted.length) - 1;
+    // 0 <= max(0, index) < sorted.length always holds, so the element exists;
+    // ?? 0 is only a type-level guard for noUncheckedIndexedAccess.
+    return sorted[Math.max(0, index)] ?? 0;
   }
 
   /** Get a snapshot of current metrics. */
   getMetrics(): MonitorMetrics {
-    const sorted = this.responseTimes.toSorted((a, b) => a - b)
-    const totalCacheOps = this.totalCacheHits + this.totalCacheMisses
+    const sorted = this.responseTimes.toSorted((a, b) => a - b);
+    const totalCacheOps = this.totalCacheHits + this.totalCacheMisses;
 
     return {
       responseTime: {
@@ -90,32 +92,28 @@ export class SchedulerMonitor {
         p95: this.percentile(sorted, 95),
         p99: this.percentile(sorted, 99),
       },
-      errorRate: this.totalRequests > 0
-        ? this.totalErrors / this.totalRequests
-        : 0,
-      cacheHitRate: totalCacheOps > 0
-        ? this.totalCacheHits / totalCacheOps
-        : 0,
+      errorRate: this.totalRequests > 0 ? this.totalErrors / this.totalRequests : 0,
+      cacheHitRate: totalCacheOps > 0 ? this.totalCacheHits / totalCacheOps : 0,
       queueDepth: this._queueDepth,
       totalRequests: this.totalRequests,
       totalErrors: this.totalErrors,
       totalCacheHits: this.totalCacheHits,
       totalCacheMisses: this.totalCacheMisses,
-    }
+    };
   }
 
   /** Allow the scheduler to report the current queue depth. */
   setQueueDepth(depth: number): void {
-    this._queueDepth = depth
+    this._queueDepth = depth;
   }
 
   /** Reset all accumulated metrics and the response-time window. */
   clear(): void {
-    this.responseTimes = []
-    this.totalRequests = 0
-    this.totalErrors = 0
-    this.totalCacheHits = 0
-    this.totalCacheMisses = 0
-    this._queueDepth = 0
+    this.responseTimes = [];
+    this.totalRequests = 0;
+    this.totalErrors = 0;
+    this.totalCacheHits = 0;
+    this.totalCacheMisses = 0;
+    this._queueDepth = 0;
   }
 }

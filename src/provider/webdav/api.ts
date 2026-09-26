@@ -12,26 +12,26 @@
  * Orchestration happens in background.ts handlers.
  */
 
-import type { RemoteMeta } from '@/types'
-import { errorMessage } from '@/libraries/utils/error-message'
+import type { RemoteMeta } from '@/types';
+import { errorMessage } from '@/libraries/utils/error-message';
 
-const WEBDAV_TIMEOUT = 30_000
+const WEBDAV_TIMEOUT = 30_000;
 
 // ==================== Auth helpers ====================
 
 function basicAuth(username: string, password: string): string {
   // btoa() throws on non-Latin1 chars; encode as UTF-8 first for full Unicode support
-  const encoder = new TextEncoder()
-  const bytes = encoder.encode(`${username}:${password}`)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(`${username}:${password}`);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
   }
-  return 'Basic ' + btoa(binary)
+  return 'Basic ' + btoa(binary);
 }
 
 function authHeaders(username: string, password: string): Record<string, string> {
-  return { Authorization: basicAuth(username, password) }
+  return { Authorization: basicAuth(username, password) };
 }
 
 // ==================== HTTP helpers ====================
@@ -39,44 +39,44 @@ function authHeaders(username: string, password: string): Record<string, string>
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeout = WEBDAV_TIMEOUT
+  timeout = WEBDAV_TIMEOUT,
 ): Promise<Response> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeout)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal })
-    clearTimeout(timer)
-    return res
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
   } catch (err: unknown) {
-    clearTimeout(timer)
+    clearTimeout(timer);
     if (err instanceof DOMException && err.name === 'AbortError') {
       // Never surface userinfo (user:pass@) embedded in the URL to logs (CWE-532).
-      throw new Error(`WebDAV timeout after ${timeout}ms: ${stripUrlCredentials(url)}`)
+      throw new Error(`WebDAV timeout after ${timeout}ms: ${stripUrlCredentials(url)}`);
     }
-    throw err
+    throw err;
   }
 }
 
 /** Remove embedded `user:pass@` credentials from a URL for safe logging. */
 function stripUrlCredentials(rawUrl: string): string {
   try {
-    const u = new URL(rawUrl)
-    u.username = ''
-    u.password = ''
-    return u.toString()
+    const u = new URL(rawUrl);
+    u.username = '';
+    u.password = '';
+    return u.toString();
   } catch {
     // Unparseable URL — strip the common `scheme://user:pass@` prefix defensively.
-    return rawUrl.replace(/^(\w+:\/\/)[^@/]+@/, '$1')
+    return rawUrl.replace(/^(\w+:\/\/)[^@/]+@/, '$1');
   }
 }
 
 // ==================== URL helpers ====================
 
 export function normalizeUrl(url: string): string {
-  return url.trim().replace(/\/+$/, '')
+  return url.trim().replace(/\/+$/, '');
 }
 
-const BASE_PATH = 'umm-data'
+const BASE_PATH = 'umm-data';
 
 /**
  * Convert a store key to a safe filename via SHA-256 hash.
@@ -84,21 +84,21 @@ const BASE_PATH = 'umm-data'
  * Hashing produces ASCII-only filenames with no special characters.
  */
 async function keyToFilename(key: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(key)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-  return hashHex.slice(0, 16) // 16 hex chars = 64-bit collision space
+  const encoder = new TextEncoder();
+  const data = encoder.encode(key);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.slice(0, 16); // 16 hex chars = 64-bit collision space
 }
 
 function metaUrl(baseUrl: string): string {
-  return `${normalizeUrl(baseUrl)}/${BASE_PATH}/meta.json`
+  return `${normalizeUrl(baseUrl)}/${BASE_PATH}/meta.json`;
 }
 
 function datasetUrl(baseUrl: string, filename: string): string {
   // filename is already a safe hash string, no encoding needed
-  return `${normalizeUrl(baseUrl)}/${BASE_PATH}/${filename}.zip`
+  return `${normalizeUrl(baseUrl)}/${BASE_PATH}/${filename}.zip`;
 }
 
 // ==================== Public API ====================
@@ -107,27 +107,27 @@ function datasetUrl(baseUrl: string, filename: string): string {
 export async function testConnection(
   baseUrl: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<{ ok: boolean; message: string }> {
   try {
-    const url = normalizeUrl(baseUrl)
+    const url = normalizeUrl(baseUrl);
     const res = await fetchWithTimeout(
       url,
       {
         method: 'PROPFIND',
         headers: { ...authHeaders(username, password), Depth: '0' },
       },
-      15_000
-    )
+      15_000,
+    );
     if (res.status >= 200 && res.status < 300) {
-      return { ok: true, message: 'Connected' }
+      return { ok: true, message: 'Connected' };
     }
     if (res.status === 401 || res.status === 403) {
-      return { ok: false, message: 'Authentication failed (401/403)' }
+      return { ok: false, message: 'Authentication failed (401/403)' };
     }
-    return { ok: false, message: `HTTP ${res.status}` }
+    return { ok: false, message: `HTTP ${res.status}` };
   } catch (err: unknown) {
-    return { ok: false, message: errorMessage(err) }
+    return { ok: false, message: errorMessage(err) };
   }
 }
 
@@ -135,22 +135,22 @@ export async function testConnection(
 export async function fetchRemoteMeta(
   baseUrl: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<RemoteMeta | null> {
-  const url = metaUrl(baseUrl)
+  const url = metaUrl(baseUrl);
   const res = await fetchWithTimeout(url, {
     method: 'GET',
     headers: {
       ...authHeaders(username, password),
       Accept: 'application/json; charset=utf-8',
     },
-  })
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error(`Failed to fetch meta: HTTP ${res.status}`)
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch meta: HTTP ${res.status}`);
 
   // Read as text then parse for full UTF-8 control (bypass auto-charset detection)
-  const text = await res.text()
-  const raw = JSON.parse(text)
+  const text = await res.text();
+  const raw = JSON.parse(text);
 
   // Normalize old format → new format
   // Old: { version, timestamp, schema: 'umm-webdav-meta' }
@@ -162,10 +162,10 @@ export async function fetchRemoteMeta(
       updatedAt: ds.updatedAt || ds.timestamp || '',
       recordCount: ds.recordCount || 0,
       dataVersion: ds.dataVersion ?? ds.version ?? 1,
-    }))
+    }));
   }
 
-  return raw as RemoteMeta
+  return raw as RemoteMeta;
 }
 
 /** Upload meta.json to WebDAV — UTF-8 encoded JSON */
@@ -173,10 +173,10 @@ export async function uploadMeta(
   baseUrl: string,
   username: string,
   password: string,
-  meta: RemoteMeta
+  meta: RemoteMeta,
 ): Promise<void> {
-  const url = metaUrl(baseUrl)
-  const jsonBytes = new TextEncoder().encode(JSON.stringify(meta))
+  const url = metaUrl(baseUrl);
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(meta));
   const res = await fetchWithTimeout(url, {
     method: 'PUT',
     headers: {
@@ -184,24 +184,24 @@ export async function uploadMeta(
       'Content-Type': 'application/json; charset=utf-8',
     },
     body: jsonBytes,
-  })
-  if (!res.ok) throw new Error(`Failed to upload meta: HTTP ${res.status}`)
+  });
+  if (!res.ok) throw new Error(`Failed to upload meta: HTTP ${res.status}`);
 }
 
 /** Create WebDAV directory (MKCOL) */
 export async function createDirectory(
   baseUrl: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<void> {
-  const url = `${normalizeUrl(baseUrl)}/${BASE_PATH}`
+  const url = `${normalizeUrl(baseUrl)}/${BASE_PATH}`;
   const res = await fetchWithTimeout(url, {
     method: 'MKCOL',
     headers: authHeaders(username, password),
-  })
+  });
   // 405 = already exists, that's fine
   if (res.status !== 405 && !res.ok) {
-    throw new Error(`Failed to create directory: HTTP ${res.status}`)
+    throw new Error(`Failed to create directory: HTTP ${res.status}`);
   }
 }
 
@@ -211,21 +211,21 @@ export async function uploadDataset(
   username: string,
   password: string,
   key: string,
-  blob: Blob
+  blob: Blob,
 ): Promise<void> {
-  const filename = await keyToFilename(key)
-  const url = datasetUrl(baseUrl, filename)
-  const headers = { ...authHeaders(username, password), 'Content-Type': 'application/zip' }
+  const filename = await keyToFilename(key);
+  const url = datasetUrl(baseUrl, filename);
+  const headers = { ...authHeaders(username, password), 'Content-Type': 'application/zip' };
 
-  const res = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob })
+  const res = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob });
   // 409 = directory doesn't exist, create and retry
   if (res.status === 409) {
-    await createDirectory(baseUrl, username, password)
-    const retryRes = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob })
-    if (!retryRes.ok) throw new Error(`Failed to upload dataset: HTTP ${retryRes.status}`)
-    return
+    await createDirectory(baseUrl, username, password);
+    const retryRes = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob });
+    if (!retryRes.ok) throw new Error(`Failed to upload dataset: HTTP ${retryRes.status}`);
+    return;
   }
-  if (!res.ok) throw new Error(`Failed to upload dataset: HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`Failed to upload dataset: HTTP ${res.status}`);
 }
 
 /** Download a dataset ZIP blob — key is hashed to safe filename */
@@ -233,15 +233,16 @@ export async function downloadDataset(
   baseUrl: string,
   username: string,
   password: string,
-  key: string
+  key: string,
 ): Promise<Blob> {
-  const filename = await keyToFilename(key)
-  const url = datasetUrl(baseUrl, filename)
+  const filename = await keyToFilename(key);
+  const url = datasetUrl(baseUrl, filename);
   const res = await fetchWithTimeout(url, {
     method: 'GET',
     headers: authHeaders(username, password),
-  })
-  if (res.status === 404) throw new Error(`Dataset not found: ${key} (${url})`)
-  if (!res.ok) throw new Error(`Failed to download dataset: HTTP ${res.status} for ${key} (${url})`)
-  return res.blob()
+  });
+  if (res.status === 404) throw new Error(`Dataset not found: ${key} (${url})`);
+  if (!res.ok)
+    throw new Error(`Failed to download dataset: HTTP ${res.status} for ${key} (${url})`);
+  return res.blob();
 }
