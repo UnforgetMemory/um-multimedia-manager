@@ -16,12 +16,13 @@ npm test                # 全部 Playwright 测试
 npm run i18n:check      # i18n 键完整性检查
 npm run arch:check      # 架构分层守卫（七层依赖方向；exit 1 即有违规）
 npm run ds:check        # 设计令牌门禁（三层令牌 + 对比度/对称断言）
+npm run lint            # oxlint 静态检查（正确性规则；--deny-warnings 零警告门禁）
 npm run package:patch   # 版本号 + 构建 + 打包（minor/major 同理）
 npm run zip             # 构建 + 打包 Chrome 商店包
 ```
 
-无 lint/format 命令。质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `i18n:check` → `build`。
-CI 侧：`Type Check` → `Static Gates`（arch/ds/i18n）→ `Build (chrome|firefox)`，门禁失败即阻断构建。
+质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `i18n:check` → `lint` → `build`（format 尚未引入，见 ADR-026 D8）。
+CI 侧：`Type Check` → `Static Gates`（arch/ds/i18n/lint）→ `Build (chrome|firefox)`，门禁失败即阻断构建。
 
 ## 环境
 
