@@ -47,6 +47,8 @@ jobs:
       - run: npm run ds:check
       # i18n 键完整性：SPA + 内容脚本两套系统
       - run: npm run i18n:check
+      # 静态 lint（ADR-026 D8）：oxlint 正确性规则，零警告门禁
+      - run: npm run lint
 
   build:
     name: Build (${{ matrix.browser }})
