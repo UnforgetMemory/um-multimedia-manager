@@ -47,6 +47,8 @@ jobs:
       - run: npm run ds:check
       # 样式作用域守卫（ADR-026 D7）：legacy 内容样式注入宿主页面，禁止裸选择器
       - run: npm run scope:check
+      # 文件命名守卫（ADR-026 D6）：kebab-case + 提取模块 <domain>-extract.ts 统一
+      - run: npm run naming:check
       # i18n 键完整性：SPA + 内容脚本两套系统
       - run: npm run i18n:check
       # 静态 lint（ADR-026 D8）：oxlint 正确性规则，零警告门禁
