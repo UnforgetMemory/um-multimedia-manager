@@ -2,7 +2,7 @@
  * 查询已阅状态面板（可拖拽）
  */
 
-import { AdultAvStore } from '@/features/adult-av'
+import { AdultAvStore } from '@/provider/adult-av'
 import { t } from '../i18n'
 
 const PANEL_ID = 'umm-check-viewed-panel'

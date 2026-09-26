@@ -94,11 +94,10 @@ const LAYER_RULES = [
   ['entrypoints', 'app'],
 
   // —— 内容注入域：站点 overlay 编排 ——
-  ['content', 'scenario'],
+  ['scenario', 'scenario'],
 
   // —— UI 状态 ——
-  ['stores', 'store'],
-  ['composables', 'feature'],
+  ['store', 'store'],
 
   // —— 共享基元（libraries）：已从 shared/ 迁至 libraries/（umpp W3 L1）——
   ['libraries/utils', 'libraries'],
@@ -109,26 +108,21 @@ const LAYER_RULES = [
   ['libraries/identity.ts', 'libraries'],
   ['libraries/toast.ts', 'libraries'],
   ['libraries', 'libraries'],
-  // —— 其余 shared 组件属 feature ——
-  ['shared', 'feature'],
 
   // —— 通用能力（utils/config 已迁至 libraries/）——
   ['domain', 'domain'],
   ['types', 'types'],
 
-  // —— features/ 细分（必须排在通用 features 之前）——
+  // —— 层兜底规则（engine/provider/feature；具体子路径规则优先；umpp W3 L2–L5）——
   ['engine', 'engine'],
-  ['features/webdav', 'provider'],
-  ['features/neodb', 'provider'],
-  ['features/adult-av', 'provider'],
-  ['features/sehuatang-cache', 'provider'],
-  ['features/optimistic-lock', 'types'],
-  ['features', 'feature'],
+  ['provider', 'provider'],
+  ['feature/optimistic-lock', 'types'],
+  ['feature', 'feature'],
 ]
 
 /** 内容脚本路径判定（用于 E/W 类规则）。 */
 function isContentScript(rel) {
-  if (rel.startsWith('content/')) return true
+  if (rel.startsWith('scenario/')) return true
   if (rel.startsWith('entrypoints/content/')) return true
   if (rel.startsWith('entrypoints/') && rel.includes('.content/')) return true
   return false

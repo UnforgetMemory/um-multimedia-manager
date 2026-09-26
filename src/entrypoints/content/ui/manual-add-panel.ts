@@ -2,7 +2,7 @@
  * 手动添加已阅记录面板
  */
 
-import { AdultAvStore } from '@/features/adult-av'
+import { AdultAvStore } from '@/provider/adult-av'
 import { t } from '../i18n'
 import type { AdultAvIdInput } from '@/types'
 

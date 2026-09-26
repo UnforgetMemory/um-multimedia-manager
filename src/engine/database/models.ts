@@ -23,7 +23,7 @@ import { normalizeStoreRecord, stampRecordVersion, normalizeCacheEntry, stampCac
 import { LruCache } from '@/engine/cache/lru-cache'
 import { queryPage as queryPageUtil, batchGet as batchGetUtil } from './query-utils'
 import type { PageQueryOptions, PageResult } from './query-utils'
-import type { WriteResult } from '@/features/optimistic-lock/types'
+import type { WriteResult } from '@/feature/optimistic-lock/types'
 import { migrateSchema } from './migrate'
 
 export const DB_NAME = 'umm-media-db'

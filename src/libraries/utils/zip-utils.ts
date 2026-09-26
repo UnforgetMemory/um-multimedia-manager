@@ -17,7 +17,7 @@
  * - API: zip/unzip return Uint8Array; Blob conversion via Response/Blob
  *
  * 分层契约（架构守卫规则 C）：本模块是 libraries 层，只做「打包 / 解析」，
- * **不承担版本兼容策略**。版本常量取自 `@/utils/dataset-version`（同层纯数据）；
+ * **不承担版本兼容策略**。版本常量取自 `@/libraries/utils/dataset-version`（同层纯数据）；
  * 「导入的 dataset 版本是否可接受」由调用方（WebDAV 导入链路）用
  * `validateDatasetVersion` 判定——解析与策略分离，避免 libraries 耦合
  * 域错误语义（MigrationError）。

@@ -13,7 +13,7 @@ import {
   getDetailCacheBatch,
   putDetailCacheBatch,
   type SehuatangDetailCacheEntry,
-} from '@/features/sehuatang-cache/models'
+} from '@/provider/sehuatang-cache/models'
 
 /** SEHUATANG_CACHE_GET_BATCH — batch read; expired entries are misses. */
 export async function handleSehuatangCacheGetBatch(

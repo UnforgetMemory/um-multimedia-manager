@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useThemeStore } from '@/stores/theme'
+import { useThemeStore } from '@/store/theme'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader } from '@/libraries/ui/card'

@@ -6,9 +6,9 @@
  * various Jav ID formats (FC2-PPV, standard codes, etc.).
  */
 
-import { AdultAvStore } from '@/features/adult-av'
+import { AdultAvStore } from '@/provider/adult-av'
 import { initI18n } from '../i18n'
-import { normalizeAvId, extractBaseId } from '@/features/adult-av/models'
+import { normalizeAvId, extractBaseId } from '@/provider/adult-av/models'
 
 let observer: MutationObserver | null = null
 

@@ -35,7 +35,7 @@ import {
 import { registerCacheManager } from './background/handlers/cache-invalidation'
 import { handleDownloadFile } from './background/handlers/download'
 import { handleSehuatangCacheGetBatch, handleSehuatangCachePut } from './background/handlers/sehuatang-cache'
-import * as NeoDB from '@/features/neodb/api'
+import * as NeoDB from '@/provider/neodb/api'
 import { settingsCache } from '@/engine/settings/cache'
 import { RecordRepositoryAdapter, type DbAdapterForRepo } from '@/engine/database/record-repository-adapter'
 import { RecordService } from '@/domain/record/RecordService'

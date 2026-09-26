@@ -1,14 +1,14 @@
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { subscribeTheme } from '@/content/douban/overlay/theme-sync'
-import { createOverlay } from '@/content/douban/overlay/create-overlay'
+import { subscribeTheme } from '@/scenario/douban/overlay/theme-sync'
+import { createOverlay } from '@/scenario/douban/overlay/create-overlay'
 import { paintSehuatangBackground } from '@/entrypoints/content/handlers/sehuatang-controls'
-import { isOverlayPage, classifyPage } from '@/content/sehuatang/url'
+import { isOverlayPage, classifyPage } from '@/scenario/sehuatang/url'
 import {
   SEHUATANG_OVERLAY_ID,
   SEHUATANG_OVERLAY_Z_INDEX,
   LOADING_SUBTITLE,
   resolveEarlyLocale,
-} from '@/content/sehuatang/constants'
+} from '@/scenario/sehuatang/constants'
 
 /**
  * 色花堂早期入口（document_start）：首帧背景预载 + 主题属性保鲜 +

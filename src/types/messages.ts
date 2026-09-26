@@ -27,9 +27,9 @@ import type {
   Statistics,
   StoreRecord,
 } from './index'
-import type { ShelfItemResponse } from '@/features/neodb/api'
+import type { ShelfItemResponse } from '@/provider/neodb/api'
 import type { MediaTypeId } from '@/domain/platform/MediaType'
-import type { SehuatangDetailCacheEntry } from '@/features/sehuatang-cache/models'
+import type { SehuatangDetailCacheEntry } from '@/provider/sehuatang-cache/models'
 
 // ==================== Toast ====================
 

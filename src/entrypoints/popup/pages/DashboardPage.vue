@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useAppStore } from '@/stores/app'
-import { useStats, type RecordWithType } from '@/composables/useStats'
+import { useAppStore } from '@/store/app'
+import { useStats, type RecordWithType } from '@/feature/composables/useStats'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import StatCard from '@/libraries/ui/stat-card/StatCard.vue'

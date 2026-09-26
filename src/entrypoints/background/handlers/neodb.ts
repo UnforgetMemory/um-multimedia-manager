@@ -5,7 +5,7 @@
  * Extracted from background.ts for modularity.
  */
 
-import * as NeoDB from '@/features/neodb/api'
+import * as NeoDB from '@/provider/neodb/api'
 import { infoLog, warnLog, errorLog } from '@/libraries/utils/logger'
 import { sleep } from '@/libraries/utils'
 import { settingsItems } from '@/engine/settings/items'

@@ -8,7 +8,7 @@
 import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord, AppSettings } from '@/types'
 import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/engine/database/models'
 import { normalizeStoreRecord, validateDatasetVersion } from '@/engine/migration/models'
-import * as WebDAV from '@/features/webdav/api'
+import * as WebDAV from '@/provider/webdav/api'
 import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils'
 import { calculateStoreHash } from '@/libraries/utils/hash-utils'
 import { errorLog } from '@/libraries/utils/logger'

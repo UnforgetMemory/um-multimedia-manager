@@ -5,7 +5,7 @@
  * Verifies the three-tier token model stays aligned:
  *   Tier 1  src/libraries/styles/tokens.static.css      — the ONLY raw palette
  *   Tier 2  src/libraries/styles/style.css              — alias layer (no literals)
- *           src/content/douban/styles/design-tokens.css — alias layer (no palette literals)
+ *           src/scenario/douban/styles/design-tokens.css — alias layer (no palette literals)
  *   Tier 3  src/entrypoints/content/styles/tokens.ts — derived constants (spot-checked)
  *
  * Usage: npm run ds:check   (exit 1 on any violation)
@@ -46,7 +46,7 @@ ok('tokens.static.css: no duplicate definitions')
 
 // ---------- 2. Tier-2 layers contain no raw palette literals ----------
 const styleCss = read('src/libraries/styles/style.css')
-const designTokens = read('src/content/douban/styles/design-tokens.css')
+const designTokens = read('src/scenario/douban/styles/design-tokens.css')
 
 const hexIn = (name, css) => [...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0])
 const styleHex = hexIn('style.css', styleCss)
@@ -255,7 +255,7 @@ ok(`WCAG pair assertions (${PAIRS.length})`)
 // (explicit user override). Banned for wish: warm amber/gold fills (ΔE-proven
 // red-adjacent), deep ink text (rejected twice), the v6 90deg gold strip
 // (family-breaking). none = RED (既定设计，锁死不可改).
-const baseCssRaw = read('src/content/douban/styles/base.css')
+const baseCssRaw = read('src/scenario/douban/styles/base.css')
 // Strip comments BEFORE matching: a `}` inside a comment would truncate the
 // [^}]* block capture, and comment text must never satisfy/trip a guard.
 const baseCss = baseCssRaw.replace(/\/\*[\s\S]*?\*\//g, '')
@@ -298,7 +298,7 @@ ok('status badge ink source guards')
 // Status chip theme adaptation (2026-08-29 sweep): series doing chip must keep
 // its dark-theme override (translucent dark-amber fill x amber-300 ink) —
 // a static light fill without a dark counterpart is the adaptation regression.
-const seriesCss = read('src/content/douban/styles/series.css')
+const seriesCss = read('src/scenario/douban/styles/series.css')
 if (!/\.umm-series-status--doing\s*\{[^}]*\}/s.test(seriesCss) ||
     !/:host\(\.umm-theme--dark\)\s*\.umm-series-status--doing\s*\{[^}]*color:\s*var\(--umm-static-amber-300\)/s.test(seriesCss)) {
   failures.push('series.css: .umm-series-status--doing must keep a dark-theme override with amber-300 ink')
@@ -320,7 +320,7 @@ for (const m of baseCss.matchAll(/\.umm-rating-score\.umm-rating--gold-\w+\s*\{(
     break
   }
 }
-const personageCss = read('src/content/douban/styles/personage.css')
+const personageCss = read('src/scenario/douban/styles/personage.css')
 const personageLight = personageCss.match(/:host\s*\{([^}]*)\}/s)
 if (personageLight && /--umm-rating-score:\s*var\(--umm-static-gold-(4|5|6)00\)/.test(personageLight[1])) {
   failures.push('personage.css: light --umm-rating-score must be gold-800 (gold-500 measures 2.70:1 on white)')

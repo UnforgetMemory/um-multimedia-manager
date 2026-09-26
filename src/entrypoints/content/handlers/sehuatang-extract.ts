@@ -23,12 +23,12 @@
  * 返回 null（宁可 null 走 TID 兜底，不落垃圾 ID）。
  */
 
-import { normalizeAvId } from '@/features/adult-av/models'
-import { extractThreadTidFromUrl } from '@/content/sehuatang/url'
+import { normalizeAvId } from '@/provider/adult-av/models'
+import { extractThreadTidFromUrl } from '@/scenario/sehuatang/url'
 
 /** TID 键提取的唯一实现在 url.ts（早期入口判型 / 列表行解析 / 帖子页记录
  *  三处共用，避免正则漂移）；此处按既有导出名转出，消费方零改动。 */
-export { extractThreadTidFromUrl as extractThreadIdFromUrl } from '@/content/sehuatang/url'
+export { extractThreadTidFromUrl as extractThreadIdFromUrl } from '@/scenario/sehuatang/url'
 
 const AVID_REGEX = /[A-Za-z][A-Za-z0-9-]{1,7}[-\s]?\d{2,}/g
 

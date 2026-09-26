@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import { useThemeStore } from '@/stores/theme'
-import { useLocaleSync } from '@/composables/useLocaleSync'
-import ConfirmDialog from '@/shared/ConfirmDialog.vue'
-import ToastContainer from '@/shared/ToastContainer.vue'
+import { useThemeStore } from '@/store/theme'
+import { useLocaleSync } from '@/feature/composables/useLocaleSync'
+import ConfirmDialog from '@/feature/ConfirmDialog.vue'
+import ToastContainer from '@/feature/ToastContainer.vue'
 
 useThemeStore()
 useLocaleSync()

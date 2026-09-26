@@ -41,14 +41,14 @@
 import { defineContentScript } from 'wxt/utils/define-content-script'
 import { initEventBus } from '@/libraries/utils/event-bus'
 import { injectGlobalStyles } from '@/entrypoints/content/styles/global'
-import { AdultAvStore } from '@/features/adult-av'
-import { classifyPage } from '@/content/sehuatang/url'
-import { isRiskGateDocument } from '@/content/sehuatang/extract-risk'
+import { AdultAvStore } from '@/provider/adult-av'
+import { classifyPage } from '@/scenario/sehuatang/url'
+import { isRiskGateDocument } from '@/scenario/sehuatang/extract-risk'
 import { resolveThreadWatchKey } from '@/entrypoints/content/handlers/sehuatang-extract'
-import { runSehuatangOverlayApp } from '@/content/sehuatang/app'
-import { runSehuatangIndexApp } from '@/content/sehuatang/app-home'
-import { runSehuatangSearchApp } from '@/content/sehuatang/app-search'
-import { runSehuatangRiskApp } from '@/content/sehuatang/app-risk'
+import { runSehuatangOverlayApp } from '@/scenario/sehuatang/app'
+import { runSehuatangIndexApp } from '@/scenario/sehuatang/app-home'
+import { runSehuatangSearchApp } from '@/scenario/sehuatang/app-search'
+import { runSehuatangRiskApp } from '@/scenario/sehuatang/app-risk'
 
 /** 帖子页标题：优先帖子主体（#thread_subject），退化到 document.title。 */
 function threadTitle(): string {

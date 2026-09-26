@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAppStore } from '@/stores/app'
-import { useStats, type RecordWithType } from '@/composables/useStats'
-import { PLATFORM_HUES } from '@/composables/usePlatformMeta'
+import { useAppStore } from '@/store/app'
+import { useStats, type RecordWithType } from '@/feature/composables/useStats'
+import { PLATFORM_HUES } from '@/feature/composables/usePlatformMeta'
 import { dateKey } from '@/libraries/utils'
 
 
-import HeatmapCalendar from '@/shared/HeatmapCalendar.vue'
+import HeatmapCalendar from '@/feature/HeatmapCalendar.vue'
 import { computeYearlyStats } from '@/domain/record/statistics'
-import PlatformDistribution from '@/shared/PlatformDistribution.vue'
+import PlatformDistribution from '@/feature/PlatformDistribution.vue'
 import { Card, CardHeader, CardContent } from '@/libraries/ui/card'
 import { Button } from '@/libraries/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/libraries/ui/alert'
