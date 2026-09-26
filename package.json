@@ -13,6 +13,7 @@
     "type-check": "vue-tsc --noEmit",
   "ds:check": "node scripts/check-design-tokens.cjs",
   "arch:check": "node scripts/check-architecture.cjs",
+  "scope:check": "node scripts/check-content-style-scope.cjs",
   "lint": "oxlint --deny-warnings .",
   "lint:fix": "oxlint --fix .",
     "probe:spa": "node scripts/visual-probe-spa.mjs dist/chrome-mv3 tmp-probe",

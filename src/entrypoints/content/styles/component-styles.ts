@@ -235,9 +235,18 @@ export const UI_COMPONENT_STYLES = `
 
 /**
  * Focus-visible styles (keyboard navigation)
+ *
+ * ADR-026 D7：本表注入**宿主页面**，故一律以「元素自身的 `umm-` 类」作为作用域。
+ * 原实现为裸 `:focus-visible` + `button/a/input/select:focus-visible`，会把焦点环
+ * 画到宿主页的按钮、链接、输入框乃至可滚动的 div 上（实测：宿主页 4 类元素全部
+ * 命中 2px 实线环）。改后扩展 UI 仍保留焦点环，宿主页不再被改写。
+ *
+ * 已知残差：扩展给宿主元素打的标记类（`umm-dimmed` / `umm-viewed` / `umm-sht-*` /
+ * `umm-neodb-synced`）同样满足 `[class*="umm-"]`——但那些元素本就被扩展有意改写
+ * 外观，且均非可聚焦控件，影响可忽略。
  */
 export const FOCUS_VISIBLE_STYLES = `
-:focus-visible {
+[class*="umm-"]:focus-visible {
   outline: 2px solid var(--umm-accent, var(--umm-link, #3a55ec));
   outline-offset: 2px;
   border-radius: 4px;
@@ -249,39 +258,40 @@ export const FOCUS_VISIBLE_STYLES = `
 .umm-search-submit:focus-visible,
 .umm-island-submit:focus-visible,
 .umm-page-link:focus-visible,
-.umm-page-go:focus-visible,
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible {
+.umm-page-go:focus-visible {
   outline: 2px solid var(--umm-link, #3a55ec);
   outline-offset: 2px;
 }
 `
 
 /**
- * Global scrollbar styles
+ * Scrollbar styles — ADR-026 D7：同样收进 `umm-` 作用域。
+ *
+ * 原实现为裸 `::-webkit-scrollbar*` + `* { scrollbar-width: thin }`，会把**宿主页
+ * 整站**（含 `<html>` 与所有内层滚动容器）的滚动条改成 6px 细条（实测：宿主的
+ * 滚动 div 与 `documentElement` 的 `scrollbar-width` 计算值均为 `thin`）。
+ * 改后仅扩展自身元素（及其后代）受影响，宿主页恢复原生滚动条。
  */
 export const SCROLLBAR_STYLES = `
-::-webkit-scrollbar {
+[class*="umm-"]::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
+[class*="umm-"]::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+[class*="umm-"]::-webkit-scrollbar-thumb {
   background: var(--umm-border, rgba(0, 0, 0, 0.1));
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+[class*="umm-"]::-webkit-scrollbar-thumb:hover {
   background: var(--umm-border-hover, rgba(0, 0, 0, 0.2));
 }
 
-* {
+[class*="umm-"] {
   scrollbar-width: thin;
   scrollbar-color: var(--umm-border, rgba(0, 0, 0, 0.1)) transparent;
 }
