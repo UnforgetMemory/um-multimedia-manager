@@ -1,16 +1,16 @@
 <script setup lang="ts">
 interface Option {
-  id: string
-  label: string
+  id: string;
+  label: string;
 }
 
 const props = defineProps<{
-  options: Option[]
+  options: Option[];
   /** Content-sized buttons (no equal stretch) + small paddings — for headers/toolbars */
-  compact?: boolean
-}>()
+  compact?: boolean;
+}>();
 
-const modelValue = defineModel<string>('modelValue', { required: true })
+const modelValue = defineModel<string>('modelValue', { required: true });
 </script>
 
 <template vapor>
@@ -27,7 +27,7 @@ const modelValue = defineModel<string>('modelValue', { required: true })
           : 'umm:flex-1 umm:px-4 umm:py-2 umm:text-sm',
         modelValue === option.id
           ? 'umm:bg-background umm:text-primary-content umm:shadow-sm'
-          : 'umm:text-secondary-content umm:hover:text-primary-content umm:hover:bg-background/50'
+          : 'umm:text-secondary-content umm:hover:text-primary-content umm:hover:bg-background/50',
       ]"
     >
       {{ option.label }}

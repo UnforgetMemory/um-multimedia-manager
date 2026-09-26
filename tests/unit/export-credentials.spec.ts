@@ -10,11 +10,11 @@
  * reassignable methods, so they are stubbed here (same technique as
  * webdav-settings-backup.spec.ts, which reassigns settingsCache.get).
  */
-import { test, expect } from '@playwright/test'
-import { mediaDB } from '@/engine/database/models'
-import { settingsCache } from '@/engine/settings/cache'
-import { handleExportData } from '@/entrypoints/background/handlers/data'
-import type { AppSettings } from '@/types'
+import { test, expect } from '@playwright/test';
+import { mediaDB } from '@/engine/database/models';
+import { settingsCache } from '@/engine/settings/cache';
+import { handleExportData } from '@/entrypoints/background/handlers/data';
+import type { AppSettings } from '@/types';
 
 function mockSettings(): AppSettings {
   return {
@@ -33,54 +33,58 @@ function mockSettings(): AppSettings {
     grayColor: 'zinc',
     debugEnabled: true,
     logLevel: 'debug',
-  }
+  };
 }
 
 interface ExportResponse {
-  success: boolean
-  data: { settings: Record<string, unknown> }
+  success: boolean;
+  data: { settings: Record<string, unknown> };
 }
 
 test.describe('handleExportData — WebDAV credential inclusion', () => {
-  let originalGetAllStores: typeof mediaDB.getAllStores
-  let originalGet: typeof settingsCache.get
+  let originalGetAllStores: typeof mediaDB.getAllStores;
+  let originalGet: typeof settingsCache.get;
 
   test.beforeEach(() => {
-    originalGetAllStores = mediaDB.getAllStores
-    originalGet = settingsCache.get
-    mediaDB.getAllStores = (async () => ({})) as typeof mediaDB.getAllStores
-    settingsCache.get = (() => mockSettings()) as typeof settingsCache.get
-  })
+    originalGetAllStores = mediaDB.getAllStores;
+    originalGet = settingsCache.get;
+    mediaDB.getAllStores = (async () => ({})) as typeof mediaDB.getAllStores;
+    settingsCache.get = (() => mockSettings()) as typeof settingsCache.get;
+  });
 
   test.afterEach(() => {
-    mediaDB.getAllStores = originalGetAllStores
-    settingsCache.get = originalGet
-  })
+    mediaDB.getAllStores = originalGetAllStores;
+    settingsCache.get = originalGet;
+  });
 
-  async function exportSettings(payload: { includeWebDAVCredentials?: boolean } | undefined): Promise<Record<string, unknown>> {
-    let captured: unknown
-    await handleExportData(payload, (res?: unknown) => { captured = res })
-    return (captured as ExportResponse).data.settings
+  async function exportSettings(
+    payload: { includeWebDAVCredentials?: boolean } | undefined,
+  ): Promise<Record<string, unknown>> {
+    let captured: unknown;
+    await handleExportData(payload, (res?: unknown) => {
+      captured = res;
+    });
+    return (captured as ExportResponse).data.settings;
   }
 
   test('includeWebDAVCredentials=true → includes webdavUrl/Username/Password', async () => {
-    const settings = await exportSettings({ includeWebDAVCredentials: true })
-    expect(settings.webdavUrl).toBe('https://dav.example.com/')
-    expect(settings.webdavUsername).toBe('alice')
-    expect(settings.webdavPassword).toBe('p@ssw0rd!')
-  })
+    const settings = await exportSettings({ includeWebDAVCredentials: true });
+    expect(settings.webdavUrl).toBe('https://dav.example.com/');
+    expect(settings.webdavUsername).toBe('alice');
+    expect(settings.webdavPassword).toBe('p@ssw0rd!');
+  });
 
   test('payload undefined → excludes all three credential keys', async () => {
-    const settings = await exportSettings(undefined)
-    expect(settings).not.toHaveProperty('webdavUrl')
-    expect(settings).not.toHaveProperty('webdavUsername')
-    expect(settings).not.toHaveProperty('webdavPassword')
-  })
+    const settings = await exportSettings(undefined);
+    expect(settings).not.toHaveProperty('webdavUrl');
+    expect(settings).not.toHaveProperty('webdavUsername');
+    expect(settings).not.toHaveProperty('webdavPassword');
+  });
 
   test('includeWebDAVCredentials=false → excludes all three credential keys', async () => {
-    const settings = await exportSettings({ includeWebDAVCredentials: false })
-    expect(settings).not.toHaveProperty('webdavUrl')
-    expect(settings).not.toHaveProperty('webdavUsername')
-    expect(settings).not.toHaveProperty('webdavPassword')
-  })
-})
+    const settings = await exportSettings({ includeWebDAVCredentials: false });
+    expect(settings).not.toHaveProperty('webdavUrl');
+    expect(settings).not.toHaveProperty('webdavUsername');
+    expect(settings).not.toHaveProperty('webdavPassword');
+  });
+});

@@ -3,16 +3,16 @@
  * UmmSearchFilter — search result filter bar with ALL/movie/TV toggle
  * and result count. Uses v-model for filter state.
  */
-export type FilterType = 'all' | 'movie' | 'tv'
+export type FilterType = 'all' | 'movie' | 'tv';
 
 interface Props {
-  total: number
-  filtered: number
-  query: string
+  total: number;
+  filtered: number;
+  query: string;
 }
 
-defineProps<Props>()
-const modelValue = defineModel<FilterType>('modelValue', { required: true })
+defineProps<Props>();
+const modelValue = defineModel<FilterType>('modelValue', { required: true });
 </script>
 
 <template vapor>
@@ -24,21 +24,28 @@ const modelValue = defineModel<FilterType>('modelValue', { required: true })
           class="umm-type-btn"
           :class="{ 'umm-type-btn--active': modelValue === 'all' }"
           @click="modelValue = 'all'"
-        >全部</button>
+        >
+          全部
+        </button>
         <button
           class="umm-type-btn"
           :class="{ 'umm-type-btn--active': modelValue === 'movie' }"
           @click="modelValue = 'movie'"
-        >电影</button>
+        >
+          电影
+        </button>
         <button
           class="umm-type-btn"
           :class="{ 'umm-type-btn--active': modelValue === 'tv' }"
           @click="modelValue = 'tv'"
-        >剧集</button>
+        >
+          剧集
+        </button>
       </div>
     </div>
     <span class="umm-search-hd-meta">
-      "{{ query }}" · <strong>{{ filtered }}</strong><span v-if="filtered !== total">/{{ total }}</span> 个结果
+      "{{ query }}" · <strong>{{ filtered }}</strong
+      ><span v-if="filtered !== total">/{{ total }}</span> 个结果
     </span>
   </div>
 </template>

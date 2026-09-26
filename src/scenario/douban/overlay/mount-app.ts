@@ -6,15 +6,20 @@
  * afterMount hook.
  */
 
-import { vaporInteropPlugin } from 'vue'
-import type { App } from 'vue'
+import { vaporInteropPlugin } from 'vue';
+import type { App } from 'vue';
 
 export interface MountOptions {
-  overlayId: string
-  css: string
-  beforeMount?: (shadow: ShadowRoot) => unknown | Promise<unknown>
-  createApp: (shadow: ShadowRoot, ctx?: unknown) => App
-  afterMount?: (shadow: ShadowRoot, app: App, container: HTMLDivElement, ctx?: unknown) => void | Promise<void>
+  overlayId: string;
+  css: string;
+  beforeMount?: (shadow: ShadowRoot) => unknown | Promise<unknown>;
+  createApp: (shadow: ShadowRoot, ctx?: unknown) => App;
+  afterMount?: (
+    shadow: ShadowRoot,
+    app: App,
+    container: HTMLDivElement,
+    ctx?: unknown,
+  ) => void | Promise<void>;
 }
 
 /**
@@ -23,65 +28,70 @@ export interface MountOptions {
  * the app (beforeMount → loading remove → createApp → afterMount).
  */
 export function mountUmmOverlay(options: MountOptions): void {
-  const overlay = document.getElementById(options.overlayId)
-  if (!overlay?.shadowRoot) return
+  const overlay = document.getElementById(options.overlayId);
+  if (!overlay?.shadowRoot) return;
 
-  const shadow = overlay.shadowRoot
+  const shadow = overlay.shadowRoot;
 
   // Inject page CSS
-  const style = document.createElement('style')
-  style.textContent = options.css
-  shadow.appendChild(style)
+  const style = document.createElement('style');
+  style.textContent = options.css;
+  shadow.appendChild(style);
 
   // Sync theme class onto host
-  const host = shadow.host as HTMLElement
-  const theme = host.getAttribute('data-theme') ||
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  host.classList.remove('umm-theme--light', 'umm-theme--dark')
-  host.classList.add(`umm-theme--${theme}`)
+  const host = shadow.host as HTMLElement;
+  const theme =
+    host.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  host.classList.remove('umm-theme--light', 'umm-theme--dark');
+  host.classList.add(`umm-theme--${theme}`);
 
   const finalize = async () => {
     // Sync host theme to page localStorage before Vue mounts —
     // the theme store (inside Shadow DOM) reads from localStorage on
     // the page origin via useStorage, NOT from chrome.storage.local.
     // Without this sync it always defaults to 'auto'.
-    const hostTheme = host.getAttribute('data-theme') ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    try { localStorage.setItem('umm:appearance', JSON.stringify({ theme: hostTheme })) } catch {
+    const hostTheme =
+      host.getAttribute('data-theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    try {
+      localStorage.setItem('umm:appearance', JSON.stringify({ theme: hostTheme }));
+    } catch {
       /* localStorage may be restricted (private browsing, quota). Non-critical. */
     }
 
-    let ctx: unknown
+    let ctx: unknown;
     if (options.beforeMount) {
-      ctx = await options.beforeMount(shadow)
+      ctx = await options.beforeMount(shadow);
     }
 
-    const loading = shadow.querySelector('.ov-loading')
-    if (loading) loading.remove()
+    const loading = shadow.querySelector('.ov-loading');
+    if (loading) loading.remove();
 
-    const container = document.createElement('div')
-    container.className = 'umm-mount'
-    shadow.appendChild(container)
-    const app = options.createApp(shadow, ctx)
+    const container = document.createElement('div');
+    container.className = 'umm-mount';
+    shadow.appendChild(container);
+    const app = options.createApp(shadow, ctx);
     // ADR-026 D2：Douban overlay 的页面 SFC 已 vapor 化，但树内仍有 VDOM
     // 组件（lucide-vue-next 图标等）。缺少此插件时它们静默不渲染且零报错。
-    app.use(vaporInteropPlugin)
-    app.mount(container)
+    app.use(vaporInteropPlugin);
+    app.mount(container);
 
     if (options.afterMount) {
-      await options.afterMount(shadow, app, container, ctx)
+      await options.afterMount(shadow, app, container, ctx);
     }
-  }
+  };
 
   finalize().catch((err) => {
-    console.warn('[UMM] mountUmmOverlay error:', err)
+    console.warn('[UMM] mountUmmOverlay error:', err);
     // Remove loading spinner so the page isn't stuck on an infinite spinner
-    const loading = shadow.querySelector('.ov-loading')
-    if (loading) loading.remove()
+    const loading = shadow.querySelector('.ov-loading');
+    if (loading) loading.remove();
     // Show an error indicator
-    const errorEl = document.createElement('div')
-    errorEl.style.cssText = 'padding:40px;text-align:center;color:var(--umm-color-text-muted,#999);font-size:14px'
-    errorEl.textContent = 'UMM · 加载失败'
-    shadow.appendChild(errorEl)
-  })
+    const errorEl = document.createElement('div');
+    errorEl.style.cssText =
+      'padding:40px;text-align:center;color:var(--umm-color-text-muted,#999);font-size:14px';
+    errorEl.textContent = 'UMM · 加载失败';
+    shadow.appendChild(errorEl);
+  });
 }

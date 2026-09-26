@@ -35,7 +35,8 @@ export default {
   'common.importData': '導入資料',
   'common.exportData': '匯出資料',
   'common.includeWebdavCredentials': '包含 / 還原 WebDAV 憑證',
-  'common.includeWebdavCredentialsHint': '開啟後：匯出時寫入憑證；匯入時確認後還原憑證。預設關閉（防惡意備份注入）。',
+  'common.includeWebdavCredentialsHint':
+    '開啟後：匯出時寫入憑證；匯入時確認後還原憑證。預設關閉（防惡意備份注入）。',
   'common.importing': '導入中...',
   'common.exporting': '匯出中...',
   'common.saving': '儲存中...',
@@ -79,13 +80,13 @@ export default {
   // Statistics
   'stats.movie': '電影',
   'stats.yearly': '年度統計',
-   'stats.tv': '劇集',
-   'stats.video': '影片',
+  'stats.tv': '劇集',
+  'stats.video': '影片',
   'stats.book': '書籍',
   'stats.music': '音樂',
-'stats.game': '遊戲',
-   'stats.jav': '成人影片',
-   'stats.bilibili': 'B站',
+  'stats.game': '遊戲',
+  'stats.jav': '成人影片',
+  'stats.bilibili': 'B站',
   'stats.youtube': 'YouTube',
   'stats.total': '總記錄',
   'stats.weeklyTotal': '本週總計',
@@ -95,12 +96,12 @@ export default {
   'stats.dailyDetail': '每日詳情',
 
   // Platform names
-'platform.douban': '豆瓣',
-   'platform.imdb': 'IMDb',
-   'platform.neodb': 'NeoDB',
-   'platform.tmdb': 'TMDB',
-   'platform.bangumi': 'Bangumi',
-   'platform.bilibili': 'B站',
+  'platform.douban': '豆瓣',
+  'platform.imdb': 'IMDb',
+  'platform.neodb': 'NeoDB',
+  'platform.tmdb': 'TMDB',
+  'platform.bangumi': 'Bangumi',
+  'platform.bilibili': 'B站',
   'platform.youtube': 'YouTube',
   'platform.jav': '成人影片',
   'platform.javdb': 'JavDB',
@@ -214,6 +215,8 @@ export default {
   'confirm.importData': '導入資料',
   'confirm.importRecords': '即將導入 {count} 條記錄',
   'confirm.exportWithCredentials': '匯出包含 WebDAV 憑證',
-  'confirm.exportWithCredentialsDesc': '匯出檔案將以明文包含 WebDAV URL、使用者名稱和密碼。請妥善保管此檔案，避免洩露。',
-  'confirm.importWithCredentialsDesc': '此檔案包含 WebDAV 憑證。匯入將覆寫目前的 WebDAV 位址、使用者名稱和密碼。',
-} as const
+  'confirm.exportWithCredentialsDesc':
+    '匯出檔案將以明文包含 WebDAV URL、使用者名稱和密碼。請妥善保管此檔案，避免洩露。',
+  'confirm.importWithCredentialsDesc':
+    '此檔案包含 WebDAV 憑證。匯入將覆寫目前的 WebDAV 位址、使用者名稱和密碼。',
+} as const;

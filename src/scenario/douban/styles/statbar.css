@@ -26,7 +26,10 @@
   border-radius: var(--umm-radius-lg, 12px);
   background: var(--umm-bg-secondary);
   border: 1px solid var(--umm-border);
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   cursor: default;
   line-height: 1.4;
 }

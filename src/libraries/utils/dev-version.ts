@@ -14,5 +14,5 @@
  * `new Date(2026, 7, 19, 9, 5)` → "905"; `new Date(2026, 7, 19, 0, 0)` → "0".
  */
 export function devVersionSegment(now: Date): string {
-  return String(now.getHours() * 100 + now.getMinutes())
+  return String(now.getHours() * 100 + now.getMinutes());
 }

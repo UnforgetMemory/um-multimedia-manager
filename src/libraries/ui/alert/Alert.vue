@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from "vue"
-import type { AlertVariants } from "../../../libraries/ui/alert"
-import { cn } from "@/libraries/utils/cn"
-import { alertVariants } from "../../../libraries/ui/alert"
+import type { HTMLAttributes } from 'vue';
+import type { AlertVariants } from '../../../libraries/ui/alert';
+import { cn } from '@/libraries/utils/cn';
+import { alertVariants } from '../../../libraries/ui/alert';
 
 const props = defineProps<{
-  class?: HTMLAttributes["class"]
-  variant?: AlertVariants["variant"]
-}>()
+  class?: HTMLAttributes['class'];
+  variant?: AlertVariants['variant'];
+}>();
 </script>
 
 <template vapor>
@@ -15,4 +15,3 @@ const props = defineProps<{
     <slot />
   </div>
 </template>
-

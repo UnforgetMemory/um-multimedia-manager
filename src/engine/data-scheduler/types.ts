@@ -7,82 +7,82 @@
 
 // ==================== Priority ====================
 
-export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW'
+export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export const PRIORITY_ORDER: Record<PriorityLevel, number> = {
   HIGH: 0,
   MEDIUM: 1,
   LOW: 2,
-}
+};
 
 // ==================== Task Types ====================
 
 export interface SchedulerTask<T = unknown> {
-  id: string
-  priority: PriorityLevel
+  id: string;
+  priority: PriorityLevel;
   /** The actual async work to perform */
-  operation: () => Promise<T>
+  operation: () => Promise<T>;
   /** Per-call timeout in ms (default: DEFAULT_TASK_TIMEOUT) */
-  timeout: number
+  timeout: number;
   /** ISO timestamp when the task was created */
-  createdAt: number
+  createdAt: number;
 }
 
 export interface QueuedTask<T = unknown> extends SchedulerTask<T> {
-  enqueuedAt: number
-  attempts: number
-  resolve: (value: T) => void
-  reject: (reason: unknown) => void
+  enqueuedAt: number;
+  attempts: number;
+  resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
   /** Store name for diagnostics (included in timeout errors). */
-  storeName?: string
+  storeName?: string;
 }
 
 // ==================== Scheduler Options ====================
 
 export interface ScheduleOptions {
-  priority?: PriorityLevel
+  priority?: PriorityLevel;
   /** Task-level timeout in ms */
-  timeout?: number
+  timeout?: number;
   /** If provided, results are cached under this key (caller opts in) */
-  cacheKey?: string
+  cacheKey?: string;
   /** TTL for the cached entry in ms (default: CACHE_TTL) */
-  cacheTTL?: number
+  cacheTTL?: number;
   /** If true, invalidate (delete) the cache entry before executing */
-  invalidateCache?: boolean
+  invalidateCache?: boolean;
   /** Store name for cache key prefixing (optional, for namespacing) */
-  storeName?: string
+  storeName?: string;
   /**
    * Execution lane. `bulk` runs on a separate serial queue so long jobs
    * (export/stats/WebDAV) cannot block interactive DB_GET/DB_PUT.
    * Default: `interactive`.
    */
-  lane?: 'interactive' | 'bulk'
+  lane?: 'interactive' | 'bulk';
 }
 
 // ==================== Rate Limiter ====================
 
 export interface RateLimitConfig {
   /** Max requests allowed per second */
-  maxRequestsPerSecond: number
+  maxRequestsPerSecond: number;
   /** Max burst size (how many tokens can accumulate) */
-  burstSize: number
+  burstSize: number;
 }
 
 export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
   maxRequestsPerSecond: 10,
   burstSize: 5,
-}
+};
 
 // ==================== Retry Policy ====================
 
 export interface RetryConfig {
-  maxRetries: number
+  maxRetries: number;
   /** Base delay in ms for exponential backoff */
-  baseDelay: number
+  baseDelay: number;
   /** Max delay cap in ms */
-  maxDelay: number
+  maxDelay: number;
   /** If true, adds ±25% random jitter to each delay */
-  jitter: boolean
+  jitter: boolean;
 }
 
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
@@ -90,22 +90,22 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   baseDelay: 1000,
   maxDelay: 10_000,
   jitter: true,
-}
+};
 
 /** Called before each retry attempt (attempt 1 = first retry) */
-export type RetryCallback = (attempt: number, error: unknown) => void
+export type RetryCallback = (attempt: number, error: unknown) => void;
 
 // ==================== Monitor ====================
 
 export interface MonitorMetrics {
-  responseTime: { p50: number; p95: number; p99: number }
-  errorRate: number
-  cacheHitRate: number
-  queueDepth: number
-  totalRequests: number
-  totalErrors: number
-  totalCacheHits: number
-  totalCacheMisses: number
+  responseTime: { p50: number; p95: number; p99: number };
+  errorRate: number;
+  cacheHitRate: number;
+  queueDepth: number;
+  totalRequests: number;
+  totalErrors: number;
+  totalCacheHits: number;
+  totalCacheMisses: number;
 }
 
 export type SchedulerEventType =
@@ -116,24 +116,24 @@ export type SchedulerEventType =
   | 'task:late-settled'
   | 'cache:hit'
   | 'cache:miss'
-  | 'rate:limited'
+  | 'rate:limited';
 
 export interface SchedulerEvent {
-  type: SchedulerEventType
-  taskId?: string
-  storeName?: string
-  key?: string
-  duration?: number
-  attempt?: number
-  error?: unknown
-  timestamp: number
+  type: SchedulerEventType;
+  taskId?: string;
+  storeName?: string;
+  key?: string;
+  duration?: number;
+  attempt?: number;
+  error?: unknown;
+  timestamp: number;
 }
 
-export type EventListener = (event: SchedulerEvent) => void
+export type EventListener = (event: SchedulerEvent) => void;
 
 // ==================== Constants ====================
 
-export const MAX_QUEUE_SIZE = 1000
-export const DEFAULT_TASK_TIMEOUT = 8_000
-export const CACHE_TTL = 5_000
-export const DEFAULT_PRIORITY: PriorityLevel = 'MEDIUM'
+export const MAX_QUEUE_SIZE = 1000;
+export const DEFAULT_TASK_TIMEOUT = 8_000;
+export const CACHE_TTL = 5_000;
+export const DEFAULT_PRIORITY: PriorityLevel = 'MEDIUM';

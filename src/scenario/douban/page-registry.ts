@@ -12,7 +12,7 @@
  *   if (fn) await fn()
  */
 export class MountRegistry {
-  private registry = new Map<string, () => Promise<void>>()
+  private registry = new Map<string, () => Promise<void>>();
 
   /**
    * Register an async mount function for a page type.
@@ -21,7 +21,7 @@ export class MountRegistry {
    * @param mountFn - Async function returned by `definePageMount`.
    */
   register(pageType: string, mountFn: () => Promise<void>): void {
-    this.registry.set(pageType, mountFn)
+    this.registry.set(pageType, mountFn);
   }
 
   /**
@@ -31,6 +31,6 @@ export class MountRegistry {
    * @returns The registered mount function, or `undefined` if none found.
    */
   getMountFn(pageType: string): (() => Promise<void>) | undefined {
-    return this.registry.get(pageType)
+    return this.registry.get(pageType);
   }
 }

@@ -9,79 +9,79 @@
 /** A single item within a doulist */
 export interface DoulistDetailItem {
   /** Douban subject ID (from data-id on the "添加到豆列" button) */
-  subjectId: string
+  subjectId: string;
   /** Item title (e.g., "寒战 寒戰") */
-  title: string
+  title: string;
   /** Poster image URL */
-  posterUrl: string
+  posterUrl: string;
   /** URL to the subject detail page */
-  subjectUrl: string
+  subjectUrl: string;
   /** Rating score (0-10 scale, 0 if unrated) */
-  rating: number
+  rating: number;
   /** Number of ratings (0 if unrated) */
-  ratingCount: number
+  ratingCount: number;
   /** Director names joined by " / " */
-  director: string
+  director: string;
   /** Actor names joined by " / " */
-  actors: string
+  actors: string;
   /** Genre names joined by " / " */
-  genres: string
+  genres: string;
   /** Country/region */
-  region: string
+  region: string;
   /** Year string */
-  year: string
+  year: string;
   /** Source label (e.g., "来自：豆瓣电影") */
-  source: string
+  source: string;
   /** Category code from data-cate attribute (1002=movie, 1003=music, etc.) */
-  category: string
+  category: string;
   /** Whether the item has playable video links */
-  hasVideo: boolean
+  hasVideo: boolean;
 }
 
 /** A filter tab (全部 / 我没看过的 / 我看过的) */
 export interface DoulistFilter {
-  label: string
-  count: number
-  url: string
-  active: boolean
+  label: string;
+  count: number;
+  url: string;
+  active: boolean;
 }
 
 /** Paginator info */
 export interface DoulistPaginator {
-  currentPage: number
-  totalPages: number
-  prevUrl: string
-  nextUrl: string
-  pages: { label: string; url: string; current: boolean }[]
+  currentPage: number;
+  totalPages: number;
+  prevUrl: string;
+  nextUrl: string;
+  pages: { label: string; url: string; current: boolean }[];
 }
 
 /** Top-level page data extracted from the doulist detail page DOM */
 export interface DoulistDetailPageData {
   /** Doulist ID */
-  id: string
+  id: string;
   /** Doulist title (e.g., "片单｜犯罪") */
-  title: string
+  title: string;
   /** Cover image URL */
-  coverUrl: string
+  coverUrl: string;
   /** Creator info */
   creator: {
-    id: string
-    name: string
-    location: string
-    avatarUrl: string
-  }
+    id: string;
+    name: string;
+    location: string;
+    avatarUrl: string;
+  };
   /** Creation time string */
-  createdTime: string
+  createdTime: string;
   /** Last update time string */
-  updatedTime: string
+  updatedTime: string;
   /** Optional description from the info BD section */
-  description: string
+  description: string;
   /** Total number of items */
-  totalCount: number
+  totalCount: number;
   /** Filter tabs */
-  filters: DoulistFilter[]
+  filters: DoulistFilter[];
   /** Items on the current page */
-  items: DoulistDetailItem[]
+  items: DoulistDetailItem[];
   /** Paginator info */
-  paginator: DoulistPaginator
+  paginator: DoulistPaginator;
 }

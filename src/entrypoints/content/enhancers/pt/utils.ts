@@ -6,5 +6,5 @@
  * 暗化元素
  */
 export function dimElement(element: HTMLElement): void {
-  element.classList.add('umm-dimmed')
+  element.classList.add('umm-dimmed');
 }

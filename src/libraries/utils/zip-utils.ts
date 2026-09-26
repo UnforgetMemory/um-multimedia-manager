@@ -23,20 +23,20 @@
  * 域错误语义（MigrationError）。
  */
 
-import { zip, unzip } from 'fflate'
-import type { StoreRecord, DatasetMeta } from '../../types'
-import { calculateStoreHash } from './hash-utils'
-import { CURRENT_DATASET_VERSION } from './dataset-version'
+import { zip, unzip } from 'fflate';
+import type { StoreRecord, DatasetMeta } from '../../types';
+import { calculateStoreHash } from './hash-utils';
+import { CURRENT_DATASET_VERSION } from './dataset-version';
 
 export interface PackedDataset {
-  blob: Blob
-  meta: DatasetMeta
+  blob: Blob;
+  meta: DatasetMeta;
 }
 
 /** Reject dataset blobs larger than 50 MiB before parsing (compression-bomb defence). */
-const MAX_DATASET_BYTES = 50 * 1024 * 1024
+const MAX_DATASET_BYTES = 50 * 1024 * 1024;
 /** Reject datasets with more than 100k records (memory-exhaustion defence). */
-const MAX_DATASET_RECORDS = 100_000
+const MAX_DATASET_RECORDS = 100_000;
 
 /**
  * Package store entries into a standard ZIP blob.
@@ -44,16 +44,16 @@ const MAX_DATASET_RECORDS = 100_000
  */
 export async function packageDataset(
   key: string,
-  entries: Array<{ key: string; record: StoreRecord }>
+  entries: Array<{ key: string; record: StoreRecord }>,
 ): Promise<PackedDataset> {
-  const dataObj: Record<string, StoreRecord> = {}
-  let latestTs = ''
+  const dataObj: Record<string, StoreRecord> = {};
+  let latestTs = '';
   for (const { key: k, record } of entries) {
-    dataObj[k] = record
-    if (record.updatedAt > latestTs) latestTs = record.updatedAt
+    dataObj[k] = record;
+    if (record.updatedAt > latestTs) latestTs = record.updatedAt;
   }
 
-  const hash = await calculateStoreHash(entries)
+  const hash = await calculateStoreHash(entries);
 
   const meta: DatasetMeta = {
     key,
@@ -61,29 +61,31 @@ export async function packageDataset(
     updatedAt: latestTs || new Date().toISOString(),
     recordCount: entries.length,
     dataVersion: CURRENT_DATASET_VERSION,
-  }
+  };
 
   // JSON.stringify → UTF-8 bytes → stored in ZIP entry as-is
-  const dataJson = JSON.stringify(dataObj, null, 2)
-  const metaJson = JSON.stringify(meta, null, 2)
+  const dataJson = JSON.stringify(dataObj, null, 2);
+  const metaJson = JSON.stringify(meta, null, 2);
 
   // fflate expects Uint8Array values; encode strings as UTF-8
-  const encoder = new TextEncoder()
+  const encoder = new TextEncoder();
   const files: Record<string, Uint8Array> = {
     'data.json': encoder.encode(dataJson),
     'meta.json': encoder.encode(metaJson),
-  }
+  };
 
   // fflate zip is async and non-blocking (uses CompressionStream if available)
-  const zipped: Uint8Array = await new Promise((resolve: (value: Uint8Array) => void, reject: (reason: unknown) => void) => {
-    zip(files, { level: 6 }, (err: Error | null, data: Uint8Array) => {
-      if (err) reject(err)
-      else resolve(data)
-    })
-  })
+  const zipped: Uint8Array = await new Promise(
+    (resolve: (value: Uint8Array) => void, reject: (reason: unknown) => void) => {
+      zip(files, { level: 6 }, (err: Error | null, data: Uint8Array) => {
+        if (err) reject(err);
+        else resolve(data);
+      });
+    },
+  );
 
-  const blob = new Blob([zipped.slice()], { type: 'application/zip' })
-  return { blob, meta }
+  const blob = new Blob([zipped.slice()], { type: 'application/zip' });
+  return { blob, meta };
 }
 
 /**
@@ -99,43 +101,49 @@ export async function packageDataset(
  * `validateDatasetVersion(meta.dataVersion)`，不相容时抛 MigrationError。
  */
 export async function unpackageDataset(
-  blob: Blob
+  blob: Blob,
 ): Promise<{ data: Record<string, StoreRecord>; meta: DatasetMeta }> {
   if (blob.size > MAX_DATASET_BYTES) {
-    throw new Error(`Invalid dataset ZIP: size ${blob.size} exceeds ${MAX_DATASET_BYTES} bytes limit`)
+    throw new Error(
+      `Invalid dataset ZIP: size ${blob.size} exceeds ${MAX_DATASET_BYTES} bytes limit`,
+    );
   }
 
   // Blob → Uint8Array for fflate unzip
-  const arrayBuffer = await blob.arrayBuffer()
-  const zipped = new Uint8Array(arrayBuffer)
+  const arrayBuffer = await blob.arrayBuffer();
+  const zipped = new Uint8Array(arrayBuffer);
 
   // fflate unzip is async and non-blocking (uses DecompressionStream if available)
-  const unzipped: Record<string, Uint8Array> = await new Promise((resolve: (value: Record<string, Uint8Array>) => void, reject: (reason: unknown) => void) => {
-    unzip(zipped, (err: Error | null, data: Record<string, Uint8Array>) => {
-      if (err) reject(err)
-      else resolve(data)
-    })
-  })
+  const unzipped: Record<string, Uint8Array> = await new Promise(
+    (resolve: (value: Record<string, Uint8Array>) => void, reject: (reason: unknown) => void) => {
+      unzip(zipped, (err: Error | null, data: Record<string, Uint8Array>) => {
+        if (err) reject(err);
+        else resolve(data);
+      });
+    },
+  );
 
-  const dataFile = unzipped['data.json']
-  const metaFile = unzipped['meta.json']
+  const dataFile = unzipped['data.json'];
+  const metaFile = unzipped['meta.json'];
 
   if (!dataFile || !metaFile) {
-    throw new Error('Invalid dataset ZIP: missing data.json or meta.json')
+    throw new Error('Invalid dataset ZIP: missing data.json or meta.json');
   }
 
   // Decode Uint8Array as UTF-8 string then parse JSON
-  const decoder = new TextDecoder()
-  const dataStr = decoder.decode(dataFile)
-  const metaStr = decoder.decode(metaFile)
+  const decoder = new TextDecoder();
+  const dataStr = decoder.decode(dataFile);
+  const metaStr = decoder.decode(metaFile);
 
-  const data: Record<string, StoreRecord> = JSON.parse(dataStr)
-  const meta: DatasetMeta = JSON.parse(metaStr)
+  const data: Record<string, StoreRecord> = JSON.parse(dataStr);
+  const meta: DatasetMeta = JSON.parse(metaStr);
 
-  const recordCount = Object.keys(data).length
+  const recordCount = Object.keys(data).length;
   if (recordCount > MAX_DATASET_RECORDS) {
-    throw new Error(`Invalid dataset ZIP: ${recordCount} records exceeds ${MAX_DATASET_RECORDS} limit`)
+    throw new Error(
+      `Invalid dataset ZIP: ${recordCount} records exceeds ${MAX_DATASET_RECORDS} limit`,
+    );
   }
 
-  return { data, meta }
+  return { data, meta };
 }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import { Button } from '@/libraries/ui/button'
-import type { ButtonVariants } from '@/libraries/ui/button'
-import { cn } from '@/libraries/utils/cn'
+import type { HTMLAttributes } from 'vue';
+import { Button } from '@/libraries/ui/button';
+import type { ButtonVariants } from '@/libraries/ui/button';
+import { cn } from '@/libraries/utils/cn';
 
 /**
  * IconButton — accessible icon-only button (ADR-018 D4).
@@ -13,16 +13,16 @@ import { cn } from '@/libraries/utils/cn'
  */
 interface Props {
   /** Accessible name — required, rendered as aria-label + native tooltip */
-  label: string
-  variant?: ButtonVariants['variant']
-  size?: Extract<ButtonVariants['size'], 'icon' | 'icon-sm' | 'icon-xs'>
-  class?: HTMLAttributes['class']
+  label: string;
+  variant?: ButtonVariants['variant'];
+  size?: Extract<ButtonVariants['size'], 'icon' | 'icon-sm' | 'icon-xs'>;
+  class?: HTMLAttributes['class'];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'ghost',
   size: 'icon-sm',
-})
+});
 </script>
 
 <template vapor>

@@ -21,10 +21,10 @@
  */
 
 /** 伪静态帖子路径：/thread-<tid>(-...)*.html */
-const THREAD_PATH_RE = /^\/thread-(\d+)/
+const THREAD_PATH_RE = /^\/thread-(\d+)/;
 
 /** 伪静态论坛分区路径：/forum-{fid}(-{page}).html */
-const FORUM_PATH_RE = /^\/forum-(\d+)(?:-(\d+))?\.html/
+const FORUM_PATH_RE = /^\/forum-(\d+)(?:-(\d+))?\.html/;
 
 /**
  * 从 URL 提取帖子 tid 跟踪键（`TID-<数字>`）；非帖子页 → null。
@@ -34,22 +34,22 @@ const FORUM_PATH_RE = /^\/forum-(\d+)(?:-(\d+))?\.html/
  */
 export function extractThreadTidFromUrl(url: string): string | null {
   try {
-    const u = new URL(url)
-    const pathMatch = THREAD_PATH_RE.exec(u.pathname)
-    if (pathMatch) return `TID-${pathMatch[1]}`
+    const u = new URL(url);
+    const pathMatch = THREAD_PATH_RE.exec(u.pathname);
+    if (pathMatch) return `TID-${pathMatch[1]}`;
     if (u.pathname === '/forum.php' && u.searchParams.get('mod') === 'viewthread') {
-      const tid = u.searchParams.get('tid')
-      if (tid && /^\d+$/.test(tid)) return `TID-${tid}`
+      const tid = u.searchParams.get('tid');
+      if (tid && /^\d+$/.test(tid)) return `TID-${tid}`;
     }
-    return null
+    return null;
   } catch {
-    return null
+    return null;
   }
 }
 
 /** 帖子详情页判型（静默记录已看，不建 overlay）。 */
 export function isThreadUrl(url: string): boolean {
-  return extractThreadTidFromUrl(url) !== null
+  return extractThreadTidFromUrl(url) !== null;
 }
 
 /**
@@ -58,12 +58,12 @@ export function isThreadUrl(url: string): boolean {
  */
 export function isForumDisplayUrl(url: string): boolean {
   try {
-    const u = new URL(url)
-    if (FORUM_PATH_RE.test(u.pathname)) return true
-    if (u.pathname === '/forum.php') return u.searchParams.get('mod') === 'forumdisplay'
-    return false
+    const u = new URL(url);
+    if (FORUM_PATH_RE.test(u.pathname)) return true;
+    if (u.pathname === '/forum.php') return u.searchParams.get('mod') === 'forumdisplay';
+    return false;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -76,16 +76,16 @@ export function isForumDisplayUrl(url: string): boolean {
  */
 export function isIndexUrl(url: string): boolean {
   try {
-    const u = new URL(url)
-    if (u.pathname === '/' || u.pathname === '/index.php') return true
+    const u = new URL(url);
+    if (u.pathname === '/' || u.pathname === '/index.php') return true;
     if (u.pathname === '/forum.php') {
-      if (u.searchParams.has('gid')) return false
-      const mod = u.searchParams.get('mod')
-      return mod === null || mod === ''
+      if (u.searchParams.has('gid')) return false;
+      const mod = u.searchParams.get('mod');
+      return mod === null || mod === '';
     }
-    return false
+    return false;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -95,11 +95,11 @@ export function isIndexUrl(url: string): boolean {
  */
 export function isSearchUrl(url: string): boolean {
   try {
-    const u = new URL(url)
-    if (u.pathname !== '/search.php') return false
-    return u.searchParams.get('mod') === 'forum'
+    const u = new URL(url);
+    if (u.pathname !== '/search.php') return false;
+    return u.searchParams.get('mod') === 'forum';
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -107,14 +107,14 @@ export function isSearchUrl(url: string): boolean {
  * 页面类型（统一分流枚举）。优先级：viewthread > forumdisplay > search > index。
  * 单一函数实现确保早期入口与主入口决策完全一致。
  */
-export type SehuatangPageKind = 'thread' | 'forumdisplay' | 'search' | 'index' | 'other'
+export type SehuatangPageKind = 'thread' | 'forumdisplay' | 'search' | 'index' | 'other';
 
 export function classifyPage(url: string): SehuatangPageKind {
-  if (isThreadUrl(url)) return 'thread'
-  if (isForumDisplayUrl(url)) return 'forumdisplay'
-  if (isSearchUrl(url)) return 'search'
-  if (isIndexUrl(url)) return 'index'
-  return 'other'
+  if (isThreadUrl(url)) return 'thread';
+  if (isForumDisplayUrl(url)) return 'forumdisplay';
+  if (isSearchUrl(url)) return 'search';
+  if (isIndexUrl(url)) return 'index';
+  return 'other';
 }
 
 /**
@@ -122,7 +122,7 @@ export function classifyPage(url: string): SehuatangPageKind {
  * thread/other 排除：thread 走静默记录，other 走非托管。
  */
 export function isOverlayPage(kind: SehuatangPageKind): boolean {
-  return kind === 'forumdisplay' || kind === 'search' || kind === 'index'
+  return kind === 'forumdisplay' || kind === 'search' || kind === 'index';
 }
 
 /**
@@ -137,12 +137,12 @@ export function isOverlayPage(kind: SehuatangPageKind): boolean {
  */
 export function extractSearchKeyword(url: string): string {
   try {
-    const u = new URL(url)
-    const kw = u.searchParams.get('kw')?.trim() ?? ''
-    const srchtxt = u.searchParams.get('srchtxt')?.trim() ?? ''
-    return kw || srchtxt
+    const u = new URL(url);
+    const kw = u.searchParams.get('kw')?.trim() ?? '';
+    const srchtxt = u.searchParams.get('srchtxt')?.trim() ?? '';
+    return kw || srchtxt;
   } catch {
-    return ''
+    return '';
   }
 }
 
@@ -155,11 +155,11 @@ export function extractSearchKeyword(url: string): string {
  * 注：基址取 location.href，浏览器侧专用（node 单测环境无 location）。
  */
 export function toSafeAbsoluteUrl(raw: string | null): string {
-  if (!raw) return ''
+  if (!raw) return '';
   try {
-    const u = new URL(raw, location.href)
-    return /^https?:$/.test(u.protocol) ? u.href : ''
+    const u = new URL(raw, location.href);
+    return /^https?:$/.test(u.protocol) ? u.href : '';
   } catch {
-    return ''
+    return '';
   }
 }

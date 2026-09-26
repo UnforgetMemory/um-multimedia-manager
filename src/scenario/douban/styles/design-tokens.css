@@ -74,13 +74,17 @@
   );
   --umm-neodb-push-border: var(--umm-card-border);
   --umm-neodb-minus-bg: var(--umm-static-amber-700);
-  --umm-neodb-minus-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-amber-700) 30%, transparent);
+  --umm-neodb-minus-shadow: 0 2px 4px
+    color-mix(in srgb, var(--umm-static-amber-700) 30%, transparent);
   --umm-neodb-plus-bg: var(--umm-static-green-700);
-  --umm-neodb-plus-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-green-700) 30%, transparent);
+  --umm-neodb-plus-shadow: 0 2px 4px
+    color-mix(in srgb, var(--umm-static-green-700) 30%, transparent);
   --umm-neodb-original-bg: var(--umm-static-indigo-700);
-  --umm-neodb-original-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-indigo-700) 30%, transparent);
+  --umm-neodb-original-shadow: 0 2px 4px
+    color-mix(in srgb, var(--umm-static-indigo-700) 30%, transparent);
   --umm-neodb-open-bg: var(--umm-static-violet-600);
-  --umm-neodb-open-shadow: 0 2px 4px color-mix(in srgb, var(--umm-static-violet-600) 30%, transparent);
+  --umm-neodb-open-shadow: 0 2px 4px
+    color-mix(in srgb, var(--umm-static-violet-600) 30%, transparent);
 
   /* === Extended surfaces & text (light) === */
   --umm-accent-hover: var(--umm-static-indigo-600);
@@ -117,7 +121,10 @@
   /* Host defaults */
   background: var(--umm-color-surface);
   color: var(--umm-color-text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 /* ---- Dark theme — macOS Vibrancy (STYLEKIT macos-vibrancy) ---- */
@@ -152,7 +159,11 @@
 
   /* Links — Apple system blue, AA text tier for mid panels */
   --umm-color-link: var(--umm-static-apple-blue-bright);
-  --umm-color-link-hover: color-mix(in srgb, var(--umm-static-apple-blue-bright) 70%, var(--umm-static-neutral-00));
+  --umm-color-link-hover: color-mix(
+    in srgb,
+    var(--umm-static-apple-blue-bright) 70%,
+    var(--umm-static-neutral-00)
+  );
 
   /* Status */
   --umm-color-status-done: var(--umm-static-green-400);
@@ -195,8 +206,12 @@
   --umm-neodb-original-bg: var(--umm-static-neodb-indigo-dark);
   --umm-neodb-open-bg: var(--umm-static-neodb-violet-dark);
   --umm-neodb-btn-border: var(--umm-static-white-a10);
-  --umm-neodb-minus-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
-  --umm-neodb-plus-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
-  --umm-neodb-original-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
-  --umm-neodb-open-shadow: 0 1px 2px color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-minus-shadow: 0 1px 2px
+    color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-plus-shadow: 0 1px 2px
+    color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-original-shadow: 0 1px 2px
+    color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
+  --umm-neodb-open-shadow: 0 1px 2px
+    color-mix(in srgb, var(--umm-static-neutral-1000) 30%, transparent);
 }

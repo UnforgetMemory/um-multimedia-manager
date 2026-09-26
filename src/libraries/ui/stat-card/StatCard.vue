@@ -1,10 +1,19 @@
 <script lang="ts">
-export type Accent = 'brand' | 'violet' | 'rose' | 'amber' | 'gold' | 'teal' | 'blue' | 'green' | 'red'
+export type Accent =
+  | 'brand'
+  | 'violet'
+  | 'rose'
+  | 'amber'
+  | 'gold'
+  | 'teal'
+  | 'blue'
+  | 'green'
+  | 'red';
 </script>
 <script setup lang="ts">
-import type { FunctionalComponent, SVGAttributes } from 'vue'
-import { computed } from 'vue'
-import { Card, CardContent } from '@/libraries/ui/card'
+import type { FunctionalComponent, SVGAttributes } from 'vue';
+import { computed } from 'vue';
+import { Card, CardContent } from '@/libraries/ui/card';
 
 /** Categorical accents derived from tokens.static.css ramps (ADR-018 D3) */
 const ACCENT_VARS: Record<Accent, string> = {
@@ -17,20 +26,18 @@ const ACCENT_VARS: Record<Accent, string> = {
   blue: 'var(--umm-static-blue-500)',
   green: 'var(--umm-static-green-500)',
   red: 'var(--umm-static-red-500)',
-}
+};
 
 const props = defineProps<{
-  icon: FunctionalComponent<SVGAttributes>
-  label: string
-  value: number
-  loading?: boolean
+  icon: FunctionalComponent<SVGAttributes>;
+  label: string;
+  value: number;
+  loading?: boolean;
   /** Optional categorical accent for the icon (defaults to muted) */
-  accent?: Accent
-}>()
+  accent?: Accent;
+}>();
 
-const iconColor = computed(() =>
-  props.accent ? { color: ACCENT_VARS[props.accent] } : undefined,
-)
+const iconColor = computed(() => (props.accent ? { color: ACCENT_VARS[props.accent] } : undefined));
 </script>
 
 <template vapor>
@@ -44,9 +51,7 @@ const iconColor = computed(() =>
       />
       <div
         class="umm:text-base umm:sm:text-lg umm:font-bold umm:tracking-tight umm:text-primary-content umm:truncate umm:tabular-nums"
-        :class="
-  { 'umm:animate-pulse': loading }
-"
+        :class="{ 'umm:animate-pulse': loading }"
       >
         {{ loading ? '—' : value.toLocaleString() }}
       </div>

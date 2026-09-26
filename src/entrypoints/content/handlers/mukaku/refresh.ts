@@ -16,16 +16,16 @@
 export {
   createDebouncedScheduler,
   type TimerAdapter,
-} from '@/entrypoints/content/enhancers/pt/dimmer/refresh'
+} from '@/entrypoints/content/enhancers/pt/dimmer/refresh';
 
 /** Record stores that trigger a Mukaku page refresh (Mukaku cards only link douban/imdb). */
-const REFRESH_STORES = new Set(['douban_records', 'imdb_records'])
+const REFRESH_STORES = new Set(['douban_records', 'imdb_records']);
 
 /** Minimal structural type: an element that can clear processed markers and the dim class (Element satisfies this shape). */
 export type MukakuMarkerElement = {
-  removeAttribute(name: string): void
-  classList?: { remove(className: string): void }
-}
+  removeAttribute(name: string): void;
+  classList?: { remove(className: string): void };
+};
 
 /**
  * Remove the processed marker (data-umm-mukaku-processed) and the dim class (umm-dimmed)
@@ -34,13 +34,13 @@ export type MukakuMarkerElement = {
  * classList is missing (safe degradation).
  */
 export function clearMukakuMarkers(el: MukakuMarkerElement): void {
-  el.removeAttribute('data-umm-mukaku-processed')
-  el.classList?.remove('umm-dimmed')
+  el.removeAttribute('data-umm-mukaku-processed');
+  el.classList?.remove('umm-dimmed');
 }
 
 /** Clear markers and the dim class from every processed card in the document, restoring the initial visual state for re-evaluation. */
 export function clearProcessedMarkers(root: Pick<Document, 'querySelectorAll'>): void {
-  root.querySelectorAll('[data-umm-mukaku-processed="true"]').forEach(clearMukakuMarkers)
+  root.querySelectorAll('[data-umm-mukaku-processed="true"]').forEach(clearMukakuMarkers);
 }
 
 /**
@@ -48,10 +48,10 @@ export function clearProcessedMarkers(root: Pick<Document, 'querySelectorAll'>):
  * object with storeName douban_records / imdb_records. Unknown / null / non-object → false.
  */
 export function shouldRefreshForEvent(data: unknown): boolean {
-  if (typeof data !== 'object' || data === null) return false
-  if (!('storeName' in data)) return false
-  const storeName = data.storeName
-  return typeof storeName === 'string' && REFRESH_STORES.has(storeName)
+  if (typeof data !== 'object' || data === null) return false;
+  if (!('storeName' in data)) return false;
+  const storeName = data.storeName;
+  return typeof storeName === 'string' && REFRESH_STORES.has(storeName);
 }
 
 /**
@@ -60,6 +60,6 @@ export function shouldRefreshForEvent(data: unknown): boolean {
  * from originalMvId.
  */
 export function isDetailContextStale(originalMvId: string, currentHref: string): boolean {
-  const extracted = currentHref.match(/\/mv\/(\d+)/i)?.[1]
-  return extracted !== originalMvId
+  const extracted = currentHref.match(/\/mv\/(\d+)/i)?.[1];
+  return extracted !== originalMvId;
 }

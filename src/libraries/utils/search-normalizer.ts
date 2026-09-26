@@ -1,4 +1,4 @@
-import { extractImdbIdFromText } from '@/libraries/utils/imdb-id'
+import { extractImdbIdFromText } from '@/libraries/utils/imdb-id';
 
 /**
  * Search query normalizer for Douban search enhancement.
@@ -39,8 +39,8 @@ export function normalizeSearchQuery(raw: string): string {
   // The URL contains '.'/'/'/':' which the substitution below would otherwise
   // shred into garbage tokens ("https www imdb com title tt22084616").
   // Douban's search understands tt-ids directly.
-  const imdbId = extractImdbIdFromText(raw.trim())
-  if (imdbId) return imdbId
+  const imdbId = extractImdbIdFromText(raw.trim());
+  if (imdbId) return imdbId;
 
   let s = raw
     .replace(/\./g, ' ')
@@ -48,15 +48,18 @@ export function normalizeSearchQuery(raw: string): string {
     .replace(/[*#@!~`%^&+=|\\{}:;"'<>,?/]/g, ' ')
     .replace(/-/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
+    .trim();
 
   // Convert season/episode markers to Douban-supported "Season N" format
   // Handles: S03E1, S3E1, S01.E01, S01 E01, Season 01, Episode 01
   // Lazy \s quantifiers avoid backtracking on crafted inputs.
   s = s
-    .replace(/\bS(\d{1,2})(?:\.?\s*?E\d{1,2})?\b/gi, (_, season: string) => `Season ${parseInt(season)}`)
+    .replace(
+      /\bS(\d{1,2})(?:\.?\s*?E\d{1,2})?\b/gi,
+      (_, season: string) => `Season ${parseInt(season)}`,
+    )
     .replace(/\b(?:Season|Episode)\s+?0+(\d{1,2})\b/gi, (_, n: string) => `Season ${parseInt(n)}`)
-    .trim()
+    .trim();
 
   // Drop version-release tokens that may appear before resolution markers
   // (TRUHD/DUAL/MULTi/HYBRID are audio/language flags that occur without a
@@ -81,7 +84,7 @@ export function normalizeSearchQuery(raw: string): string {
     )
     .replace(/\bV\d+\b/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
+    .trim();
 
   // Strong release markers: cut everything from the first occurrence onward.
   // These tokens (resolution/source/codec/audio) essentially never appear in a
@@ -89,17 +92,17 @@ export function normalizeSearchQuery(raw: string): string {
   // dot matches the space that preprocessing already inserted after `-`.
   const releaseCut = s.search(
     /\b(?:2160p|1080p|1080i|720p|576p|480p|4k|8k|WEB.DL|WEBRip|BluRay|BDRip|HDTV|HDTVRip|HDRip|REMUX|DVDRip|UHD|DV|HDR10|HDR|IMAX|DTS|FLAC|DDP|AAC|AC3|Atmos|TrueHD|x264|x265|h264|h265|HEVC|AVC|AV1|10bit)\b/i,
-  )
+  );
   if (releaseCut !== -1) {
-    const tail = s.slice(releaseCut)
+    const tail = s.slice(releaseCut);
     // CJK text right after a resolution token means the token is part of a
     // Chinese search phrase (e.g. "4K修复版"), not release metadata — keep it.
     if (!/[\u3400-\u9fff]/.test(tail)) {
-      return s.slice(0, releaseCut).trim()
+      return s.slice(0, releaseCut).trim();
     }
   }
 
-  return s
+  return s;
 }
 
 /**
@@ -111,7 +114,7 @@ export function normalizeSearchQuery(raw: string): string {
  * which preserves a single trailing space).
  */
 export function collapseInputSpaces(raw: string): string {
-  return raw.replace(/ {2,}/g, ' ')
+  return raw.replace(/ {2,}/g, ' ');
 }
 
 /**
@@ -129,9 +132,9 @@ export function collapseInputSpaces(raw: string): string {
  * runs on an already-normalized query are no-ops — no cursor churn.
  */
 export function normalizeSearchQueryLive(raw: string): string {
-  const hasTrailingSpace = raw.endsWith(' ')
-  const normalized = normalizeSearchQuery(raw.trimEnd())
+  const hasTrailingSpace = raw.endsWith(' ');
+  const normalized = normalizeSearchQuery(raw.trimEnd());
   // Anti-lone-space invariant: a trailing space is only re-appended to a
   // NON-EMPTY result — whitespace-only input must collapse to '' (not ' ').
-  return normalized && hasTrailingSpace ? `${normalized} ` : normalized
+  return normalized && hasTrailingSpace ? `${normalized} ` : normalized;
 }

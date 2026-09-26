@@ -54,7 +54,9 @@
   white-space: nowrap;
   padding: 1px 4px;
   border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .umm-userbar-navlink:hover {
   color: var(--umm-link);

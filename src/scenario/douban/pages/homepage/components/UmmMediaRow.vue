@@ -4,37 +4,37 @@
  * Combines UmmScrollRow + UmmMediaCard with automatic record lookup.
  * Used by screening, hot-movie, and hot-tv sections.
  */
-import type { StoreRecord } from '@/types'
-import UmmScrollRow from './UmmScrollRow.vue'
-import UmmMediaCard from './UmmMediaCard.vue'
+import type { StoreRecord } from '@/types';
+import UmmScrollRow from './UmmScrollRow.vue';
+import UmmMediaCard from './UmmMediaCard.vue';
 
 interface MediaRowItem {
-  subjectId: string
-  title: string
-  rate: string
-  posterUrl: string
-  href: string
-  intro?: string
-  episodes?: string
-  author?: string
+  subjectId: string;
+  title: string;
+  rate: string;
+  posterUrl: string;
+  href: string;
+  intro?: string;
+  episodes?: string;
+  author?: string;
 }
 
 interface Props {
-  title: string
-  items: MediaRowItem[]
-  records: Map<string, StoreRecord>
-  showEpisodes?: boolean
-  type?: 'movie' | 'music' | 'book'
-  grid?: boolean
+  title: string;
+  items: MediaRowItem[];
+  records: Map<string, StoreRecord>;
+  showEpisodes?: boolean;
+  type?: 'movie' | 'music' | 'book';
+  grid?: boolean;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 function recordFor(item: MediaRowItem) {
-  const rec = props.records.get(item.subjectId)
-  const status = rec?.status ?? 0
-  const rating = rec?.rating ?? 0
-  return { status, rating }
+  const rec = props.records.get(item.subjectId);
+  const status = rec?.status ?? 0;
+  const rating = rec?.rating ?? 0;
+  return { status, rating };
 }
 </script>
 

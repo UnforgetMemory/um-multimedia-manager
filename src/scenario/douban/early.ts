@@ -9,9 +9,9 @@
  *   createDoubanEarlyOverlay()
  */
 
-import { createOverlay } from './overlay'
-import type { OverlayOptions } from './overlay'
-import { detectPageType } from './shared/url-detector'
+import { createOverlay } from './overlay';
+import type { OverlayOptions } from './overlay';
+import { detectPageType } from './shared/url-detector';
 
 const SUBTITLE: Record<string, string> = {
   photos: '加载照片...',
@@ -28,8 +28,8 @@ const SUBTITLE: Record<string, string> = {
   'user-profile': '用户主页 · 加载中',
   'movie-profile': '电影主页 · 加载中',
   'music-profile': '音乐主页 · 加载中',
-'user-celebrities': '收藏的影人 · 加载中',
-'user-reviews': '我的影评 · 加载中',
+  'user-celebrities': '收藏的影人 · 加载中',
+  'user-reviews': '我的影评 · 加载中',
   'review-detail': '影评详情 · 加载中',
   'book-review-detail': '书评详情 · 加载中',
   'book-collect': '我的藏书 · 加载中',
@@ -45,30 +45,38 @@ const SUBTITLE: Record<string, string> = {
   'game-explore': '游戏探索 · 加载中',
   series: '丛书 · 加载中',
   'music-collect': '音乐收藏 · 加载中',
-}
+};
 
 function getOverlayConfig(): OverlayOptions | null {
-  const pageType = detectPageType()
-  if (!pageType) return null
+  const pageType = detectPageType();
+  if (!pageType) return null;
 
-  const exposeTypes = new Set(['photos', 'detail'])
-  const trailerTypes = new Set(['trailer', 'video'])
+  const exposeTypes = new Set(['photos', 'detail']);
+  const trailerTypes = new Set(['trailer', 'video']);
   const overlayId =
-    pageType.type === 'photos' ? 'umm-photos-overlay'
-    : trailerTypes.has(pageType.type) ? 'umm-trailer-overlay'
-    : pageType.type === 'celebrities' ? 'umm-celebrities-overlay'
-    : pageType.type === 'detail' ? 'umm-detail-mask'
-    : pageType.type === 'search' ? 'umm-search-overlay'
-    : pageType.type === 'personage' ? 'umm-personage-overlay'
-    : pageType.type === 'personage-creations' ? 'umm-personage-overlay'
-    : pageType.type === 'doulist-detail' ? 'umm-douban-overlay'
-    : 'umm-douban-overlay'
+    pageType.type === 'photos'
+      ? 'umm-photos-overlay'
+      : trailerTypes.has(pageType.type)
+        ? 'umm-trailer-overlay'
+        : pageType.type === 'celebrities'
+          ? 'umm-celebrities-overlay'
+          : pageType.type === 'detail'
+            ? 'umm-detail-mask'
+            : pageType.type === 'search'
+              ? 'umm-search-overlay'
+              : pageType.type === 'personage'
+                ? 'umm-personage-overlay'
+                : pageType.type === 'personage-creations'
+                  ? 'umm-personage-overlay'
+                  : pageType.type === 'doulist-detail'
+                    ? 'umm-douban-overlay'
+                    : 'umm-douban-overlay';
 
   return {
     overlayId,
     subtitle: SUBTITLE[pageType.type] || '多媒体管理器 · 加载中',
     exposeDismiss: exposeTypes.has(pageType.type) || undefined,
-  }
+  };
 }
 
 /**
@@ -77,7 +85,7 @@ function getOverlayConfig(): OverlayOptions | null {
  * Returns null if the page type does not need an overlay.
  */
 export function createDoubanEarlyOverlay(): HTMLElement | null {
-  const config = getOverlayConfig()
-  if (!config) return null
-  return createOverlay(config)
+  const config = getOverlayConfig();
+  if (!config) return null;
+  return createOverlay(config);
 }

@@ -17,10 +17,10 @@
  * display:none 卡）时成立。
  */
 
-import { t } from '@/entrypoints/content/i18n'
-import { escapeHtml } from '@/libraries/utils/escape-html'
+import { t } from '@/entrypoints/content/i18n';
+import { escapeHtml } from '@/libraries/utils/escape-html';
 
-const EMPTY_CLASS = 'umm-sht-empty'
+const EMPTY_CLASS = 'umm-sht-empty';
 
 /**
  * 空态判定（纯函数，JSDOM 可测）。
@@ -32,17 +32,23 @@ const EMPTY_CLASS = 'umm-sht-empty'
  *   - 全部渲染卡 display:none 且 hiddenAtMount = 0 → true（运行时切换全隐）；
  *   - grid 为空且 hiddenAtMount = 0 → false（空版块 / 骨架期，非「已看」语义）。
  */
-export function isEmptyHiddenState(grid: HTMLElement, hideOn: boolean, hiddenAtMount: number): boolean {
-  if (!hideOn) return false
-  let visibleRendered = 0
-  let hiddenRendered = 0
+export function isEmptyHiddenState(
+  grid: HTMLElement,
+  hideOn: boolean,
+  hiddenAtMount: number,
+): boolean {
+  if (!hideOn) return false;
+  let visibleRendered = 0;
+  let hiddenRendered = 0;
   // 骨架卡（.umm-sht-skel）是检查期占位，不计入可见/隐藏事实。
-  for (const card of Array.from(grid.querySelectorAll('.umm-card:not(.umm-sht-skel)')) as HTMLElement[]) {
-    if (card.style.display === 'none') hiddenRendered++
-    else visibleRendered++
+  for (const card of Array.from(
+    grid.querySelectorAll('.umm-card:not(.umm-sht-skel)'),
+  ) as HTMLElement[]) {
+    if (card.style.display === 'none') hiddenRendered++;
+    else visibleRendered++;
   }
-  if (visibleRendered > 0) return false
-  return hiddenRendered > 0 || hiddenAtMount > 0
+  if (visibleRendered > 0) return false;
+  return hiddenRendered > 0 || hiddenAtMount > 0;
 }
 
 /**
@@ -57,16 +63,16 @@ export function isEmptyHiddenState(grid: HTMLElement, hideOn: boolean, hiddenAtM
  * 供读屏播报）。
  */
 export interface EmptyStateTexts {
-  title: string
-  hint: string
+  title: string;
+  hint: string;
 }
 
 export function buildEmptyState(doc: Document, texts?: EmptyStateTexts): HTMLElement {
-  const title = texts?.title ?? t('sht.empty_watched_title')
-  const hint = texts?.hint ?? t('sht.empty_watched_hint')
-  const root = doc.createElement('div')
-  root.className = EMPTY_CLASS
-  root.setAttribute('role', 'status')
+  const title = texts?.title ?? t('sht.empty_watched_title');
+  const hint = texts?.hint ?? t('sht.empty_watched_hint');
+  const root = doc.createElement('div');
+  root.className = EMPTY_CLASS;
+  root.setAttribute('role', 'status');
   root.innerHTML = `
     <svg viewBox="0 0 120 120" fill="none" aria-hidden="true" focusable="false">
       <circle cx="14" cy="22" r="4" fill="var(--umm-border-strong)"/>
@@ -78,21 +84,25 @@ export function buildEmptyState(doc: Document, texts?: EmptyStateTexts): HTMLEle
     </svg>
     <p class="umm-sht-empty-title">${escapeHtml(title)}</p>
     <p class="umm-sht-empty-hint">${escapeHtml(hint)}</p>
-  `
-  return root
+  `;
+  return root;
 }
 
 /**
  * 空态挂/撤（幂等）：shell 内至多一个 .umm-sht-empty，状态翻转时增删。
  * shell 为 null（页面生命周期外/非法页兜底路径）直接跳过。
  */
-export function syncEmptyHiddenState(shell: HTMLElement | null, grid: HTMLElement, hiddenAtMount: number): void {
-  if (!shell) return
-  const hideOn = grid.classList.contains('umm-sht-hide-viewed')
-  const existing = shell.querySelector(`:scope > .${EMPTY_CLASS}`) as HTMLElement | null
+export function syncEmptyHiddenState(
+  shell: HTMLElement | null,
+  grid: HTMLElement,
+  hiddenAtMount: number,
+): void {
+  if (!shell) return;
+  const hideOn = grid.classList.contains('umm-sht-hide-viewed');
+  const existing = shell.querySelector(`:scope > .${EMPTY_CLASS}`) as HTMLElement | null;
   if (isEmptyHiddenState(grid, hideOn, hiddenAtMount)) {
-    if (!existing) shell.appendChild(buildEmptyState(shell.ownerDocument))
+    if (!existing) shell.appendChild(buildEmptyState(shell.ownerDocument));
   } else {
-    existing?.remove()
+    existing?.remove();
   }
 }

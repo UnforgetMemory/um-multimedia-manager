@@ -29,16 +29,18 @@ export const SESSION_CACHE_KEYS = {
   WATCHED_PREFIX: 'watched:',
   /** Fully-resolved AppSettings snapshot. */
   SETTINGS_SNAPSHOT: 'settings:snapshot',
-} as const
+} as const;
 
 /**
  * Whether chrome.storage.session is available in the current runtime.
  * Evaluated lazily per call so a polyfill/late-load still works.
  */
 function hasSessionStorage(): boolean {
-  return typeof chrome !== 'undefined'
-    && typeof chrome.storage !== 'undefined'
-    && typeof chrome.storage.session !== 'undefined'
+  return (
+    typeof chrome !== 'undefined' &&
+    typeof chrome.storage !== 'undefined' &&
+    typeof chrome.storage.session !== 'undefined'
+  );
 }
 
 /**
@@ -46,13 +48,13 @@ function hasSessionStorage(): boolean {
  * Returns `undefined` on miss OR when the session area is unavailable.
  */
 export async function get<T>(key: string): Promise<T | undefined> {
-  if (!hasSessionStorage()) return undefined
+  if (!hasSessionStorage()) return undefined;
   try {
-    const result = await chrome.storage.session.get(key)
-    return result[key] as T | undefined
+    const result = await chrome.storage.session.get(key);
+    return result[key] as T | undefined;
   } catch (e: unknown) {
     // Soft miss — never surface session errors to callers.
-    return undefined
+    return undefined;
   }
 }
 
@@ -61,9 +63,9 @@ export async function get<T>(key: string): Promise<T | undefined> {
  * No-op (not throw) when the session area is unavailable.
  */
 export async function set<T>(key: string, value: T): Promise<void> {
-  if (!hasSessionStorage()) return
+  if (!hasSessionStorage()) return;
   try {
-    await chrome.storage.session.set({ [key]: value })
+    await chrome.storage.session.set({ [key]: value });
   } catch (e: unknown) {
     // Soft write failure — caller's local/IDB write already succeeded.
   }
@@ -74,9 +76,9 @@ export async function set<T>(key: string, value: T): Promise<void> {
  * No-op when the session area is unavailable.
  */
 export async function remove(key: string): Promise<void> {
-  if (!hasSessionStorage()) return
+  if (!hasSessionStorage()) return;
   try {
-    await chrome.storage.session.remove(key)
+    await chrome.storage.session.remove(key);
   } catch (e: unknown) {
     // Soft failure — invalidation is best-effort; browser restart is the backstop.
   }
@@ -91,19 +93,19 @@ export async function remove(key: string): Promise<void> {
  * without getKeys, falls back to a full `get(null)` scan.
  */
 export async function removeByPrefix(prefix: string): Promise<void> {
-  if (!hasSessionStorage()) return
+  if (!hasSessionStorage()) return;
   try {
-    let keys: string[]
+    let keys: string[];
     if (typeof chrome.storage.session.getKeys === 'function') {
-      keys = await chrome.storage.session.getKeys()
+      keys = await chrome.storage.session.getKeys();
     } else {
       // Fallback: full scan (older Chrome without getKeys).
-      const all = await chrome.storage.session.get(null)
-      keys = Object.keys(all)
+      const all = await chrome.storage.session.get(null);
+      keys = Object.keys(all);
     }
-    const matching = keys.filter(k => k.startsWith(prefix))
+    const matching = keys.filter((k) => k.startsWith(prefix));
     if (matching.length > 0) {
-      await chrome.storage.session.remove(matching)
+      await chrome.storage.session.remove(matching);
     }
   } catch (e: unknown) {
     // Best-effort; browser restart clears any stale entries.
@@ -115,9 +117,9 @@ export async function removeByPrefix(prefix: string): Promise<void> {
  * explicit cache-reset messages. No-op when unavailable.
  */
 export async function clear(): Promise<void> {
-  if (!hasSessionStorage()) return
+  if (!hasSessionStorage()) return;
   try {
-    await chrome.storage.session.clear()
+    await chrome.storage.session.clear();
   } catch (e: unknown) {
     // Best-effort.
   }

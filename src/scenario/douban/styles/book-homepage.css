@@ -66,9 +66,21 @@
   padding: 0 var(--umm-space-lg);
 }
 
-@media (min-width: 640px) { .umm-activity-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .umm-activity-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1440px) { .umm-activity-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 640px) {
+  .umm-activity-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-activity-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1440px) {
+  .umm-activity-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
 
 .umm-activity-card {
   display: flex;
@@ -79,8 +91,9 @@
   color: inherit;
   min-height: 200px;
   position: relative;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .umm-activity-card:link,
@@ -111,7 +124,13 @@
 .umm-activity-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.15) 70%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0.15) 70%,
+    transparent 100%
+  );
 }
 
 .umm-activity-body {
@@ -175,7 +194,9 @@
   text-decoration: none;
   color: inherit;
   background: var(--umm-bg-secondary);
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 
 .umm-ranking-item:hover {
@@ -247,8 +268,6 @@
 :host(.umm-theme--dark) .umm-ranking-rating {
   color: var(--umm-static-amber-400);
 }
-
-
 
 /* ---- Activities placeholder bg fallback ---- */
 .umm-activity-card--placeholder .umm-activity-body {

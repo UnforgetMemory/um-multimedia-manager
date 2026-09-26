@@ -78,9 +78,21 @@
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: var(--umm-space-sm, 12px);
 }
-@media (min-width: 768px) { .umm-mp-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1024px) { .umm-mp-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 1280px) { .umm-mp-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 768px) {
+  .umm-mp-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-mp-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .umm-mp-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
 
 .umm-mp-card {
   display: flex;
@@ -139,7 +151,9 @@
   color: var(--umm-mp-accent);
   background: var(--umm-mp-accent-soft);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .umm-mp-musician:hover {
   background: var(--umm-mp-accent);

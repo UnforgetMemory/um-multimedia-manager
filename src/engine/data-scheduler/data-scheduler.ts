@@ -14,40 +14,43 @@
  * re-issue requests on wake.
  */
 
-import type { ScheduleOptions, QueuedTask, SchedulerEvent } from './types'
-import { DEFAULT_PRIORITY, DEFAULT_TASK_TIMEOUT, CACHE_TTL } from './types'
-import { PriorityQueue } from './priority-queue'
-import { RateLimiter } from './rate-limiter'
-import { RetryPolicy } from './retry-policy'
-import { SchedulerMonitor } from './scheduler-monitor'
-import { CacheManager } from '@/engine/cache/cache-manager'
-import { sleep } from '@/libraries/utils'
+import type { ScheduleOptions, QueuedTask, SchedulerEvent } from './types';
+import { DEFAULT_PRIORITY, DEFAULT_TASK_TIMEOUT, CACHE_TTL } from './types';
+import { PriorityQueue } from './priority-queue';
+import { RateLimiter } from './rate-limiter';
+import { RetryPolicy } from './retry-policy';
+import { SchedulerMonitor } from './scheduler-monitor';
+import { CacheManager } from '@/engine/cache/cache-manager';
+import { sleep } from '@/libraries/utils';
 
 /**
  * Backoff after a rate-limit acquire timeout before retrying the loop.
  * Matches RateLimiter's acquire window (10s) so we don't busy-spin while
  * the limiter is still saturated.
  */
-const RATE_LIMIT_RETRY_BACKOFF_MS = 10_000
+const RATE_LIMIT_RETRY_BACKOFF_MS = 10_000;
 
 export class DataScheduler {
-  readonly queue = new PriorityQueue()
+  readonly queue = new PriorityQueue();
   /** Long-running lane (export/stats/WebDAV) — serial, isolated from interactive. */
-  readonly bulkQueue = new PriorityQueue()
-  readonly rateLimiter = new RateLimiter()
-  readonly retryPolicy = new RetryPolicy()
-  readonly monitor = new SchedulerMonitor()
+  readonly bulkQueue = new PriorityQueue();
+  readonly rateLimiter = new RateLimiter();
+  readonly retryPolicy = new RetryPolicy();
+  readonly monitor = new SchedulerMonitor();
 
-  readonly cacheManager?: CacheManager
+  readonly cacheManager?: CacheManager;
 
-  private processing = false
-  private bulkProcessing = false
-  private taskCounter = 0
-  private readonly rateLimitBackoffMs: number
+  private processing = false;
+  private bulkProcessing = false;
+  private taskCounter = 0;
+  private readonly rateLimitBackoffMs: number;
 
-  constructor(cacheManager?: CacheManager, rateLimitBackoffMs: number = RATE_LIMIT_RETRY_BACKOFF_MS) {
-    this.cacheManager = cacheManager
-    this.rateLimitBackoffMs = rateLimitBackoffMs
+  constructor(
+    cacheManager?: CacheManager,
+    rateLimitBackoffMs: number = RATE_LIMIT_RETRY_BACKOFF_MS,
+  ) {
+    this.cacheManager = cacheManager;
+    this.rateLimitBackoffMs = rateLimitBackoffMs;
   }
 
   // ==================== Public API ====================
@@ -58,19 +61,16 @@ export class DataScheduler {
    * Returns a Promise that resolves with the operation's result (or
    * rejects if all retries are exhausted or the task times out).
    */
-  async schedule<T>(
-    operation: () => Promise<T>,
-    options?: ScheduleOptions,
-  ): Promise<T> {
-    const priority = options?.priority ?? DEFAULT_PRIORITY
-    const timeout = options?.timeout ?? DEFAULT_TASK_TIMEOUT
-    const cacheKey = options?.cacheKey
-    const lane = options?.lane ?? 'interactive'
-    const taskId = `task_${++this.taskCounter}_${Date.now()}`
+  async schedule<T>(operation: () => Promise<T>, options?: ScheduleOptions): Promise<T> {
+    const priority = options?.priority ?? DEFAULT_PRIORITY;
+    const timeout = options?.timeout ?? DEFAULT_TASK_TIMEOUT;
+    const cacheKey = options?.cacheKey;
+    const lane = options?.lane ?? 'interactive';
+    const taskId = `task_${++this.taskCounter}_${Date.now()}`;
 
     // Cache check (before enqueuing)
     if (cacheKey && !options?.invalidateCache) {
-      const cached = await this.peekCache<T>(cacheKey)
+      const cached = await this.peekCache<T>(cacheKey);
       if (cached !== undefined) {
         this.monitor.recordEvent({
           type: 'cache:hit',
@@ -78,8 +78,8 @@ export class DataScheduler {
           storeName: options?.storeName,
           key: cacheKey,
           timestamp: Date.now(),
-        })
-        return cached
+        });
+        return cached;
       }
       this.monitor.recordEvent({
         type: 'cache:miss',
@@ -87,12 +87,12 @@ export class DataScheduler {
         storeName: options?.storeName,
         key: cacheKey,
         timestamp: Date.now(),
-      })
+      });
     }
 
     // Invalidation before execution
     if (options?.invalidateCache && cacheKey) {
-      this.cacheManager?.invalidate('scheduler', cacheKey)
+      this.cacheManager?.invalidate('scheduler', cacheKey);
     }
 
     // Create the task
@@ -101,13 +101,13 @@ export class DataScheduler {
         id: taskId,
         priority,
         operation: async () => {
-          const result = await this.retryPolicy.execute(operation)
+          const result = await this.retryPolicy.execute(operation);
           if (cacheKey && this.cacheManager) {
             this.cacheManager.set('scheduler', cacheKey, result, {
               ttlMs: options?.cacheTTL ?? CACHE_TTL,
-            })
+            });
           }
-          return result
+          return result;
         },
         timeout,
         createdAt: Date.now(),
@@ -116,23 +116,23 @@ export class DataScheduler {
         storeName: options?.storeName,
         resolve: resolve as (value: unknown) => void,
         reject,
-      }
+      };
 
-      const target = lane === 'bulk' ? this.bulkQueue : this.queue
+      const target = lane === 'bulk' ? this.bulkQueue : this.queue;
       if (!target.enqueue(task as QueuedTask)) {
-        reject(new Error(`Queue full (max ${target.size()})`))
-        return
+        reject(new Error(`Queue full (max ${target.size()})`));
+        return;
       }
 
-      this.monitor.setQueueDepth(this.queue.size() + this.bulkQueue.size())
-      if (lane === 'bulk') this.scheduleBulkLoop()
-      else this.scheduleProcessLoop()
-    })
+      this.monitor.setQueueDepth(this.queue.size() + this.bulkQueue.size());
+      if (lane === 'bulk') this.scheduleBulkLoop();
+      else this.scheduleProcessLoop();
+    });
   }
 
   /** Start the processing loop (called automatically on first schedule). */
   start(): void {
-    this.scheduleProcessLoop()
+    this.scheduleProcessLoop();
   }
 
   /** Discard all queued tasks and cached data. Metrics survive unless cleared. */
@@ -140,35 +140,35 @@ export class DataScheduler {
     // Reject rather than drop: a vanished promise hangs the caller forever.
     const drain = (q: PriorityQueue) => {
       for (;;) {
-        const t = q.dequeue()
-        if (!t) break
-        t.reject(new Error('Scheduler cleared'))
+        const t = q.dequeue();
+        if (!t) break;
+        t.reject(new Error('Scheduler cleared'));
       }
-    }
-    drain(this.queue)
-    drain(this.bulkQueue)
-    this.cacheManager?.invalidate('scheduler')
+    };
+    drain(this.queue);
+    drain(this.bulkQueue);
+    this.cacheManager?.invalidate('scheduler');
   }
 
   /** Register a monitor event listener (delegates to SchedulerMonitor). */
   onEvent(listener: (event: SchedulerEvent) => void): () => void {
-    return this.monitor.onEvent(listener)
+    return this.monitor.onEvent(listener);
   }
 
   // ==================== Internal ====================
 
   private scheduleProcessLoop(): void {
-    if (this.processing) return
-    this.processing = true
+    if (this.processing) return;
+    this.processing = true;
 
     // Use microtask / macrotask scheduling to avoid stack buildup
-    Promise.resolve().then(() => this.processLoop(this.queue, 'interactive'))
+    Promise.resolve().then(() => this.processLoop(this.queue, 'interactive'));
   }
 
   private scheduleBulkLoop(): void {
-    if (this.bulkProcessing) return
-    this.bulkProcessing = true
-    Promise.resolve().then(() => this.processLoop(this.bulkQueue, 'bulk'))
+    if (this.bulkProcessing) return;
+    this.bulkProcessing = true;
+    Promise.resolve().then(() => this.processLoop(this.bulkQueue, 'bulk'));
   }
 
   private async processLoop(queue: PriorityQueue, lane: 'interactive' | 'bulk'): Promise<void> {
@@ -176,78 +176,77 @@ export class DataScheduler {
       while (!queue.isEmpty()) {
         // Rate-limit check — blocks until a token is available
         try {
-          await this.rateLimiter.acquire()
+          await this.rateLimiter.acquire();
         } catch {
           // Rate-limit timeout — back off for the limiter's acquire window,
           // then keep the loop alive so queued tasks still run.
-          await sleep(this.rateLimitBackoffMs)
-          continue
+          await sleep(this.rateLimitBackoffMs);
+          continue;
         }
 
-        const task = queue.dequeue() as QueuedTask | null
-        if (!task) continue
+        const task = queue.dequeue() as QueuedTask | null;
+        if (!task) continue;
 
-        await this.executeTask(task)
-        this.monitor.setQueueDepth(this.queue.size() + this.bulkQueue.size())
+        await this.executeTask(task);
+        this.monitor.setQueueDepth(this.queue.size() + this.bulkQueue.size());
       }
     } finally {
-      if (lane === 'bulk') this.bulkProcessing = false
-      else this.processing = false
+      if (lane === 'bulk') this.bulkProcessing = false;
+      else this.processing = false;
       // Lost-wakeup: an enqueue can land after isEmpty() but before the flag
       // flip — without this restart the item sits until the next schedule().
       if (!queue.isEmpty()) {
-        if (lane === 'bulk') this.scheduleBulkLoop()
-        else this.scheduleProcessLoop()
+        if (lane === 'bulk') this.scheduleBulkLoop();
+        else this.scheduleProcessLoop();
       }
     }
   }
 
   private async executeTask(task: QueuedTask): Promise<void> {
-    const startTime = Date.now()
+    const startTime = Date.now();
 
     // Per-task timeout — keep the handle so it can be cleared once the race
     // settles; a leaked timer would keep the Service Worker alive.
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-    let timedOut = false
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    let timedOut = false;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(
-        () => {
-          timedOut = true
-          reject(new Error(
+      timeoutHandle = setTimeout(() => {
+        timedOut = true;
+        reject(
+          new Error(
             `Task ${task.id}${task.storeName ? ` (${task.storeName})` : ''} timed out after ${task.timeout}ms`,
-          ))
-        },
-        task.timeout,
-      )
-    })
+          ),
+        );
+      }, task.timeout);
+    });
 
     // Keep the operation promise — after a timeout it may still settle later
     // (e.g. a slow IndexedDB scan), and its real outcome must not be masked by
     // the timeout error. NEVER call task.operation() again (it would re-run).
-    const opPromise = task.operation()
+    const opPromise = task.operation();
 
     try {
-      const result = await Promise.race([opPromise, timeoutPromise])
-      clearTimeout(timeoutHandle)
+      const result = await Promise.race([opPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
 
       this.monitor.recordEvent({
         type: 'task:completed',
         taskId: task.id,
         duration: Date.now() - startTime,
         timestamp: Date.now(),
-      })
+      });
 
-      task.resolve(result)
+      task.resolve(result);
     } catch (error: unknown) {
-      clearTimeout(timeoutHandle)
+      clearTimeout(timeoutHandle);
 
       this.monitor.recordEvent({
         type: 'task:failed',
         taskId: task.id,
         error,
         timestamp: Date.now(),
-      })
-      task.reject(error)
+      });
+      task.reject(error);
 
       if (timedOut) {
         // Diagnostics: the timed-out operation keeps running (its IDB
@@ -258,24 +257,26 @@ export class DataScheduler {
         // Emitted as task:late-settled (informational — NOT counted in
         // monitor metrics; the timed-out task was already recorded as failed).
         opPromise.then(
-          () => this.monitor.recordEvent({
-            type: 'task:late-settled',
-            taskId: task.id,
-            timestamp: Date.now(),
-          }),
-          (opErr: unknown) => this.monitor.recordEvent({
-            type: 'task:late-settled',
-            taskId: task.id,
-            error: opErr,
-            timestamp: Date.now(),
-          }),
-        )
+          () =>
+            this.monitor.recordEvent({
+              type: 'task:late-settled',
+              taskId: task.id,
+              timestamp: Date.now(),
+            }),
+          (opErr: unknown) =>
+            this.monitor.recordEvent({
+              type: 'task:late-settled',
+              taskId: task.id,
+              error: opErr,
+              timestamp: Date.now(),
+            }),
+        );
       }
     }
   }
 
   private async peekCache<T>(key: string): Promise<T | undefined> {
-    if (!this.cacheManager) return undefined
-    return this.cacheManager.get<T>('scheduler', key)
+    if (!this.cacheManager) return undefined;
+    return this.cacheManager.get<T>('scheduler', key);
   }
 }

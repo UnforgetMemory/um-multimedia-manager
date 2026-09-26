@@ -1,7 +1,7 @@
-import enUS from './en-US'
-import zhCN from './zh-CN'
-import zhHK from './zh-HK'
-import zhTW from './zh-TW'
+import enUS from './en-US';
+import zhCN from './zh-CN';
+import zhHK from './zh-HK';
+import zhTW from './zh-TW';
 
 /**
  * 内容脚本 locale 聚合入口（聚合式拆分，2026-09-25）。
@@ -14,13 +14,13 @@ import zhTW from './zh-TW'
  * `scripts/check-i18n.js` 已同步为按目录逐文件读取（块标记切分逻辑退役）。
  */
 
-export type Locale = 'en-US' | 'zh-CN' | 'zh-HK' | 'zh-TW'
+export type Locale = 'en-US' | 'zh-CN' | 'zh-HK' | 'zh-TW';
 
 const locales: Record<Locale, Record<string, string>> = {
   'en-US': enUS,
   'zh-CN': zhCN,
   'zh-HK': zhHK,
   'zh-TW': zhTW,
-}
+};
 
-export default locales
+export default locales;

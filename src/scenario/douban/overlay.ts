@@ -6,4 +6,4 @@
  * New code should prefer the sub-module directly.
  */
 
-export * from './overlay/index'
+export * from './overlay/index';

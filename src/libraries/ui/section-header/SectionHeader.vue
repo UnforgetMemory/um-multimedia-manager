@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { FunctionalComponent, SVGAttributes } from 'vue'
+import type { FunctionalComponent, SVGAttributes } from 'vue';
 
 defineProps<{
-  title: string
-  icon?: FunctionalComponent<SVGAttributes>
-}>()
+  title: string;
+  icon?: FunctionalComponent<SVGAttributes>;
+}>();
 </script>
 
 <template vapor>

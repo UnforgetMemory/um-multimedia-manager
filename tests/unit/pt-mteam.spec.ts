@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test';
 import {
   isMTeamRowMatched,
   getMTeamRowOutcome,
   type MTeamRowIds,
-} from '@/entrypoints/content/enhancers/pt/dimmer/mteam-match'
+} from '@/entrypoints/content/enhancers/pt/dimmer/mteam-match';
 
 /**
  * M-Team 行匹配决策单元测试。
@@ -27,28 +27,28 @@ import {
  */
 
 test.describe('isMTeamRowMatched', () => {
-  const movie = new Set(['1001', '2002'])
-  const music = new Set(['5001'])
-  const imdb = new Set(['tt1234567', 'tt7654321'])
+  const movie = new Set(['1001', '2002']);
+  const music = new Set(['5001']);
+  const imdb = new Set(['tt1234567', 'tt7654321']);
 
   const ids = (over: Partial<MTeamRowIds> = {}): MTeamRowIds => ({
     movieDoubanId: null,
     musicDoubanId: null,
     imdbId: null,
     ...over,
-  })
+  });
 
   test('电影豆瓣 ID 命中 → true', () => {
-    expect(isMTeamRowMatched(ids({ movieDoubanId: '1001' }), movie, music, imdb)).toBe(true)
-  })
+    expect(isMTeamRowMatched(ids({ movieDoubanId: '1001' }), movie, music, imdb)).toBe(true);
+  });
 
   test('音乐豆瓣 ID 命中 → true', () => {
-    expect(isMTeamRowMatched(ids({ musicDoubanId: '5001' }), movie, music, imdb)).toBe(true)
-  })
+    expect(isMTeamRowMatched(ids({ musicDoubanId: '5001' }), movie, music, imdb)).toBe(true);
+  });
 
   test('IMDb ID 命中 → true', () => {
-    expect(isMTeamRowMatched(ids({ imdbId: 'tt1234567' }), movie, music, imdb)).toBe(true)
-  })
+    expect(isMTeamRowMatched(ids({ imdbId: 'tt1234567' }), movie, music, imdb)).toBe(true);
+  });
 
   test('三个平台 ID 全部命中 → true', () => {
     expect(
@@ -57,39 +57,39 @@ test.describe('isMTeamRowMatched', () => {
         movie,
         music,
         imdb,
-      )
-    ).toBe(true)
-  })
+      ),
+    ).toBe(true);
+  });
 
   test('任一平台 ID 不在集合中 → false（互不影响）', () => {
-    expect(isMTeamRowMatched(ids({ movieDoubanId: '9999' }), movie, music, imdb)).toBe(false)
-    expect(isMTeamRowMatched(ids({ musicDoubanId: '9999' }), movie, music, imdb)).toBe(false)
-    expect(isMTeamRowMatched(ids({ imdbId: 'tt0000000' }), movie, music, imdb)).toBe(false)
+    expect(isMTeamRowMatched(ids({ movieDoubanId: '9999' }), movie, music, imdb)).toBe(false);
+    expect(isMTeamRowMatched(ids({ musicDoubanId: '9999' }), movie, music, imdb)).toBe(false);
+    expect(isMTeamRowMatched(ids({ imdbId: 'tt0000000' }), movie, music, imdb)).toBe(false);
     // 一个命中 + 一个未命中 → 仍为 true（或语义）
     expect(
-      isMTeamRowMatched(ids({ movieDoubanId: '1001', imdbId: 'tt0000000' }), movie, music, imdb)
-    ).toBe(true)
-  })
+      isMTeamRowMatched(ids({ movieDoubanId: '1001', imdbId: 'tt0000000' }), movie, music, imdb),
+    ).toBe(true);
+  });
 
   test('所有 ID 均为 null（行内无平台链接）→ false', () => {
-    expect(isMTeamRowMatched(ids(), movie, music, imdb)).toBe(false)
-  })
+    expect(isMTeamRowMatched(ids(), movie, music, imdb)).toBe(false);
+  });
 
   test('空集合 → false（即使有 ID）', () => {
     expect(isMTeamRowMatched(ids({ movieDoubanId: '1001' }), new Set(), new Set(), new Set())).toBe(
-      false
-    )
-  })
+      false,
+    );
+  });
 
   test('非数字电影 ID（如空串）→ false', () => {
-    expect(isMTeamRowMatched(ids({ movieDoubanId: '' }), movie, music, imdb)).toBe(false)
-  })
-})
+    expect(isMTeamRowMatched(ids({ movieDoubanId: '' }), movie, music, imdb)).toBe(false);
+  });
+});
 
 test.describe('getMTeamRowOutcome（resolved 契约 — 修复锁定）', () => {
-  const movie = new Set(['1001'])
-  const music = new Set(['5001'])
-  const imdb = new Set(['tt1234567'])
+  const movie = new Set(['1001']);
+  const music = new Set(['5001']);
+  const imdb = new Set(['tt1234567']);
 
   test('匹配行 → { matched: true, resolved: true }', () => {
     const out = getMTeamRowOutcome(
@@ -97,9 +97,9 @@ test.describe('getMTeamRowOutcome（resolved 契约 — 修复锁定）', () => 
       movie,
       music,
       imdb,
-    )
-    expect(out).toEqual({ matched: true, resolved: true })
-  })
+    );
+    expect(out).toEqual({ matched: true, resolved: true });
+  });
 
   test('未匹配行 → { matched: false, resolved: false }（关键回归锁）', () => {
     // 回归锁：未匹配行绝不能标记 resolved=true，
@@ -109,9 +109,9 @@ test.describe('getMTeamRowOutcome（resolved 契约 — 修复锁定）', () => 
       movie,
       music,
       imdb,
-    )
-    expect(out).toEqual({ matched: false, resolved: false })
-  })
+    );
+    expect(out).toEqual({ matched: false, resolved: false });
+  });
 
   test('无链接行（全 null）→ 同样保持 unresolved', () => {
     const out = getMTeamRowOutcome(
@@ -119,9 +119,9 @@ test.describe('getMTeamRowOutcome（resolved 契约 — 修复锁定）', () => 
       movie,
       music,
       imdb,
-    )
-    expect(out).toEqual({ matched: false, resolved: false })
-  })
+    );
+    expect(out).toEqual({ matched: false, resolved: false });
+  });
 
   test('resolved 与 matched 恒等（不变量）', () => {
     const cases: MTeamRowIds[] = [
@@ -130,10 +130,10 @@ test.describe('getMTeamRowOutcome（resolved 契约 — 修复锁定）', () => 
       { movieDoubanId: null, musicDoubanId: null, imdbId: 'tt1234567' },
       { movieDoubanId: null, musicDoubanId: null, imdbId: null },
       { movieDoubanId: '0000', musicDoubanId: '0000', imdbId: 'tt0000000' },
-    ]
+    ];
     for (const c of cases) {
-      const out = getMTeamRowOutcome(c, movie, music, imdb)
-      expect(out.resolved).toBe(out.matched)
+      const out = getMTeamRowOutcome(c, movie, music, imdb);
+      expect(out.resolved).toBe(out.matched);
     }
-  })
-})
+  });
+});

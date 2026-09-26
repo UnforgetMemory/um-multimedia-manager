@@ -8,57 +8,57 @@
 /** A single book entry within a series */
 export interface SeriesItem {
   /** Douban subject ID extracted from the book URL */
-  subjectId: string
+  subjectId: string;
   /** Book title */
-  title: string
+  title: string;
   /** Cover image URL (small thumbnail from DOM) */
-  coverUrl: string
+  coverUrl: string;
   /** URL to the book's subject detail page */
-  subjectUrl: string
+  subjectUrl: string;
   /** Publication info — author / publisher / date / price */
-  pubInfo: string
+  pubInfo: string;
   /** Rating score (0-10 scale, 0 if unrated) */
-  rating: number
+  rating: number;
   /** Number of ratings (0 if unrated) */
-  ratingCount: number
+  ratingCount: number;
   /** Book description blurb */
-  description: string
+  description: string;
 }
 
 /** Sort option in the series page header */
 export interface SeriesSortOption {
-  label: string
-  url: string
-  active: boolean
+  label: string;
+  url: string;
+  active: boolean;
 }
 
 /** Paginator info for multi-page series */
 export interface SeriesPaginator {
-  currentPage: number
-  totalPages: number
-  prevUrl: string
-  nextUrl: string
-  pages: { label: string; url: string; current: boolean }[]
+  currentPage: number;
+  totalPages: number;
+  prevUrl: string;
+  nextUrl: string;
+  pages: { label: string; url: string; current: boolean }[];
 }
 
 /** Top-level page data extracted from the series page DOM */
 export interface SeriesPageData {
   /** Series ID from URL */
-  id: string
+  id: string;
   /** Series title (h1) */
-  title: string
+  title: string;
   /** Publisher name */
-  publisher: string
+  publisher: string;
   /** Number of volumes */
-  volumes: number
+  volumes: number;
   /** Series description */
-  description: string
+  description: string;
   /** Total number of books in the series */
-  totalCount: number
+  totalCount: number;
   /** Sort options */
-  sortOptions: SeriesSortOption[]
+  sortOptions: SeriesSortOption[];
   /** Books on the current page */
-  items: SeriesItem[]
+  items: SeriesItem[];
   /** Paginator info */
-  paginator: SeriesPaginator
+  paginator: SeriesPaginator;
 }

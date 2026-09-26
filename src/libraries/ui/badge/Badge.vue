@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from "vue"
-import type { BadgeVariants } from "../../../libraries/ui/badge"
-import { cn } from "@/libraries/utils/cn"
-import { badgeVariants } from "../../../libraries/ui/badge"
+import type { HTMLAttributes } from 'vue';
+import type { BadgeVariants } from '../../../libraries/ui/badge';
+import { cn } from '@/libraries/utils/cn';
+import { badgeVariants } from '../../../libraries/ui/badge';
 
 const props = defineProps<{
-  variant?: BadgeVariants["variant"]
-  class?: HTMLAttributes["class"]
-}>()
+  variant?: BadgeVariants['variant'];
+  class?: HTMLAttributes['class'];
+}>();
 </script>
 
 <template vapor>
@@ -15,4 +15,3 @@ const props = defineProps<{
     <slot />
   </div>
 </template>
-

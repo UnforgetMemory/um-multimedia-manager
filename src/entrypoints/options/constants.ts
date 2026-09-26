@@ -12,10 +12,10 @@ export const PLATFORM_OPTIONS = [
   { value: 'youtube', labelKey: 'platform.youtube' as const },
   { value: 'bangumi', labelKey: 'platform.bangumi' as const },
   { value: 'jav_ids', labelKey: 'platform.jav' as const },
-] as const
+] as const;
 
 export const JAV_SOURCE_OPTIONS = [
   { value: 'javdb', labelKey: 'platform.javdb' as const },
   { value: 'sehuatang', labelKey: 'platform.sehuatang' as const },
   { value: 'local', labelKey: 'platform.local' as const },
-] as const
+] as const;

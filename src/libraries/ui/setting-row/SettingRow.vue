@@ -9,16 +9,16 @@
  *     <Switch ... />
  *   </div>
  */
-import type { HTMLAttributes } from "vue"
-import { Label } from '@/libraries/ui/label'
+import type { HTMLAttributes } from 'vue';
+import { Label } from '@/libraries/ui/label';
 
 interface Props {
-  label: string
-  description?: string
-  class?: HTMLAttributes["class"]
+  label: string;
+  description?: string;
+  class?: HTMLAttributes['class'];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 </script>
 
 <template vapor>

@@ -76,7 +76,7 @@
 .umm-footer-links a {
   color: var(--umm-link, var(--umm-text-secondary));
   text-decoration: none;
-  transition: color .15s;
+  transition: color 0.15s;
 }
 
 .umm-footer-links a:hover {
@@ -100,7 +100,7 @@
   align-items: center;
   color: var(--umm-text-muted);
   text-decoration: none;
-  transition: color .15s;
+  transition: color 0.15s;
   line-height: 0;
 }
 

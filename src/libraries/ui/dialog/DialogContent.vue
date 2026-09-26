@@ -1,24 +1,19 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import { forwardProps, forwardEmits } from '@/libraries/ui/forward-props'
-import type { DialogContentEmits, DialogContentProps } from "reka-ui"
-import type { HTMLAttributes } from "vue"
-import { reactiveOmit } from "@vueuse/core"
-import { X } from "lucide-vue-next"
-import {
-  DialogClose,
-  DialogContent,
-  DialogOverlay,
-  DialogPortal,
-} from "reka-ui"
-import { cn } from "@/libraries/utils/cn"
+import { computed } from 'vue';
+import { forwardProps, forwardEmits } from '@/libraries/ui/forward-props';
+import type { DialogContentEmits, DialogContentProps } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+import { reactiveOmit } from '@vueuse/core';
+import { X } from 'lucide-vue-next';
+import { DialogClose, DialogContent, DialogOverlay, DialogPortal } from 'reka-ui';
+import { cn } from '@/libraries/utils/cn';
 
-const props = defineProps<DialogContentProps & { class?: HTMLAttributes["class"] }>()
-const emits = defineEmits<DialogContentEmits>()
+const props = defineProps<DialogContentProps & { class?: HTMLAttributes['class'] }>();
+const emits = defineEmits<DialogContentEmits>();
 
-const delegatedProps = reactiveOmit(props, "class")
+const delegatedProps = reactiveOmit(props, 'class');
 
-const forwardedProps = forwardProps(delegatedProps)
+const forwardedProps = forwardProps(delegatedProps);
 const forwardedEmits = forwardEmits<DialogContentEmits>(emits, [
   'escapeKeyDown',
   'pointerDownOutside',
@@ -26,8 +21,8 @@ const forwardedEmits = forwardEmits<DialogContentEmits>(emits, [
   'interactOutside',
   'openAutoFocus',
   'closeAutoFocus',
-])
-const forwarded = computed(() => ({ ...forwardedProps.value, ...forwardedEmits }))
+]);
+const forwarded = computed(() => ({ ...forwardedProps.value, ...forwardedEmits }));
 </script>
 
 <template vapor>
@@ -37,9 +32,12 @@ const forwarded = computed(() => ({ ...forwardedProps.value, ...forwardedEmits }
     />
     <DialogContent
       v-bind="forwarded"
-      :class="cn('umm:fixed umm:left-1/2 umm:top-1/2 umm:z-50 umm:grid umm:w-full umm:max-w-lg umm:-translate-x-1/2 umm:-translate-y-1/2 umm:gap-4 umm:border umm:bg-background umm:p-6 umm:shadow-lg umm:duration-200 umm:data-[state=open]:animate-in umm:data-[state=closed]:animate-out umm:data-[state=closed]:fade-out-0 umm:data-[state=open]:fade-in-0 umm:data-[state=closed]:zoom-out-95 umm:data-[state=open]:zoom-in-95 umm:data-[state=closed]:slide-out-to-left-1/2 umm:data-[state=closed]:slide-out-to-top-[48%] umm:data-[state=open]:slide-in-from-left-1/2 umm:data-[state=open]:slide-in-from-top-[48%] umm:sm:rounded-lg', props.class,
+      :class="
+        cn(
+          'umm:fixed umm:left-1/2 umm:top-1/2 umm:z-50 umm:grid umm:w-full umm:max-w-lg umm:-translate-x-1/2 umm:-translate-y-1/2 umm:gap-4 umm:border umm:bg-background umm:p-6 umm:shadow-lg umm:duration-200 umm:data-[state=open]:animate-in umm:data-[state=closed]:animate-out umm:data-[state=closed]:fade-out-0 umm:data-[state=open]:fade-in-0 umm:data-[state=closed]:zoom-out-95 umm:data-[state=open]:zoom-in-95 umm:data-[state=closed]:slide-out-to-left-1/2 umm:data-[state=closed]:slide-out-to-top-[48%] umm:data-[state=open]:slide-in-from-left-1/2 umm:data-[state=open]:slide-in-from-top-[48%] umm:sm:rounded-lg',
+          props.class,
         )
-"
+      "
     >
       <slot />
 
@@ -52,4 +50,3 @@ const forwarded = computed(() => ({ ...forwardedProps.value, ...forwardedEmits }
     </DialogContent>
   </DialogPortal>
 </template>
-

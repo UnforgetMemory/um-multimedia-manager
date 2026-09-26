@@ -1,45 +1,45 @@
-import locales, { type Locale } from './locales'
-import { STORAGE_KEYS } from '@/libraries/config'
+import locales, { type Locale } from './locales';
+import { STORAGE_KEYS } from '@/libraries/config';
 
-const STORAGE_KEY = 'umm:locale'
+const STORAGE_KEY = 'umm:locale';
 /**
  * 扩展语言设置的物理存储键，必须与 `AppSettings.language` 一致。
  * 经 `STORAGE_KEYS`（单一事实源，ADR-017）引用而非写裸字面量——此前这里是
  * `'language'` 的副本，与设置层存在漂移风险。
  */
-const EXT_LANGUAGE_KEY = STORAGE_KEYS.LANGUAGE
+const EXT_LANGUAGE_KEY = STORAGE_KEYS.LANGUAGE;
 
-let currentLocale: Locale = 'zh-CN'
+let currentLocale: Locale = 'zh-CN';
 
 async function detectLocale(): Promise<Locale> {
   // Try chrome.storage.local first (set by Vue apps via STORAGE_KEYS.LANGUAGE)
   try {
-    const result = await chrome.storage.local.get(EXT_LANGUAGE_KEY)
-    const stored = result[EXT_LANGUAGE_KEY] as Locale | undefined
-    if (stored && stored in locales) return stored
+    const result = await chrome.storage.local.get(EXT_LANGUAGE_KEY);
+    const stored = result[EXT_LANGUAGE_KEY] as Locale | undefined;
+    if (stored && stored in locales) return stored;
   } catch {
     // chrome.storage not available
   }
 
   // Fall back to localStorage (legacy)
-  const localStored = localStorage.getItem(STORAGE_KEY) as Locale | null
-  if (localStored && localStored in locales) return localStored
+  const localStored = localStorage.getItem(STORAGE_KEY) as Locale | null;
+  if (localStored && localStored in locales) return localStored;
 
   // Fall back to browser language
-  const lang = navigator.language
+  const lang = navigator.language;
   if (lang.startsWith('zh')) {
-    if (lang.includes('TW')) return 'zh-TW'
-    if (lang.includes('HK')) return 'zh-HK'
+    if (lang.includes('TW')) return 'zh-TW';
+    if (lang.includes('HK')) return 'zh-HK';
     // 无地区后缀 / 仅 Hant 标记的传统中文（macOS・iOS 常见 zh-Hant）→ 繁体，
     // 否则会误落到 zh-CN（简体）。
-    if (lang.includes('Hant')) return 'zh-TW'
-    return 'zh-CN'
+    if (lang.includes('Hant')) return 'zh-TW';
+    return 'zh-CN';
   }
-  return 'en-US'
+  return 'en-US';
 }
 
 export async function initI18n(): Promise<void> {
-  currentLocale = await detectLocale()
+  currentLocale = await detectLocale();
 }
 
 /**
@@ -48,22 +48,22 @@ export async function initI18n(): Promise<void> {
  */
 export function startLocaleSync(): void {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return
-    const langChange = changes[EXT_LANGUAGE_KEY]
+    if (area !== 'local') return;
+    const langChange = changes[EXT_LANGUAGE_KEY];
     if (langChange?.newValue && langChange.newValue !== langChange.oldValue) {
-      const newLocale = langChange.newValue as Locale
+      const newLocale = langChange.newValue as Locale;
       if (newLocale in locales) {
-        currentLocale = newLocale
+        currentLocale = newLocale;
       }
     }
-  })
+  });
 }
 
 export function t(key: string, params?: Record<string, string | number>): string {
-  const str = locales[currentLocale]?.[key] || locales['en-US']?.[key] || key
-  if (!params) return str
+  const str = locales[currentLocale]?.[key] || locales['en-US']?.[key] || key;
+  if (!params) return str;
   return Object.entries(params).reduce(
     (s, [k, v]) => s.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v)),
-    str
-  )
+    str,
+  );
 }

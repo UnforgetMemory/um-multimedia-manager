@@ -7,7 +7,7 @@
 
 /** Extract a safe message from an unknown thrown value */
 export function errorMessage(err: unknown): string {
-  return (err as Error)?.message || String(err)
+  return (err as Error)?.message || String(err);
 }
 
 /**
@@ -17,4 +17,4 @@ export function errorMessage(err: unknown): string {
  * contract is `ResponseMessageMap` (types/messages.ts) — see also
  * `MessageSuccess` for the client-side resolved member.
  */
-export type SendResponse = <T = unknown>(response?: T) => void
+export type SendResponse = <T = unknown>(response?: T) => void;

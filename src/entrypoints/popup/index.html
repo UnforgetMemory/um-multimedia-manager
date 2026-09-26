@@ -1,25 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UMManager</title>
-  <style>
-    html, body { margin: 0; padding: 0; width: 600px; height: 480px; overflow-y: auto; }
-    body { background: transparent !important; }
-    /* Pre-paint background mirrors tokens.static.css neutrals (ADR-018/019):
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UMManager</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 600px;
+        height: 480px;
+        overflow-y: auto;
+      }
+      body {
+        background: transparent !important;
+      }
+      /* Pre-paint background mirrors tokens.static.css neutrals (ADR-018/019):
        light page wash = neutral-50, dark = neutral-900 */
-    html { background-color: #f7f9fc; color-scheme: light; }
-    html.dark { background-color: #1c1c1e; color-scheme: dark; }
-    html.light { color-scheme: light; }
-    @media (prefers-color-scheme: dark) {
-      html:not(.dark):not(.light) { color-scheme: dark; }
-    }
-    *, *::before, *::after { transition: none !important; }
-  </style>
-</head>
-<body>
-  <div id="app"></div>
-  <script type="module" src="./main.ts"></script>
-</body>
+      html {
+        background-color: #f7f9fc;
+        color-scheme: light;
+      }
+      html.dark {
+        background-color: #1c1c1e;
+        color-scheme: dark;
+      }
+      html.light {
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        html:not(.dark):not(.light) {
+          color-scheme: dark;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        transition: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
 </html>

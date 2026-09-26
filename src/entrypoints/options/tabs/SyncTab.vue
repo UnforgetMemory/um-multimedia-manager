@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, defineAsyncComponent } from 'vue'
-import { useI18n } from 'vue-i18n'
-import SegmentedControl from '@/libraries/ui/segmented-control/SegmentedControl.vue'
+import { ref, defineAsyncComponent } from 'vue';
+import { useI18n } from 'vue-i18n';
+import SegmentedControl from '@/libraries/ui/segmented-control/SegmentedControl.vue';
 
-const { t } = useI18n()
-const activeSubTab = ref('webdav')
+const { t } = useI18n();
+const activeSubTab = ref('webdav');
 
-const WebDAVTab = defineAsyncComponent(() => import('./sync/WebDAVTab.vue'))
-const ImportExportTab = defineAsyncComponent(() => import('./sync/ImportExportTab.vue'))
+const WebDAVTab = defineAsyncComponent(() => import('./sync/WebDAVTab.vue'));
+const ImportExportTab = defineAsyncComponent(() => import('./sync/ImportExportTab.vue'));
 
 const subTabs = [
   { id: 'webdav', label: 'WebDAV' },
   { id: 'import-export', label: t('tab.importExport') as string },
-]
+];
 </script>
 
 <template vapor>

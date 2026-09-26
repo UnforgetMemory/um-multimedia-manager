@@ -1,10 +1,10 @@
 <script setup lang="ts">
 interface Props {
-  title: string
-  mode?: 'scroll' | 'grid'
+  title: string;
+  mode?: 'scroll' | 'grid';
 }
 
-defineProps<Props>()
+defineProps<Props>();
 </script>
 
 <template vapor>

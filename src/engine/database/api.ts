@@ -8,9 +8,16 @@
  * caller.
  */
 
-import type { Provider } from '@/libraries/config'
-import type { MessageType, MessagePayloadMap, MessageSuccess, StoreRecord, AppSettings, PtIdCacheEntry } from '@/types'
-import { sleep } from '@/libraries/utils'
+import type { Provider } from '@/libraries/config';
+import type {
+  MessageType,
+  MessagePayloadMap,
+  MessageSuccess,
+  StoreRecord,
+  AppSettings,
+  PtIdCacheEntry,
+} from '@/types';
+import { sleep } from '@/libraries/utils';
 
 /**
  * Connection-level failures worth retrying — all mean "the receiving end
@@ -24,10 +31,10 @@ const CONNECTION_ERROR_MARKERS = [
   'Could not establish connection',
   'Receiving end does not exist',
   'The message port closed before a response was received',
-]
+];
 
 function isTransientConnectionError(message: string): boolean {
-  return CONNECTION_ERROR_MARKERS.some((marker) => message.includes(marker))
+  return CONNECTION_ERROR_MARKERS.some((marker) => message.includes(marker));
 }
 
 /**
@@ -44,105 +51,104 @@ async function send<K extends MessageType>(
   timeout = 8000,
   retries = 2,
 ): Promise<MessageSuccess<K>> {
-  let lastError: unknown = null
+  let lastError: unknown = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await new Promise<MessageSuccess<K>>((resolve, reject) => {
         const timer = setTimeout(() => {
-          reject(new Error(`[DB API] '${type}' timed out after ${timeout}ms`))
-        }, timeout)
+          reject(new Error(`[DB API] '${type}' timed out after ${timeout}ms`));
+        }, timeout);
 
         chrome.runtime.sendMessage({ type, payload }, (response) => {
-          clearTimeout(timer)
+          clearTimeout(timer);
           // The callback response is `any` at the chrome boundary; the typed
           // contract is ResponseMessageMap (types/messages.ts). `send` resolves
           // only the success member and rejects semantic failures, so callers
           // never see the failure shape — one documented structural cast here.
-          const wire = response as { success: boolean; error?: string } | undefined
+          const wire = response as { success: boolean; error?: string } | undefined;
           if (chrome.runtime.lastError) {
-            reject(new Error(`[DB API] sendMessage failed: ${chrome.runtime.lastError.message}`))
+            reject(new Error(`[DB API] sendMessage failed: ${chrome.runtime.lastError.message}`));
           } else if (!wire) {
-            reject(new Error('[DB API] empty response'))
+            reject(new Error('[DB API] empty response'));
           } else if (wire.success === false) {
-            reject(new Error(`[DB API] ${wire.error || 'Unknown error'}`))
+            reject(new Error(`[DB API] ${wire.error || 'Unknown error'}`));
           } else {
-            resolve(response as MessageSuccess<K>)
+            resolve(response as MessageSuccess<K>);
           }
-        })
-      })
+        });
+      });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      if (!isTransientConnectionError(message)) throw err
-      lastError = err
+      const message = err instanceof Error ? err.message : String(err);
+      if (!isTransientConnectionError(message)) throw err;
+      lastError = err;
       if (attempt < retries) {
-        console.warn(`[DB API] '${type}' connection error (attempt ${attempt + 1}/${retries}), retrying:`, message)
-        await sleep(250 * (attempt + 1))
+        console.warn(
+          `[DB API] '${type}' connection error (attempt ${attempt + 1}/${retries}), retrying:`,
+          message,
+        );
+        await sleep(250 * (attempt + 1));
       }
     }
   }
 
   // Defensive: unreachable in practice (every non-retried path throws inside
   // the loop), but never throw null.
-  throw lastError ?? new Error('[DB API] send failed: no error captured')
+  throw lastError ?? new Error('[DB API] send failed: no error captured');
 }
 
 // ==================== Core CRUD ====================
 
 export async function dbGet(storeName: string, key: string): Promise<StoreRecord | null> {
-  const res = await send('DB_GET', { storeName, key })
-  return res?.record ?? null
+  const res = await send('DB_GET', { storeName, key });
+  return res?.record ?? null;
 }
 
 export async function dbPut(storeName: string, key: string, record: StoreRecord): Promise<void> {
-  await send('DB_PUT', { storeName, key, record })
+  await send('DB_PUT', { storeName, key, record });
 }
 
 export async function dbDelete(storeName: string, key: string): Promise<void> {
-  await send('DB_DELETE', { storeName, key })
+  await send('DB_DELETE', { storeName, key });
 }
 
 export async function dbGetAll(
-  storeName: string
+  storeName: string,
 ): Promise<Array<{ key: string; record: StoreRecord }>> {
-  const res = await send('DB_GET_ALL', { storeName })
-  return res?.entries || []
+  const res = await send('DB_GET_ALL', { storeName });
+  return res?.entries || [];
 }
 
 export async function dbGetBulk(
   storeName: string,
-  keys: string[]
+  keys: string[],
 ): Promise<Array<{ key: string; record: StoreRecord }>> {
-  const res = await send('DB_GET_BULK', { storeName, keys })
-  return res?.entries || []
+  const res = await send('DB_GET_BULK', { storeName, keys });
+  return res?.entries || [];
 }
 
-export async function dbGetWatchedIds(
-  storeNames: string[],
-): Promise<Record<string, string[]>> {
+export async function dbGetWatchedIds(storeNames: string[]): Promise<Record<string, string[]>> {
   // 20s content-side budget: the handler schedules ONE task per store and the
   // scheduler executes tasks serially (8s each) — an 8s budget would cut the
   // second store short when the first one stalls.
-  const res = await send('DB_GET_WATCHED_IDS', { storeNames }, 20_000)
-  return res?.results || {}
+  const res = await send('DB_GET_WATCHED_IDS', { storeNames }, 20_000);
+  return res?.results || {};
 }
 
 // ==================== PT ID Cache ====================
 
 export async function ptIdCacheGet(ptUrl: string): Promise<PtIdCacheEntry | null> {
-  const res = await send('PT_ID_CACHE_GET', { ptUrl })
-  return res?.entry ?? null
+  const res = await send('PT_ID_CACHE_GET', { ptUrl });
+  return res?.entry ?? null;
 }
 
 export async function ptIdCachePut(entry: PtIdCacheEntry): Promise<void> {
-  await send('PT_ID_CACHE_PUT', { entry })
+  await send('PT_ID_CACHE_PUT', { entry });
 }
 
-export async function ptIdCacheGetBulk(
-  ptUrls: string[]
-): Promise<Record<string, PtIdCacheEntry>> {
-  const res = await send('PT_ID_CACHE_GET_BULK', { ptUrls })
-  return res?.entries || {}
+export async function ptIdCacheGetBulk(ptUrls: string[]): Promise<Record<string, PtIdCacheEntry>> {
+  const res = await send('PT_ID_CACHE_GET_BULK', { ptUrls });
+  return res?.entries || {};
 }
 
 // ==================== Sync ====================
@@ -151,31 +157,31 @@ export async function dbSyncPageRecord(
   platform: Provider,
   key: string,
   record: StoreRecord,
-  linked?: Array<{ platform: Provider; key: string; url: string }>
+  linked?: Array<{ platform: Provider; key: string; url: string }>,
 ): Promise<{ changed: boolean; syncedPlatforms: string[] }> {
-  const res = await send('DB_SYNC_PAGE_RECORD', { platform, key, record, linked })
-  return res?.result || { changed: false, syncedPlatforms: [] }
+  const res = await send('DB_SYNC_PAGE_RECORD', { platform, key, record, linked });
+  return res?.result || { changed: false, syncedPlatforms: [] };
 }
 
 // ==================== Settings ====================
 
 export async function getSettings(): Promise<AppSettings> {
-  const res = await send('GET_SETTINGS', undefined)
-  return res?.settings || ({} as AppSettings)
+  const res = await send('GET_SETTINGS', undefined);
+  return res?.settings || ({} as AppSettings);
 }
 
 export async function updateSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
-  const res = await send('UPDATE_SETTINGS', partial)
-  return res?.settings || ({} as AppSettings)
+  const res = await send('UPDATE_SETTINGS', partial);
+  return res?.settings || ({} as AppSettings);
 }
 
 // ==================== Utility ====================
 
 export async function healthCheck(): Promise<boolean> {
   try {
-    await send('HEALTH_CHECK', undefined, 3000)
-    return true
+    await send('HEALTH_CHECK', undefined, 3000);
+    return true;
   } catch {
-    return false
+    return false;
   }
 }

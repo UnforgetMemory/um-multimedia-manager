@@ -156,7 +156,9 @@
   text-decoration: none;
   border-radius: var(--umm-card-radius, 8px);
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .umm-dash-card:hover {
@@ -202,8 +204,6 @@
 
 /* ===== Empty state (shared) ===== */
 
-
-
 /* ===== Doulists ===== */
 
 .umm-doulist-grid {
@@ -222,7 +222,9 @@
   border: 1px solid var(--umm-border);
   text-decoration: none;
   font-size: var(--umm-font-xs, 0.8rem);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .umm-doulist-item:hover {

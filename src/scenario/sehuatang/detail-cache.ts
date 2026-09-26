@@ -8,8 +8,8 @@
  * failure degrades to a plain miss (empty result), never a thrown error.
  */
 
-import { safeSendMessage } from '@/libraries/utils/context'
-import type { MessagePayloadMap, ResponseMessageMap } from '@/types'
+import { safeSendMessage } from '@/libraries/utils/context';
+import type { MessagePayloadMap, ResponseMessageMap } from '@/types';
 
 /**
  * Wire shape of one cached detail entry — defined once in
@@ -19,10 +19,10 @@ import type { MessagePayloadMap, ResponseMessageMap } from '@/types'
 export type SehuatangDetailCacheEntry = Extract<
   ResponseMessageMap['SEHUATANG_CACHE_GET_BATCH'],
   { success: true }
->['data']['entries'][string]
+>['data']['entries'][string];
 
 /** L1 in-memory cache — lives for the content-script session only. */
-const l1 = new Map<string, SehuatangDetailCacheEntry>()
+const l1 = new Map<string, SehuatangDetailCacheEntry>();
 
 /**
  * Batch lookup. L1 hits are returned directly; misses go to the background
@@ -33,37 +33,37 @@ const l1 = new Map<string, SehuatangDetailCacheEntry>()
 export async function getCachedDetails(
   tids: string[],
 ): Promise<Map<string, SehuatangDetailCacheEntry>> {
-  const result = new Map<string, SehuatangDetailCacheEntry>()
-  const miss: string[] = []
+  const result = new Map<string, SehuatangDetailCacheEntry>();
+  const miss: string[] = [];
 
   for (const tid of tids) {
-    const hit = l1.get(tid)
-    if (hit) result.set(tid, hit)
-    else miss.push(tid)
+    const hit = l1.get(tid);
+    if (hit) result.set(tid, hit);
+    else miss.push(tid);
   }
-  if (miss.length === 0) return result
+  if (miss.length === 0) return result;
 
   try {
     const res = await safeSendMessage(
       { type: 'SEHUATANG_CACHE_GET_BATCH', payload: { tids: miss } },
       { timeout: 8000, retries: 1 },
-    )
+    );
     if (res?.success) {
-      const entries = res.data.entries
+      const entries = res.data.entries;
       for (const tid of miss) {
-        const entry = entries[tid]
+        const entry = entries[tid];
         if (entry) {
-          l1.set(tid, entry)
-          result.set(tid, entry)
+          l1.set(tid, entry);
+          result.set(tid, entry);
         }
       }
     }
   } catch (err: unknown) {
     // Cache is an optimization layer — degrade to plain misses.
-    console.warn('[UMM] sehuatang detail cache read failed, degrading to fetch:', err)
+    console.warn('[UMM] sehuatang detail cache read failed, degrading to fetch:', err);
   }
 
-  return result
+  return result;
 }
 
 /**
@@ -71,23 +71,25 @@ export async function getCachedDetails(
  * background cache. Failures are logged and silently dropped.
  */
 export function putCachedDetails(entries: SehuatangDetailCacheEntry[]): void {
-  if (entries.length === 0) return
+  if (entries.length === 0) return;
 
-  const wire: MessagePayloadMap['SEHUATANG_CACHE_PUT']['entries'] = []
+  const wire: MessagePayloadMap['SEHUATANG_CACHE_PUT']['entries'] = [];
   for (const entry of entries) {
-    l1.set(entry.tid, entry)
-    wire.push({ tid: entry.tid, imageUrl: entry.imageUrl, magnetLink: entry.magnetLink })
+    l1.set(entry.tid, entry);
+    wire.push({ tid: entry.tid, imageUrl: entry.imageUrl, magnetLink: entry.magnetLink });
   }
 
   safeSendMessage(
     { type: 'SEHUATANG_CACHE_PUT', payload: { entries: wire } },
     { timeout: 8000, retries: 1 },
-  ).then((res) => {
-    // 传输成功但服务端拒绝（如超批量上限）：L1 已写入，仅持久化落空，需可见。
-    if (res && res.success === false) {
-      console.warn('[UMM] sehuatang detail cache write rejected:', res.error)
-    }
-  }).catch((err: unknown) => {
-    console.warn('[UMM] sehuatang detail cache write failed (ignored):', err)
-  })
+  )
+    .then((res) => {
+      // 传输成功但服务端拒绝（如超批量上限）：L1 已写入，仅持久化落空，需可见。
+      if (res && res.success === false) {
+        console.warn('[UMM] sehuatang detail cache write rejected:', res.error);
+      }
+    })
+    .catch((err: unknown) => {
+      console.warn('[UMM] sehuatang detail cache write failed (ignored):', err);
+    });
 }

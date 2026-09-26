@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Label } from '@/libraries/ui/label'
+import { Label } from '@/libraries/ui/label';
 
 defineProps<{
-  label: string
-  description?: string
-}>()
+  label: string;
+  description?: string;
+}>();
 </script>
 
 <template vapor>

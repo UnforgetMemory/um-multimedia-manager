@@ -4,7 +4,7 @@
  */
 
 /** Regex for common jav_id formats: FC2-PPV-1234567, ABP-123, 259LUXU-1234-UC */
-export const JAV_ID_REGEX = /^[A-Za-z0-9]+-[\w-]+(-[UCuc]{1,2})?$/i
+export const JAV_ID_REGEX = /^[A-Za-z0-9]+-[\w-]+(-[UCuc]{1,2})?$/i;
 
 /**
  * Auto-detect platform from input string
@@ -16,52 +16,67 @@ export function autoDetectPlatform(
   input: string,
   currentPlatform: string,
   callbacks: {
-    setPlatform: (platform: string) => void
-    setDomain?: (domain: string) => void
-  }
+    setPlatform: (platform: string) => void;
+    setDomain?: (domain: string) => void;
+  },
 ): boolean {
   // URL-based detection (always apply)
   if (input.includes('douban.com')) {
-    callbacks.setPlatform('douban')
-    callbacks.setDomain?.(input.includes('music.douban.com') ? 'music' : input.includes('book.douban.com') ? 'book' : 'movie')
-    return true
+    callbacks.setPlatform('douban');
+    callbacks.setDomain?.(
+      input.includes('music.douban.com')
+        ? 'music'
+        : input.includes('book.douban.com')
+          ? 'book'
+          : 'movie',
+    );
+    return true;
   }
   if (input.includes('imdb.com') || /^tt\d+$/i.test(input)) {
-    callbacks.setPlatform('imdb')
-    callbacks.setDomain?.('movie')
-    return true
+    callbacks.setPlatform('imdb');
+    callbacks.setDomain?.('movie');
+    return true;
   }
   if (input.includes('neodb.social')) {
-    callbacks.setPlatform('neodb')
-    callbacks.setDomain?.(input.includes('/tv/') ? 'tv' : input.includes('/album/') ? 'music' : 'movie')
-    return true
+    callbacks.setPlatform('neodb');
+    callbacks.setDomain?.(
+      input.includes('/tv/') ? 'tv' : input.includes('/album/') ? 'music' : 'movie',
+    );
+    return true;
   }
   if (input.includes('themoviedb.org')) {
-    callbacks.setPlatform('tmdb')
-    callbacks.setDomain?.(input.includes('/tv/') ? 'tv' : 'movie')
-    return true
+    callbacks.setPlatform('tmdb');
+    callbacks.setDomain?.(input.includes('/tv/') ? 'tv' : 'movie');
+    return true;
   }
   if (input.includes('bilibili.com/video/') || /^BV[a-zA-Z0-9]+$/.test(input)) {
-    callbacks.setPlatform('bilibili')
-    callbacks.setDomain?.('video')
-    return true
+    callbacks.setPlatform('bilibili');
+    callbacks.setDomain?.('video');
+    return true;
   }
-  if (input.includes('youtube.com/watch?v=') || input.includes('youtu.be/') || /^[a-zA-Z0-9_-]{11}$/.test(input)) {
-    callbacks.setPlatform('youtube')
-    callbacks.setDomain?.('video')
-    return true
+  if (
+    input.includes('youtube.com/watch?v=') ||
+    input.includes('youtu.be/') ||
+    /^[a-zA-Z0-9_-]{11}$/.test(input)
+  ) {
+    callbacks.setPlatform('youtube');
+    callbacks.setDomain?.('video');
+    return true;
   }
-  if ((input.includes('bgm.tv') || input.includes('bangumi.tv') || input.includes('chii.in')) && input.includes('/subject/')) {
-    callbacks.setPlatform('bangumi')
-    callbacks.setDomain?.('tv')
-    return true
+  if (
+    (input.includes('bgm.tv') || input.includes('bangumi.tv') || input.includes('chii.in')) &&
+    input.includes('/subject/')
+  ) {
+    callbacks.setPlatform('bangumi');
+    callbacks.setDomain?.('tv');
+    return true;
   }
 
   // jav_id format detection — only if current platform is already jav_ids
   if (currentPlatform === 'jav_ids' && JAV_ID_REGEX.test(input)) {
-    callbacks.setPlatform('jav_ids')
-    return true
+    callbacks.setPlatform('jav_ids');
+    return true;
   }
-  
-  return false
+
+  return false;
 }

@@ -34,7 +34,9 @@
   font-weight: 500;
   color: var(--umm-text-secondary);
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .umm-paginator-btn:hover:not(:disabled),
 .umm-reviews-page:hover {

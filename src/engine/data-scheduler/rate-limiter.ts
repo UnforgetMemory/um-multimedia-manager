@@ -5,21 +5,21 @@
  * Safe for Service Worker lifecycle (MV3).
  */
 
-import type { RateLimitConfig } from './types'
-import { DEFAULT_RATE_LIMIT_CONFIG } from './types'
+import type { RateLimitConfig } from './types';
+import { DEFAULT_RATE_LIMIT_CONFIG } from './types';
 
-const REFILL_POLL_MS = 100
-const ACQUIRE_TIMEOUT_MS = 10_000
+const REFILL_POLL_MS = 100;
+const ACQUIRE_TIMEOUT_MS = 10_000;
 
 export class RateLimiter {
-  private _tokens: number
-  private _lastRefill: number
-  private _config: RateLimitConfig
+  private _tokens: number;
+  private _lastRefill: number;
+  private _config: RateLimitConfig;
 
   constructor(config?: Partial<RateLimitConfig>) {
-    this._config = { ...DEFAULT_RATE_LIMIT_CONFIG, ...config }
-    this._tokens = this._config.burstSize
-    this._lastRefill = Date.now()
+    this._config = { ...DEFAULT_RATE_LIMIT_CONFIG, ...config };
+    this._tokens = this._config.burstSize;
+    this._lastRefill = Date.now();
   }
 
   /**
@@ -27,13 +27,13 @@ export class RateLimiter {
    * Called on every access — no background timer needed.
    */
   private refill(): void {
-    const now = Date.now()
-    const elapsed = now - this._lastRefill
-    if (elapsed <= 0) return
+    const now = Date.now();
+    const elapsed = now - this._lastRefill;
+    if (elapsed <= 0) return;
 
-    const tokensToAdd = elapsed * (this._config.maxRequestsPerSecond / 1000)
-    this._tokens = Math.min(this._tokens + tokensToAdd, this._config.burstSize)
-    this._lastRefill = now
+    const tokensToAdd = elapsed * (this._config.maxRequestsPerSecond / 1000);
+    this._tokens = Math.min(this._tokens + tokensToAdd, this._config.burstSize);
+    this._lastRefill = now;
   }
 
   /**
@@ -41,12 +41,12 @@ export class RateLimiter {
    * Returns true if a token was available and consumed.
    */
   tryAcquire(): boolean {
-    this.refill()
+    this.refill();
     if (this._tokens >= 1) {
-      this._tokens -= 1
-      return true
+      this._tokens -= 1;
+      return true;
     }
-    return false
+    return false;
   }
 
   /**
@@ -56,32 +56,32 @@ export class RateLimiter {
    */
   acquire(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const deadline = Date.now() + ACQUIRE_TIMEOUT_MS
+      const deadline = Date.now() + ACQUIRE_TIMEOUT_MS;
 
       const poll = (): void => {
         if (this.tryAcquire()) {
-          resolve()
-          return
+          resolve();
+          return;
         }
         if (Date.now() >= deadline) {
-          reject(new Error('Rate limit acquire timeout'))
-          return
+          reject(new Error('Rate limit acquire timeout'));
+          return;
         }
-        setTimeout(poll, REFILL_POLL_MS)
-      }
+        setTimeout(poll, REFILL_POLL_MS);
+      };
 
-      poll()
-    })
+      poll();
+    });
   }
 
   /** Snapshot of current rate-limit config. */
   get config(): RateLimitConfig {
-    return { ...this._config }
+    return { ...this._config };
   }
 
   /** Update rate-limit config at runtime. */
   updateConfig(config: Partial<RateLimitConfig>): void {
-    this._config = { ...this._config, ...config }
-    this._tokens = Math.min(this._tokens, this._config.burstSize)
+    this._config = { ...this._config, ...config };
+    this._tokens = Math.min(this._tokens, this._config.burstSize);
   }
 }

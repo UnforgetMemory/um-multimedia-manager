@@ -21,12 +21,21 @@
  * 分页逻辑（窗口化/推导/跳转）提取自 ./sehuatang-paging（纯函数，可测）。
  */
 
-import { COLOR_OVERLAY_SURFACE, COLOR_OVERLAY_SURFACE_DARK } from '@/entrypoints/content/styles/tokens'
-import { t } from '@/entrypoints/content/i18n'
-import { windowPages, resolveJumpUrl, clampPage, type PaginationData, type PagerLink } from './sehuatang-paging'
+import {
+  COLOR_OVERLAY_SURFACE,
+  COLOR_OVERLAY_SURFACE_DARK,
+} from '@/entrypoints/content/styles/tokens';
+import { t } from '@/entrypoints/content/i18n';
+import {
+  windowPages,
+  resolveJumpUrl,
+  clampPage,
+  type PaginationData,
+  type PagerLink,
+} from './sehuatang-paging';
 
-export type { PaginationData, PagerLink } from './sehuatang-paging'
-export { resolveJumpUrl, clampPage } from './sehuatang-paging'
+export type { PaginationData, PagerLink } from './sehuatang-paging';
+export { resolveJumpUrl, clampPage } from './sehuatang-paging';
 
 // 「已看标记与淡化」状态层已抽出为独立模块（职责分离，见该文件头注）；此处再
 // 导出以保持既有消费者不变（app.ts / app-search.ts / empty-state.ts / styles.ts
@@ -37,27 +46,27 @@ export {
   dimCardsVisually,
   countSehuatangCardStates,
   setGridHideViewed,
-} from './sehuatang-controls-mark'
-export type { MarkedStore } from './sehuatang-controls-mark'
+} from './sehuatang-controls-mark';
+export type { MarkedStore } from './sehuatang-controls-mark';
 
 export interface BreadcrumbItem {
-  text: string
-  href: string
-  current: boolean
+  text: string;
+  href: string;
+  current: boolean;
 }
 
 export interface TypeTab {
-  text: string
-  href: string
-  count: string
-  active: boolean
+  text: string;
+  href: string;
+  count: string;
+  active: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // 首帧背景预载（document_start 由 sehuatang-early.content 调用）
 // ---------------------------------------------------------------------------
 
-const EARLY_BG_STYLE_ID = 'umm-sht-early-bg'
+const EARLY_BG_STYLE_ID = 'umm-sht-early-bg';
 
 /**
  * 以主题表面色立即涂刷 html,body 背景（幂等更新同一 style 元素）。
@@ -66,14 +75,14 @@ const EARLY_BG_STYLE_ID = 'umm-sht-early-bg'
  * body 一并覆盖——Discuz 自带 body 背景，只刷 html 会被 body 盖住。
  */
 export function paintSehuatangBackground(doc: Document, theme: 'dark' | 'light'): void {
-  const color = theme === 'dark' ? COLOR_OVERLAY_SURFACE_DARK : COLOR_OVERLAY_SURFACE
-  let styleEl = doc.getElementById(EARLY_BG_STYLE_ID) as HTMLStyleElement | null
+  const color = theme === 'dark' ? COLOR_OVERLAY_SURFACE_DARK : COLOR_OVERLAY_SURFACE;
+  let styleEl = doc.getElementById(EARLY_BG_STYLE_ID) as HTMLStyleElement | null;
   if (!styleEl) {
-    styleEl = doc.createElement('style')
-    styleEl.id = EARLY_BG_STYLE_ID
-    doc.documentElement.appendChild(styleEl)
+    styleEl = doc.createElement('style');
+    styleEl.id = EARLY_BG_STYLE_ID;
+    doc.documentElement.appendChild(styleEl);
   }
-  styleEl.textContent = `html, body { background: ${color} !important; }`
+  styleEl.textContent = `html, body { background: ${color} !important; }`;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,19 +99,21 @@ export function paintSehuatangBackground(doc: Document, theme: 'dark' | 'light')
  */
 export function runVisibleEntrance(root: HTMLElement, stepMs = 25): void {
   requestAnimationFrame(() => {
-    const cards = Array.from(root.querySelectorAll('.umm-card:not(.umm-sht-enter)')) as HTMLElement[]
-    if (cards.length === 0) return
-    const viewportH = window.innerHeight
-    const visible: HTMLElement[] = []
+    const cards = Array.from(
+      root.querySelectorAll('.umm-card:not(.umm-sht-enter)'),
+    ) as HTMLElement[];
+    if (cards.length === 0) return;
+    const viewportH = window.innerHeight;
+    const visible: HTMLElement[] = [];
     for (const card of cards) {
-      const rect = card.getBoundingClientRect()
-      if (rect.top < viewportH && rect.bottom > 0) visible.push(card)
+      const rect = card.getBoundingClientRect();
+      if (rect.top < viewportH && rect.bottom > 0) visible.push(card);
     }
     visible.forEach((card, idx) => {
-      card.classList.add('umm-sht-enter')
-      card.style.animationDelay = `${idx * stepMs}ms`
-    })
-  })
+      card.classList.add('umm-sht-enter');
+      card.style.animationDelay = `${idx * stepMs}ms`;
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -112,24 +123,24 @@ export function runVisibleEntrance(root: HTMLElement, stepMs = 25): void {
 /** 从任意 href 提取 typeid 参数（仅解析查询串，base 只作占位）。 */
 function typeIdFromHref(href: string): string {
   try {
-    return new URL(href, 'https://www.sehuatang.net/').searchParams.get('typeid') ?? ''
+    return new URL(href, 'https://www.sehuatang.net/').searchParams.get('typeid') ?? '';
   } catch {
-    return ''
+    return '';
   }
 }
 
 /** 面包屑：#pt .z 内全部 a 节点；过滤空文本后再标记末位为当前页。 */
 export function extractBreadcrumb(container: Element | null): BreadcrumbItem[] {
-  if (!container) return []
+  if (!container) return [];
   const anchors = Array.from(container.querySelectorAll('a'))
     .map((a) => ({
       text: (a.textContent ?? '').trim(),
       href: a.getAttribute('href') ?? '',
     }))
-    .filter((item) => item.text !== '')
-  if (anchors.length === 0) return []
-  const last = anchors.length - 1
-  return anchors.map((item, idx) => ({ ...item, current: idx === last }))
+    .filter((item) => item.text !== '');
+  if (anchors.length === 0) return [];
+  const last = anchors.length - 1;
+  return anchors.map((item, idx) => ({ ...item, current: idx === last }));
 }
 
 /**
@@ -139,76 +150,96 @@ export function extractBreadcrumb(container: Element | null): BreadcrumbItem[] {
  * 选项卡在 URL 无 typeid 时激活），全部未命中时回退 li.xw1/a 类名。
  */
 export function extractTypeTabs(ul: Element | null, currentUrl: string): TypeTab[] {
-  if (!ul) return []
-  const currentTypeId = typeIdFromHref(currentUrl)
+  if (!ul) return [];
+  const currentTypeId = typeIdFromHref(currentUrl);
 
-  interface RawTab { text: string; href: string; count: string; activeByUrl: boolean; marked: boolean }
-  const raw: RawTab[] = []
+  interface RawTab {
+    text: string;
+    href: string;
+    count: string;
+    activeByUrl: boolean;
+    marked: boolean;
+  }
+  const raw: RawTab[] = [];
   for (const li of Array.from(ul.querySelectorAll('li'))) {
-    const a = li.querySelector('a')
-    if (!a) continue
-    const href = a.getAttribute('href') ?? ''
-    const count = (a.querySelector('span.xg1.num')?.textContent ?? '').trim()
+    const a = li.querySelector('a');
+    if (!a) continue;
+    const href = a.getAttribute('href') ?? '';
+    const count = (a.querySelector('span.xg1.num')?.textContent ?? '').trim();
     const text = Array.from(a.childNodes)
       .filter((n) => !(n.nodeType === 1 && (n as Element).classList.contains('xg1')))
       .map((n) => n.textContent ?? '')
       .join('')
-      .trim()
-    if (!text) continue
-    const tabTypeId = typeIdFromHref(href)
+      .trim();
+    if (!text) continue;
+    const tabTypeId = typeIdFromHref(href);
     raw.push({
       text,
       href,
       count,
       activeByUrl: tabTypeId ? tabTypeId === currentTypeId : currentTypeId === '',
       marked: li.classList.contains('xw1') || li.classList.contains('a'),
-    })
+    });
   }
 
-  const anyActiveByUrl = raw.some((t) => t.activeByUrl)
-  return raw.map((t) => ({ text: t.text, href: t.href, count: t.count, active: anyActiveByUrl ? t.activeByUrl : t.marked }))
+  const anyActiveByUrl = raw.some((t) => t.activeByUrl);
+  return raw.map((t) => ({
+    text: t.text,
+    href: t.href,
+    count: t.count,
+    active: anyActiveByUrl ? t.activeByUrl : t.marked,
+  }));
 }
 
-const JUMP_TEMPLATE_RE = /window\.location\s*=\s*['"]([^'"]+)['"]\s*\+/
+const JUMP_TEMPLATE_RE = /window\.location\s*=\s*['"]([^'"]+)['"]\s*\+/;
 
 /** 分页：.pg 块 → 数据。prev 在第 1 页、next 在末页均缺省为空串。 */
 export function extractPagination(pg: Element | null): PaginationData {
-  const empty: PaginationData = { current: 0, total: 0, prevHref: '', nextHref: '', pages: [], jumpTemplate: '' }
-  if (!pg) return empty
+  const empty: PaginationData = {
+    current: 0,
+    total: 0,
+    prevHref: '',
+    nextHref: '',
+    pages: [],
+    jumpTemplate: '',
+  };
+  if (!pg) return empty;
 
-  const current = parseInt(pg.querySelector('strong')?.textContent?.trim() ?? '', 10) || 0
-  const prevHref = pg.querySelector('.prev')?.getAttribute('href') ?? ''
-  const nextHref = pg.querySelector('.nxt')?.getAttribute('href') ?? ''
+  const current = parseInt(pg.querySelector('strong')?.textContent?.trim() ?? '', 10) || 0;
+  const prevHref = pg.querySelector('.prev')?.getAttribute('href') ?? '';
+  const nextHref = pg.querySelector('.nxt')?.getAttribute('href') ?? '';
 
-  const totalTitle = pg.querySelector('span[title]')?.getAttribute('title') ?? ''
-  const totalMatch = /共\s*(\d+)\s*页/.exec(totalTitle)
-  const lastEl = pg.querySelector('a.last')
-  const lastHrefMatch = /-(\d+)(?:\.html)?$/.exec(lastEl?.getAttribute('href') ?? '')
-  const lastTextMatch = /(\d+)\s*$/.exec(lastEl?.textContent ?? '')
+  const totalTitle = pg.querySelector('span[title]')?.getAttribute('title') ?? '';
+  const totalMatch = /共\s*(\d+)\s*页/.exec(totalTitle);
+  const lastEl = pg.querySelector('a.last');
+  const lastHrefMatch = /-(\d+)(?:\.html)?$/.exec(lastEl?.getAttribute('href') ?? '');
+  const lastTextMatch = /(\d+)\s*$/.exec(lastEl?.textContent ?? '');
   const lastPage = lastHrefMatch
     ? parseInt(lastHrefMatch[1]!, 10)
-    : lastTextMatch ? parseInt(lastTextMatch[1]!, 10) : 0
-  const total = totalMatch ? parseInt(totalMatch[1]!, 10) : lastPage
+    : lastTextMatch
+      ? parseInt(lastTextMatch[1]!, 10)
+      : 0;
+  const total = totalMatch ? parseInt(totalMatch[1]!, 10) : lastPage;
 
-  const pages: PagerLink[] = []
+  const pages: PagerLink[] = [];
   for (const child of Array.from(pg.children)) {
-    if (child.tagName !== 'A') continue
-    const a = child as HTMLAnchorElement
-    if (a.classList.contains('nxt') || a.classList.contains('prev')) continue
-    const pageMatch = /(\d+)/.exec((a.textContent ?? '').trim())
-    if (!pageMatch) continue
+    if (child.tagName !== 'A') continue;
+    const a = child as HTMLAnchorElement;
+    if (a.classList.contains('nxt') || a.classList.contains('prev')) continue;
+    const pageMatch = /(\d+)/.exec((a.textContent ?? '').trim());
+    if (!pageMatch) continue;
     pages.push({
       label: (a.textContent ?? '').trim(),
       page: parseInt(pageMatch[1]!, 10),
       href: a.getAttribute('href') ?? '',
       last: a.classList.contains('last'),
-    })
+    });
   }
 
-  const jumpInput = pg.querySelector('input[name="custompage"]') as HTMLInputElement | null
-  const jumpTemplate = JUMP_TEMPLATE_RE.exec(jumpInput?.getAttribute('onkeydown') ?? '')?.[1] ?? ''
+  const jumpInput = pg.querySelector('input[name="custompage"]') as HTMLInputElement | null;
+  const jumpTemplate = JUMP_TEMPLATE_RE.exec(jumpInput?.getAttribute('onkeydown') ?? '')?.[1] ?? '';
 
-  return { current, total, prevHref, nextHref, pages, jumpTemplate }
+  return { current, total, prevHref, nextHref, pages, jumpTemplate };
 }
 
 // ---------------------------------------------------------------------------
@@ -216,98 +247,104 @@ export function extractPagination(pg: Element | null): PaginationData {
 // ---------------------------------------------------------------------------
 
 function el(doc: Document, tag: string, className: string, text?: string): HTMLElement {
-  const node = doc.createElement(tag)
-  node.className = className
-  if (text !== undefined) node.textContent = text
-  return node
+  const node = doc.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
 /** 面包屑条（空数据 → null）。 */
 export function buildBreadcrumbBar(doc: Document, items: BreadcrumbItem[]): HTMLElement | null {
-  if (items.length === 0) return null
-  const bar = el(doc, 'div', 'umm-sht-breadcrumb')
+  if (items.length === 0) return null;
+  const bar = el(doc, 'div', 'umm-sht-breadcrumb');
   items.forEach((item, idx) => {
-    if (idx > 0) bar.appendChild(el(doc, 'span', 'umm-sht-crumb-sep', '›'))
-    const a = el(doc, 'a', `umm-sht-crumb${item.current ? ' umm-sht-crumb--current' : ''}`, item.text)
-    if (item.href) a.setAttribute('href', item.href)
-    bar.appendChild(a)
-  })
-  return bar
+    if (idx > 0) bar.appendChild(el(doc, 'span', 'umm-sht-crumb-sep', '›'));
+    const a = el(
+      doc,
+      'a',
+      `umm-sht-crumb${item.current ? ' umm-sht-crumb--current' : ''}`,
+      item.text,
+    );
+    if (item.href) a.setAttribute('href', item.href);
+    bar.appendChild(a);
+  });
+  return bar;
 }
 
 /** 选项卡条（空数据 → null）。 */
 export function buildTabsBar(doc: Document, tabs: TypeTab[]): HTMLElement | null {
-  if (tabs.length === 0) return null
-  const bar = el(doc, 'div', 'umm-sht-tabs')
+  if (tabs.length === 0) return null;
+  const bar = el(doc, 'div', 'umm-sht-tabs');
   for (const tab of tabs) {
-    const a = el(doc, 'a', `umm-sht-tab${tab.active ? ' umm-sht-tab--active' : ''}`, tab.text)
-    if (tab.href) a.setAttribute('href', tab.href)
-    if (tab.active) a.setAttribute('aria-current', 'page')
-    if (tab.count) a.appendChild(el(doc, 'span', 'umm-sht-tab-count', tab.count))
-    bar.appendChild(a)
+    const a = el(doc, 'a', `umm-sht-tab${tab.active ? ' umm-sht-tab--active' : ''}`, tab.text);
+    if (tab.href) a.setAttribute('href', tab.href);
+    if (tab.active) a.setAttribute('aria-current', 'page');
+    if (tab.count) a.appendChild(el(doc, 'span', 'umm-sht-tab-count', tab.count));
+    bar.appendChild(a);
   }
-  return bar
+  return bar;
 }
 
 /** 现代窗口化分页条：‹ 1 … 4 5 [6] 7 8 … 1495 › + 跳转 + 计数器。空数据 → null。 */
 export function buildPager(doc: Document, data: PaginationData): HTMLElement | null {
-  if (data.current === 0 && data.total === 0 && data.pages.length === 0) return null
+  if (data.current === 0 && data.total === 0 && data.pages.length === 0) return null;
 
-  const bar = el(doc, 'div', 'umm-sht-pager')
+  const bar = el(doc, 'div', 'umm-sht-pager');
 
   const nav = (href: string, glyph: string, title: string) => {
     if (!href) {
-      const span = el(doc, 'span', 'umm-sht-pg-nav umm-sht-pg-nav--disabled', glyph)
-      span.setAttribute('title', title)
-      span.setAttribute('aria-label', title)
-      return span
+      const span = el(doc, 'span', 'umm-sht-pg-nav umm-sht-pg-nav--disabled', glyph);
+      span.setAttribute('title', title);
+      span.setAttribute('aria-label', title);
+      return span;
     }
-    const a = el(doc, 'a', 'umm-sht-pg-nav', glyph)
-    a.setAttribute('href', href)
-    a.setAttribute('title', title)
-    a.setAttribute('aria-label', title)
-    return a
-  }
+    const a = el(doc, 'a', 'umm-sht-pg-nav', glyph);
+    a.setAttribute('href', href);
+    a.setAttribute('title', title);
+    a.setAttribute('aria-label', title);
+    return a;
+  };
 
-  bar.appendChild(nav(data.prevHref, '‹', '上一页'))
+  bar.appendChild(nav(data.prevHref, '‹', '上一页'));
   for (const item of windowPages(data.pages, data.current, data.total)) {
     if (item.kind === 'gap') {
-      bar.appendChild(el(doc, 'span', 'umm-sht-pg-gap', '…'))
-      continue
+      bar.appendChild(el(doc, 'span', 'umm-sht-pg-gap', '…'));
+      continue;
     }
     if (item.page === data.current) {
-      const cap = el(doc, 'span', 'umm-sht-pg-page umm-sht-pg-page--current', String(item.page))
-      cap.setAttribute('aria-current', 'page')
-      bar.appendChild(cap)
-      continue
+      const cap = el(doc, 'span', 'umm-sht-pg-page umm-sht-pg-page--current', String(item.page));
+      cap.setAttribute('aria-current', 'page');
+      bar.appendChild(cap);
+      continue;
     }
-    const a = el(doc, 'a', 'umm-sht-pg-page', String(item.page))
-    if (item.href) a.setAttribute('href', item.href)
-    bar.appendChild(a)
+    const a = el(doc, 'a', 'umm-sht-pg-page', String(item.page));
+    if (item.href) a.setAttribute('href', item.href);
+    bar.appendChild(a);
   }
-  bar.appendChild(nav(data.nextHref, '›', '下一页'))
+  bar.appendChild(nav(data.nextHref, '›', '下一页'));
 
   if (data.jumpTemplate) {
-    const input = el(doc, 'input', 'umm-sht-pg-jump') as HTMLInputElement
-    input.type = 'text'
-    input.setAttribute('inputmode', 'numeric')
-    input.setAttribute('size', '2')
-    input.setAttribute('title', '输入页码，按回车快速跳转')
-    input.value = String(data.current || 1)
+    const input = el(doc, 'input', 'umm-sht-pg-jump') as HTMLInputElement;
+    input.type = 'text';
+    input.setAttribute('inputmode', 'numeric');
+    input.setAttribute('size', '2');
+    input.setAttribute('title', '输入页码，按回车快速跳转');
+    input.value = String(data.current || 1);
     input.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return
-      const raw = parseInt(input.value, 10)
-      const page = clampPage(Number.isNaN(raw) ? 0 : raw, data.total)
-      const base = doc.location?.href ?? doc.defaultView?.location?.href ?? ''
-      const url = resolveJumpUrl(data.jumpTemplate, page, base)
-      const view = doc.defaultView
-      if (url && view) view.location.href = url
-    })
-    bar.appendChild(input)
+      if (e.key !== 'Enter') return;
+      const raw = parseInt(input.value, 10);
+      const page = clampPage(Number.isNaN(raw) ? 0 : raw, data.total);
+      const base = doc.location?.href ?? doc.defaultView?.location?.href ?? '';
+      const url = resolveJumpUrl(data.jumpTemplate, page, base);
+      const view = doc.defaultView;
+      if (url && view) view.location.href = url;
+    });
+    bar.appendChild(input);
   }
-  if (data.total > 0) bar.appendChild(el(doc, 'span', 'umm-sht-pg-total', `${data.current || 1} / ${data.total}`))
+  if (data.total > 0)
+    bar.appendChild(el(doc, 'span', 'umm-sht-pg-total', `${data.current || 1} / ${data.total}`));
 
-  return bar
+  return bar;
 }
 
 /**
@@ -319,17 +356,17 @@ export function buildPager(doc: Document, data: PaginationData): HTMLElement | n
  * 返回 null = 关键词空白或解析失败（调用方静默 no-op）。
  */
 export function buildSearchUrl(action: string, base: string, keyword: string): string | null {
-  const kw = keyword.trim()
-  if (!kw) return null
+  const kw = keyword.trim();
+  if (!kw) return null;
   try {
-    const u = new URL(action || 'search.php?mod=forum&searchsubmit=yes', base || undefined)
-    if (!/^https?:$/.test(u.protocol)) return null
-    u.searchParams.set('mod', 'forum')
-    u.searchParams.set('srchtxt', kw)
-    u.searchParams.set('searchsubmit', 'yes')
-    return u.href
+    const u = new URL(action || 'search.php?mod=forum&searchsubmit=yes', base || undefined);
+    if (!/^https?:$/.test(u.protocol)) return null;
+    u.searchParams.set('mod', 'forum');
+    u.searchParams.set('srchtxt', kw);
+    u.searchParams.set('searchsubmit', 'yes');
+    return u.href;
   } catch {
-    return null
+    return null;
   }
 }
 
@@ -347,32 +384,34 @@ export function buildSearchBox(
   doc: Document,
   opts?: { navigate?: (url: string) => void; value?: string },
 ): HTMLElement {
-  const box = el(doc, 'div', 'umm-sht-searchbox')
-  const input = el(doc, 'input', 'umm-sht-search-input') as HTMLInputElement
-  input.type = 'text'
-  input.placeholder = t('sht.search_placeholder')
-  input.setAttribute('aria-label', t('sht.search_placeholder'))
-  const preset = (opts?.value ?? '').trim()
-  if (preset) input.value = preset
-  const navigate = opts?.navigate ?? ((url: string) => {
-    const view = doc.defaultView
-    if (view) view.location.href = url
-  })
+  const box = el(doc, 'div', 'umm-sht-searchbox');
+  const input = el(doc, 'input', 'umm-sht-search-input') as HTMLInputElement;
+  input.type = 'text';
+  input.placeholder = t('sht.search_placeholder');
+  input.setAttribute('aria-label', t('sht.search_placeholder'));
+  const preset = (opts?.value ?? '').trim();
+  if (preset) input.value = preset;
+  const navigate =
+    opts?.navigate ??
+    ((url: string) => {
+      const view = doc.defaultView;
+      if (view) view.location.href = url;
+    });
   const go = () => {
-    const action = doc.getElementById('scbar_form')?.getAttribute('action') ?? ''
-    const url = buildSearchUrl(action, doc.location?.href ?? '', input.value)
-    if (url) navigate(url)
-  }
+    const action = doc.getElementById('scbar_form')?.getAttribute('action') ?? '';
+    const url = buildSearchUrl(action, doc.location?.href ?? '', input.value);
+    if (url) navigate(url);
+  };
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') go()
-  })
-  const btn = el(doc, 'button', 'umm-sht-action umm-sht-search-btn', '🔍') as HTMLButtonElement
-  btn.type = 'button'
-  btn.title = t('sht.search_go')
-  btn.addEventListener('click', go)
-  box.appendChild(input)
-  box.appendChild(btn)
-  return box
+    if (e.key === 'Enter') go();
+  });
+  const btn = el(doc, 'button', 'umm-sht-action umm-sht-search-btn', '🔍') as HTMLButtonElement;
+  btn.type = 'button';
+  btn.title = t('sht.search_go');
+  btn.addEventListener('click', go);
+  box.appendChild(input);
+  box.appendChild(btn);
+  return box;
 }
 
 /**
@@ -381,32 +420,37 @@ export function buildSearchBox(
  * 列表/搜索页 header 接入；首页本身不加（当前页即首页，自链无意义）。
  */
 export function buildHomeLink(doc: Document): HTMLElement {
-  const a = el(doc, 'a', 'umm-sht-action umm-sht-home-btn', '🏠')
-  a.setAttribute('href', 'forum.php')
-  a.setAttribute('title', t('sht.home'))
-  a.setAttribute('aria-label', t('sht.home'))
-  return a
+  const a = el(doc, 'a', 'umm-sht-action umm-sht-home-btn', '🏠');
+  a.setAttribute('href', 'forum.php');
+  a.setAttribute('title', t('sht.home'));
+  a.setAttribute('aria-label', t('sht.home'));
+  return a;
 }
 
 /** 「返 回」链接 + 「发新帖」按钮（发新帖点击 → 原版元素 click()，触发站点 showWindow）。 */
-export function buildActions(doc: Document, back: HTMLAnchorElement | null, post: HTMLElement | null): HTMLElement[] {
-  const buttons: HTMLElement[] = []
+export function buildActions(
+  doc: Document,
+  back: HTMLAnchorElement | null,
+  post: HTMLElement | null,
+): HTMLElement[] {
+  const buttons: HTMLElement[] = [];
   if (back) {
-    const label = (back.textContent ?? '').replace(/\u00a0/g, ' ').trim() || '返回'
-    const a = el(doc, 'a', 'umm-sht-action', label)
-    const href = back.getAttribute('href')
-    if (href) a.setAttribute('href', href)
-    buttons.push(a)
+    const label = (back.textContent ?? '').replace(/\u00a0/g, ' ').trim() || '返回';
+    const a = el(doc, 'a', 'umm-sht-action', label);
+    const href = back.getAttribute('href');
+    if (href) a.setAttribute('href', href);
+    buttons.push(a);
   }
   if (post) {
-    const imgAlt = (post.querySelector('img') as HTMLImageElement | null)?.getAttribute('alt') ?? ''
-    const label = post.getAttribute('title') || imgAlt || '发新帖'
-    const b = el(doc, 'button', 'umm-sht-action', label)
-    b.setAttribute('type', 'button')
-    b.addEventListener('click', () => post.click())
-    buttons.push(b)
+    const imgAlt =
+      (post.querySelector('img') as HTMLImageElement | null)?.getAttribute('alt') ?? '';
+    const label = post.getAttribute('title') || imgAlt || '发新帖';
+    const b = el(doc, 'button', 'umm-sht-action', label);
+    b.setAttribute('type', 'button');
+    b.addEventListener('click', () => post.click());
+    buttons.push(b);
   }
-  return buttons
+  return buttons;
 }
 
 // 「已看标记与淡化」状态层（countSehuatangCardStates / setGridHideViewed /
@@ -414,20 +458,20 @@ export function buildActions(doc: Document, back: HTMLAnchorElement | null, post
 // ./sehuatang-controls-mark，经文件头再导出；此处不再保留实现。
 
 /** 岛内展示组件（摩天轮两舱）。 */
-export type IslandMode = 'search' | 'pager'
+export type IslandMode = 'search' | 'pager';
 
 /** 岛句柄：pill 供挂载，mode 读取当前组件，show 执行摩天轮轮替。 */
 export interface FloatbarHandle {
   /** 岛根（.umm-sht-floatbar）。 */
-  pill: HTMLElement
+  pill: HTMLElement;
   /** 当前展示组件（有分页时初始 = pager；仅搜索时 = search）。 */
-  readonly mode: IslandMode
+  readonly mode: IslandMode;
   /**
    * 摩天轮轮替：切到指定组件。搜索舱恒在上舱、分页舱恒在下舱——切换时
    * 一舱滚出、另一舱滚入（位置由舱位唯一决定，**单次赋值即完成方向正确的
    * 过渡，无 double-rAF 时序依赖**）。不可切换（仅一方在场）时 no-op。
    */
-  show(mode: IslandMode): void
+  show(mode: IslandMode): void;
 }
 
 /**
@@ -446,64 +490,64 @@ export function buildFloatbar(
   doc: Document,
   opts?: { search?: boolean; searchValue?: string; pager?: HTMLElement | null },
 ): FloatbarHandle | null {
-  const searchEl = opts?.search ? buildSearchBox(doc, { value: opts.searchValue }) : null
-  const pagerEl = opts?.pager ?? null
-  if (!searchEl && !pagerEl) return null
+  const searchEl = opts?.search ? buildSearchBox(doc, { value: opts.searchValue }) : null;
+  const pagerEl = opts?.pager ?? null;
+  if (!searchEl && !pagerEl) return null;
 
-  const pill = el(doc, 'div', 'umm-sht-floatbar')
-  pill.id = 'umm-sht-floatbar'
+  const pill = el(doc, 'div', 'umm-sht-floatbar');
+  pill.id = 'umm-sht-floatbar';
 
-  let mode: IslandMode = pagerEl ? 'pager' : 'search'
+  let mode: IslandMode = pagerEl ? 'pager' : 'search';
 
   const applySlots = () => {
     // 隐藏舱同步 aria-hidden（配合 CSS visibility:hidden：不可见即不可达，
     // 读屏与键盘不会再进入不可见舱）。
     if (searchEl) {
-      const active = mode === 'search'
-      searchEl.setAttribute('data-umm-slot', active ? 'active' : 'hidden-up')
-      searchEl.setAttribute('aria-hidden', String(!active))
+      const active = mode === 'search';
+      searchEl.setAttribute('data-umm-slot', active ? 'active' : 'hidden-up');
+      searchEl.setAttribute('aria-hidden', String(!active));
     }
     if (pagerEl) {
-      const active = mode === 'pager'
-      pagerEl.setAttribute('data-umm-slot', active ? 'active' : 'hidden-down')
-      pagerEl.setAttribute('aria-hidden', String(!active))
+      const active = mode === 'pager';
+      pagerEl.setAttribute('data-umm-slot', active ? 'active' : 'hidden-down');
+      pagerEl.setAttribute('aria-hidden', String(!active));
     }
-  }
+  };
 
   if (searchEl && pagerEl) {
     // 摩天轮舞台：两舱固定舱位（搜索上 / 分页下），切换即轮替入窗。
-    const stage = el(doc, 'div', 'umm-sht-island-stage')
-    stage.appendChild(searchEl)
-    stage.appendChild(pagerEl)
-    applySlots()
-    pill.appendChild(stage)
+    const stage = el(doc, 'div', 'umm-sht-island-stage');
+    stage.appendChild(searchEl);
+    stage.appendChild(pagerEl);
+    applySlots();
+    pill.appendChild(stage);
 
-    const switchBtn = el(doc, 'button', 'umm-sht-island-switch', '⇅') as HTMLButtonElement
-    switchBtn.type = 'button'
-    switchBtn.setAttribute('title', t('sht.island_switch'))
-    switchBtn.setAttribute('aria-label', t('sht.island_switch'))
-    switchBtn.addEventListener('click', () => show(mode === 'pager' ? 'search' : 'pager'))
-    pill.appendChild(switchBtn)
+    const switchBtn = el(doc, 'button', 'umm-sht-island-switch', '⇅') as HTMLButtonElement;
+    switchBtn.type = 'button';
+    switchBtn.setAttribute('title', t('sht.island_switch'));
+    switchBtn.setAttribute('aria-label', t('sht.island_switch'));
+    switchBtn.addEventListener('click', () => show(mode === 'pager' ? 'search' : 'pager'));
+    pill.appendChild(switchBtn);
   } else if (searchEl) {
-    pill.appendChild(searchEl)
+    pill.appendChild(searchEl);
   } else if (pagerEl) {
-    pill.appendChild(pagerEl)
+    pill.appendChild(pagerEl);
   }
 
   const show = (next: IslandMode): void => {
-    if (!(searchEl && pagerEl)) return
-    if (next === mode) return
-    mode = next
-    applySlots()
-  }
+    if (!(searchEl && pagerEl)) return;
+    if (next === mode) return;
+    mode = next;
+    applySlots();
+  };
 
   return {
     pill,
     get mode() {
-      return mode
+      return mode;
     },
     show,
-  }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -531,59 +575,61 @@ export function mountSehuatangControls(
   headerEl: HTMLElement,
   opts?: { floatbarParent?: HTMLElement },
 ): void {
-  if (headerEl.getAttribute('data-umm-sht-mounted') === '1') return
-  if (!doc.getElementById('thread_types')) return
-  headerEl.setAttribute('data-umm-sht-mounted', '1')
+  if (headerEl.getAttribute('data-umm-sht-mounted') === '1') return;
+  if (!doc.getElementById('thread_types')) return;
+  headerEl.setAttribute('data-umm-sht-mounted', '1');
 
   // 提取必须先于隐藏（display:none 不影响 DOM 查询，但保持顺序清晰）。
-  const breadcrumb = extractBreadcrumb(doc.querySelector('#pt .z'))
-  const tabs = extractTypeTabs(doc.getElementById('thread_types'), doc.location?.href ?? '')
-  const bottomPg = extractPagination(doc.querySelector('#fd_page_bottom .pg'))
+  const breadcrumb = extractBreadcrumb(doc.querySelector('#pt .z'));
+  const tabs = extractTypeTabs(doc.getElementById('thread_types'), doc.location?.href ?? '');
+  const bottomPg = extractPagination(doc.querySelector('#fd_page_bottom .pg'));
 
-  const topBack = doc.querySelector('#visitedforums a') as HTMLAnchorElement | null
-  const topPost = doc.getElementById('newspecial')
+  const topBack = doc.querySelector('#visitedforums a') as HTMLAnchorElement | null;
+  const topPost = doc.getElementById('newspecial');
 
   // 隐藏原版（保留 DOM 供「发新帖」click() 接线）。
   for (const sel of ['#pt', '#thread_types', '#pgt']) {
-    const origin = doc.querySelector(sel) as HTMLElement | null
-    if (origin) origin.style.display = 'none'
+    const origin = doc.querySelector(sel) as HTMLElement | null;
+    if (origin) origin.style.display = 'none';
   }
-  const bottomPgContainer = doc.getElementById('fd_page_bottom')?.closest('.pgs') as HTMLElement | null
-  if (bottomPgContainer) bottomPgContainer.style.display = 'none'
+  const bottomPgContainer = doc
+    .getElementById('fd_page_bottom')
+    ?.closest('.pgs') as HTMLElement | null;
+  if (bottomPgContainer) bottomPgContainer.style.display = 'none';
 
   // 双行 header 重建：复用既有子元素（统计区 / 居中簇 / actions 操作组），只重组结构。
   // 上行三列网格 = [面包屑（左）| 居中簇 .umm-sht-center（🏠 + ☰，top center）
   // | 统计区（右）]；居中簇缺失时补空 spacer 保证三列轨道（右列仍靠右）。
-  const statArea = headerEl.querySelector('.umm-sht-stat-area')
-  const center = headerEl.querySelector('.umm-sht-center')
-  const info = headerEl.querySelector('.umm-header-info')
-  const actions = headerEl.lastElementChild as HTMLElement | null
-  const crumbBar = buildBreadcrumbBar(doc, breadcrumb)
-  const tabsBar = buildTabsBar(doc, tabs)
+  const statArea = headerEl.querySelector('.umm-sht-stat-area');
+  const center = headerEl.querySelector('.umm-sht-center');
+  const info = headerEl.querySelector('.umm-header-info');
+  const actions = headerEl.lastElementChild as HTMLElement | null;
+  const crumbBar = buildBreadcrumbBar(doc, breadcrumb);
+  const tabsBar = buildTabsBar(doc, tabs);
 
-  const rowContext = el(doc, 'div', 'umm-sht-row umm-sht-row--context')
-  if (crumbBar) rowContext.appendChild(crumbBar)
-  rowContext.appendChild(center ?? el(doc, 'div', 'umm-sht-center'))
-  if (statArea) rowContext.appendChild(statArea)
-  else if (info) rowContext.appendChild(info)
+  const rowContext = el(doc, 'div', 'umm-sht-row umm-sht-row--context');
+  if (crumbBar) rowContext.appendChild(crumbBar);
+  rowContext.appendChild(center ?? el(doc, 'div', 'umm-sht-center'));
+  if (statArea) rowContext.appendChild(statArea);
+  else if (info) rowContext.appendChild(info);
 
-  const rowNav = el(doc, 'div', 'umm-sht-row umm-sht-row--nav')
-  if (tabsBar) rowNav.appendChild(tabsBar)
+  const rowNav = el(doc, 'div', 'umm-sht-row umm-sht-row--nav');
+  if (tabsBar) rowNav.appendChild(tabsBar);
   if (actions) {
     // 次要动作（返回/发新帖）置前，主要动作（复制磁力）保持靠右的主次分层。
     for (const btn of buildActions(doc, topBack, topPost).reverse()) {
-      actions.insertBefore(btn, actions.firstElementChild)
+      actions.insertBefore(btn, actions.firstElementChild);
     }
-    rowNav.appendChild(actions)
+    rowNav.appendChild(actions);
   }
 
-  headerEl.replaceChildren(rowContext, rowNav)
+  headerEl.replaceChildren(rowContext, rowNav);
 
   // 底部「灵动岛」悬浮栏：搜索 + 底部分页（buildFloatbar 统一合成；岛是
   // 全站唯一搜索入口）。返回/发新帖不再入岛——header 操作组已有同款，
   // 重复按钮只会把岛撑宽、窄屏溢出；上下页切换由 pager 的 ‹ › 图标承担。
   // 有分页时岛默认展示分页舱（策略性优先），⇅ 可轮替到搜索舱。
-  const bottomBar = buildPager(doc, bottomPg)
-  const island = buildFloatbar(doc, { search: true, pager: bottomBar })
-  if (island) (opts?.floatbarParent ?? doc.body).appendChild(island.pill)
+  const bottomBar = buildPager(doc, bottomPg);
+  const island = buildFloatbar(doc, { search: true, pager: bottomBar });
+  if (island) (opts?.floatbarParent ?? doc.body).appendChild(island.pill);
 }

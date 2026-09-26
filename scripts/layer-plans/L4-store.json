@@ -1,9 +1,5 @@
 {
   "name": "L4-store",
-  "moves": [
-    { "from": "src/stores", "to": "src/store", "type": "dir" }
-  ],
-  "aliasRewrites": [
-    ["@/stores", "@/store"]
-  ]
+  "moves": [{ "from": "src/stores", "to": "src/store", "type": "dir" }],
+  "aliasRewrites": [["@/stores", "@/store"]]
 }

@@ -5,37 +5,43 @@
  * Replaces the duplicated 4-field form (platform + media type + jav source + input)
  * that was hand-rolled in both RatingTab.vue and LinkedTab.vue.
  */
-import { useI18n } from 'vue-i18n'
-import FormField from '@/libraries/ui/form-field/FormField.vue'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/libraries/ui/select'
-import { Input } from '@/libraries/ui/input'
-import type { Domain } from '@/libraries/config'
+import { useI18n } from 'vue-i18n';
+import FormField from '@/libraries/ui/form-field/FormField.vue';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/libraries/ui/select';
+import { Input } from '@/libraries/ui/input';
+import type { Domain } from '@/libraries/config';
 
 interface Option {
-  value: string
-  labelKey: string
+  value: string;
+  labelKey: string;
 }
 
 const props = defineProps<{
-  platform: string
-  domain: Domain
-  javSource: string
-  search: string
-  platformOptions: readonly Option[]
-  javSourceOptions: readonly Option[]
-  searchPlaceholder?: string
-  searchDescription?: string
-  inputLabel?: string
-}>()
+  platform: string;
+  domain: Domain;
+  javSource: string;
+  search: string;
+  platformOptions: readonly Option[];
+  javSourceOptions: readonly Option[];
+  searchPlaceholder?: string;
+  searchDescription?: string;
+  inputLabel?: string;
+}>();
 
 const emit = defineEmits<{
-  'update:platform': [value: string]
-  'update:domain': [value: Domain]
-  'update:javSource': [value: string]
-  'update:search': [value: string]
-}>()
+  'update:platform': [value: string];
+  'update:domain': [value: Domain];
+  'update:javSource': [value: string];
+  'update:search': [value: string];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 </script>
 
 <template vapor>
@@ -72,7 +78,10 @@ const { t } = useI18n()
     </FormField>
 
     <FormField v-if="platform === 'jav_ids'" :label="t('common.source')">
-      <Select :modelValue="javSource" @update:modelValue="emit('update:javSource', $event as string)">
+      <Select
+        :modelValue="javSource"
+        @update:modelValue="emit('update:javSource', $event as string)"
+      >
         <SelectTrigger><SelectValue :placeholder="t('common.source')" /></SelectTrigger>
         <SelectContent>
           <SelectItem v-for="s in javSourceOptions" :key="s.value" :value="s.value">
@@ -82,11 +91,19 @@ const { t } = useI18n()
       </Select>
     </FormField>
 
-    <FormField :label="inputLabel || (platform === 'jav_ids' ? t('platform.jav') : t('common.search') + ' ID / URL')" :description="searchDescription">
+    <FormField
+      :label="
+        inputLabel ||
+        (platform === 'jav_ids' ? t('platform.jav') : t('common.search') + ' ID / URL')
+      "
+      :description="searchDescription"
+    >
       <Input
         :modelValue="search"
         @update:modelValue="emit('update:search', $event as string)"
-        :placeholder="searchPlaceholder || (platform === 'jav_ids' ? 'FC2-PPV-1234567' : '35401245 / URL')"
+        :placeholder="
+          searchPlaceholder || (platform === 'jav_ids' ? 'FC2-PPV-1234567' : '35401245 / URL')
+        "
       />
     </FormField>
   </div>

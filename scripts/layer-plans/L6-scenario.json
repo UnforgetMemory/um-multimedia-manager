@@ -1,9 +1,5 @@
 {
   "name": "L6-scenario",
-  "moves": [
-    { "from": "src/content", "to": "src/scenario", "type": "dir" }
-  ],
-  "aliasRewrites": [
-    ["@/content", "@/scenario"]
-  ]
+  "moves": [{ "from": "src/content", "to": "src/scenario", "type": "dir" }],
+  "aliasRewrites": [["@/content", "@/scenario"]]
 }

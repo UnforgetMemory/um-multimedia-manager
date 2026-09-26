@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import type { FunctionalComponent, SVGAttributes } from 'vue'
-import { Button } from '@/libraries/ui/button'
-import { RefreshCw } from 'lucide-vue-next'
+import type { FunctionalComponent, SVGAttributes } from 'vue';
+import { Button } from '@/libraries/ui/button';
+import { RefreshCw } from 'lucide-vue-next';
 
 defineProps<{
-  icon: FunctionalComponent<SVGAttributes>
-  label: string
-  loading?: boolean
-  loadingLabel?: string
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
-  disabled?: boolean
-  class?: string
-}>()
+  icon: FunctionalComponent<SVGAttributes>;
+  label: string;
+  loading?: boolean;
+  loadingLabel?: string;
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  disabled?: boolean;
+  class?: string;
+}>();
 
 const emit = defineEmits<{
-  click: []
-}>()
+  click: [];
+}>();
 </script>
 
 <template vapor>

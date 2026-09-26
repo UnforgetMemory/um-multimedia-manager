@@ -1,60 +1,60 @@
-import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
-import { intervalWhenVisible } from '@/libraries/utils/visibility'
-import { hideNavForPage } from '../../shared/hide-nav'
-import { Store } from '@/engine/database'
-import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace'
-import { withRetry } from '../../shared/retry'
+import { definePageMount } from '../../mount-factory';
+import { createApp } from 'vue';
+import { intervalWhenVisible } from '@/libraries/utils/visibility';
+import { hideNavForPage } from '../../shared/hide-nav';
+import { Store } from '@/engine/database';
+import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace';
+import { withRetry } from '../../shared/retry';
 
 export const mountGameDetail = definePageMount({
   cssPreset: 'game-detail',
   overlayId: 'umm-douban-overlay',
   importApp: () => import('./App.vue'),
   async beforeMount() {
-    const { extractGameDetailData, enrichGameRecItems } = await import('./game-detail-data')
+    const { extractGameDetailData, enrichGameRecItems } = await import('./game-detail-data');
     const data: import('./game-detail-data').GameDetailData | null = await withRetry(
       () => extractGameDetailData(),
       { attempts: 8, baseDelay: 300, isValid: (d) => d?.title },
-    )
-    if (!data) throw new Error('[UMM] Could not extract game detail data')
+    );
+    if (!data) throw new Error('[UMM] Could not extract game detail data');
 
     if (data.identity) {
-      const key = `${data.identity.type}::${data.identity.providerId}`
-      const record = await Store.dbGet('douban_records', key)
+      const key = `${data.identity.type}::${data.identity.providerId}`;
+      const record = await Store.dbGet('douban_records', key);
       if (record) {
-        if (record.status) data.initialStatus = record.status
-        if (record.rating) data.initialRating = record.rating / 2
+        if (record.status) data.initialStatus = record.status;
+        if (record.rating) data.initialRating = record.rating / 2;
       }
     }
 
-    data.recItems = await enrichGameRecItems(data.recItems)
-    hideNavForPage({ type: 'game-detail' })
-    return data
+    data.recItems = await enrichGameRecItems(data.recItems);
+    hideNavForPage({ type: 'game-detail' });
+    return data;
   },
   createApp: (RootCmp, data) => createApp(RootCmp, { data }),
   async afterMount(_shadow, app, _container, data) {
     // Initialize doulist modal click handler ("+ 添加到豆列")
     if (data.identity) {
-      initDoulistReplacement(data.identity)
+      initDoulistReplacement(data.identity);
     }
 
-    if (!data.identity) return
+    if (!data.identity) return;
     // Pauses when tab is hidden via Page Visibility API
     const recordPoller = intervalWhenVisible(async () => {
-      if (!data.identity) return
-      const key = `${data.identity.type}::${data.identity.providerId}`
-      const updated = await Store.dbGet('douban_records', key)
+      if (!data.identity) return;
+      const key = `${data.identity.type}::${data.identity.providerId}`;
+      const updated = await Store.dbGet('douban_records', key);
       if (updated && app._instance) {
-        const vm = app._instance.proxy as unknown as Record<string, unknown>
+        const vm = app._instance.proxy as unknown as Record<string, unknown>;
         if (vm && typeof vm.updateRecord === 'function') {
-          vm.updateRecord(updated)
+          vm.updateRecord(updated);
         }
       }
-    }, 3000)
+    }, 3000);
 
-    ;(window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-      recordPoller.destroy()
-      app.unmount()
-    }
+    (window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
+      recordPoller.destroy();
+      app.unmount();
+    };
   },
-})
+});

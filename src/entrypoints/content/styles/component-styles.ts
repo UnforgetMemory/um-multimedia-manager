@@ -7,11 +7,7 @@
  * 组合入口仍是 global.ts 的 ALL_STYLES（顺序：主题变量表必须最先）。
  */
 
-import {
-  COLOR_NEOGLOW_BASE,
-  COLOR_NEOGLOW_BRIGHT,
-  COLOR_NEOGLOW_SHADOW_1,
-} from './tokens'
+import { COLOR_NEOGLOW_BASE, COLOR_NEOGLOW_BRIGHT, COLOR_NEOGLOW_SHADOW_1 } from './tokens';
 
 /**
  * NeoDB push button styles
@@ -93,7 +89,7 @@ export const NEODB_BUTTON_STYLES = `
     animation: none;
   }
 }
-`
+`;
 
 /**
  * Dimmer styles (Mukaku and PT sites)
@@ -107,7 +103,7 @@ export const DIMMER_STYLES = `
 .umm-dimmed:hover {
   opacity: 1;
 }
-`
+`;
 
 /**
  * Homepage badge styles
@@ -152,7 +148,7 @@ export const HOMEPAGE_BADGE_STYLES = `
   color: var(--umm-ink-doing);
   border: 1px solid var(--umm-border-doing);
 }
-`
+`;
 
 /**
  * Shared UI component styles (for content/ui/*.ts panel/modal)
@@ -231,7 +227,7 @@ export const UI_COMPONENT_STYLES = `
 .umm-mt {
   margin-top: 10px;
 }
-`
+`;
 
 /**
  * Focus-visible styles (keyboard navigation)
@@ -262,7 +258,7 @@ export const FOCUS_VISIBLE_STYLES = `
   outline: 2px solid var(--umm-link, #3a55ec);
   outline-offset: 2px;
 }
-`
+`;
 
 /**
  * Scrollbar styles — ADR-026 D7：同样收进 `umm-` 作用域。
@@ -295,4 +291,4 @@ export const SCROLLBAR_STYLES = `
   scrollbar-width: thin;
   scrollbar-color: var(--umm-border, rgba(0, 0, 0, 0.1)) transparent;
 }
-`
+`;

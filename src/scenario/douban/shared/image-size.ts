@@ -5,7 +5,7 @@
  * maintained target. Change DOUBAN_IMAGE_SIZE only; call sites go through
  * upgradeDoubanImageSrc.
  */
-export const DOUBAN_IMAGE_SIZE = 'x'
+export const DOUBAN_IMAGE_SIZE = 'x';
 
 /**
  * Rewrite a Douban image URL to the maintained high-res size token.
@@ -13,12 +13,9 @@ export const DOUBAN_IMAGE_SIZE = 'x'
  * and photo gallery paths (/view/photo/{size}/public/).
  */
 export function upgradeDoubanImageSrc(src: string): string {
-  if (!src) return src
+  if (!src) return src;
   return src
     .replace(/s_ratio_poster/g, DOUBAN_IMAGE_SIZE)
     .replace(/\/([slm])(?:pic)?\//g, `/${DOUBAN_IMAGE_SIZE}/`)
-    .replace(
-      /\/view\/photo\/[^/]+\/public\//,
-      `/view/photo/${DOUBAN_IMAGE_SIZE}/public/`,
-    )
+    .replace(/\/view\/photo\/[^/]+\/public\//, `/view/photo/${DOUBAN_IMAGE_SIZE}/public/`);
 }

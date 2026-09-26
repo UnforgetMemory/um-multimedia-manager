@@ -9,27 +9,27 @@
  *     attribute never goes stale after overlay dismissal.
  */
 
-import { debounce } from '@/libraries/utils'
-import { COLOR_SURFACE_DARK, COLOR_SURFACE_LIGHT } from '@/entrypoints/content/styles/tokens'
+import { debounce } from '@/libraries/utils';
+import { COLOR_SURFACE_DARK, COLOR_SURFACE_LIGHT } from '@/entrypoints/content/styles/tokens';
 
-export const THEME_KEY = 'umm:appearance'
+export const THEME_KEY = 'umm:appearance';
 
 /** mode ('dark'|'light'|'auto') → concrete theme; auto follows the OS. */
 export function resolveTheme(mode: string): 'dark' | 'light' {
-  if (mode === 'dark' || mode === 'light') return mode
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  if (mode === 'dark' || mode === 'light') return mode;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 /** html background mirrors the overlay surface (no seams on overscroll). */
 function applyHtmlBackground(theme: 'dark' | 'light'): void {
-  const bgColor = theme === 'dark' ? COLOR_SURFACE_DARK : COLOR_SURFACE_LIGHT
-  let styleEl = document.getElementById('umm-html-theme') as HTMLStyleElement | null
+  const bgColor = theme === 'dark' ? COLOR_SURFACE_DARK : COLOR_SURFACE_LIGHT;
+  let styleEl = document.getElementById('umm-html-theme') as HTMLStyleElement | null;
   if (!styleEl) {
-    styleEl = document.createElement('style')
-    styleEl.id = 'umm-html-theme'
-    document.documentElement.appendChild(styleEl)
+    styleEl = document.createElement('style');
+    styleEl.id = 'umm-html-theme';
+    document.documentElement.appendChild(styleEl);
   }
-  styleEl.textContent = `html { background: ${bgColor} !important; }`
+  styleEl.textContent = `html { background: ${bgColor} !important; }`;
 }
 
 /**
@@ -39,23 +39,28 @@ function applyHtmlBackground(theme: 'dark' | 'light'): void {
  */
 export function applyOverlayTheme(host: HTMLElement): void {
   function setTheme(mode: string) {
-    const theme = resolveTheme(mode)
-    host.setAttribute('data-theme', theme)
-    host.classList.remove('umm-theme--light', 'umm-theme--dark')
-    host.classList.add(`umm-theme--${theme}`)
+    const theme = resolveTheme(mode);
+    host.setAttribute('data-theme', theme);
+    host.classList.remove('umm-theme--light', 'umm-theme--dark');
+    host.classList.add(`umm-theme--${theme}`);
     // html[data-umm-theme] + background are owned by startThemeAttrSync —
     // writing them here too is redundant but harmless during overlap.
-    document.documentElement.setAttribute('data-umm-theme', theme)
-    applyHtmlBackground(theme)
+    document.documentElement.setAttribute('data-umm-theme', theme);
+    applyHtmlBackground(theme);
   }
-  const fallback = () => setTheme('auto')
+  const fallback = () => setTheme('auto');
   try {
     chrome.storage.local.get([THEME_KEY], (result) => {
-      if (chrome.runtime.lastError) { fallback(); return }
-      const raw = result[THEME_KEY] as Record<string, unknown> | undefined
-      setTheme((raw?.theme as string) ?? 'auto')
-    })
-  } catch { fallback() }
+      if (chrome.runtime.lastError) {
+        fallback();
+        return;
+      }
+      const raw = result[THEME_KEY] as Record<string, unknown> | undefined;
+      setTheme((raw?.theme as string) ?? 'auto');
+    });
+  } catch {
+    fallback();
+  }
 }
 
 /**
@@ -64,13 +69,13 @@ export function applyOverlayTheme(host: HTMLElement): void {
  * Returns a cleanup function to remove the listener.
  */
 export function startThemeSync(host: HTMLElement): () => void {
-  applyOverlayTheme(host)
-  const debouncedApply = debounce(() => applyOverlayTheme(host), 100)
+  applyOverlayTheme(host);
+  const debouncedApply = debounce(() => applyOverlayTheme(host), 100);
   const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area === 'local' && changes[THEME_KEY]) debouncedApply()
-  }
-  chrome.storage.onChanged.addListener(handler)
-  return () => chrome.storage.onChanged.removeListener(handler)
+    if (area === 'local' && changes[THEME_KEY]) debouncedApply();
+  };
+  chrome.storage.onChanged.addListener(handler);
+  return () => chrome.storage.onChanged.removeListener(handler);
 }
 
 /**
@@ -81,30 +86,40 @@ export function startThemeSync(host: HTMLElement): () => void {
  * sehuatang early script — one resolution rule, zero drift.
  */
 export function subscribeTheme(onTheme: (theme: 'dark' | 'light') => void): () => void {
-  let mode = 'auto'
-  const apply = () => onTheme(resolveTheme(mode))
-  apply() // synchronous first paint — refine after storage resolves
+  let mode = 'auto';
+  const apply = () => onTheme(resolveTheme(mode));
+  apply(); // synchronous first paint — refine after storage resolves
   try {
     chrome.storage.local.get([THEME_KEY], (result) => {
-      if (chrome.runtime.lastError) { apply(); return }
-      mode = (result?.[THEME_KEY] as Record<string, unknown> | undefined)?.theme as string ?? 'auto'
-      apply()
-    })
-  } catch { apply() }
+      if (chrome.runtime.lastError) {
+        apply();
+        return;
+      }
+      mode =
+        ((result?.[THEME_KEY] as Record<string, unknown> | undefined)?.theme as string) ?? 'auto';
+      apply();
+    });
+  } catch {
+    apply();
+  }
   const storageHandler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
     if (area === 'local' && changes[THEME_KEY]) {
-      mode = (changes[THEME_KEY].newValue as Record<string, unknown> | undefined)?.theme as string ?? 'auto'
-      apply()
+      mode =
+        ((changes[THEME_KEY].newValue as Record<string, unknown> | undefined)?.theme as string) ??
+        'auto';
+      apply();
     }
-  }
-  chrome.storage.onChanged.addListener(storageHandler)
-  const mq = window.matchMedia('(prefers-color-scheme: dark)')
-  const mqHandler = () => { if (mode === 'auto') apply() }
-  mq.addEventListener?.('change', mqHandler)
+  };
+  chrome.storage.onChanged.addListener(storageHandler);
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const mqHandler = () => {
+    if (mode === 'auto') apply();
+  };
+  mq.addEventListener?.('change', mqHandler);
   return () => {
-    chrome.storage.onChanged.removeListener(storageHandler)
-    mq.removeEventListener?.('change', mqHandler)
-  }
+    chrome.storage.onChanged.removeListener(storageHandler);
+    mq.removeEventListener?.('change', mqHandler);
+  };
 }
 
 /**
@@ -119,7 +134,7 @@ export function subscribeTheme(onTheme: (theme: 'dark' | 'light') => void): () =
  */
 export function startThemeAttrSync(options?: { background?: boolean }): () => void {
   return subscribeTheme((theme) => {
-    document.documentElement.setAttribute('data-umm-theme', theme)
-    if (options?.background !== false) applyHtmlBackground(theme)
-  })
+    document.documentElement.setAttribute('data-umm-theme', theme);
+    if (options?.background !== false) applyHtmlBackground(theme);
+  });
 }

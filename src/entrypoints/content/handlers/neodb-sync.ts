@@ -11,10 +11,10 @@
  *    直接锁定（create-if-missing / update-if-not-watched / skip-if-watched）。
  */
 
-import { UrlResolverBuilder } from '@/libraries/identity'
-import type { Provider } from '@/libraries/config'
-import type { UrlIdentity, StoreRecord } from '@/types'
-import type { PageScanResult } from './create-detail-handler'
+import { UrlResolverBuilder } from '@/libraries/identity';
+import type { Provider } from '@/libraries/config';
+import type { UrlIdentity, StoreRecord } from '@/types';
+import type { PageScanResult } from './create-detail-handler';
 
 /**
  * 从页面提取的跨平台链接（provider + url）归一化为 linkedIds 映射。
@@ -23,13 +23,16 @@ import type { PageScanResult } from './create-detail-handler'
 export function buildNeoDBLinkedIds(
   linkedIdentities: Array<{ provider: string; url: string }>,
 ): Record<string, string> {
-  return linkedIdentities.reduce((acc, linked) => {
-    const targetId = UrlResolverBuilder.fromUrl(linked.url)
-    if (targetId) {
-      acc[targetId.platform] = `${targetId.type}::${targetId.providerId}`
-    }
-    return acc
-  }, {} as Record<string, string>)
+  return linkedIdentities.reduce(
+    (acc, linked) => {
+      const targetId = UrlResolverBuilder.fromUrl(linked.url);
+      if (targetId) {
+        acc[targetId.platform] = `${targetId.type}::${targetId.providerId}`;
+      }
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 }
 
 /**
@@ -39,17 +42,17 @@ export function buildNeoDBLinkedIds(
 export function buildNeoDBSyncTargets(
   linkedIdentities: Array<{ provider: string; url: string }>,
 ): Array<{ platform: Provider; key: string; url: string }> {
-  const targets: Array<{ platform: Provider; key: string; url: string }> = []
+  const targets: Array<{ platform: Provider; key: string; url: string }> = [];
   for (const linked of linkedIdentities) {
-    const targetId = UrlResolverBuilder.fromUrl(linked.url)
-    if (!targetId) continue
+    const targetId = UrlResolverBuilder.fromUrl(linked.url);
+    if (!targetId) continue;
     targets.push({
       platform: targetId.platform,
       key: `${targetId.type}::${targetId.providerId}`,
       url: UrlResolverBuilder.buildUrl(targetId.type, targetId.platform, targetId.providerId),
-    })
+    });
   }
-  return targets
+  return targets;
 }
 
 /**
@@ -59,15 +62,15 @@ export function buildNeoDBSyncTargets(
  *  - 页面未完成 → 保留 localRecord 的 status/rating（缺省 0）
  */
 export function buildNeoDBSyncRecord(params: {
-  identity: UrlIdentity
-  pageState: PageScanResult
-  localRecord: StoreRecord | null
-  isPageDone: boolean
-  linkedIds: Record<string, string>
-  now?: string
+  identity: UrlIdentity;
+  pageState: PageScanResult;
+  localRecord: StoreRecord | null;
+  isPageDone: boolean;
+  linkedIds: Record<string, string>;
+  now?: string;
 }): StoreRecord {
-  const { identity, pageState, localRecord, isPageDone, linkedIds } = params
-  const now = params.now ?? new Date().toISOString()
+  const { identity, pageState, localRecord, isPageDone, linkedIds } = params;
+  const now = params.now ?? new Date().toISOString();
   return {
     url: identity.url,
     status: isPageDone ? 2 : (localRecord?.status ?? 0),
@@ -75,7 +78,7 @@ export function buildNeoDBSyncRecord(params: {
     comment: localRecord?.comment ?? '',
     updatedAt: now,
     linkedIds,
-  }
+  };
 }
 
 /**
@@ -84,24 +87,25 @@ export function buildNeoDBSyncRecord(params: {
  *  - 页面未完成：记录不存在或 linkedIds 变化（确保关联不丢失）
  */
 export function shouldSaveNeoDBPrimary(params: {
-  isPageDone: boolean
-  localRecord: StoreRecord | null
-  pageState: PageScanResult
-  linkedIds: Record<string, string>
+  isPageDone: boolean;
+  localRecord: StoreRecord | null;
+  pageState: PageScanResult;
+  linkedIds: Record<string, string>;
 }): boolean {
-  const { isPageDone, localRecord, pageState, linkedIds } = params
+  const { isPageDone, localRecord, pageState, linkedIds } = params;
 
   if (isPageDone) {
-    const statusChanged = localRecord?.status !== 2
-    const ratingChanged = localRecord?.rating !== pageState.rating
-    const linkedChanged = JSON.stringify(localRecord?.linkedIds || {}) !== JSON.stringify(linkedIds)
-    return statusChanged || ratingChanged || linkedChanged || !localRecord
+    const statusChanged = localRecord?.status !== 2;
+    const ratingChanged = localRecord?.rating !== pageState.rating;
+    const linkedChanged =
+      JSON.stringify(localRecord?.linkedIds || {}) !== JSON.stringify(linkedIds);
+    return statusChanged || ratingChanged || linkedChanged || !localRecord;
   }
 
-  return !localRecord || JSON.stringify(localRecord.linkedIds || {}) !== JSON.stringify(linkedIds)
+  return !localRecord || JSON.stringify(localRecord.linkedIds || {}) !== JSON.stringify(linkedIds);
 }
 
 /** Platform display name for toast messages (douban → 豆瓣, imdb → IMDb, tmdb → TMDB). */
 export function platformLabel(platform: string): string {
-  return platform === 'imdb' ? 'IMDb' : platform === 'tmdb' ? 'TMDB' : '豆瓣'
+  return platform === 'imdb' ? 'IMDb' : platform === 'tmdb' ? 'TMDB' : '豆瓣';
 }

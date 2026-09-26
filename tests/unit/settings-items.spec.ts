@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import type { MinimalStorageArea } from '@/engine/settings/items'
+import { test, expect } from '@playwright/test';
+import type { MinimalStorageArea } from '@/engine/settings/items';
 
 /**
  * settings items（W1 重构）兼容契约测试。
@@ -16,89 +16,95 @@ import type { MinimalStorageArea } from '@/engine/settings/items'
  */
 
 interface AreaMock extends MinimalStorageArea {
-  map: Map<string, unknown>
-  emit(key: string, newValue: unknown): void
+  map: Map<string, unknown>;
+  emit(key: string, newValue: unknown): void;
   onChanged: {
-    addListener: (fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void) => void
-    removeListener: (fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void) => void
-  }
+    addListener: (
+      fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void,
+    ) => void;
+    removeListener: (
+      fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void,
+    ) => void;
+  };
 }
 
 function createArea(): AreaMock {
-  const map = new Map<string, unknown>()
-  const listeners = new Set<(changes: Record<string, { newValue?: unknown }>, area: string) => void>()
+  const map = new Map<string, unknown>();
+  const listeners = new Set<
+    (changes: Record<string, { newValue?: unknown }>, area: string) => void
+  >();
   return {
     map,
     async get(keys) {
-      if (keys === null) return Object.fromEntries(map)
-      const ks = Array.isArray(keys) ? keys : [keys]
-      const out: Record<string, unknown> = {}
-      for (const k of ks) if (map.has(k)) out[k] = map.get(k)
-      return out
+      if (keys === null) return Object.fromEntries(map);
+      const ks = Array.isArray(keys) ? keys : [keys];
+      const out: Record<string, unknown> = {};
+      for (const k of ks) if (map.has(k)) out[k] = map.get(k);
+      return out;
     },
     async set(items) {
       for (const [k, v] of Object.entries(items)) {
-        if (v === undefined) continue
-        map.set(k, v)
+        if (v === undefined) continue;
+        map.set(k, v);
       }
     },
     async remove(keys) {
-      for (const k of Array.isArray(keys) ? keys : [keys]) map.delete(k)
+      for (const k of Array.isArray(keys) ? keys : [keys]) map.delete(k);
     },
     onChanged: {
       addListener: (fn) => listeners.add(fn),
       removeListener: (fn) => listeners.delete(fn),
     },
     emit(key, newValue) {
-      for (const fn of listeners) fn({ [key]: { newValue } }, 'local')
+      for (const fn of listeners) fn({ [key]: { newValue } }, 'local');
     },
-  }
+  };
 }
 
-const area = createArea()
+const area = createArea();
 
-let items!: typeof import('@/engine/settings/items')
-let cacheMod!: typeof import('@/engine/settings/cache')
+let items!: typeof import('@/engine/settings/items');
+let cacheMod!: typeof import('@/engine/settings/cache');
 
 test.beforeAll(async () => {
   // chrome 全局仅供 SettingsCache 的 onChanged / session-cache 降级路径使用
-  ;(globalThis as { chrome?: unknown }).chrome = {
+  (globalThis as { chrome?: unknown }).chrome = {
     runtime: { id: 'test-extension-id' },
     storage: { onChanged: (area as unknown as { onChanged: unknown }).onChanged, local: area },
-  }
-  items = await import('@/engine/settings/items')
-  items.__bindSettingsAreaForTests(area)
-  cacheMod = await import('@/engine/settings/cache')
-})
+  };
+  items = await import('@/engine/settings/items');
+  items.__bindSettingsAreaForTests(area);
+  cacheMod = await import('@/engine/settings/cache');
+});
 
-const ORIGINAL_CHROME = (globalThis as { chrome?: unknown }).chrome
+const ORIGINAL_CHROME = (globalThis as { chrome?: unknown }).chrome;
 
 test.afterAll(() => {
   // 恢复原值而非抹除：同 worker 内其他 spec 可能先设过 chrome。
-  ;(globalThis as { chrome?: unknown }).chrome = ORIGINAL_CHROME
-})
+  (globalThis as { chrome?: unknown }).chrome = ORIGINAL_CHROME;
+});
 
 function seed(entries: Record<string, unknown>): void {
-  for (const [k, v] of Object.entries(entries)) area.map.set(k, v)
+  for (const [k, v] of Object.entries(entries)) area.map.set(k, v);
 }
 
 // ==================== resolveAppSettings ====================
 
 test.describe('resolveAppSettings', () => {
   test('空存储 → 全部 fallback 默认值', async () => {
-    area.map.clear()
-    const s = await items.resolveAppSettings()
-    expect(s.webdavUrl).toBe('')
-    expect(s.autoSync).toBe(false)
-    expect(s.syncInterval).toBe(30)
-    expect(s.theme).toBe('auto')
-    expect(s.language).toBe('zh-CN')
-    expect(s.notificationEnabled).toBe(true)
-    expect(s.accentColor).toBe('blue')
-    expect(s.grayColor).toBe('slate')
-    expect(s.debugEnabled).toBe(false)
-    expect(s.logLevel).toBe('info')
-  })
+    area.map.clear();
+    const s = await items.resolveAppSettings();
+    expect(s.webdavUrl).toBe('');
+    expect(s.autoSync).toBe(false);
+    expect(s.syncInterval).toBe(30);
+    expect(s.theme).toBe('auto');
+    expect(s.language).toBe('zh-CN');
+    expect(s.notificationEnabled).toBe(true);
+    expect(s.accentColor).toBe('blue');
+    expect(s.grayColor).toBe('slate');
+    expect(s.debugEnabled).toBe(false);
+    expect(s.logLevel).toBe('info');
+  });
 
   test('legacy flat key 原地读取（v5.x 存量数据兼容）', async () => {
     seed({
@@ -107,49 +113,49 @@ test.describe('resolveAppSettings', () => {
       debugEnabled: true,
       logLevel: 'debug',
       theme: 'dark',
-    })
-    const s = await items.resolveAppSettings()
-    expect(s.webdavUrl).toBe('https://dav.example.com')
-    expect(s.syncInterval).toBe(60)
-    expect(s.debugEnabled).toBe(true)
-    expect(s.logLevel).toBe('debug')
-    expect(s.theme).toBe('dark')
+    });
+    const s = await items.resolveAppSettings();
+    expect(s.webdavUrl).toBe('https://dav.example.com');
+    expect(s.syncInterval).toBe(60);
+    expect(s.debugEnabled).toBe(true);
+    expect(s.logLevel).toBe('debug');
+    expect(s.theme).toBe('dark');
     // 未 seed 的字段仍取默认
-    expect(s.neodbToken).toBe('')
-  })
+    expect(s.neodbToken).toBe('');
+  });
 
   test('v1 不产生 $ 元数据行', async () => {
-    seed({ webdavUsername: 'alice' })
-    await items.settingsItems().webdavUsername.getValue()
-    await items.persistAppSettings({ webdavUsername: 'bob' })
-    const metaKeys = [...area.map.keys()].filter((k) => k.endsWith('$'))
-    expect(metaKeys).toEqual([])
-  })
-})
+    seed({ webdavUsername: 'alice' });
+    await items.settingsItems().webdavUsername.getValue();
+    await items.persistAppSettings({ webdavUsername: 'bob' });
+    const metaKeys = [...area.map.keys()].filter((k) => k.endsWith('$'));
+    expect(metaKeys).toEqual([]);
+  });
+});
 
 // ==================== persistAppSettings ====================
 
 test.describe('persistAppSettings', () => {
   test('写入物理 flat key，legacy chrome.storage.get 可直接读回', async () => {
-    await items.persistAppSettings({ autoSync: true, theme: 'light', accentColor: 'green' })
+    await items.persistAppSettings({ autoSync: true, theme: 'light', accentColor: 'green' });
     // 走 legacy 形态的原生 get 读回（与 items API 无关）
-    const raw = await area.get(['autoSync', 'theme', 'accentColor'])
-    expect(raw).toEqual({ autoSync: true, theme: 'light', accentColor: 'green' })
-  })
+    const raw = await area.get(['autoSync', 'theme', 'accentColor']);
+    expect(raw).toEqual({ autoSync: true, theme: 'light', accentColor: 'green' });
+  });
 
   test('undefined 字段被跳过（不落盘、不删除已有值）', async () => {
-    seed({ language: 'en-US' })
-    await items.persistAppSettings({ webdavUrl: 'https://x', language: undefined })
-    expect(area.map.get('language')).toBe('en-US')
-    expect(area.map.get('webdavUrl')).toBe('https://x')
-  })
+    seed({ language: 'en-US' });
+    await items.persistAppSettings({ webdavUrl: 'https://x', language: undefined });
+    expect(area.map.get('language')).toBe('en-US');
+    expect(area.map.get('webdavUrl')).toBe('https://x');
+  });
 
   test('defaultAppSettings 与 item fallback 同源', () => {
-    const d = items.defaultAppSettings()
-    expect(d.theme).toBe(items.settingsItems().theme.defaultValue)
-    expect(d.syncInterval).toBe(30)
-  })
-})
+    const d = items.defaultAppSettings();
+    expect(d.theme).toBe(items.settingsItems().theme.defaultValue);
+    expect(d.syncInterval).toBe(30);
+  });
+});
 
 // ==================== SettingsCache 门面 ====================
 // （迁移链语义：当前所有 item 均为 v1 无迁移，<key>$ 元数据行为由
@@ -157,57 +163,59 @@ test.describe('persistAppSettings', () => {
 
 test.describe('SettingsCache（API 保持）', () => {
   test('init → get → updateAll 全链路 + 未初始化 get 回退默认', async () => {
-    const SettingsCacheCtor = cacheMod.settingsCache.constructor as new () => typeof cacheMod.settingsCache
-    const cache = new SettingsCacheCtor()
-    expect(cache.get().syncInterval).toBe(30)
+    const SettingsCacheCtor = cacheMod.settingsCache
+      .constructor as new () => typeof cacheMod.settingsCache;
+    const cache = new SettingsCacheCtor();
+    expect(cache.get().syncInterval).toBe(30);
 
-    seed({ syncInterval: 45 })
-    await cache.init()
-    expect(cache.get().syncInterval).toBe(45)
+    seed({ syncInterval: 45 });
+    await cache.init();
+    expect(cache.get().syncInterval).toBe(45);
 
-    await cache.updateAll({ autoSyncNeoDB: true, neodbToken: 'tok-1' })
-    expect(cache.get().autoSyncNeoDB).toBe(true)
-    expect(cache.get().neodbToken).toBe('tok-1')
+    await cache.updateAll({ autoSyncNeoDB: true, neodbToken: 'tok-1' });
+    expect(cache.get().autoSyncNeoDB).toBe(true);
+    expect(cache.get().neodbToken).toBe('tok-1');
     // 持久化到物理键
-    expect(area.map.get('neodbToken')).toBe('tok-1')
-    expect(cache.get().syncInterval).toBe(45)
-  })
+    expect(area.map.get('neodbToken')).toBe('tok-1');
+    expect(cache.get().syncInterval).toBe(45);
+  });
 
   test('startListening：onChanged 合并进缓存（含 umm:appearance shim + 杂键排除）', async () => {
-    const SettingsCacheCtor = cacheMod.settingsCache.constructor as new () => typeof cacheMod.settingsCache
-    const cache = new SettingsCacheCtor()
-    await cache.init()
-    cache.startListening()
-    area.emit('theme', 'dark')
-    expect(cache.get().theme).toBe('dark')
-    area.emit('umm:appearance', { theme: 'light' })
-    expect(cache.get().theme).toBe('light')
+    const SettingsCacheCtor = cacheMod.settingsCache
+      .constructor as new () => typeof cacheMod.settingsCache;
+    const cache = new SettingsCacheCtor();
+    await cache.init();
+    cache.startListening();
+    area.emit('theme', 'dark');
+    expect(cache.get().theme).toBe('dark');
+    area.emit('umm:appearance', { theme: 'light' });
+    expect(cache.get().theme).toBe('light');
     // 非设置键不得混入缓存（否则会随 L1.5 快照持久化脏形状）
-    area.emit('some:foreign:key', { junk: true })
-    expect(Object.keys(cache.get())).not.toContain('some:foreign:key')
-  })
-})
+    area.emit('some:foreign:key', { junk: true });
+    expect(Object.keys(cache.get())).not.toContain('some:foreign:key');
+  });
+});
 
 // ==================== sehuatangHideViewed item ====================
 
 test.describe('sehuatangHideViewed（隐藏已看持久化）', () => {
   test('fallback=false；flat-key 双向兼容 roundtrip；无 $ 元数据', async () => {
-    area.map.clear()
-    const item = items.settingsItems().sehuatangHideViewed
-    expect(await item.getValue()).toBe(false)
+    area.map.clear();
+    const item = items.settingsItems().sehuatangHideViewed;
+    expect(await item.getValue()).toBe(false);
 
-    await item.setValue(true)
+    await item.setValue(true);
     // legacy 原生 get 可直接读回
-    expect((await area.get('sehuatangHideViewed')).sehuatangHideViewed).toBe(true)
+    expect((await area.get('sehuatangHideViewed')).sehuatangHideViewed).toBe(true);
     // item 层读回
-    expect(await item.getValue()).toBe(true)
+    expect(await item.getValue()).toBe(true);
     // v1 不产生迁移元数据
-    expect([...area.map.keys()].filter((k) => k.endsWith('$'))).toEqual([])
-  })
+    expect([...area.map.keys()].filter((k) => k.endsWith('$'))).toEqual([]);
+  });
 
   test('resolveAppSettings 包含该字段（默认 false）', async () => {
-    area.map.clear()
-    const s = await items.resolveAppSettings()
-    expect(s.sehuatangHideViewed).toBe(false)
-  })
-})
+    area.map.clear();
+    const s = await items.resolveAppSettings();
+    expect(s.sehuatangHideViewed).toBe(false);
+  });
+});

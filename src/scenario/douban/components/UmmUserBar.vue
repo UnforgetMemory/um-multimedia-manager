@@ -13,11 +13,11 @@
  * - navLinks: array of { label, url }
  */
 defineProps<{
-  avatarUrl?: string
-  displayName: string
-  userId: string
-  navLinks: { label: string; url: string }[]
-}>()
+  avatarUrl?: string;
+  displayName: string;
+  userId: string;
+  navLinks: { label: string; url: string }[];
+}>();
 </script>
 
 <template vapor>
@@ -28,11 +28,7 @@ defineProps<{
       :style="{ backgroundImage: `url(${avatarUrl})` }"
     />
     <div class="umm-userbar-info">
-      <a
-        :href="`/people/${userId}/`"
-        class="umm-userbar-name"
-        target="_blank"
-      >{{ displayName }}</a>
+      <a :href="`/people/${userId}/`" class="umm-userbar-name" target="_blank">{{ displayName }}</a>
       <div v-if="navLinks.length > 0" class="umm-userbar-nav">
         <a
           v-for="link in navLinks"
@@ -40,7 +36,8 @@ defineProps<{
           :href="link.url"
           class="umm-userbar-navlink"
           target="_blank"
-        >{{ link.label }}</a>
+          >{{ link.label }}</a
+        >
       </div>
     </div>
   </div>
@@ -92,7 +89,9 @@ defineProps<{
   white-space: nowrap;
   padding: 1px 4px;
   border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .umm-userbar-navlink:hover {
   color: var(--umm-link, #3a55ec);

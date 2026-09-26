@@ -35,7 +35,8 @@ export default {
   'common.importData': 'Import Data',
   'common.exportData': 'Export Data',
   'common.includeWebdavCredentials': 'Include / restore WebDAV credentials',
-  'common.includeWebdavCredentialsHint': 'When on: export embeds credentials in the file; import restores them after confirmation. Off by default (safer against malicious backups).',
+  'common.includeWebdavCredentialsHint':
+    'When on: export embeds credentials in the file; import restores them after confirmation. Off by default (safer against malicious backups).',
   'common.startImport': 'Start Import',
   'common.fileName': 'File name',
   'common.overrideWarning': 'Records with the same ID will be overwritten',
@@ -79,13 +80,13 @@ export default {
   // Statistics
   'stats.movie': 'Movies',
   'stats.yearly': 'Yearly Stats',
-   'stats.tv': 'TV Series',
-   'stats.video': 'Video',
+  'stats.tv': 'TV Series',
+  'stats.video': 'Video',
   'stats.book': 'Books',
   'stats.music': 'Music',
-'stats.game': 'Games',
-   'stats.jav': 'Adult Videos',
-   'stats.bilibili': 'Bilibili',
+  'stats.game': 'Games',
+  'stats.jav': 'Adult Videos',
+  'stats.bilibili': 'Bilibili',
   'stats.youtube': 'YouTube',
   'stats.total': 'Total Records',
   'stats.weeklyTotal': 'Weekly Total',
@@ -95,12 +96,12 @@ export default {
   'stats.dailyDetail': 'Daily Details',
 
   // Platform names
-'platform.douban': 'Douban',
-   'platform.imdb': 'IMDb',
-   'platform.neodb': 'NeoDB',
-   'platform.tmdb': 'TMDB',
-   'platform.bangumi': 'Bangumi',
-   'platform.bilibili': 'Bilibili',
+  'platform.douban': 'Douban',
+  'platform.imdb': 'IMDb',
+  'platform.neodb': 'NeoDB',
+  'platform.tmdb': 'TMDB',
+  'platform.bangumi': 'Bangumi',
+  'platform.bilibili': 'Bilibili',
   'platform.youtube': 'YouTube',
   'platform.jav': 'Adult Videos',
   'platform.javdb': 'JavDB',
@@ -214,6 +215,8 @@ export default {
   'confirm.importData': 'Import Data',
   'confirm.importRecords': 'About to import {count} records',
   'confirm.exportWithCredentials': 'Export with WebDAV credentials',
-  'confirm.exportWithCredentialsDesc': 'The export file will contain the WebDAV URL, username, and password in plaintext. Keep this file safe to avoid leakage.',
-  'confirm.importWithCredentialsDesc': 'This file contains WebDAV credentials. Importing will overwrite your current WebDAV URL, username, and password.',
-} as const
+  'confirm.exportWithCredentialsDesc':
+    'The export file will contain the WebDAV URL, username, and password in plaintext. Keep this file safe to avoid leakage.',
+  'confirm.importWithCredentialsDesc':
+    'This file contains WebDAV credentials. Importing will overwrite your current WebDAV URL, username, and password.',
+} as const;

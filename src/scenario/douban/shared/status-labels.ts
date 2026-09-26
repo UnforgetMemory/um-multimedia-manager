@@ -8,15 +8,15 @@
  * Decision-1: game done text is '玩过' (not '已玩') across both families.
  */
 
-export type MediaType = 'movie' | 'music' | 'book' | 'game'
+export type MediaType = 'movie' | 'music' | 'book' | 'game';
 
 /** Interest bar button labels (wish/do/collect/mark) */
-export type InterestBarKey = 'wish' | 'do' | 'collect' | 'mark'
-export type InterestBarLabels = Record<InterestBarKey, string>
+export type InterestBarKey = 'wish' | 'do' | 'collect' | 'mark';
+export type InterestBarLabels = Record<InterestBarKey, string>;
 
 /** Status badge display labels (done/wish/none/doing) */
-export type StatusBadgeKey = 'done' | 'wish' | 'none' | 'doing'
-export type StatusBadgeLabels = Record<StatusBadgeKey, string>
+export type StatusBadgeKey = 'done' | 'wish' | 'none' | 'doing';
+export type StatusBadgeLabels = Record<StatusBadgeKey, string>;
 
 /** Interest bar labels per media type. Used in UmmInterestBar. */
 export const interestBarLabels: Record<MediaType, InterestBarLabels> = {
@@ -24,7 +24,7 @@ export const interestBarLabels: Record<MediaType, InterestBarLabels> = {
   music: { wish: '想听', do: '在听', collect: '已听', mark: '标记' },
   book: { wish: '想读', do: '在读', collect: '已读', mark: '标记' },
   game: { wish: '想玩', do: '在玩', collect: '玩过', mark: '标记' },
-}
+};
 
 /** Status badge labels per media type. Used in UmmStatusBadge and collect page titles. */
 export const statusBadgeLabels: Record<MediaType, StatusBadgeLabels> = {
@@ -32,4 +32,4 @@ export const statusBadgeLabels: Record<MediaType, StatusBadgeLabels> = {
   music: { done: '已听', wish: '想听', none: '未听', doing: '在听' },
   book: { done: '已读', wish: '想读', none: '未读', doing: '在读' },
   game: { done: '玩过', wish: '想玩', none: '未玩', doing: '在玩' },
-}
+};

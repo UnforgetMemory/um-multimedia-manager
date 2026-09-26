@@ -1,8 +1,8 @@
-import { definePageMount } from '../../mount-factory'
-import { createApp } from 'vue'
-import { hideNavForPage } from '../../shared/hide-nav'
-import { withRetry } from '../../shared/retry'
-import { getBookCollectSubType } from '../../shared/url-detector'
+import { definePageMount } from '../../mount-factory';
+import { createApp } from 'vue';
+import { hideNavForPage } from '../../shared/hide-nav';
+import { withRetry } from '../../shared/retry';
+import { getBookCollectSubType } from '../../shared/url-detector';
 
 /** Mount config for the Douban user book collection page overlay */
 export const mountBookCollect = definePageMount({
@@ -10,13 +10,13 @@ export const mountBookCollect = definePageMount({
   overlayId: 'umm-douban-overlay',
   importApp: () => import('./App.vue'),
   async beforeMount() {
-    const { extractBookCollectData } = await import('./book-collect-data')
+    const { extractBookCollectData } = await import('./book-collect-data');
 
     // Retry extraction up to 8 times with increasing delay
     let data: import('./types').BookCollectData | null = await withRetry(
       () => extractBookCollectData(),
       { attempts: 8, baseDelay: 300, isValid: (d) => d && (d.items.length > 0 || d.total === 0) },
-    )
+    );
     if (!data) {
       data = {
         subType: getBookCollectSubType(location.href),
@@ -32,10 +32,10 @@ export const mountBookCollect = definePageMount({
         pageLinks: [],
         prevPageUrl: '',
         nextPageUrl: '',
-      }
+      };
     }
-    hideNavForPage({ type: 'book-collect', subType: getBookCollectSubType(location.href) })
-    return data
+    hideNavForPage({ type: 'book-collect', subType: getBookCollectSubType(location.href) });
+    return data;
   },
   createApp: (RootCmp, data) => createApp(RootCmp, { data }),
-})
+});

@@ -16,10 +16,10 @@ export function collectTitleLabel(
 ): string {
   switch (subType) {
     case 'wish':
-      return labels.wish
+      return labels.wish;
     case doingKey:
-      return labels.doing
+      return labels.doing;
     default:
-      return labels.done
+      return labels.done;
   }
 }

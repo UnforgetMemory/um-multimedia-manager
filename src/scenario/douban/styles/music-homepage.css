@@ -66,10 +66,26 @@
   padding: 0 var(--umm-space-lg);
 }
 
-@media (min-width: 480px) { .umm-album-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 768px) { .umm-album-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1024px) { .umm-album-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 1440px) { .umm-album-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 480px) {
+  .umm-album-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 768px) {
+  .umm-album-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-album-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+@media (min-width: 1440px) {
+  .umm-album-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
 
 /* ---- Grid card (UmmMediaCard grid mode) ---- */
 .umm-rec-item {
@@ -108,10 +124,26 @@
   padding: 0 var(--umm-space-lg);
 }
 
-@media (min-width: 480px) { .umm-artist-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 640px) { .umm-artist-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 768px) { .umm-artist-grid { grid-template-columns: repeat(6, 1fr); } }
-@media (min-width: 1024px) { .umm-artist-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 480px) {
+  .umm-artist-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 640px) {
+  .umm-artist-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+@media (min-width: 768px) {
+  .umm-artist-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-artist-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
 
 .umm-artist-card {
   display: flex;
@@ -122,7 +154,9 @@
   color: inherit;
   padding: var(--umm-space-sm, 8px);
   border-radius: var(--umm-radius-md, 10px);
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
   cursor: pointer;
 }
 
@@ -173,7 +207,9 @@
   background: var(--umm-bg-secondary);
   border-radius: var(--umm-radius-lg, 12px);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   cursor: pointer;
 }
 
@@ -187,7 +223,7 @@
 #db-nav-music,
 .top-banner,
 .popular-artists,
-[data-react-component="NewAlbums"],
+[data-react-component='NewAlbums'],
 .rec-info,
 .tag-block,
 .contact.mod,
@@ -195,5 +231,3 @@
 #dale_music_home_bottom_right {
   display: none !important;
 }
-
-

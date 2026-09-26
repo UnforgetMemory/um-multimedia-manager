@@ -9,8 +9,6 @@
   animation: umm-fade-in 0.35s ease;
 }
 
-
-
 .umm-gc-list {
   display: flex;
   flex-direction: column;
@@ -22,7 +20,9 @@
   padding: var(--umm-space-md, 14px);
   border-radius: var(--umm-card-radius, 10px);
   background: var(--umm-bg-secondary);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .umm-gc-card:hover {
   transform: translateY(-2px);
@@ -96,5 +96,3 @@
   margin: var(--umm-space-md, 14px) 0 6px;
   text-align: center;
 }
-
-

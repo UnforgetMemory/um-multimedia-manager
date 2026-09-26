@@ -1,14 +1,14 @@
-import { defineContentScript } from 'wxt/utils/define-content-script'
-import { subscribeTheme } from '@/scenario/douban/overlay/theme-sync'
-import { createOverlay } from '@/scenario/douban/overlay/create-overlay'
-import { paintSehuatangBackground } from '@/entrypoints/content/handlers/sehuatang-controls'
-import { isOverlayPage, classifyPage } from '@/scenario/sehuatang/url'
+import { defineContentScript } from 'wxt/utils/define-content-script';
+import { subscribeTheme } from '@/scenario/douban/overlay/theme-sync';
+import { createOverlay } from '@/scenario/douban/overlay/create-overlay';
+import { paintSehuatangBackground } from '@/entrypoints/content/handlers/sehuatang-controls';
+import { isOverlayPage, classifyPage } from '@/scenario/sehuatang/url';
 import {
   SEHUATANG_OVERLAY_ID,
   SEHUATANG_OVERLAY_Z_INDEX,
   LOADING_SUBTITLE,
   resolveEarlyLocale,
-} from '@/scenario/sehuatang/constants'
+} from '@/scenario/sehuatang/constants';
 
 /**
  * 色花堂早期入口（document_start）：首帧背景预载 + 主题属性保鲜 +
@@ -57,12 +57,12 @@ export default defineContentScript({
   main() {
     // 背景涂刷仅限 overlay 页（forumdisplay/search/index）：thread 与非托管页
     // （mod=user 等）无壳无接管，强刷 html,body 背景会改变原页视觉。
-    const kind = classifyPage(location.href)
-    const paintBackground = isOverlayPage(kind)
+    const kind = classifyPage(location.href);
+    const paintBackground = isOverlayPage(kind);
     subscribeTheme((theme) => {
-      document.documentElement.setAttribute('data-umm-theme', theme)
-      if (paintBackground) paintSehuatangBackground(document, theme)
-    })
+      document.documentElement.setAttribute('data-umm-theme', theme);
+      if (paintBackground) paintSehuatangBackground(document, theme);
+    });
     // URL 判型先行（DOM 未就绪无法读表格）；非受支持页（thread/other）不建覆盖层。
     // 主入口另有各自 DOM 守卫兜底（#threadlisttableid / .slst mtw / #ct.fl）。
     if (isOverlayPage(kind)) {
@@ -70,7 +70,7 @@ export default defineContentScript({
         overlayId: SEHUATANG_OVERLAY_ID,
         subtitle: LOADING_SUBTITLE[resolveEarlyLocale()],
         zIndex: SEHUATANG_OVERLAY_Z_INDEX,
-      })
+      });
     }
   },
-})
+});

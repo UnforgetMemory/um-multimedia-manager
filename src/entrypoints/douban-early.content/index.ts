@@ -4,16 +4,28 @@
  * Thin WXT entrypoint. All logic lives in @/scenario/douban/early.ts.
  */
 
-import './overlay.css'
-import { defineContentScript } from 'wxt/utils/define-content-script'
-import { createDoubanEarlyOverlay } from '@/scenario/douban/early'
+import './overlay.css';
+import { defineContentScript } from 'wxt/utils/define-content-script';
+import { createDoubanEarlyOverlay } from '@/scenario/douban/early';
 
 export default defineContentScript({
-  matches: ['*://movie.douban.com/*', '*://music.douban.com/*', '*://music.douban.com/subject/*', '*://book.douban.com/*', '*://search.douban.com/movie/subject_search*', '*://search.douban.com/music/subject_search*', '*://search.douban.com/book/subject_search*', '*://www.douban.com/personage/*', '*://www.douban.com/people/*', '*://www.douban.com/doulist/*', '*://www.douban.com/game/*'],
+  matches: [
+    '*://movie.douban.com/*',
+    '*://music.douban.com/*',
+    '*://music.douban.com/subject/*',
+    '*://book.douban.com/*',
+    '*://search.douban.com/movie/subject_search*',
+    '*://search.douban.com/music/subject_search*',
+    '*://search.douban.com/book/subject_search*',
+    '*://www.douban.com/personage/*',
+    '*://www.douban.com/people/*',
+    '*://www.douban.com/doulist/*',
+    '*://www.douban.com/game/*',
+  ],
   excludeMatches: ['*://*.douban.com/settings/*'],
   runAt: 'document_start',
 
   main() {
-    createDoubanEarlyOverlay()
+    createDoubanEarlyOverlay();
   },
-})
+});

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from "vue"
-import { cn } from "@/libraries/utils/cn"
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/libraries/utils/cn';
 
 const props = defineProps<{
-  class?: HTMLAttributes["class"]
-}>()
+  class?: HTMLAttributes['class'];
+}>();
 </script>
 
 <template vapor>
@@ -14,4 +14,3 @@ const props = defineProps<{
     <slot />
   </div>
 </template>
-

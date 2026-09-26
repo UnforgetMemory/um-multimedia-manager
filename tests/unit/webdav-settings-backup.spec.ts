@@ -15,15 +15,15 @@
  * (handleWebDAVUpload/Download/Sync) requires network + IndexedDB + chrome
  * mocks and is outside unit-test scope.
  */
-import { test, expect } from '@playwright/test'
-import { settingsCache } from '@/engine/settings/cache'
-import { EXPORT_SETTINGS_KEYS } from '@/entrypoints/background/handlers/data'
+import { test, expect } from '@playwright/test';
+import { settingsCache } from '@/engine/settings/cache';
+import { EXPORT_SETTINGS_KEYS } from '@/entrypoints/background/handlers/data';
 import {
   collectBackupSettings,
   calculateSettingsHash,
   SETTINGS_DATASET_KEY,
-} from '@/entrypoints/background/handlers/webdav'
-import type { AppSettings } from '@/types'
+} from '@/entrypoints/background/handlers/webdav';
+import type { AppSettings } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -49,7 +49,7 @@ function mockSettings(overrides?: Partial<AppSettings>): AppSettings {
     logLevel: 'debug',
     sehuatangHideViewed: true,
     ...overrides,
-  }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -57,47 +57,47 @@ function mockSettings(overrides?: Partial<AppSettings>): AppSettings {
 // ---------------------------------------------------------------------------
 
 test.describe('collectBackupSettings', () => {
-  let originalGet: () => AppSettings
+  let originalGet: () => AppSettings;
 
   test.beforeEach(() => {
-    originalGet = settingsCache.get.bind(settingsCache) as () => AppSettings
-  })
+    originalGet = settingsCache.get.bind(settingsCache) as () => AppSettings;
+  });
 
   test.afterEach(() => {
-    settingsCache.get = originalGet
-  })
+    settingsCache.get = originalGet;
+  });
 
   test('excludes WebDAV credential keys (webdavUrl / webdavUsername / webdavPassword)', () => {
-    settingsCache.get = () => mockSettings()
-    const result = collectBackupSettings()
-    expect(result).not.toHaveProperty('webdavUrl')
-    expect(result).not.toHaveProperty('webdavUsername')
-    expect(result).not.toHaveProperty('webdavPassword')
-  })
+    settingsCache.get = () => mockSettings();
+    const result = collectBackupSettings();
+    expect(result).not.toHaveProperty('webdavUrl');
+    expect(result).not.toHaveProperty('webdavUsername');
+    expect(result).not.toHaveProperty('webdavPassword');
+  });
 
   test('includes all EXPORT_SETTINGS_KEYS when present in cache', () => {
-    settingsCache.get = () => mockSettings()
-    const result = collectBackupSettings()
+    settingsCache.get = () => mockSettings();
+    const result = collectBackupSettings();
     for (const key of EXPORT_SETTINGS_KEYS) {
-      expect(result).toHaveProperty(key)
+      expect(result).toHaveProperty(key);
     }
-    expect(Object.keys(result).length).toBe(EXPORT_SETTINGS_KEYS.length)
-  })
+    expect(Object.keys(result).length).toBe(EXPORT_SETTINGS_KEYS.length);
+  });
 
   test('omits keys whose value is undefined in cache', () => {
     settingsCache.get = () =>
       mockSettings({
         neodbToken: undefined as unknown as string,
         autoSync: undefined as unknown as boolean,
-      })
-    const result = collectBackupSettings()
-    expect(result).not.toHaveProperty('neodbToken')
-    expect(result).not.toHaveProperty('autoSync')
+      });
+    const result = collectBackupSettings();
+    expect(result).not.toHaveProperty('neodbToken');
+    expect(result).not.toHaveProperty('autoSync');
     // Remaining keys should still be present
-    expect(result).toHaveProperty('theme')
-    expect(result).toHaveProperty('language')
-  })
-})
+    expect(result).toHaveProperty('theme');
+    expect(result).toHaveProperty('language');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // SETTINGS_DATASET_KEY
@@ -105,9 +105,9 @@ test.describe('collectBackupSettings', () => {
 
 test.describe('SETTINGS_DATASET_KEY', () => {
   test('is exactly __settings__', () => {
-    expect(SETTINGS_DATASET_KEY).toBe('__settings__')
-  })
-})
+    expect(SETTINGS_DATASET_KEY).toBe('__settings__');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // calculateSettingsHash
@@ -115,21 +115,21 @@ test.describe('SETTINGS_DATASET_KEY', () => {
 
 test.describe('calculateSettingsHash', () => {
   test('same input twice returns identical hash (deterministic)', async () => {
-    const settings = { theme: 'dark', language: 'en-US', autoSync: true }
-    const hash1 = await calculateSettingsHash(settings)
-    const hash2 = await calculateSettingsHash(settings)
-    expect(hash1).toBe(hash2)
-  })
+    const settings = { theme: 'dark', language: 'en-US', autoSync: true };
+    const hash1 = await calculateSettingsHash(settings);
+    const hash2 = await calculateSettingsHash(settings);
+    expect(hash1).toBe(hash2);
+  });
 
   test('different inputs produce different hashes', async () => {
-    const hashA = await calculateSettingsHash({ theme: 'dark' })
-    const hashB = await calculateSettingsHash({ theme: 'light' })
-    expect(hashA).not.toBe(hashB)
-  })
+    const hashA = await calculateSettingsHash({ theme: 'dark' });
+    const hashB = await calculateSettingsHash({ theme: 'light' });
+    expect(hashA).not.toBe(hashB);
+  });
 
   test('same key-value pairs in different order produce same hash (sorted)', async () => {
-    const hashA = await calculateSettingsHash({ a: '1', b: '2' })
-    const hashB = await calculateSettingsHash({ b: '2', a: '1' })
-    expect(hashA).toBe(hashB)
-  })
-})
+    const hashA = await calculateSettingsHash({ a: '1', b: '2' });
+    const hashB = await calculateSettingsHash({ b: '2', a: '1' });
+    expect(hashA).toBe(hashB);
+  });
+});

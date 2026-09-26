@@ -1,1 +1,1 @@
-export { default as OptionPicker } from '../../../libraries/ui/option-picker/OptionPicker.vue'
+export { default as OptionPicker } from '../../../libraries/ui/option-picker/OptionPicker.vue';

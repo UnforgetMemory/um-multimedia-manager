@@ -18,15 +18,63 @@
   --umm-chip-streaming: var(--umm-static-chip-streaming);
 }
 
-.umm-chip-cd       { background: var(--umm-chip-cd); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-dvd      { background: var(--umm-chip-dvd); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-cd-dvd   { background: var(--umm-chip-cd-dvd); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-cassette { background: var(--umm-chip-cassette); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-digital  { background: var(--umm-chip-digital); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-vinyl    { background: var(--umm-chip-vinyl); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-lp       { background: var(--umm-chip-lp); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-sacd     { background: var(--umm-chip-sacd); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-bluray   { background: var(--umm-chip-bluray); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-vcd      { background: var(--umm-chip-vcd); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-ld       { background: var(--umm-chip-ld); color: var(--umm-static-neutral-00); border-color: transparent; }
-.umm-chip-streaming{ background: var(--umm-chip-streaming); color: var(--umm-static-neutral-00); border-color: transparent; }
+.umm-chip-cd {
+  background: var(--umm-chip-cd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-dvd {
+  background: var(--umm-chip-dvd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-cd-dvd {
+  background: var(--umm-chip-cd-dvd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-cassette {
+  background: var(--umm-chip-cassette);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-digital {
+  background: var(--umm-chip-digital);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-vinyl {
+  background: var(--umm-chip-vinyl);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-lp {
+  background: var(--umm-chip-lp);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-sacd {
+  background: var(--umm-chip-sacd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-bluray {
+  background: var(--umm-chip-bluray);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-vcd {
+  background: var(--umm-chip-vcd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-ld {
+  background: var(--umm-chip-ld);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-streaming {
+  background: var(--umm-chip-streaming);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}

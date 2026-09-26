@@ -18,20 +18,20 @@
  */
 
 export interface StatBarItem {
-  label: string
-  value: number | string
-  url?: string
-  active?: boolean
+  label: string;
+  value: number | string;
+  url?: string;
+  active?: boolean;
 }
 
 const props = defineProps<{
-  items: StatBarItem[]
-  title?: string
-}>()
+  items: StatBarItem[];
+  title?: string;
+}>();
 
 function handleClick(item: StatBarItem): void {
   if (item.url) {
-    window.open(item.url, '_blank')
+    window.open(item.url, '_blank');
   }
 }
 </script>
@@ -52,7 +52,9 @@ function handleClick(item: StatBarItem): void {
       @click="handleClick(item)"
       @keydown.enter="handleClick(item)"
     >
-      <span class="umm-statbar-val">{{ typeof item.value === 'number' ? item.value.toLocaleString() : item.value }}</span>
+      <span class="umm-statbar-val">{{
+        typeof item.value === 'number' ? item.value.toLocaleString() : item.value
+      }}</span>
       <span class="umm-statbar-lbl">{{ item.label }}</span>
     </div>
   </div>
@@ -83,7 +85,10 @@ function handleClick(item: StatBarItem): void {
   border-radius: var(--umm-radius-lg, 12px);
   background: var(--umm-bg-secondary);
   border: 1px solid var(--umm-border);
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   cursor: default;
   line-height: 1.4;
 }

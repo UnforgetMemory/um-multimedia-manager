@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import type { FunctionalComponent, SVGAttributes } from 'vue'
-import StatCard, { type Accent } from '@/libraries/ui/stat-card/StatCard.vue'
+import type { FunctionalComponent, SVGAttributes } from 'vue';
+import StatCard, { type Accent } from '@/libraries/ui/stat-card/StatCard.vue';
 
 interface StatItem {
-  key: string
-  icon: FunctionalComponent<SVGAttributes>
-  label: string
-  value: number
-  accent?: Accent
+  key: string;
+  icon: FunctionalComponent<SVGAttributes>;
+  label: string;
+  value: number;
+  accent?: Accent;
 }
 
 defineProps<{
-  stats: StatItem[]
-  loading?: boolean
-}>()
+  stats: StatItem[];
+  loading?: boolean;
+}>();
 </script>
 
 <template vapor>

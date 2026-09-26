@@ -8,11 +8,11 @@
 
 export interface PausableInterval {
   /** Resume the interval when the tab becomes visible again. */
-  resume(): void
+  resume(): void;
   /** Pause the interval immediately. Safe to call multiple times. */
-  pause(): void
+  pause(): void;
   /** Stop the interval entirely (cannot be resumed). */
-  destroy(): void
+  destroy(): void;
 }
 
 /**
@@ -25,34 +25,34 @@ export interface PausableInterval {
  * @returns      — control handle with pause/resume/destroy
  */
 export function intervalWhenVisible(fn: () => void, delay: number): PausableInterval {
-  let paused = document.hidden
-  let timer: ReturnType<typeof setInterval> | null = setInterval(tick, delay)
+  let paused = document.hidden;
+  let timer: ReturnType<typeof setInterval> | null = setInterval(tick, delay);
 
   function tick(): void {
-    if (document.hidden || paused) return
-    fn()
+    if (document.hidden || paused) return;
+    fn();
   }
 
   function onVisibilityChange(): void {
-    paused = document.hidden
+    paused = document.hidden;
   }
 
-  document.addEventListener('visibilitychange', onVisibilityChange)
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
   return {
     resume() {
-      if (!paused) return
-      paused = false
+      if (!paused) return;
+      paused = false;
     },
     pause() {
-      paused = true
+      paused = true;
     },
     destroy() {
       if (timer !== null) {
-        clearInterval(timer)
-        timer = null
+        clearInterval(timer);
+        timer = null;
       }
-      document.removeEventListener('visibilitychange', onVisibilityChange)
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     },
-  }
+  };
 }

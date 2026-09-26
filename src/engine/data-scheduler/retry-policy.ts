@@ -5,38 +5,35 @@
  * DataScheduler orchestrator.
  */
 
-import type { RetryConfig, RetryCallback } from './types'
-import { DEFAULT_RETRY_CONFIG } from './types'
-import { sleep } from '@/libraries/utils'
+import type { RetryConfig, RetryCallback } from './types';
+import { DEFAULT_RETRY_CONFIG } from './types';
+import { sleep } from '@/libraries/utils';
 
 /**
  * Calculate exponential backoff delay with optional jitter.
  * delay = min(baseDelay * 2^attempt, maxDelay)
  * When jitter=true, adds ±25% random variation.
  */
-export function calculateBackoffDelay(
-  attempt: number,
-  config: RetryConfig,
-): number {
-  const base = Math.min(config.baseDelay * 2 ** attempt, config.maxDelay)
+export function calculateBackoffDelay(attempt: number, config: RetryConfig): number {
+  const base = Math.min(config.baseDelay * 2 ** attempt, config.maxDelay);
 
-  if (!config.jitter) return base
+  if (!config.jitter) return base;
 
-  const jitterRange = base * 0.25
-  const offset = (Math.random() - 0.5) * 2 * jitterRange
-  return Math.round(base + offset)
+  const jitterRange = base * 0.25;
+  const offset = (Math.random() - 0.5) * 2 * jitterRange;
+  return Math.round(base + offset);
 }
 
 export class RetryPolicy {
-  private readonly config: RetryConfig
+  private readonly config: RetryConfig;
 
   constructor(config?: Partial<RetryConfig>) {
-    this.config = { ...DEFAULT_RETRY_CONFIG, ...config }
+    this.config = { ...DEFAULT_RETRY_CONFIG, ...config };
   }
 
   /** Calculate delay in ms for the given retry attempt (0-based). */
   calculateDelay(attempt: number): number {
-    return calculateBackoffDelay(attempt, this.config)
+    return calculateBackoffDelay(attempt, this.config);
   }
 
   /**
@@ -45,26 +42,23 @@ export class RetryPolicy {
    * If onRetry is provided, it's called before each wait with the
    * attempt number (1-indexed) and the error.
    */
-  async execute<T>(
-    fn: () => Promise<T>,
-    onRetry?: RetryCallback,
-  ): Promise<T> {
-    let lastError: unknown
+  async execute<T>(fn: () => Promise<T>, onRetry?: RetryCallback): Promise<T> {
+    let lastError: unknown;
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       try {
-        return await fn()
+        return await fn();
       } catch (err: unknown) {
-        lastError = err
+        lastError = err;
 
         if (attempt < this.config.maxRetries) {
-          onRetry?.(attempt + 1, err)
-          const delay = this.calculateDelay(attempt)
-          await sleep(delay)
+          onRetry?.(attempt + 1, err);
+          const delay = this.calculateDelay(attempt);
+          await sleep(delay);
         }
       }
     }
 
-    throw lastError
+    throw lastError;
   }
 }

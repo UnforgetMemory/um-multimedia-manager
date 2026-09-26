@@ -2,18 +2,19 @@
  * 查询已阅状态面板（可拖拽）
  */
 
-import { AdultAvStore } from '@/provider/adult-av'
-import { t } from '../i18n'
+import { AdultAvStore } from '@/provider/adult-av';
+import { t } from '../i18n';
 
-const PANEL_ID = 'umm-check-viewed-panel'
+const PANEL_ID = 'umm-check-viewed-panel';
 
 export function showCheckViewedPanel(): void {
-  if (document.getElementById(PANEL_ID)) return
+  if (document.getElementById(PANEL_ID)) return;
 
-  const panel = document.createElement('div')
-  panel.id = PANEL_ID
-  panel.className = 'umm-panel'
-  panel.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);padding:20px;width:350px;display:flex;flex-direction:column;gap:15px;z-index:100;cursor:move'
+  const panel = document.createElement('div');
+  panel.id = PANEL_ID;
+  panel.className = 'umm-panel';
+  panel.style.cssText =
+    'position:fixed;top:50px;left:50%;transform:translateX(-50%);padding:20px;width:350px;display:flex;flex-direction:column;gap:15px;z-index:100;cursor:move';
 
   panel.innerHTML = `
     <h3 class="umm-panel-title" style="padding-bottom:10px;border-bottom:1px solid var(--umm-overlay-border, #333)">${t('Check Viewed Title')}</h3>
@@ -23,81 +24,89 @@ export function showCheckViewedPanel(): void {
       <button id="umm-cv-check" class="umm-btn umm-btn--primary">${t('Check Btn')}</button>
     </div>
     <div id="umm-cv-result" style="margin-top:15px;padding-top:15px;border-top:1px solid var(--umm-overlay-border, #333)"></div>
-  `
+  `;
 
-  document.body.appendChild(panel)
+  document.body.appendChild(panel);
 
-  const input = document.getElementById('umm-cv-input') as HTMLInputElement
-  const checkBtn = document.getElementById('umm-cv-check')!
-  const closeBtn = document.getElementById('umm-cv-close')!
-  const resultDiv = document.getElementById('umm-cv-result')!
+  const input = document.getElementById('umm-cv-input') as HTMLInputElement;
+  const checkBtn = document.getElementById('umm-cv-check')!;
+  const closeBtn = document.getElementById('umm-cv-close')!;
+  const resultDiv = document.getElementById('umm-cv-result')!;
 
-  input.focus()
+  input.focus();
 
   const close = () => {
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-    panel.remove()
-  }
-  closeBtn.onclick = close
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    panel.remove();
+  };
+  closeBtn.onclick = close;
 
   const doCheck = async () => {
-    const avid = input.value.trim().toUpperCase()
-    if (!avid) return
+    const avid = input.value.trim().toUpperCase();
+    if (!avid) return;
 
-    const items = await AdultAvStore.getAll()
-    const found = items.find(r => r.id === avid)
+    const items = await AdultAvStore.getAll();
+    const found = items.find((r) => r.id === avid);
 
-    resultDiv.innerHTML = ''
+    resultDiv.innerHTML = '';
     const row = (label: string, value: string, cls?: string) => {
-      const div = document.createElement('div')
-      div.style.cssText = 'display:flex;justify-content:space-between;padding:5px 0'
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;justify-content:space-between;padding:5px 0';
       // 状态色走 --usl 语义令牌链（双主题动态适配），fallback 保底旧值。
-      const color = cls === 'viewed' ? 'var(--umm-text-done, #047857)' : cls === 'not-viewed' ? 'var(--umm-text-none, #b91c1c)' : 'var(--umm-overlay-text-primary, #151a23)'
-      const labelColor = 'var(--umm-overlay-text-muted, #5d6a81)'
+      const color =
+        cls === 'viewed'
+          ? 'var(--umm-text-done, #047857)'
+          : cls === 'not-viewed'
+            ? 'var(--umm-text-none, #b91c1c)'
+            : 'var(--umm-overlay-text-primary, #151a23)';
+      const labelColor = 'var(--umm-overlay-text-muted, #5d6a81)';
       // textContent 构建（值来自 i18n/DB 数字，仍按纵深防御不拼 HTML）。
-      const labelSpan = document.createElement('span')
-      labelSpan.style.cssText = `font-weight:bold;color:${labelColor}`
-      labelSpan.textContent = label
-      const valueSpan = document.createElement('span')
-      valueSpan.style.cssText = `color:${color}`
-      valueSpan.textContent = value
-      div.appendChild(labelSpan)
-      div.appendChild(valueSpan)
-      resultDiv.appendChild(div)
-    }
+      const labelSpan = document.createElement('span');
+      labelSpan.style.cssText = `font-weight:bold;color:${labelColor}`;
+      labelSpan.textContent = label;
+      const valueSpan = document.createElement('span');
+      valueSpan.style.cssText = `color:${color}`;
+      valueSpan.textContent = value;
+      div.appendChild(labelSpan);
+      div.appendChild(valueSpan);
+      resultDiv.appendChild(div);
+    };
 
-    row(t('Status'), found ? t('Viewed On') : t('Not Viewed'), found ? 'viewed' : 'not-viewed')
+    row(t('Status'), found ? t('Viewed On') : t('Not Viewed'), found ? 'viewed' : 'not-viewed');
     if (found) {
-      row('', new Date(found.updatedAt).toLocaleDateString())
-      row(t('Rating'), `${found.rating} / 10`)
+      row('', new Date(found.updatedAt).toLocaleDateString());
+      row(t('Rating'), `${found.rating} / 10`);
     }
-  }
+  };
 
-  checkBtn.onclick = doCheck
-  input.onkeydown = (e) => { if (e.key === 'Enter') doCheck() }
+  checkBtn.onclick = doCheck;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') doCheck();
+  };
 
-  let isDragging = false
-  let offsetX = 0, offsetY = 0
+  let isDragging = false;
+  let offsetX = 0,
+    offsetY = 0;
 
   panel.addEventListener('mousedown', (e) => {
-    if ((e.target as HTMLElement).id === 'umm-cv-close') return
-    isDragging = true
-    offsetX = e.clientX - panel.getBoundingClientRect().left
-    offsetY = e.clientY - panel.getBoundingClientRect().top
-    panel.style.userSelect = 'none'
-  })
+    if ((e.target as HTMLElement).id === 'umm-cv-close') return;
+    isDragging = true;
+    offsetX = e.clientX - panel.getBoundingClientRect().left;
+    offsetY = e.clientY - panel.getBoundingClientRect().top;
+    panel.style.userSelect = 'none';
+  });
 
   const onMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return
-    panel.style.left = `${e.clientX - offsetX}px`
-    panel.style.top = `${e.clientY - offsetY}px`
-    panel.style.transform = 'none'
-  }
+    if (!isDragging) return;
+    panel.style.left = `${e.clientX - offsetX}px`;
+    panel.style.top = `${e.clientY - offsetY}px`;
+    panel.style.transform = 'none';
+  };
   const onMouseUp = () => {
-    isDragging = false
-    panel.style.userSelect = ''
-  }
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
+    isDragging = false;
+    panel.style.userSelect = '';
+  };
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 }

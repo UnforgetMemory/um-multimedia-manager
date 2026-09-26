@@ -14,7 +14,7 @@
 
 export interface RowUrlExtractor {
   /** Extract the detail-page URL from a row (null when absent). */
-  extractDetailUrl(row: Element): string | null
+  extractDetailUrl(row: Element): string | null;
 }
 
 /**
@@ -27,28 +27,28 @@ export function buildRowByUrl(
   rows: Element | NodeListOf<Element>,
   config: RowUrlExtractor,
 ): Map<string, HTMLElement> {
-  const map = new Map<string, HTMLElement>()
-  const list = isRowList(rows) ? Array.from(rows) : [rows]
+  const map = new Map<string, HTMLElement>();
+  const list = isRowList(rows) ? Array.from(rows) : [rows];
   for (const row of list) {
-    const detailUrl = config.extractDetailUrl(row)
-    if (!detailUrl) continue
+    const detailUrl = config.extractDetailUrl(row);
+    if (!detailUrl) continue;
 
-    let normalizedUrl: string
+    let normalizedUrl: string;
     try {
-      const u = new URL(detailUrl, location.origin)
+      const u = new URL(detailUrl, location.origin);
       // Scheme guard: only http(s) rows are indexed (matches the scanner's origin allowlist).
-      if (u.protocol !== 'https:' && u.protocol !== 'http:') continue
-      normalizedUrl = `${u.origin}${u.pathname}${u.search}`
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') continue;
+      normalizedUrl = `${u.origin}${u.pathname}${u.search}`;
     } catch {
-      normalizedUrl = detailUrl
+      normalizedUrl = detailUrl;
     }
 
-    map.set(normalizedUrl, row as HTMLElement)
+    map.set(normalizedUrl, row as HTMLElement);
   }
-  return map
+  return map;
 }
 
 /** Runtime distinction between NodeList and a single Element (NodeList/arrays have length, Element does not). */
 function isRowList(rows: Element | NodeListOf<Element>): rows is NodeListOf<Element> {
-  return typeof (rows as { length?: unknown }).length === 'number'
+  return typeof (rows as { length?: unknown }).length === 'number';
 }

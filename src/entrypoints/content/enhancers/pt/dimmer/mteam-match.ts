@@ -7,9 +7,9 @@
  */
 
 export interface MTeamRowIds {
-  movieDoubanId: string | null
-  musicDoubanId: string | null
-  imdbId: string | null
+  movieDoubanId: string | null;
+  musicDoubanId: string | null;
+  imdbId: string | null;
 }
 
 /**
@@ -23,22 +23,22 @@ export function isMTeamRowMatched(
   musicDoubanIds: Set<string>,
   imdbIds: Set<string>,
 ): boolean {
-  const hasMovie = !!ids.movieDoubanId && movieDoubanIds.has(ids.movieDoubanId)
-  const hasMusic = !!ids.musicDoubanId && musicDoubanIds.has(ids.musicDoubanId)
-  const hasImdb = !!ids.imdbId && imdbIds.has(ids.imdbId)
-  return hasMovie || hasMusic || hasImdb
+  const hasMovie = !!ids.movieDoubanId && movieDoubanIds.has(ids.movieDoubanId);
+  const hasMusic = !!ids.musicDoubanId && musicDoubanIds.has(ids.musicDoubanId);
+  const hasImdb = !!ids.imdbId && imdbIds.has(ids.imdbId);
+  return hasMovie || hasMusic || hasImdb;
 }
 
 export interface MTeamRowOutcome {
   /** 是否命中已看集合（决定是否淡化） */
-  matched: boolean
+  matched: boolean;
   /**
    * 是否标记 data-umm-mteam-resolved。
    * 仅 matched 行标记 resolved；未匹配行必须保持 unresolved——
    * 否则 process() 中 unresolved 过滤恒为空，applyCacheFallback（pt_id_cache
    * 消费端）永不执行，扫描器写入的缓存数据在该站没有消费者（audit M3）。
    */
-  resolved: boolean
+  resolved: boolean;
 }
 
 /**
@@ -52,6 +52,6 @@ export function getMTeamRowOutcome(
   musicDoubanIds: Set<string>,
   imdbIds: Set<string>,
 ): MTeamRowOutcome {
-  const matched = isMTeamRowMatched(ids, movieDoubanIds, musicDoubanIds, imdbIds)
-  return { matched, resolved: matched }
+  const matched = isMTeamRowMatched(ids, movieDoubanIds, musicDoubanIds, imdbIds);
+  return { matched, resolved: matched };
 }

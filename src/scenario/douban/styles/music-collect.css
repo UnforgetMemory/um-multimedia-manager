@@ -60,7 +60,9 @@
   color: var(--umm-text-secondary);
   text-decoration: none;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .umm-mc-opt:hover {
   background: var(--umm-bg);
@@ -82,11 +84,31 @@
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--umm-space-md, 14px);
 }
-@media (min-width: 768px) { .umm-mc-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1024px) { .umm-mc-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1280px) { .umm-mc-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 1920px) { .umm-mc-grid { grid-template-columns: repeat(6, 1fr); } }
-@media (min-width: 2560px) { .umm-mc-grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 768px) {
+  .umm-mc-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-mc-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .umm-mc-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+@media (min-width: 1920px) {
+  .umm-mc-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+@media (min-width: 2560px) {
+  .umm-mc-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
 
 /* ===== Card ===== */
 .umm-mc-card {
@@ -96,7 +118,9 @@
   text-decoration: none;
   border-radius: var(--umm-card-radius, 10px);
   overflow: hidden;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease;
 }
 .umm-mc-card:hover {
   transform: translateY(-4px);

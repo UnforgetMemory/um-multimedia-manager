@@ -21,12 +21,12 @@
  *   hand-written copies differed only in these + data field names)
  */
 defineProps<{
-  pages: Array<{ label: string; url: string; current: boolean }>
-  prevUrl?: string
-  nextUrl?: string
-  containerClass: string
-  pageClass: string
-}>()
+  pages: Array<{ label: string; url: string; current: boolean }>;
+  prevUrl?: string;
+  nextUrl?: string;
+  containerClass: string;
+  pageClass: string;
+}>();
 </script>
 
 <template vapor>
@@ -37,7 +37,8 @@ defineProps<{
       :key="p.label"
       :href="p.url || undefined"
       :class="[pageClass, p.current ? `${pageClass}--active` : '']"
-    >{{ p.label }}</a>
+      >{{ p.label }}</a
+    >
     <a v-if="nextUrl" :href="nextUrl" :class="pageClass">›</a>
   </div>
 </template>

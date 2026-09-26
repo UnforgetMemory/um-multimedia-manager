@@ -13,19 +13,19 @@
  * are no import cycles.
  */
 
-import type { CacheManager } from '@/engine/cache/cache-manager'
-import * as sessionCache from '@/engine/cache/session-cache'
+import type { CacheManager } from '@/engine/cache/cache-manager';
+import * as sessionCache from '@/engine/cache/session-cache';
 
-let registeredCacheManager: CacheManager | null = null
+let registeredCacheManager: CacheManager | null = null;
 
 /** Register the shared CacheManager (called once in background.ts main()). */
 export function registerCacheManager(cm: CacheManager): void {
-  registeredCacheManager = cm
+  registeredCacheManager = cm;
 }
 
 /** The registered shared CacheManager, or null before registration. */
 export function getCacheManager(): CacheManager | null {
-  return registeredCacheManager
+  return registeredCacheManager;
 }
 
 /**
@@ -47,19 +47,23 @@ export function getCacheManager(): CacheManager | null {
  * repopulate it. Browser restart (which clears chrome.storage.session) is the
  * backstop for any rare lost remove — the session layer carries no TTL.
  */
-export function invalidateSchedulerStore(cm: CacheManager, storeName: string, keys?: string[]): void {
+export function invalidateSchedulerStore(
+  cm: CacheManager,
+  storeName: string,
+  keys?: string[],
+): void {
   if (keys && keys.length > 0) {
     for (const key of keys) {
-      cm.invalidate('scheduler', `get:${storeName}:${key}`)
+      cm.invalidate('scheduler', `get:${storeName}:${key}`);
     }
   } else {
-    cm.invalidateByPattern('scheduler', `get:${storeName}:`)
+    cm.invalidateByPattern('scheduler', `get:${storeName}:`);
   }
-  cm.invalidate('scheduler', `all:${storeName}`)
-  cm.invalidate('scheduler', `count:${storeName}`)
-  cm.invalidate('scheduler', `watched:${storeName}`)
-  cm.invalidateByPattern('scheduler', `bulk:${storeName}:`)
+  cm.invalidate('scheduler', `all:${storeName}`);
+  cm.invalidate('scheduler', `count:${storeName}`);
+  cm.invalidate('scheduler', `watched:${storeName}`);
+  cm.invalidateByPattern('scheduler', `bulk:${storeName}:`);
   // L1.5: drop the session-layer watched-ids entry so a post-write SW wake
   // doesn't read stale ids. Fire-and-forget; browser restart is the backstop.
-  void sessionCache.remove(sessionCache.SESSION_CACHE_KEYS.watched(storeName))
+  void sessionCache.remove(sessionCache.SESSION_CACHE_KEYS.watched(storeName));
 }

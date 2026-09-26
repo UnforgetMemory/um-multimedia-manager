@@ -4,4 +4,4 @@
 
 export type WriteResult =
   | { ok: true; version: number }
-  | { ok: false; conflict: { currentVersion: number; expectedVersion: number } }
+  | { ok: false; conflict: { currentVersion: number; expectedVersion: number } };

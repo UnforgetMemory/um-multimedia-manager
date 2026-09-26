@@ -50,10 +50,13 @@ export function throttle<T extends (...args: any[]) => void>(fn: T, delay: numbe
     if (timer) {
       clearTimeout(timer);
     }
-    timer = setTimeout(() => {
-      last = Date.now();
-      fn(...args);
-    }, delay - (now - last));
+    timer = setTimeout(
+      () => {
+        last = Date.now();
+        fn(...args);
+      },
+      delay - (now - last),
+    );
   }) as T;
 }
 

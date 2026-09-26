@@ -13,7 +13,7 @@
  */
 
 /** Minimum supported dataset (backup ZIP) version */
-export const MIN_SUPPORTED_DATASET_VERSION = 1
+export const MIN_SUPPORTED_DATASET_VERSION = 1;
 
 /** Current dataset (backup ZIP) version */
-export const CURRENT_DATASET_VERSION = 1
+export const CURRENT_DATASET_VERSION = 1;

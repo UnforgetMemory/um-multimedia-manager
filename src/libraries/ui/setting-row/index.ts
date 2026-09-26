@@ -1,1 +1,1 @@
-export { default as SettingRow } from '../../../libraries/ui/setting-row/SettingRow.vue'
+export { default as SettingRow } from '../../../libraries/ui/setting-row/SettingRow.vue';

@@ -46,7 +46,9 @@
   background: transparent;
   text-decoration: none;
   white-space: nowrap;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
   border: 1px solid transparent;
 }
 
@@ -114,7 +116,8 @@
   background: currentColor;
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform var(--umm-static-duration-fast, 200ms) var(--umm-static-ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: transform var(--umm-static-duration-fast, 200ms)
+    var(--umm-static-ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
 }
 .umm-doulist-tab:hover::after {
   transform: scaleX(1);
@@ -161,9 +164,21 @@
   padding-top: var(--umm-space-md);
 }
 
-@media (min-width: 640px) { .umm-doulist-grid { gap: var(--umm-space-md); } }
-@media (min-width: 1024px) { .umm-doulist-grid { gap: var(--umm-space-lg); } }
-@media (min-width: 1400px) { .umm-doulist-grid { gap: var(--umm-space-xl); } }
+@media (min-width: 640px) {
+  .umm-doulist-grid {
+    gap: var(--umm-space-md);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-doulist-grid {
+    gap: var(--umm-space-lg);
+  }
+}
+@media (min-width: 1400px) {
+  .umm-doulist-grid {
+    gap: var(--umm-space-xl);
+  }
+}
 
 /* ===== Card — Sandwich hierarchy =====
  *  Layer 1: Title (header, --umm-font-sm, w600)
@@ -187,8 +202,9 @@
   border: 1px solid var(--dc-card-border);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1),
-              box-shadow 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    transform 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.25s cubic-bezier(0.23, 1, 0.32, 1);
   will-change: transform;
 }
 
@@ -271,18 +287,42 @@
   pointer-events: none;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.umm-doulist-cat--movie { background: rgba(238, 242, 255, 0.92); color: var(--umm-static-indigo-600); }
-.umm-doulist-cat--music { background: rgba(243, 232, 255, 0.92); color: var(--umm-static-violet-600); }
-.umm-doulist-cat--book  { background: rgba(254, 243, 199, 0.92); color: var(--umm-static-amber-700); }
-.umm-doulist-cat--thing_place { background: rgba(219, 234, 254, 0.92); color: var(--umm-static-blue-700); }
+.umm-doulist-cat--movie {
+  background: rgba(238, 242, 255, 0.92);
+  color: var(--umm-static-indigo-600);
+}
+.umm-doulist-cat--music {
+  background: rgba(243, 232, 255, 0.92);
+  color: var(--umm-static-violet-600);
+}
+.umm-doulist-cat--book {
+  background: rgba(254, 243, 199, 0.92);
+  color: var(--umm-static-amber-700);
+}
+.umm-doulist-cat--thing_place {
+  background: rgba(219, 234, 254, 0.92);
+  color: var(--umm-static-blue-700);
+}
 
-:host(.umm-theme--dark) .umm-doulist-cat--movie { background: rgba(30, 27, 75, 0.92); color: var(--umm-static-indigo-400); }
-:host(.umm-theme--dark) .umm-doulist-cat--music { background: rgba(46, 16, 101, 0.92); color: var(--umm-static-violet-300); }
-:host(.umm-theme--dark) .umm-doulist-cat--book  { background: rgba(66, 32, 6, 0.92); color: var(--umm-static-amber-400); }
-:host(.umm-theme--dark) .umm-doulist-cat--thing_place { background: rgba(23, 37, 84, 0.92); color: var(--umm-static-blue-400); }
+:host(.umm-theme--dark) .umm-doulist-cat--movie {
+  background: rgba(30, 27, 75, 0.92);
+  color: var(--umm-static-indigo-400);
+}
+:host(.umm-theme--dark) .umm-doulist-cat--music {
+  background: rgba(46, 16, 101, 0.92);
+  color: var(--umm-static-violet-300);
+}
+:host(.umm-theme--dark) .umm-doulist-cat--book {
+  background: rgba(66, 32, 6, 0.92);
+  color: var(--umm-static-amber-400);
+}
+:host(.umm-theme--dark) .umm-doulist-cat--thing_place {
+  background: rgba(23, 37, 84, 0.92);
+  color: var(--umm-static-blue-400);
+}
 
 /* ===== Layer 3: Body (stats → intro → footer) ===== */
 
@@ -367,4 +407,3 @@
   line-height: 1.4;
   white-space: nowrap;
 }
-

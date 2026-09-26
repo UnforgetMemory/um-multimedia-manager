@@ -6,45 +6,45 @@
  */
 
 export interface DialogTheme {
-  overlayBg: string
-  panelBg: string
-  panelBorder: string
-  panelShadow: string
-  headerBg: string
-  headerBorder: string
-  titleColor: string
-  closeColor: string
-  closeHoverBg: string
-  closeHoverColor: string
-  textPrimary: string
-  textSecondary: string
-  textMuted: string
-  surfaceAlt: string
-  borderDark: string
-  inputBg: string
-  inputBorder: string
-  onAccent: string
-  accent: string
-  accentGlow: string
-  accentSubtle: string
-  tableHeaderBg: string
-  theadText: string
-  rowBorder: string
-  rowHover: string
-  selectedBg: string
-  checkedColor: string
-  checkedBg: string
-  uncheckedColor: string
-  confirmBg: string
-  emptyText: string
-  scrollThumb: string
-  placeholderColor: string
-  labelColor: string
-  yesBtnBg: string
-  noBtnBg: string
-  noBtnText: string
-  noBtnBorder: string
-  borderInputBlur: string
+  overlayBg: string;
+  panelBg: string;
+  panelBorder: string;
+  panelShadow: string;
+  headerBg: string;
+  headerBorder: string;
+  titleColor: string;
+  closeColor: string;
+  closeHoverBg: string;
+  closeHoverColor: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  surfaceAlt: string;
+  borderDark: string;
+  inputBg: string;
+  inputBorder: string;
+  onAccent: string;
+  accent: string;
+  accentGlow: string;
+  accentSubtle: string;
+  tableHeaderBg: string;
+  theadText: string;
+  rowBorder: string;
+  rowHover: string;
+  selectedBg: string;
+  checkedColor: string;
+  checkedBg: string;
+  uncheckedColor: string;
+  confirmBg: string;
+  emptyText: string;
+  scrollThumb: string;
+  placeholderColor: string;
+  labelColor: string;
+  yesBtnBg: string;
+  noBtnBg: string;
+  noBtnText: string;
+  noBtnBorder: string;
+  borderInputBlur: string;
 }
 
 export function createDialogTheme(dark: boolean): DialogTheme {
@@ -90,5 +90,5 @@ export function createDialogTheme(dark: boolean): DialogTheme {
     noBtnText: dark ? '#c9c9cb' : '#333',
     noBtnBorder: dark ? 'rgba(255,255,255,0.14)' : '#d0d0d0',
     borderInputBlur: dark ? 'rgba(255,255,255,0.25)' : '#d0d0d0',
-  }
+  };
 }

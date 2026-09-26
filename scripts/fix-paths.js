@@ -7,73 +7,74 @@
  *          `npm run dev:build` passes dist/chrome-mv3-dev.
  */
 
-import { readFileSync, writeFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { readFileSync, writeFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /** Resolve --dir <path> / --dir=<path> from argv; default to the production output. Paths are resolved against the project root. */
 function resolveDistDir() {
-  const projectRoot = join(__dirname, '..')
-  const argv = process.argv.slice(2)
-  const flagIdx = argv.indexOf('--dir')
-  const inline = argv.find(a => a.startsWith('--dir='))
-  const raw = flagIdx !== -1 && argv[flagIdx + 1]
-    ? argv[flagIdx + 1]
-    : inline
-      ? inline.slice('--dir='.length)
-      : join('dist', 'chrome-mv3')
-  return join(projectRoot, raw)
+  const projectRoot = join(__dirname, '..');
+  const argv = process.argv.slice(2);
+  const flagIdx = argv.indexOf('--dir');
+  const inline = argv.find((a) => a.startsWith('--dir='));
+  const raw =
+    flagIdx !== -1 && argv[flagIdx + 1]
+      ? argv[flagIdx + 1]
+      : inline
+        ? inline.slice('--dir='.length)
+        : join('dist', 'chrome-mv3');
+  return join(projectRoot, raw);
 }
 
-const distDir = resolveDistDir()
-const htmlFiles = ['popup.html', 'options.html']
+const distDir = resolveDistDir();
+const htmlFiles = ['popup.html', 'options.html'];
 
-console.log('[PostBuild] Fixing asset paths in HTML files...')
+console.log('[PostBuild] Fixing asset paths in HTML files...');
 
-htmlFiles.forEach(file => {
-  const filePath = join(distDir, file)
-  
+htmlFiles.forEach((file) => {
+  const filePath = join(distDir, file);
+
   try {
-    let content = readFileSync(filePath, 'utf-8')
-    
+    let content = readFileSync(filePath, 'utf-8');
+
     // Replace absolute or relative paths with correct relative paths
     // ../../../chunks/ -> ./chunks/
     // ../../../assets/ -> ./assets/
     // /chunks/ -> ./chunks/
     // /assets/ -> ./assets/
-    content = content.replace(/src="\.\.\/\.\.\/\.\.\/chunks\//g, 'src="./chunks/')
-    content = content.replace(/href="\.\.\/\.\.\/\.\.\/chunks\//g, 'href="./chunks/')
-    content = content.replace(/href="\.\.\/\.\.\/\.\.\/assets\//g, 'href="./assets/')
-    content = content.replace(/src="\/chunks\//g, 'src="./chunks/')
-    content = content.replace(/href="\/chunks\//g, 'href="./chunks/')
-    content = content.replace(/href="\/assets\//g, 'href="./assets/')
+    content = content.replace(/src="\.\.\/\.\.\/\.\.\/chunks\//g, 'src="./chunks/');
+    content = content.replace(/href="\.\.\/\.\.\/\.\.\/chunks\//g, 'href="./chunks/');
+    content = content.replace(/href="\.\.\/\.\.\/\.\.\/assets\//g, 'href="./assets/');
+    content = content.replace(/src="\/chunks\//g, 'src="./chunks/');
+    content = content.replace(/href="\/chunks\//g, 'href="./chunks/');
+    content = content.replace(/href="\/assets\//g, 'href="./assets/');
     // Remove crossorigin attributes — Chrome extensions don't support CORS for extension pages
-    content = content.replace(/\s+crossorigin/g, '')
+    content = content.replace(/\s+crossorigin/g, '');
 
-    writeFileSync(filePath, content, 'utf-8')
-    console.log(`[PostBuild] ✓ Fixed paths in ${file}`)
+    writeFileSync(filePath, content, 'utf-8');
+    console.log(`[PostBuild] ✓ Fixed paths in ${file}`);
   } catch (error) {
-    console.error(`[PostBuild] ✗ Failed to process ${file}:`, error.message)
+    console.error(`[PostBuild] ✗ Failed to process ${file}:`, error.message);
   }
-})
+});
 
-console.log('[PostBuild] Done!')
+console.log('[PostBuild] Done!');
 
 // ==================== Fix manifest: set options_ui.open_in_tab = true ====================
 // WXT 0.20.26 defaults open_in_tab to false regardless of config.
 // Fix: patch the built manifest.json after build.
 
-const manifestPath = join(distDir, 'manifest.json')
+const manifestPath = join(distDir, 'manifest.json');
 try {
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
   if (manifest.options_ui && manifest.options_ui.open_in_tab === false) {
-    manifest.options_ui.open_in_tab = true
-    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
-    console.log('[PostBuild] ✓ Fixed options_ui.open_in_tab = true')
+    manifest.options_ui.open_in_tab = true;
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    console.log('[PostBuild] ✓ Fixed options_ui.open_in_tab = true');
   }
 } catch (error) {
-  console.error('[PostBuild] ✗ Failed to fix manifest:', error.message)
+  console.error('[PostBuild] ✗ Failed to fix manifest:', error.message);
 }

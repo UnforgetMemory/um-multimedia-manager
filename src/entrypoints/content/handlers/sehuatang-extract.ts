@@ -23,61 +23,61 @@
  * 返回 null（宁可 null 走 TID 兜底，不落垃圾 ID）。
  */
 
-import { normalizeAvId } from '@/provider/adult-av/models'
-import { extractThreadTidFromUrl } from '@/scenario/sehuatang/url'
+import { normalizeAvId } from '@/provider/adult-av/models';
+import { extractThreadTidFromUrl } from '@/scenario/sehuatang/url';
 
 /** TID 键提取的唯一实现在 url.ts（早期入口判型 / 列表行解析 / 帖子页记录
  *  三处共用，避免正则漂移）；此处按既有导出名转出，消费方零改动。 */
-export { extractThreadTidFromUrl as extractThreadIdFromUrl } from '@/scenario/sehuatang/url'
+export { extractThreadTidFromUrl as extractThreadIdFromUrl } from '@/scenario/sehuatang/url';
 
-const AVID_REGEX = /[A-Za-z][A-Za-z0-9-]{1,7}[-\s]?\d{2,}/g
+const AVID_REGEX = /[A-Za-z][A-Za-z0-9-]{1,7}[-\s]?\d{2,}/g;
 
 /** 美/欧厂牌：字母起始段（可含数字）+ 可含内部点分段 + .YY.MM.DD 收尾。 */
-const US_AVID_REGEX = /[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)*\.\d{2}\.\d{2}\.\d{2}/g
+const US_AVID_REGEX = /[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)*\.\d{2}\.\d{2}\.\d{2}/g;
 
 /** Resolution-pattern guards: HD/FHD/UHD/QHD prefixes with standard pixel counts. */
-const RESOLUTION_LETTERS = /^(HD|FHD|UHD|QHD|SD)$/i
-const RESOLUTION_DIGITS = /^(480|720|1080|1440|2160|4320)$/
+const RESOLUTION_LETTERS = /^(HD|FHD|UHD|QHD|SD)$/i;
+const RESOLUTION_DIGITS = /^(480|720|1080|1440|2160|4320)$/;
 
 /** 从标题提取美/欧厂牌番号（Studio.YY.MM.DD，归一化大写）；日期段非法 → 跳过。 */
 export function extractUsAvIdFromTitle(title: string): string | null {
   for (const match of title.matchAll(US_AVID_REGEX)) {
-    const raw = match[0]
-    const parts = raw.split('.')
-    const month = parseInt(parts[parts.length - 2]!, 10)
-    const day = parseInt(parts[parts.length - 1]!, 10)
-    if (month < 1 || month > 12 || day < 1 || day > 31) continue
-    return normalizeAvId(raw)
+    const raw = match[0];
+    const parts = raw.split('.');
+    const month = parseInt(parts[parts.length - 2]!, 10);
+    const day = parseInt(parts[parts.length - 1]!, 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    return normalizeAvId(raw);
   }
-  return null
+  return null;
 }
 
 /** 从标题提取番号（大写，空格归一为连字符）；日系优先、美系兜底；全部候选非法 → null。 */
 export function extractAvIdFromTitle(title: string): string | null {
-  const trimmed = title.trim()
+  const trimmed = title.trim();
   for (const match of trimmed.matchAll(AVID_REGEX)) {
-    const raw = match[0]
-    const letters = raw.replace(/[-\s]?\d+$/, '')
-    const digits = raw.match(/(\d+)$/)?.[1] ?? ''
-    if (RESOLUTION_LETTERS.test(letters) && RESOLUTION_DIGITS.test(digits)) continue
-    return normalizeAvId(raw)
+    const raw = match[0];
+    const letters = raw.replace(/[-\s]?\d+$/, '');
+    const digits = raw.match(/(\d+)$/)?.[1] ?? '';
+    if (RESOLUTION_LETTERS.test(letters) && RESOLUTION_DIGITS.test(digits)) continue;
+    return normalizeAvId(raw);
   }
-  return extractUsAvIdFromTitle(trimmed)
+  return extractUsAvIdFromTitle(trimmed);
 }
 
 /** 帖子行解析结果（parseThreadRow 输出）。 */
 export interface SehuatangThread {
-  url: string
-  title: string
-  avId: string | null
-  releaseDate: string
+  url: string;
+  title: string;
+  avId: string | null;
+  releaseDate: string;
   /** 帖子 tid 键（TID-<tid>，thread URL 自带）；URL 无 tid → null。 */
-  tid: string | null
+  tid: string | null;
   /**
    * 主跟踪键：avId 优先，提取失败时回退 tid（写入/主判定用）。
    * 三表互不冲突——has id → jav_ids/usav_ids；无 id → sehuatang_ids。
    */
-  trackId: string | null
+  trackId: string | null;
 }
 
 /**
@@ -88,9 +88,9 @@ export interface SehuatangThread {
  * 否则「列表页有番号、帖子页无番号」的同一帖子会出现 dimmer 失效。
  */
 export interface ThreadTrackSource {
-  avId?: string | null
-  tid?: string | null
-  trackId?: string | null
+  avId?: string | null;
+  tid?: string | null;
+  trackId?: string | null;
 }
 
 /**
@@ -99,13 +99,13 @@ export interface ThreadTrackSource {
  * 都不丢键；`Set` 去重保证 trackId 与 avId/tid 重叠时不产生重复候选。
  */
 export function collectThreadTrackKeys(threads: ThreadTrackSource[]): string[] {
-  const keys = new Set<string>()
+  const keys = new Set<string>();
   for (const thread of threads) {
     for (const key of [thread.avId, thread.tid, thread.trackId]) {
-      if (key) keys.add(key.toUpperCase())
+      if (key) keys.add(key.toUpperCase());
     }
   }
-  return Array.from(keys)
+  return Array.from(keys);
 }
 
 /**
@@ -114,11 +114,11 @@ export function collectThreadTrackKeys(threads: ThreadTrackSource[]): string[] {
  * 与列表行 parseThreadRow 同一优先级，保证两处写键一致。
  */
 export function resolveThreadWatchKey(title: string, url: string): string | null {
-  return extractAvIdFromTitle(title) ?? extractThreadTidFromUrl(url)
+  return extractAvIdFromTitle(title) ?? extractThreadTidFromUrl(url);
 }
 
 /** 仅提取到 TID 的跟踪键形态（无番号，avId 提取失败的兜底键）。 */
-const TID_ONLY_KEY_RE = /^TID-\d+$/
+const TID_ONLY_KEY_RE = /^TID-\d+$/;
 
 /**
  * 「点击跳转即 dimmer」的适用判定（纯函数，入参 = 卡片可观测状态）。
@@ -135,17 +135,17 @@ const TID_ONLY_KEY_RE = /^TID-\d+$/
  */
 export function shouldDimOnNavigate(state: {
   /** 卡片主跟踪键（= avId ?? tid，对应 data-avid）。 */
-  trackId: string | null
+  trackId: string | null;
   /** 详情子请求是否已结束（data-umm-detail === 'done'）。 */
-  detailSettled: boolean
+  detailSettled: boolean;
   /** 卡片内是否已产出磁力锚点。 */
-  hasMagnet: boolean
+  hasMagnet: boolean;
 }): boolean {
-  const { trackId, detailSettled, hasMagnet } = state
-  if (!trackId) return false
-  if (hasMagnet) return false
-  if (TID_ONLY_KEY_RE.test(trackId)) return true
-  return detailSettled
+  const { trackId, detailSettled, hasMagnet } = state;
+  if (!trackId) return false;
+  if (hasMagnet) return false;
+  if (TID_ONLY_KEY_RE.test(trackId)) return true;
+  return detailSettled;
 }
 
 /**
@@ -154,19 +154,20 @@ export function shouldDimOnNavigate(state: {
  * 标题取 innerText（排除隐藏子节点文本），jsdom 不支持时回退 textContent。
  */
 export function parseThreadRow(row: Element): SehuatangThread | null {
-  const linkEl = row.querySelector('th a.s.xst') as HTMLAnchorElement | null
-  if (!linkEl) return null
-  const title = (((linkEl as HTMLElement).innerText || linkEl.textContent) ?? '').trim()
-  const avId = extractAvIdFromTitle(title)
-  const tid = extractThreadTidFromUrl(linkEl.href)
+  const linkEl = row.querySelector('th a.s.xst') as HTMLAnchorElement | null;
+  if (!linkEl) return null;
+  const title = (((linkEl as HTMLElement).innerText || linkEl.textContent) ?? '').trim();
+  const avId = extractAvIdFromTitle(title);
+  const tid = extractThreadTidFromUrl(linkEl.href);
   return {
     url: linkEl.href,
     title,
     avId,
-    releaseDate: (row.querySelector('td.by em span') as HTMLElement | null)?.textContent?.trim() || 'N/A',
+    releaseDate:
+      (row.querySelector('td.by em span') as HTMLElement | null)?.textContent?.trim() || 'N/A',
     tid,
     trackId: avId ?? tid,
-  }
+  };
 }
 
 /**
@@ -174,24 +175,27 @@ export function parseThreadRow(row: Element): SehuatangThread | null {
  * 原表格）。addedNodes 可能是 tbody 本身、其容器或 <tr>（经 closest 归属
  * tbody）；processed 集合同步去重（记录 normalthread_<tid> 键），返回本轮新行。
  */
-export function collectNewThreadRows(mutations: MutationRecord[], processed: Set<string>): Element[] {
-  const rows: Element[] = []
+export function collectNewThreadRows(
+  mutations: MutationRecord[],
+  processed: Set<string>,
+): Element[] {
+  const rows: Element[] = [];
   for (const mutation of mutations) {
     for (const node of Array.from(mutation.addedNodes)) {
-      if (node.nodeType !== 1) continue
-      const el = node as Element
+      if (node.nodeType !== 1) continue;
+      const el = node as Element;
       if (el.tagName === 'TR') {
-        const tb = el.closest('tbody')
-        if (tb?.id.startsWith('normalthread_')) rows.push(tb)
-        continue
+        const tb = el.closest('tbody');
+        if (tb?.id.startsWith('normalthread_')) rows.push(tb);
+        continue;
       }
-      if (el.tagName === 'TBODY' && el.id.startsWith('normalthread_')) rows.push(el)
-      rows.push(...Array.from(el.querySelectorAll('tbody[id^="normalthread_"]')))
+      if (el.tagName === 'TBODY' && el.id.startsWith('normalthread_')) rows.push(el);
+      rows.push(...Array.from(el.querySelectorAll('tbody[id^="normalthread_"]')));
     }
   }
-  const fresh = rows.filter((row) => row.id && !processed.has(row.id))
-  for (const row of fresh) if (row.id) processed.add(row.id)
-  return fresh
+  const fresh = rows.filter((row) => row.id && !processed.has(row.id));
+  for (const row of fresh) if (row.id) processed.add(row.id);
+  return fresh;
 }
 
 /**
@@ -206,17 +210,19 @@ export function partitionInitialVisible<T extends { trackId: string | null; tid?
   threads: T[],
   watchedIds: Set<string>,
 ): { visible: T[]; hiddenCount: number } {
-  if (watchedIds.size === 0) return { visible: threads, hiddenCount: 0 }
+  if (watchedIds.size === 0) return { visible: threads, hiddenCount: 0 };
   // 归一化大写：生产侧 batchCheckExists 返回大写，防御任意调用方输入。
-  const upper = new Set(Array.from(watchedIds, (id) => id.toUpperCase()))
-  const visible: T[] = []
-  let hiddenCount = 0
+  const upper = new Set(Array.from(watchedIds, (id) => id.toUpperCase()));
+  const visible: T[] = [];
+  let hiddenCount = 0;
   for (const thread of threads) {
-    const watched = [thread.trackId, thread.tid].some((key) => !!key && upper.has(key.toUpperCase()))
-    if (watched) hiddenCount++
-    else visible.push(thread)
+    const watched = [thread.trackId, thread.tid].some(
+      (key) => !!key && upper.has(key.toUpperCase()),
+    );
+    if (watched) hiddenCount++;
+    else visible.push(thread);
   }
-  return { visible, hiddenCount }
+  return { visible, hiddenCount };
 }
 
 /**
@@ -227,10 +233,10 @@ export function partitionInitialVisible<T extends { trackId: string | null; tid?
  * 判定一致。纯函数（只读 document），可独立测试。
  */
 export function parseThreadList(): SehuatangThread[] {
-  const threads: SehuatangThread[] = []
+  const threads: SehuatangThread[] = [];
   for (const row of Array.from(document.querySelectorAll('tbody[id^="normalthread_"]'))) {
-    const thread = parseThreadRow(row)
-    if (thread) threads.push(thread)
+    const thread = parseThreadRow(row);
+    if (thread) threads.push(thread);
   }
-  return threads
+  return threads;
 }

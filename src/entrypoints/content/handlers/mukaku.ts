@@ -11,4 +11,4 @@
  *   index.ts   — barrel: singleton + public API exports
  */
 
-export { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './mukaku/index'
+export { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './mukaku/index';

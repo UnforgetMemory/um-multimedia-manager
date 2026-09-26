@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineProps<{
-  gap?: string
-}>()
+  gap?: string;
+}>();
 </script>
 
 <template vapor>

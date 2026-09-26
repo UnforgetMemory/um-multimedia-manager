@@ -1,5 +1,5 @@
-import { camelize, computed, toHandlerKey } from 'vue'
-import type { ComputedRef } from 'vue'
+import { camelize, computed, toHandlerKey } from 'vue';
+import type { ComputedRef } from 'vue';
 
 /**
  * Vapor-safe replacements for reka-ui's `useForwardProps` / `useForwardPropsEmits`.
@@ -19,10 +19,10 @@ import type { ComputedRef } from 'vue'
  */
 
 /** Emit declaration map shape, as accepted by `defineEmits`. */
-type EmitMap = Record<string, unknown[]>
+type EmitMap = Record<string, unknown[]>;
 
 /** Constructor-name union of an emit map, e.g. `'update:open'`. */
-export type EmitName<Emits extends EmitMap> = Extract<keyof Emits, string>
+export type EmitName<Emits extends EmitMap> = Extract<keyof Emits, string>;
 
 /**
  * `defineEmits<Emits>()` yields an INTERSECTION of one-argument-per-event
@@ -30,8 +30,8 @@ export type EmitName<Emits extends EmitMap> = Extract<keyof Emits, string>
  * handler to the same emit map.
  */
 type EmitFnOf<Emits extends EmitMap> = {
-  [K in EmitName<Emits>]: (name: K, ...args: Emits[K]) => void
-}[EmitName<Emits>]
+  [K in EmitName<Emits>]: (name: K, ...args: Emits[K]) => void;
+}[EmitName<Emits>];
 
 /** Declared props as a plain object.
  *
@@ -43,13 +43,13 @@ export function forwardProps<P extends Record<string, unknown>>(
   omitted: readonly string[] = [],
 ): ComputedRef<P> {
   return computed(() => {
-    const out: Record<string, unknown> = {}
+    const out: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(props)) {
-      if (value === undefined || omitted.includes(key)) continue
-      out[key] = value
+      if (value === undefined || omitted.includes(key)) continue;
+      out[key] = value;
     }
-    return out as P
-  })
+    return out as P;
+  });
 }
 
 /**
@@ -63,15 +63,15 @@ export function forwardEmits<Emits extends EmitMap>(
   emit: EmitFnOf<Emits>,
   names: readonly EmitName<Emits>[],
 ): Record<string, (payload: unknown) => void> {
-  const out: Record<string, (payload: unknown) => void> = {}
+  const out: Record<string, (payload: unknown) => void> = {};
   for (const name of names) {
     out[toHandlerKey(camelize(name))] = (payload: unknown) => {
       // Single bridge assertion: TypeScript cannot call a member of an
       // emit-function union selected by a runtime name, so the signature is
       // narrowed once here rather than at every wrapper.
-      const call = emit as unknown as (name: EmitName<Emits>, payload: unknown) => void
-      call(name, payload)
-    }
+      const call = emit as unknown as (name: EmitName<Emits>, payload: unknown) => void;
+      call(name, payload);
+    };
   }
-  return out
+  return out;
 }

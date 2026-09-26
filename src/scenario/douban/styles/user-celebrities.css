@@ -16,7 +16,6 @@
 
 /* ===== Title ===== */
 
-
 /* ===== Grid ===== */
 .umm-celebrities-grid {
   display: grid;
@@ -25,9 +24,21 @@
   width: 100%;
   box-sizing: border-box;
 }
-@media (min-width: 640px) { .umm-celebrities-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .umm-celebrities-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1536px) { .umm-celebrities-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 640px) {
+  .umm-celebrities-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-celebrities-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1536px) {
+  .umm-celebrities-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
 
 /* ===== Card ===== */
 .umm-celebrities-card {
@@ -37,7 +48,9 @@
   border-radius: var(--umm-card-radius, 10px);
   background: var(--umm-bg-secondary);
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-sizing: border-box;
   min-width: 0;
 }
@@ -92,4 +105,3 @@
 }
 
 /* ===== Empty ===== */
-

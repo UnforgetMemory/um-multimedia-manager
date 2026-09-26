@@ -5,28 +5,31 @@
  * Extracts the repeated 3-column button grid pattern from AppearanceTab
  * (theme options + language options).
  */
-import type { FunctionalComponent, SVGAttributes } from 'vue'
-import { Button } from '@/libraries/ui/button'
+import type { FunctionalComponent, SVGAttributes } from 'vue';
+import { Button } from '@/libraries/ui/button';
 
 interface OptionPickerOption {
-  value: string
-  label: string
-  icon?: FunctionalComponent<SVGAttributes>
+  value: string;
+  label: string;
+  icon?: FunctionalComponent<SVGAttributes>;
 }
 
 defineProps<{
-  options: OptionPickerOption[]
-  columns?: number
-  compact?: boolean
-}>()
+  options: OptionPickerOption[];
+  columns?: number;
+  compact?: boolean;
+}>();
 
-const modelValue = defineModel<string>('modelValue', { required: true })
+const modelValue = defineModel<string>('modelValue', { required: true });
 </script>
 
 <template vapor>
   <div
     class="umm:grid"
-    :style="{ gridTemplateColumns: `repeat(${columns || 3}, minmax(0, 1fr))`, gap: 'var(--umm-spacing-3, 0.75rem)' }"
+    :style="{
+      gridTemplateColumns: `repeat(${columns || 3}, minmax(0, 1fr))`,
+      gap: 'var(--umm-spacing-3, 0.75rem)',
+    }"
   >
     <Button
       v-for="opt in options"
@@ -35,12 +38,8 @@ const modelValue = defineModel<string>('modelValue', { required: true })
       @click="modelValue = opt.value"
       :class="[
         'umm:flex umm:flex-col umm:items-center umm:h-auto',
-        compact
-          ? 'umm:gap-1 umm:p-3 umm:text-center'
-          : 'umm:gap-2 umm:p-4',
-        modelValue === opt.value
-          ? 'umm:border-primary umm:bg-primary/5'
-          : '',
+        compact ? 'umm:gap-1 umm:p-3 umm:text-center' : 'umm:gap-2 umm:p-4',
+        modelValue === opt.value ? 'umm:border-primary umm:bg-primary/5' : '',
       ]"
     >
       <component

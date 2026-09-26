@@ -10,23 +10,23 @@
 /** Classify a subject URL host into a record-key media type. */
 export function subjectTypeFromHref(href: string): 'music' | 'book' | 'movie-tv' | null {
   try {
-    const url = new URL(href)
-    const host = url.hostname
-    if (host.includes('music.douban.com')) return 'music'
-    if (host.includes('book.douban.com')) return 'book'
-    if (host.includes('movie.douban.com') || host.includes('www.douban.com')) return 'movie-tv'
+    const url = new URL(href);
+    const host = url.hostname;
+    if (host.includes('music.douban.com')) return 'music';
+    if (host.includes('book.douban.com')) return 'book';
+    if (host.includes('movie.douban.com') || host.includes('www.douban.com')) return 'movie-tv';
   } catch {
     // Invalid or relative URL — unknown type
   }
-  return null
+  return null;
 }
 
 /** Full `{type}::{id}` store keys to bulk-read for a subject id. */
 export function candidateRecordKeys(id: string, href?: string): string[] {
-  const type = href ? subjectTypeFromHref(href) : null
-  if (type === 'music') return [`music::${id}`]
-  if (type === 'book') return [`book::${id}`]
-  return [`movie::${id}`, `tv::${id}`]
+  const type = href ? subjectTypeFromHref(href) : null;
+  if (type === 'music') return [`music::${id}`];
+  if (type === 'book') return [`book::${id}`];
+  return [`movie::${id}`, `tv::${id}`];
 }
 
 /**
@@ -35,7 +35,7 @@ export function candidateRecordKeys(id: string, href?: string): string[] {
  * a bare id, or `'*'` for bulk writes.
  */
 export function matchesVisibleId(visible: string[], eventKey: string): boolean {
-  if (eventKey === '*') return true
-  const bare = eventKey.split('::').pop()
-  return visible.some((r) => r === eventKey || r === bare)
+  if (eventKey === '*') return true;
+  const bare = eventKey.split('::').pop();
+  return visible.some((r) => r === eventKey || r === bare);
 }

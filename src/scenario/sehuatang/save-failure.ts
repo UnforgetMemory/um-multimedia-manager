@@ -9,25 +9,32 @@
  * 内容脚本 i18n（`t`），键 `Magnet Save Failed`。
  */
 
-import { t } from '@/entrypoints/content/i18n'
-import { FloatingToast } from '@/entrypoints/content/utils/toast'
+import { t } from '@/entrypoints/content/i18n';
+import { FloatingToast } from '@/entrypoints/content/utils/toast';
 
-const SAVE_FAILURE_KEY = 'umm-sht-save-failure'
+const SAVE_FAILURE_KEY = 'umm-sht-save-failure';
 
 export function reportSaveFailure(reason: string, detail?: string): void {
-  console.warn('[UMM] Sehuatang save failure:', reason, detail ?? '')
+  console.warn('[UMM] Sehuatang save failure:', reason, detail ?? '');
   try {
-    sessionStorage.setItem(SAVE_FAILURE_KEY, JSON.stringify({ at: Date.now(), reason, detail: detail ?? '' }))
-  } catch { /* 存储不可用时仅 console 可见 */ }
+    sessionStorage.setItem(
+      SAVE_FAILURE_KEY,
+      JSON.stringify({ at: Date.now(), reason, detail: detail ?? '' }),
+    );
+  } catch {
+    /* 存储不可用时仅 console 可见 */
+  }
 }
 
 export function consumeSaveFailure(): void {
   try {
-    const raw = sessionStorage.getItem(SAVE_FAILURE_KEY)
-    if (!raw) return
-    sessionStorage.removeItem(SAVE_FAILURE_KEY)
-    const parsed = JSON.parse(raw) as { reason?: string; detail?: string }
-    const detail = parsed.detail ? ` (${parsed.detail})` : ''
-    FloatingToast.error(t('Magnet Save Failed'), `${parsed.reason ?? ''}${detail}`)
-  } catch { /* 解析失败忽略 */ }
+    const raw = sessionStorage.getItem(SAVE_FAILURE_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(SAVE_FAILURE_KEY);
+    const parsed = JSON.parse(raw) as { reason?: string; detail?: string };
+    const detail = parsed.detail ? ` (${parsed.detail})` : '';
+    FloatingToast.error(t('Magnet Save Failed'), `${parsed.reason ?? ''}${detail}`);
+  } catch {
+    /* 解析失败忽略 */
+  }
 }

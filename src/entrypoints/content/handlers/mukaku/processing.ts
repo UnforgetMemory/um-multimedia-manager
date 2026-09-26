@@ -1,6 +1,6 @@
 export interface SerialRunner {
-  run(task: () => Promise<void>): void
-  idle(): boolean
+  run(task: () => Promise<void>): void;
+  idle(): boolean;
 }
 
 /**
@@ -11,36 +11,36 @@ export interface SerialRunner {
  * chrome APIs.
  */
 export function createSerialRunner(): SerialRunner {
-  let active: Promise<void> | null = null
-  let pending: (() => Promise<void>) | null = null
+  let active: Promise<void> | null = null;
+  let pending: (() => Promise<void>) | null = null;
 
   const start = (task: () => Promise<void>): void => {
     try {
-      active = Promise.resolve(task()).then(settle, settle)
+      active = Promise.resolve(task()).then(settle, settle);
     } catch {
-      settle() // synchronous throw from task(): behave like a rejected run
+      settle(); // synchronous throw from task(): behave like a rejected run
     }
-  }
+  };
 
   const settle = (): void => {
-    active = null
+    active = null;
     if (pending !== null) {
-      const task = pending
-      pending = null
-      start(task)
+      const task = pending;
+      pending = null;
+      start(task);
     }
-  }
+  };
 
   return {
     run(task: () => Promise<void>): void {
       if (active !== null) {
-        pending = task // coalesced: overwritten by every call while active
+        pending = task; // coalesced: overwritten by every call while active
       } else {
-        start(task)
+        start(task);
       }
     },
     idle(): boolean {
-      return active === null && pending === null
+      return active === null && pending === null;
     },
-  }
+  };
 }

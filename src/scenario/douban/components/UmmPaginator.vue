@@ -13,17 +13,17 @@
  * Emits:
  * - page-change(page: number)
  */
-import { computed } from 'vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { computed } from 'vue';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 
 const props = defineProps<{
-  currentPage: number
-  totalPages: number
-}>()
+  currentPage: number;
+  totalPages: number;
+}>();
 
 const emit = defineEmits<{
-  'page-change': [page: number]
-}>()
+  'page-change': [page: number];
+}>();
 
 /**
  * Generates the visible page window with ellipsis.
@@ -33,20 +33,20 @@ const emit = defineEmits<{
  * - tp > 7: 1 ... window ... last
  */
 const visiblePages = computed<(number | string)[]>(() => {
-  const cp = props.currentPage
-  const tp = props.totalPages
+  const cp = props.currentPage;
+  const tp = props.totalPages;
   if (tp <= 7) {
-    return Array.from({ length: tp }, (_, i) => i + 1)
+    return Array.from({ length: tp }, (_, i) => i + 1);
   }
-  const pages: (number | string)[] = [1]
-  if (cp > 4) pages.push('...')
-  const start = Math.max(2, cp - 2)
-  const end = Math.min(tp - 1, cp + 2)
-  for (let i = start; i <= end; i++) pages.push(i)
-  if (cp < tp - 3) pages.push('...')
-  if (tp > 1) pages.push(tp)
-  return pages
-})
+  const pages: (number | string)[] = [1];
+  if (cp > 4) pages.push('...');
+  const start = Math.max(2, cp - 2);
+  const end = Math.min(tp - 1, cp + 2);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (cp < tp - 3) pages.push('...');
+  if (tp > 1) pages.push(tp);
+  return pages;
+});
 </script>
 
 <template vapor>
