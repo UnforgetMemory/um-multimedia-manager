@@ -108,7 +108,10 @@ function sendMessageWithTimeout<K extends MessageType>(
 }
 
 // ✅ 仅在 Popup/Content 等有 window 的环境中暴露调试工具
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
+// 注：必须用可选链访问 import.meta.env —— 非 Vite 转换环境（如 Playwright/Node ESM
+// 直接载入本模块）下 import.meta.env 为 undefined，裸访问 .DEV 会在模块求值期抛
+// TypeError（与 logger.ts 的 `import.meta.env?.DEV ?? false` 保持同一范式）。
+if (typeof window !== 'undefined' && import.meta.env?.DEV) {
   window.__UMM_DEBUG__ = {
     checkContext: () => {
       console.log('Extension ID:', chrome.runtime?.id)
