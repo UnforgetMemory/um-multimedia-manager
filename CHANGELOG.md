@@ -39,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **新增静态门禁 `npm run scope:check`**（`scripts/check-content-style-scope.cjs`，接入 CI `Static Gates`，与 arch/ds/i18n/lint 并列）：扫描 legacy 样式模块，拒绝任何「首个复合选择器为 `*` / 裸伪类 / 裸伪元素 / 裸标签」的规则；内置 `--self-test` 双向自检（识别 8/8 泄漏形态、受约束形态零误报）、`--json` 供脚本消费，违规即 exit 1。仅 `THEME_VARS` / `THEME_VARS_DARK` / `GLOW_VARS` 三块豁免——`html` 上的 CSS 自定义属性是唯一继承锚点，属机制而**非**视觉改写（修复前的 composed 表共 8 个裸选择器，修复后仅剩这一项豁免）
 - **新增测试**：`tests/unit/content-style-scope.spec.ts`（4 例）——不重复实现扫描逻辑，改为**驱动真实门禁脚本**，保证「本地测到的」与「CI 拦到的」是同一份实现。门禁自身经双向变异验证：`[class*="umm-"]::-webkit-scrollbar` → `*::-webkit-scrollbar` 与 `[class*="umm-"]:focus-visible` → `:focus-visible` 两处变异均 exit 1，还原后 exit 0
 
+- **挂死与大数据根因收口**：IndexedDB v14→**v15**（adult 三表新增 `avId` 派生索引 + 存量回填；快照层加 `avId` 可选字段，读侧白名单剥离）；`umm-sehuatang-cache` v1→v2（新增 `cachedAt` 索引，LRU 驱逐改 `count()` + `openKeyCursor`，替代全表 `getAll()`）；DataScheduler interactive/bulk 分道；fetch 超时统一收口 `libraries/utils/fetch-timeout.ts`；契约冻结与迁移测试快照同步 v15
+- **内容脚本批量与节流**：YouTube 列表改批量提取（`content/ui/youtube-listing.ts`），MutationObserver 回调统一节流，覆盖 bilibili/youtube homepage、mukaku、pt scanner、video-overlay 消费方
+- **动效颗粒度**：`.theme-ready` 后代通配过渡收窄为 `:where(body, umm:bg-/border-/shadow- 工具类)`（零特异性，组件级 `umm:transition-*` 无需 `!important` 即可胜出，reka-ui trigger 补丁退役）；新增 `REDUCED_MOTION_STYLES` 全局兜底；`umm-mount-fade` 收敛纯 opacity；`transition: all` 清零；新增 `motion-discipline` 门禁
+- **交互反馈与无障碍**：`UmmInterestBar` 对话框 a11y 完备（`role=dialog` / `aria-modal` / Escape / Tab 焦点陷阱 / 焦点回归）；`.umm-dl-btn` 补按钮语义；Douban focus-visible 覆盖 `[role="button"]`
+- **徽章死代码清理**：`SEARCH_BADGE_STYLES` 死块（含 5 处引用）与 4 个死 i18n 键删除；5 种状态徽章契约对照裁决**「同名不同构、0 合并」**，「合并前须逐份对照 DOM 契约 / `data-status` 取值集 / 视觉基准」入档为前置规则
+- **按需样式子集**：新增 `GlobalStyleBlock` 子集组合 API（`composeGlobalStyles(['dimmer'])`），2 个 handler 切换按场景注入；css-map 运行时分包实测收益 **0 B**（WXT lib 模式 IIFE 无运行时分包能力，两轮调研定论）；scenario 样式死声明清理
+- **TS 严格度**：`noUncheckedIndexedAccess` 开启，全仓 301 处索引访问错误分域清零（entrypoints 66 / douban pages 109 / tests 61 / 其余 65）——无 `as any`、无 `@ts-ignore`、未弱化任何测试
+- **文件命名统一 + 守卫（D6）**：kebab-case / PascalCase `.vue` / `<domain>-extract.ts` 全量统一（38 个 `git mv` + import 重写）；新增 `npm run naming:check`（`scripts/check-naming.cjs`，`--self-test` 双向夹具内置），进 CI `Static Gates`
+- **统一格式化（D8）**：引入 **Oxfmt**（`.oxfmtrc.json`：semi / 单引号 / printWidth 100 / **LF**——工作树 CRLF 系 `core.autocrlf` 检出产物），631 文件全仓收口（含 `.vue` script 与 CSS 逐声明折行）；`format` / `format:check` 进门禁；ds:check 与 motion-discipline 等文本解析守卫改为格式宽容；移除零引用直接依赖 `@vue/devtools-api` 与废弃 `lucide-shim.d.ts`
+- **门禁基线**：九门禁（type-check / arch / ds / scope / naming / i18n / lint / format / build）全绿；`test:unit` **1294 passed + 11 已知基线**（personage `.localref` fixture 缺失，与历次一致）
+
+
 ## [5.17.2] - 2026-09-25
 
 ### 新增功能
