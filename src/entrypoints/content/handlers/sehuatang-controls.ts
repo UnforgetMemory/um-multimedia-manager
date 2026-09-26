@@ -11,12 +11,12 @@
  *      持有，重复入岛只会撑宽岛体、窄屏溢出）
  *
  * 设计联调（DESIGN_GUIDE Layer 3 规范）：
- *   - 全部颜色消费 --usl-* 语义令牌（light DOM 由 global.ts 注入 html
+ *   - 全部颜色消费 --umm-* 语义令牌（light DOM 由 global.ts 注入 html
  *     [data-umm-theme]；shadow overlay 由 styles.ts 重宿主到 :host），
  *     本文件零调色板 hex。
- *   - 自适应：clamp 流式间距/字号（--sht-* 容器级变量）+ 窄屏换行/横向滚动。
+ *   - 自适应：clamp 流式间距/字号（--umm-* 容器级变量）+ 窄屏换行/横向滚动。
  *   - 主题源 = 扩展设置 umm:appearance（auto 跟随系统）。
- *   - accent = 项目品牌色（--usl-fill-primary / --usl-accent），不再用站点 teal。
+ *   - accent = 项目品牌色（--umm-fill-primary / --umm-accent），不再用站点 teal。
  *
  * 分页逻辑（窗口化/推导/跳转）提取自 ./sehuatang-paging（纯函数，可测）。
  */
@@ -62,7 +62,7 @@ const EARLY_BG_STYLE_ID = 'umm-sht-early-bg'
 /**
  * 以主题表面色立即涂刷 html,body 背景（幂等更新同一 style 元素）。
  * 目的：document_start 首帧即呈现主题背景，消除「先看到站点原始背景、
- * 后跳变主题色」的闪烁；色值与 --usl-surface 同源（vibrancy/neutral-50）。
+ * 后跳变主题色」的闪烁；色值与 --umm-surface 同源（vibrancy/neutral-50）。
  * body 一并覆盖——Discuz 自带 body 背景，只刷 html 会被 body 盖住。
  */
 export function paintSehuatangBackground(doc: Document, theme: 'dark' | 'light'): void {
@@ -77,7 +77,7 @@ export function paintSehuatangBackground(doc: Document, theme: 'dark' | 'light')
 }
 
 // ---------------------------------------------------------------------------
-// 主题同步（html[data-umm-theme] 驱动 global.ts 的 --usl-* 双主题翻转）
+// 主题同步（html[data-umm-theme] 驱动 global.ts 的 --umm-* 双主题翻转）
 // 自 sehuatang-early.content（document_start）接入后，属性与背景由早期脚本
 // 负责全程保鲜（含 SPA 内导航场景，早期脚本随文档加载即生效），本模块不再
 // 保留独立同步器——避免重复 storage 监听。

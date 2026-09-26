@@ -32,14 +32,14 @@ function injectMenuStyles(doc: Document): void {
   const style = doc.createElement('style')
   style.id = MENU_STYLE_ID
   style.textContent = `
-.umm-sht-menu-panel { background: var(--usl-surface-raised); border-color: var(--usl-border); color: var(--usl-text-primary); transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
-.umm-sht-menu-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--usl-border); transition: border-color 0.3s ease; }
-.umm-sht-menu-title { margin: 0; font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1rem); font-weight: 600; color: var(--usl-text-primary); }
-.umm-sht-menu-close { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: none; border: none; color: var(--usl-text-muted); font-size: 18px; cursor: pointer; line-height: 1; flex-shrink: 0; transition: background-color 0.15s ease, color 0.15s ease; }
-.umm-sht-menu-close:hover, .umm-sht-menu-close:focus-visible { background: var(--usl-surface-hover); color: var(--usl-text-primary); outline: none; }
-.umm-sht-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--usl-border-strong); background: var(--usl-surface); color: var(--usl-text-primary); font-size: clamp(0.8rem, 0.75rem + 0.25vw, 0.9375rem); cursor: pointer; text-align: left; transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease; }
-.umm-sht-menu-item:hover, .umm-sht-menu-item:focus-visible { border-color: var(--usl-accent); outline: none; }
-.umm-sht-menu-item--active { border-color: var(--usl-accent); background: var(--usl-surface-hover); }
+.umm-sht-menu-panel { background: var(--umm-surface-raised); border-color: var(--umm-overlay-border); color: var(--umm-overlay-text-primary); transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+.umm-sht-menu-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--umm-overlay-border); transition: border-color 0.3s ease; }
+.umm-sht-menu-title { margin: 0; font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1rem); font-weight: 600; color: var(--umm-overlay-text-primary); }
+.umm-sht-menu-close { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: none; border: none; color: var(--umm-overlay-text-muted); font-size: 18px; cursor: pointer; line-height: 1; flex-shrink: 0; transition: background-color 0.15s ease, color 0.15s ease; }
+.umm-sht-menu-close:hover, .umm-sht-menu-close:focus-visible { background: var(--umm-surface-hover); color: var(--umm-overlay-text-primary); outline: none; }
+.umm-sht-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--umm-border-strong); background: var(--umm-surface); color: var(--umm-overlay-text-primary); font-size: clamp(0.8rem, 0.75rem + 0.25vw, 0.9375rem); cursor: pointer; text-align: left; transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease; }
+.umm-sht-menu-item:hover, .umm-sht-menu-item:focus-visible { border-color: var(--umm-accent); outline: none; }
+.umm-sht-menu-item--active { border-color: var(--umm-accent); background: var(--umm-surface-hover); }
 `
   doc.head.appendChild(style)
 }

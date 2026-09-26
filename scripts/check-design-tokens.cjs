@@ -327,19 +327,19 @@ if (personageLight && /--umm-rating-score:\s*var\(--umm-static-gold-(4|5|6)00\)/
 }
 ok('colored-text tier guards (D2)')
 
-// ---------- 4. --usl-* light/dark key symmetry (global.ts overlay tiers) ----------
+// ---------- 4. --umm-* light/dark key symmetry (global.ts overlay tiers) ----------
 const globalTs = read('src/entrypoints/content/styles/global.ts')
-const uslKeysIn = (block) => new Set([...block.matchAll(/--usl-([a-z0-9-]+):/g)].map((m) => `--usl-${m[1]}`))
+const ummKeysIn = (block) => new Set([...block.matchAll(/--umm-([a-z0-9-]+):/g)].map((m) => `--umm-${m[1]}`))
 const lightBlock = globalTs.match(/export const THEME_VARS = `([\s\S]*?)`\n\nexport const THEME_VARS_DARK/s)?.[1] ?? ''
 const darkBlock = globalTs.match(/export const THEME_VARS_DARK = `([\s\S]*?)`\n\n\//s)?.[1] ?? ''
-const lightUsl = uslKeysIn(lightBlock)
-const darkUsl = uslKeysIn(darkBlock)
-// --usl-ink-on-fill is theme-invariant by design (white ink on colored fills).
-const THEME_INVARIANT_USL = new Set(['--usl-ink-on-fill'])
-for (const k of lightUsl) if (!darkUsl.has(k) && !THEME_INVARIANT_USL.has(k)) failures.push(`global.ts: --usl key ${k} missing dark flip (THEME_VARS_DARK)`)
-for (const k of darkUsl) if (!lightUsl.has(k) && !THEME_INVARIANT_USL.has(k)) failures.push(`global.ts: --usl key ${k} has dark flip but no light definition`)
-if (lightUsl.size === 0) failures.push('global.ts: failed to parse THEME_VARS block for --usl symmetry check')
-ok(`--usl-* light/dark key symmetry (${lightUsl.size} pairs)`)
+const lightUmm = ummKeysIn(lightBlock)
+const darkUmm = ummKeysIn(darkBlock)
+// --umm-ink-on-fill is theme-invariant by design (white ink on colored fills).
+const THEME_INVARIANT_UMM = new Set(['--umm-ink-on-fill'])
+for (const k of lightUmm) if (!darkUmm.has(k) && !THEME_INVARIANT_UMM.has(k)) failures.push(`global.ts: --umm key ${k} missing dark flip (THEME_VARS_DARK)`)
+for (const k of darkUmm) if (!lightUmm.has(k) && !THEME_INVARIANT_UMM.has(k)) failures.push(`global.ts: --umm key ${k} has dark flip but no light definition`)
+if (lightUmm.size === 0) failures.push('global.ts: failed to parse THEME_VARS block for --umm symmetry check')
+ok(`--umm-* light/dark key symmetry (${lightUmm.size} pairs)`)
 
 // ---------- result ----------
 if (failures.length) {

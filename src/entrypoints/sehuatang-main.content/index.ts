@@ -19,7 +19,7 @@
  *      （src/content/sehuatang/app.ts）。刻意独立于 legacy content.ts 管线：
  *      不经 DB 健康检查串行门禁——首屏渲染只依赖行内 DOM 数据。仍需
  *      injectGlobalStyles：☰ 菜单/手动添加/查询面板/FloatingToast 是
- *      light-DOM 组件，依赖其 --usl-* 变量与组件样式（原页面被覆盖，注入
+ *      light-DOM 组件，依赖其 --umm-* 变量与组件样式（原页面被覆盖，注入
  *      零视觉成本）。
  *   3. 搜索页（search.php?mod=forum）→ src/content/sehuatang/app-search.ts。
  *      读模式（仅 dimmer，**不落库**）：原条目无磁力/详情子请求，dimmer

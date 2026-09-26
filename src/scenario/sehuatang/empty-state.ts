@@ -52,7 +52,7 @@ export function isEmptyHiddenState(grid: HTMLElement, hideOn: boolean, hiddenAtM
  * 传入各自的标题/提示（如「没有搜索结果」「结果均来自无关分区」）。
  *
  * 视觉：徽章圆 + eye-off 线稿（斜杠用 accent 色点出「已隐藏」语义）+ 飘浮
- * 装饰点；全部消费 --usl-* 令牌（内联 SVG 在 shadow DOM 内继承 :host 变量，
+ * 装饰点；全部消费 --umm-* 令牌（内联 SVG 在 shadow DOM 内继承 :host 变量，
  * 双主题自适应，零调色板色值）。文本 = 图下双行：标题 + 提示（role="status"
  * 供读屏播报）。
  */
@@ -69,12 +69,12 @@ export function buildEmptyState(doc: Document, texts?: EmptyStateTexts): HTMLEle
   root.setAttribute('role', 'status')
   root.innerHTML = `
     <svg viewBox="0 0 120 120" fill="none" aria-hidden="true" focusable="false">
-      <circle cx="14" cy="22" r="4" fill="var(--usl-border-strong)"/>
-      <circle cx="106" cy="96" r="5" fill="var(--usl-border-strong)"/>
-      <circle cx="60" cy="60" r="50" fill="var(--usl-surface-hover)"/>
-      <path d="M32 60 C 42 45, 78 45, 88 60 C 78 75, 42 75, 32 60 Z" stroke="var(--usl-text-secondary)" stroke-width="4" stroke-linejoin="round"/>
-      <circle cx="60" cy="60" r="9" stroke="var(--usl-text-secondary)" stroke-width="4"/>
-      <line x1="36" y1="84" x2="84" y2="36" stroke="var(--usl-accent)" stroke-width="4.5" stroke-linecap="round"/>
+      <circle cx="14" cy="22" r="4" fill="var(--umm-border-strong)"/>
+      <circle cx="106" cy="96" r="5" fill="var(--umm-border-strong)"/>
+      <circle cx="60" cy="60" r="50" fill="var(--umm-surface-hover)"/>
+      <path d="M32 60 C 42 45, 78 45, 88 60 C 78 75, 42 75, 32 60 Z" stroke="var(--umm-overlay-text-secondary)" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="60" cy="60" r="9" stroke="var(--umm-overlay-text-secondary)" stroke-width="4"/>
+      <line x1="36" y1="84" x2="84" y2="36" stroke="var(--umm-accent)" stroke-width="4.5" stroke-linecap="round"/>
     </svg>
     <p class="umm-sht-empty-title">${escapeHtml(title)}</p>
     <p class="umm-sht-empty-hint">${escapeHtml(hint)}</p>

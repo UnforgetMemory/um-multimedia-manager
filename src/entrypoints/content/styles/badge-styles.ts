@@ -1,7 +1,7 @@
 /**
  * 徽章/状态样式块（自 global.ts 拆出，2026-09-25）。
  *
- * 职责：搜索徽章、状态 chip、列表状态、影评徽章 —— 均消费 `var(--usl-*)` 语义令牌，
+ * 职责：搜索徽章、状态 chip、列表状态、影评徽章 —— 均消费 `var(--umm-*)` 语义令牌，
  * 零调色板字面量、零主题分支（暗色由 THEME_VARS_DARK 翻转变量实现，见 global.ts）。
  *
  * 组合入口仍是 global.ts 的 ALL_STYLES（顺序：主题变量表必须最先）。
@@ -26,36 +26,36 @@ export const SEARCH_BADGE_STYLES = `
   font-size: 12px;
   font-weight: 600;
   border-radius: 12px;
-  background: var(--usl-fill-primary);
-  color: var(--usl-ink-on-fill);
-  box-shadow: var(--usl-shadow-primary);
+  background: var(--umm-fill-primary);
+  color: var(--umm-ink-on-fill);
+  box-shadow: var(--umm-shadow-primary);
   transition: all 0.2s ease;
   cursor: default;
   user-select: none;
 }
 
 .umm-search-badge[data-status="done"] {
-  background: var(--usl-fill-done);
-  color: var(--usl-ink-done);
-  box-shadow: var(--usl-shadow-done);
+  background: var(--umm-fill-done);
+  color: var(--umm-ink-done);
+  box-shadow: var(--umm-shadow-done);
 }
 
 .umm-search-badge[data-status="none"] {
-  background: var(--usl-fill-none);
-  color: var(--usl-ink-none);
-  box-shadow: var(--usl-shadow-none);
+  background: var(--umm-fill-none);
+  color: var(--umm-ink-none);
+  box-shadow: var(--umm-shadow-none);
 }
 
 .umm-search-badge[data-status="wish"] {
-  background: var(--usl-fill-wish);
-  color: var(--usl-ink-wish);
-  box-shadow: var(--usl-shadow-wish);
+  background: var(--umm-fill-wish);
+  color: var(--umm-ink-wish);
+  box-shadow: var(--umm-shadow-wish);
 }
 
 .umm-search-badge[data-status="doing"] {
-  background: var(--usl-fill-doing);
-  color: var(--usl-ink-doing);
-  box-shadow: var(--usl-shadow-doing);
+  background: var(--umm-fill-doing);
+  color: var(--umm-ink-doing);
+  box-shadow: var(--umm-shadow-doing);
 }
 
 .umm-search-badge:hover {
@@ -98,24 +98,24 @@ export const STATUS_CHIP_STYLES = `
   -webkit-text-fill-color: currentColor !important;
 }
 .umm-status-chip[data-status="done"] {
-  color: var(--usl-ink-done) !important;
-  background: var(--usl-fill-done) !important;
-  border-color: var(--usl-border-done) !important;
+  color: var(--umm-ink-done) !important;
+  background: var(--umm-fill-done) !important;
+  border-color: var(--umm-border-done) !important;
 }
 .umm-status-chip[data-status="none"] {
-  color: var(--usl-ink-none) !important;
-  background: var(--usl-fill-none) !important;
-  border-color: var(--usl-border-none) !important;
+  color: var(--umm-ink-none) !important;
+  background: var(--umm-fill-none) !important;
+  border-color: var(--umm-border-none) !important;
 }
 .umm-status-chip[data-status="wish"] {
-  color: var(--usl-ink-wish) !important;
-  background: var(--usl-fill-wish) !important;
-  border-color: var(--usl-border-wish) !important;
+  color: var(--umm-ink-wish) !important;
+  background: var(--umm-fill-wish) !important;
+  border-color: var(--umm-border-wish) !important;
 }
 .umm-status-chip[data-status="doing"] {
-  color: var(--usl-ink-doing) !important;
-  background: var(--usl-fill-doing) !important;
-  border-color: var(--usl-border-doing) !important;
+  color: var(--umm-ink-doing) !important;
+  background: var(--umm-fill-doing) !important;
+  border-color: var(--umm-border-doing) !important;
 }
 .umm-status-chip .umm-label {
   font-weight: 700;
@@ -123,12 +123,12 @@ export const STATUS_CHIP_STYLES = `
 .umm-status-chip .umm-rating {
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--usl-rating-bg) !important;
-  color: var(--usl-rating-ink) !important;
+  background: var(--umm-rating-bg) !important;
+  color: var(--umm-rating-ink) !important;
   font-weight: 800;
   text-shadow: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  -webkit-text-fill-color: var(--usl-rating-ink);
+  -webkit-text-fill-color: var(--umm-rating-ink);
 }
 .umm-status-chip .umm-note {
   font-size: 12px;
@@ -158,28 +158,28 @@ export const LIST_STATUS_STYLES = `
   vertical-align: middle;
 }
 .umm-list-status[data-status="done"] {
-  background: var(--usl-fill-done);
-  color: var(--usl-ink-done);
-  box-shadow: var(--usl-shadow-done);
+  background: var(--umm-fill-done);
+  color: var(--umm-ink-done);
+  box-shadow: var(--umm-shadow-done);
 }
 .umm-list-status[data-status="none"] {
-  background: var(--usl-fill-none);
-  color: var(--usl-ink-none);
-  box-shadow: var(--usl-shadow-none);
+  background: var(--umm-fill-none);
+  color: var(--umm-ink-none);
+  box-shadow: var(--umm-shadow-none);
 }
 .umm-list-status[data-status="wish"] {
-  background: var(--usl-fill-wish);
-  color: var(--usl-ink-wish);
-  box-shadow: var(--usl-shadow-wish);
+  background: var(--umm-fill-wish);
+  color: var(--umm-ink-wish);
+  box-shadow: var(--umm-shadow-wish);
 }
 .umm-list-status[data-status="doing"] {
-  background: var(--usl-fill-doing);
-  color: var(--usl-ink-doing);
-  box-shadow: var(--usl-shadow-doing);
+  background: var(--umm-fill-doing);
+  color: var(--umm-ink-doing);
+  box-shadow: var(--umm-shadow-doing);
 }
 .umm-list-status .umm-rating {
-  background: var(--usl-rating-bg);
-  color: var(--usl-rating-ink);
+  background: var(--umm-rating-bg);
+  color: var(--umm-rating-ink);
   padding: 0 6px;
   border-radius: 999px;
   font-weight: 800;
@@ -206,7 +206,7 @@ export const REVIEWS_BADGE_STYLES = `
     0 2px 4px rgba(0, 0, 0, 0.15),
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  color: var(--usl-ink-on-fill);
+  color: var(--umm-ink-on-fill);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   line-height: 1.3;
   max-width: 120px;
@@ -228,27 +228,27 @@ export const REVIEWS_BADGE_STYLES = `
 }
 
 .umm-status--done {
-  background: var(--usl-fill-done);
-  color: var(--usl-ink-done);
-  border: 1px solid var(--usl-border-done);
+  background: var(--umm-fill-done);
+  color: var(--umm-ink-done);
+  border: 1px solid var(--umm-border-done);
 }
 
 .umm-status--none {
-  background: var(--usl-fill-none);
-  color: var(--usl-ink-none);
-  border: 1px solid var(--usl-border-none);
+  background: var(--umm-fill-none);
+  color: var(--umm-ink-none);
+  border: 1px solid var(--umm-border-none);
 }
 
 .umm-status--wish {
-  background: var(--usl-fill-wish);
-  color: var(--usl-ink-wish);
-  border: 1px solid var(--usl-border-wish);
+  background: var(--umm-fill-wish);
+  color: var(--umm-ink-wish);
+  border: 1px solid var(--umm-border-wish);
   text-shadow: none;
 }
 
 .umm-status--doing {
-  background: var(--usl-fill-doing);
-  color: var(--usl-ink-doing);
-  border: 1px solid var(--usl-border-doing);
+  background: var(--umm-fill-doing);
+  color: var(--umm-ink-doing);
+  border: 1px solid var(--umm-border-doing);
 }
 `

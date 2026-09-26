@@ -43,22 +43,22 @@ export const TOAST_CORE_CSS = `
  */
 .umm-toast--success {
   background: linear-gradient(180deg, rgba(17, 111, 70, 0.96), rgba(11, 83, 53, 0.98));
-  color: var(--usl-ink-on-fill, #ffffff);
+  color: var(--umm-ink-on-fill, #ffffff);
 }
 
 .umm-toast--error {
   background: linear-gradient(180deg, rgba(164, 43, 60, 0.96), rgba(126, 28, 48, 0.98));
-  color: var(--usl-ink-on-fill, #ffffff);
+  color: var(--umm-ink-on-fill, #ffffff);
 }
 
 .umm-toast--info {
   background: linear-gradient(180deg, #3a55ec 0%, #2f43cf 100%);
-  color: var(--usl-ink-on-fill, #ffffff);
+  color: var(--umm-ink-on-fill, #ffffff);
 }
 
 .umm-toast--loading {
   background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-  color: var(--usl-ink-on-fill, #ffffff);
+  color: var(--umm-ink-on-fill, #ffffff);
 }
 
 .umm-toast strong {
@@ -85,7 +85,7 @@ export const TOAST_CORE_CSS = `
   padding: 16px 40px 20px 18px;
 }
 
-/* Ink follows the legacy theme token (--usl-ink-on-fill), like every other
+/* Ink follows the legacy theme token (--umm-ink-on-fill), like every other
    light-DOM control (neodb buttons, badges); pages without UMM injection
    fall back to white. Semantic toast backgrounds stay theme-independent
    (variant = meaning), so ink-vs-bg contrast stays AA-verified. */
@@ -97,7 +97,7 @@ export const TOAST_CORE_CSS = `
   height: 22px;
   border: none;
   background: rgba(255, 255, 255, 0.2);
-  color: var(--usl-ink-on-fill, #ffffff);
+  color: var(--umm-ink-on-fill, #ffffff);
   border-radius: 50%;
   cursor: pointer;
   display: flex;

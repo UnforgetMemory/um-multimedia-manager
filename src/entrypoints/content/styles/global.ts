@@ -4,7 +4,7 @@
  * Architecture (ADR-021 Wave-E):
  *   THEME_VARS       - :root semantic role sheet (light values, interpolated from Tier-3 tokens.ts)
  *   THEME_VARS_DARK  - html[data-umm-theme="dark"] role flips (the ONLY dark rules)
- *   Component blocks consume var(--usl-*) only — no literals, no theme branches.
+ *   Component blocks consume var(--umm-*) only — no literals, no theme branches.
  *
  * data-umm-theme is kept live by startThemeAttrSync() — overlay or not.
  * All pairings measured WCAG >= 4.5 (ADR-019/020/021).
@@ -120,131 +120,131 @@ export { UI_COMPONENT_STYLES } from './component-styles'
 /* Watermark glow vars — decorative, follows theme */
 const GLOW_VARS = `
 html {
-  --usl-neodb-glow-base: ${COLOR_NEOGLOW_BASE};
-  --usl-neodb-glow-s1: ${COLOR_NEOGLOW_SHADOW_1};
-  --usl-neodb-glow-s2: ${COLOR_NEOGLOW_SHADOW_2};
-  --usl-neodb-glow-s3: ${COLOR_NEOGLOW_SHADOW_3};
+  --umm-neodb-glow-base: ${COLOR_NEOGLOW_BASE};
+  --umm-neodb-glow-s1: ${COLOR_NEOGLOW_SHADOW_1};
+  --umm-neodb-glow-s2: ${COLOR_NEOGLOW_SHADOW_2};
+  --umm-neodb-glow-s3: ${COLOR_NEOGLOW_SHADOW_3};
 }
 html[data-umm-theme="dark"] {
-  --usl-neodb-glow-base: ${COLOR_NEOGLOW_BASE_DARK};
-  --usl-neodb-glow-s1: ${COLOR_NEOGLOW_SHADOW_1_DARK};
-  --usl-neodb-glow-s2: ${COLOR_NEOGLOW_SHADOW_2_DARK};
-  --usl-neodb-glow-s3: ${COLOR_NEOGLOW_SHADOW_3_DARK};
+  --umm-neodb-glow-base: ${COLOR_NEOGLOW_BASE_DARK};
+  --umm-neodb-glow-s1: ${COLOR_NEOGLOW_SHADOW_1_DARK};
+  --umm-neodb-glow-s2: ${COLOR_NEOGLOW_SHADOW_2_DARK};
+  --umm-neodb-glow-s3: ${COLOR_NEOGLOW_SHADOW_3_DARK};
 }
 `
 
 /* ============================================================
-   Semantic role sheet — single source; components reference --usl-* only
+   Semantic role sheet — single source; components reference --umm-* only
    ============================================================ */
 export const THEME_VARS = `
 html {
   /* Default ink on colored fills */
-  --usl-ink-on-fill: #ffffff;
+  --umm-ink-on-fill: #ffffff;
   /* Primary (brand gradient) */
-  --usl-fill-primary: linear-gradient(180deg, ${COLOR_PRIMARY_START} 0%, ${COLOR_PRIMARY_END} 100%);
-  --usl-shadow-primary: 0 2px 4px ${COLOR_PRIMARY_SHADOW};
+  --umm-fill-primary: linear-gradient(180deg, ${COLOR_PRIMARY_START} 0%, ${COLOR_PRIMARY_END} 100%);
+  --umm-shadow-primary: 0 2px 4px ${COLOR_PRIMARY_SHADOW};
   /* Wish (amber x deep-brown ink) */
-  --usl-fill-wish: linear-gradient(180deg, ${COLOR_WISH_START}, ${COLOR_WISH_END});
-  --usl-ink-wish: ${COLOR_WISH_TEXT};
-  --usl-border-wish: ${COLOR_WISH_BORDER};
-  --usl-shadow-wish: 0 2px 4px ${COLOR_WISH_SHADOW};
+  --umm-fill-wish: linear-gradient(180deg, ${COLOR_WISH_START}, ${COLOR_WISH_END});
+  --umm-ink-wish: ${COLOR_WISH_TEXT};
+  --umm-border-wish: ${COLOR_WISH_BORDER};
+  --umm-shadow-wish: 0 2px 4px ${COLOR_WISH_SHADOW};
   /* Doing (blue) */
-  --usl-fill-doing: linear-gradient(180deg, ${COLOR_DOING_START}, ${COLOR_DOING_END});
-  --usl-ink-doing: ${COLOR_DOING_TEXT};
-  --usl-border-doing: ${COLOR_DOING_BORDER};
-  --usl-shadow-doing: 0 2px 4px ${COLOR_DOING_SHADOW};
+  --umm-fill-doing: linear-gradient(180deg, ${COLOR_DOING_START}, ${COLOR_DOING_END});
+  --umm-ink-doing: ${COLOR_DOING_TEXT};
+  --umm-border-doing: ${COLOR_DOING_BORDER};
+  --umm-shadow-doing: 0 2px 4px ${COLOR_DOING_SHADOW};
   /* Done (green) */
-  --usl-fill-done: linear-gradient(180deg, ${COLOR_DONE_START}, ${COLOR_DONE_END});
-  --usl-ink-done: ${COLOR_DONE_TEXT};
-  --usl-border-done: ${COLOR_DONE_BORDER};
-  --usl-shadow-done: 0 2px 4px ${COLOR_DONE_SHADOW};
+  --umm-fill-done: linear-gradient(180deg, ${COLOR_DONE_START}, ${COLOR_DONE_END});
+  --umm-ink-done: ${COLOR_DONE_TEXT};
+  --umm-border-done: ${COLOR_DONE_BORDER};
+  --umm-shadow-done: 0 2px 4px ${COLOR_DONE_SHADOW};
   /* None (red) */
-  --usl-fill-none: linear-gradient(180deg, ${COLOR_NONE_START}, ${COLOR_NONE_END});
-  --usl-ink-none: ${COLOR_NONE_TEXT};
-  --usl-border-none: ${COLOR_NONE_BORDER};
-  --usl-shadow-none: 0 2px 4px ${COLOR_NONE_SHADOW};
+  --umm-fill-none: linear-gradient(180deg, ${COLOR_NONE_START}, ${COLOR_NONE_END});
+  --umm-ink-none: ${COLOR_NONE_TEXT};
+  --umm-border-none: ${COLOR_NONE_BORDER};
+  --umm-shadow-none: 0 2px 4px ${COLOR_NONE_SHADOW};
   /* Rating chip */
-  --usl-rating-bg: ${COLOR_RATING_BG};
-  --usl-rating-ink: ${COLOR_RATING_TEXT};
+  --umm-rating-bg: ${COLOR_RATING_BG};
+  --umm-rating-ink: ${COLOR_RATING_TEXT};
   /* NeoDB buttons: solid 700-tier fills x white ink (AA >= 5.02) */
-  --usl-neodb-minus: ${COLOR_MINUS_END};
-  --usl-neodb-plus: ${COLOR_PLUS_END};
-  --usl-neodb-original: ${COLOR_ORIGINAL_END};
-  --usl-neodb-open: #7c3aed;
-  --usl-ink-neodb-minus: #ffffff;
-  --usl-ink-neodb-plus: #ffffff;
-  --usl-ink-neodb-original: #ffffff;
-  --usl-ink-neodb-open: #ffffff;
-  --usl-neodb-border: transparent;
-  --usl-neodb-open-hover-shadow: 0 4px 8px rgba(109,40,217,0.4);
-  --usl-shadow-neodb-minus: 0 2px 4px ${COLOR_MINUS_SHADOW};
-  --usl-shadow-neodb-plus: 0 2px 4px ${COLOR_PLUS_SHADOW};
-  --usl-shadow-neodb-original: 0 2px 4px ${COLOR_ORIGINAL_SHADOW};
+  --umm-neodb-minus: ${COLOR_MINUS_END};
+  --umm-neodb-plus: ${COLOR_PLUS_END};
+  --umm-neodb-original: ${COLOR_ORIGINAL_END};
+  --umm-neodb-open: #7c3aed;
+  --umm-ink-neodb-minus: #ffffff;
+  --umm-ink-neodb-plus: #ffffff;
+  --umm-ink-neodb-original: #ffffff;
+  --umm-ink-neodb-open: #ffffff;
+  --umm-neodb-border: transparent;
+  --umm-neodb-open-hover-shadow: 0 4px 8px rgba(109,40,217,0.4);
+  --umm-shadow-neodb-minus: 0 2px 4px ${COLOR_MINUS_SHADOW};
+  --umm-shadow-neodb-plus: 0 2px 4px ${COLOR_PLUS_SHADOW};
+  --umm-shadow-neodb-original: 0 2px 4px ${COLOR_ORIGINAL_SHADOW};
   /* Overlay surfaces (light-DOM overlay shells: sehuatang etc.) */
-  --usl-surface: ${COLOR_OVERLAY_SURFACE};
-  --usl-surface-raised: ${COLOR_OVERLAY_SURFACE_RAISED};
-  --usl-surface-hover: ${COLOR_OVERLAY_SURFACE_HOVER};
-  --usl-border: ${COLOR_OVERLAY_BORDER};
-  --usl-border-strong: ${COLOR_OVERLAY_BORDER_STRONG};
-  --usl-text-primary: ${COLOR_OVERLAY_TEXT_PRIMARY};
-  --usl-text-secondary: ${COLOR_OVERLAY_TEXT_SECONDARY};
-  --usl-text-muted: ${COLOR_OVERLAY_TEXT_MUTED};
-  --usl-accent: ${COLOR_OVERLAY_ACCENT};
+  --umm-surface: ${COLOR_OVERLAY_SURFACE};
+  --umm-surface-raised: ${COLOR_OVERLAY_SURFACE_RAISED};
+  --umm-surface-hover: ${COLOR_OVERLAY_SURFACE_HOVER};
+  --umm-overlay-border: ${COLOR_OVERLAY_BORDER};
+  --umm-border-strong: ${COLOR_OVERLAY_BORDER_STRONG};
+  --umm-overlay-text-primary: ${COLOR_OVERLAY_TEXT_PRIMARY};
+  --umm-overlay-text-secondary: ${COLOR_OVERLAY_TEXT_SECONDARY};
+  --umm-overlay-text-muted: ${COLOR_OVERLAY_TEXT_MUTED};
+  --umm-accent: ${COLOR_OVERLAY_ACCENT};
   /* Status small-text tiers on overlay surfaces (M3 D2) */
-  --usl-text-done: ${COLOR_STATUS_TEXT_DONE};
-  --usl-text-none: ${COLOR_STATUS_TEXT_NONE};
+  --umm-text-done: ${COLOR_STATUS_TEXT_DONE};
+  --umm-text-none: ${COLOR_STATUS_TEXT_NONE};
 }
 `
 
 export const THEME_VARS_DARK = `
 html[data-umm-theme="dark"] {
-  --usl-fill-primary: ${COLOR_PRIMARY_START_DARK};  --usl-shadow-primary: 0 2px 4px ${COLOR_PRIMARY_SHADOW_DARK};
-  --usl-fill-wish: ${COLOR_WISH_FILL_DARK};
-  --usl-ink-wish: ${COLOR_WISH_INK_DARK};
-  --usl-border-wish: ${COLOR_WISH_BORDER_DARK};
-  --usl-shadow-wish: 0 2px 4px ${COLOR_WISH_SHADOW_DARK};
-  --usl-fill-doing: ${COLOR_DOING_START_DARK};
-  --usl-ink-doing: ${COLOR_DOING_TEXT_DARK};
-  --usl-border-doing: ${COLOR_DOING_BORDER_DARK};
-  --usl-shadow-doing: 0 2px 4px ${COLOR_DOING_SHADOW_DARK};
-  --usl-fill-done: ${COLOR_DONE_START_DARK};
-  --usl-ink-done: ${COLOR_DONE_TEXT_DARK};
-  --usl-border-done: ${COLOR_DONE_BORDER_DARK};
-  --usl-shadow-done: 0 2px 4px ${COLOR_DONE_SHADOW_DARK};
-  --usl-fill-none: ${COLOR_NONE_START_DARK};
-  --usl-ink-none: ${COLOR_NONE_TEXT_DARK};
-  --usl-border-none: ${COLOR_NONE_BORDER_DARK};
-  --usl-shadow-none: 0 2px 4px ${COLOR_NONE_SHADOW_DARK};
-  --usl-rating-bg: ${COLOR_RATING_BG_DARK};
-  --usl-rating-ink: ${COLOR_RATING_TEXT_DARK};
+  --umm-fill-primary: ${COLOR_PRIMARY_START_DARK};  --umm-shadow-primary: 0 2px 4px ${COLOR_PRIMARY_SHADOW_DARK};
+  --umm-fill-wish: ${COLOR_WISH_FILL_DARK};
+  --umm-ink-wish: ${COLOR_WISH_INK_DARK};
+  --umm-border-wish: ${COLOR_WISH_BORDER_DARK};
+  --umm-shadow-wish: 0 2px 4px ${COLOR_WISH_SHADOW_DARK};
+  --umm-fill-doing: ${COLOR_DOING_START_DARK};
+  --umm-ink-doing: ${COLOR_DOING_TEXT_DARK};
+  --umm-border-doing: ${COLOR_DOING_BORDER_DARK};
+  --umm-shadow-doing: 0 2px 4px ${COLOR_DOING_SHADOW_DARK};
+  --umm-fill-done: ${COLOR_DONE_START_DARK};
+  --umm-ink-done: ${COLOR_DONE_TEXT_DARK};
+  --umm-border-done: ${COLOR_DONE_BORDER_DARK};
+  --umm-shadow-done: 0 2px 4px ${COLOR_DONE_SHADOW_DARK};
+  --umm-fill-none: ${COLOR_NONE_START_DARK};
+  --umm-ink-none: ${COLOR_NONE_TEXT_DARK};
+  --umm-border-none: ${COLOR_NONE_BORDER_DARK};
+  --umm-shadow-none: 0 2px 4px ${COLOR_NONE_SHADOW_DARK};
+  --umm-rating-bg: ${COLOR_RATING_BG_DARK};
+  --umm-rating-ink: ${COLOR_RATING_TEXT_DARK};
   /* Dark NeoDB = GitHub Primer convention: white ink x desaturated fills
      (amber=attention-emphasis #9e6a03, green=#238636, Radix indigo9/violet9)
      +1px light border. Measured 4.68/4.64/5.21/5.39. No ink text in dark. */
-  --usl-shadow-neodb-minus: 0 2px 4px ${COLOR_MINUS_SHADOW_DARK};
-  --usl-shadow-neodb-plus: 0 2px 4px ${COLOR_PLUS_SHADOW_DARK};
-  --usl-shadow-neodb-original: 0 2px 4px ${COLOR_ORIGINAL_SHADOW_DARK};
-  --usl-neodb-minus: #9e6a03;
-  --usl-neodb-plus: #238636;
-  --usl-neodb-original: #3e63dd;
-  --usl-neodb-open: #6e56cf;
-  --usl-ink-neodb-minus: #ffffff;
-  --usl-ink-neodb-plus: #ffffff;
-  --usl-ink-neodb-original: #ffffff;
-  --usl-ink-neodb-open: #ffffff;
-  --usl-neodb-border: rgba(240, 246, 252, 0.12);
-  --usl-neodb-open-hover-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --umm-shadow-neodb-minus: 0 2px 4px ${COLOR_MINUS_SHADOW_DARK};
+  --umm-shadow-neodb-plus: 0 2px 4px ${COLOR_PLUS_SHADOW_DARK};
+  --umm-shadow-neodb-original: 0 2px 4px ${COLOR_ORIGINAL_SHADOW_DARK};
+  --umm-neodb-minus: #9e6a03;
+  --umm-neodb-plus: #238636;
+  --umm-neodb-original: #3e63dd;
+  --umm-neodb-open: #6e56cf;
+  --umm-ink-neodb-minus: #ffffff;
+  --umm-ink-neodb-plus: #ffffff;
+  --umm-ink-neodb-original: #ffffff;
+  --umm-ink-neodb-open: #ffffff;
+  --umm-neodb-border: rgba(240, 246, 252, 0.12);
+  --umm-neodb-open-hover-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   /* Overlay surfaces — dark flips */
-  --usl-surface: ${COLOR_OVERLAY_SURFACE_DARK};
-  --usl-surface-raised: ${COLOR_OVERLAY_SURFACE_RAISED_DARK};
-  --usl-surface-hover: ${COLOR_OVERLAY_SURFACE_HOVER_DARK};
-  --usl-border: ${COLOR_OVERLAY_BORDER_DARK};
-  --usl-border-strong: ${COLOR_OVERLAY_BORDER_STRONG_DARK};
-  --usl-text-primary: ${COLOR_OVERLAY_TEXT_PRIMARY_DARK};
-  --usl-text-secondary: ${COLOR_OVERLAY_TEXT_SECONDARY_DARK};
-  --usl-text-muted: ${COLOR_OVERLAY_TEXT_MUTED_DARK};
-  --usl-accent: ${COLOR_OVERLAY_ACCENT_DARK};
-  --usl-text-done: ${COLOR_STATUS_TEXT_DONE_DARK};
-  --usl-text-none: ${COLOR_STATUS_TEXT_NONE_DARK};
+  --umm-surface: ${COLOR_OVERLAY_SURFACE_DARK};
+  --umm-surface-raised: ${COLOR_OVERLAY_SURFACE_RAISED_DARK};
+  --umm-surface-hover: ${COLOR_OVERLAY_SURFACE_HOVER_DARK};
+  --umm-overlay-border: ${COLOR_OVERLAY_BORDER_DARK};
+  --umm-border-strong: ${COLOR_OVERLAY_BORDER_STRONG_DARK};
+  --umm-overlay-text-primary: ${COLOR_OVERLAY_TEXT_PRIMARY_DARK};
+  --umm-overlay-text-secondary: ${COLOR_OVERLAY_TEXT_SECONDARY_DARK};
+  --umm-overlay-text-muted: ${COLOR_OVERLAY_TEXT_MUTED_DARK};
+  --umm-accent: ${COLOR_OVERLAY_ACCENT_DARK};
+  --umm-text-done: ${COLOR_STATUS_TEXT_DONE_DARK};
+  --umm-text-none: ${COLOR_STATUS_TEXT_NONE_DARK};
 }
 `
 
