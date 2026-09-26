@@ -49,8 +49,8 @@ CI 侧：`Type Check` → `Static Gates`（arch/ds/i18n）→ `Build (chrome|fir
 ### 三套内容注入系统
 
 1. **legacy**（`content.ts` → `content/router.ts` → `handlers/`）：服务所有非 Douban、非 Sehuatang 站点。Douban 域名在 content.ts 的 `excludeMatches` 排除；Sehuatang 的 matches 已从 content.ts 整体移除（由双入口接管），路由表亦无对应项。
-2. **新 Douban**（`douban-early/douban-main` → `src/content/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `content/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
-3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/content/sehuatang/`）：URL 判型唯一源 `src/content/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；**风控页例外**——任意路径可返回，DOM 双标记检测（`extract-risk.ts` 的 `isRiskGateDocument`）优先于 classifyPage，进入按钮点击委托原 DOM 按钮（站点 JS 绑定写 safeid cookie + 重载）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；四个编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）/ `app-risk.ts`（风控页，主题化重建面板）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
+2. **新 Douban**（`douban-early/douban-main` → `src/scenario/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `scenario/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
+3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/scenario/sehuatang/`）：URL 判型唯一源 `src/scenario/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；**风控页例外**——任意路径可返回，DOM 双标记检测（`extract-risk.ts` 的 `isRiskGateDocument`）优先于 classifyPage，进入按钮点击委托原 DOM 按钮（站点 JS 绑定写 safeid cookie + 重载）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；四个编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）/ `app-risk.ts`（风控页，主题化重建面板）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
 
 ### 领域层（domain/，纯 TS 无框架依赖）
 
@@ -84,7 +84,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 - **Composition API + `<script setup>` + TypeScript**；禁止 `as any`/`@ts-ignore`
 - 内容脚本禁止直接触 IndexedDB——一律走 `chrome.runtime.sendMessage`
 - i18n 双系统：`src/libraries/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
-- 共享工具：`src/libraries/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/content/douban/shared/`（retry/usePaginator/douban-extract）
+- 共享工具：`src/libraries/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/scenario/douban/shared/`（retry/usePaginator/douban-extract）
 - 版本号在 `package.json` + `wxt.config.ts`（`npm run package:*` 同时更新）
 - 单元测试：Playwright（tests/unit/，**tests/ 源码被 git 跟踪**；仅 playwright-report/test-results 等产物被 ignore）
 - 设置存储：`src/engine/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型
@@ -97,22 +97,25 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 4. `engine/database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
 5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + ResponseMessageMap/SuccessDataMap + background.ts switch
 6. 两个 i18n 系统补键
-7. （Douban 页面）`content/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
+7. （Douban 页面）`scenario/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
 
 ## 项目结构（简化）
 
 ```
 src/
-├── entrypoints/          # WXT 入口（见上表）
-├── content/douban/       # 新 Douban overlay（32 页面 + shared/ + styles/）
-├── domain/               # DDD 领域层（record/identity/platform）
-├── features/             # database / data-scheduler / cache / webdav / neodb /
-│                         # adult-av / sehuatang-cache / migration / settings /
-│                         # optimistic-lock(仅类型)
-├── shared/               # ui 组件 / locales / plugins / 通用组件
-├── types/                # 消息类型 + 数据接口（唯一权威）
-├── utils/ composables/ stores/ config.ts
+├── entrypoints/          # app 装配层：WXT 入口（见上表）
+├── feature/              # feature 层：组件（ConfirmDialog 等）+ composables/ + optimistic-lock
+├── store/                # UI 状态（pinia stores）
+├── scenario/             # 内容注入编排：douban/（32 页 overlay）+ sehuatang/
+├── provider/             # 外部平台适配：webdav / neodb / adult-av / sehuatang-cache
+├── engine/               # 通用引擎：database / cache / data-scheduler / migration / settings
+├── libraries/            # 业务无关基元：utils / ui / styles / locales / plugins / identity / toast / config
+├── domain/               # DDD 领域层（record/identity/platform，纯 TS）
+└── types/                # 消息类型 + 数据接口（唯一权威）
 ```
+
+> 层次依赖方向（守卫 `arch:check` 强制，秩 0→6）：app → feature → store → scenario → provider → engine → libraries；
+> `domain` 仅可依赖 `libraries`，`types` 为跨层共享。
 
 > 架构决策（`docs/adr/`）与审计蓝图（`docs/audit/`）在**仓库根**的 `docs/` 下，
 > 不在 `src/` 内。

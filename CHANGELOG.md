@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **新增测试**：`tests/unit/sehuatang-card-render.spec.ts`（10 例：`data-avid`/`data-tid` 双键契约 / HTML 转义 / http(s) 协议白名单 / 骨架替换 / 键过滤）与 `tests/unit/sehuatang-save-failure.spec.ts`（5 例：写入结构 / 后写覆盖 / 消费即清除 / 非法 JSON 容错）——覆盖原先不导出、无法单测的渲染原语与跨页诊断
 - **libraries 层物理归位（D6 起点）**：`utils`/`config.ts`/`shared{ui,styles,locales,plugins,identity,toast}` 迁入 `src/libraries/`（89 文件），`@/` 别名与相对导入同步改写（含被搬文件指向未搬目标的相对路径按层深重算）；守卫 `LAYER_RULES` 重指 `libraries/*`；门禁脚本 `check-design-tokens`/`check-i18n` 字面路径同步；`architecture-guard.spec.ts` 夹具对齐新层规则。六道门禁全绿
 - **engine 层物理归位（D6 第二批）**：`features/{database,cache,data-scheduler,migration,settings}` 迁入 `src/engine/`（19 文件，git mv 自动识别重命名），`@/features/<x>` → `@/engine/<x>` 别名改写（94 处，68 文件）；守卫加 `['engine','engine']` 层规则、`DB_INTERNAL_PATHS` 与 E2 消息同步 `features`→`engine`；`architecture-guard.spec.ts` 合成夹具对齐。六道门禁全绿（test:unit 1212 + 11 已知基线，零新增）
+- **provider / store / feature / scenario 层物理归位（D6 第三批，L3–L6）**：`features/{webdav,neodb,adult-av,sehuatang-cache}` → `src/provider/`（6 文件）；`stores/` → `src/store/`（3）；`shared/` + `composables/` + `features/optimistic-lock` → `src/feature/`（9）；`content/` → `src/scenario/`（241）。`@/` 别名全量改写（L3 31 处 / L4 9 / L5 18 / L6 169）；守卫规则重指 `provider`/`store`/`feature`/`scenario` 并更新 `isContentScript` 判定；`check-design-tokens` 与 `visual-fixture-douban` 字面路径同步；`architecture-guard.spec.ts` 夹具对齐。新增通用幂等脚本 `scripts/migrate-layer.cjs`（替代 L1/L2 逐层副本）。`src/` 顶层收敛为七层骨架 + `domain`/`types`。六道门禁全绿（test:unit 1212 + 11 已知基线，零新增）
 
 ## [5.17.2] - 2026-09-25
 

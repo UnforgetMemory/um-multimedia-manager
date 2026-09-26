@@ -77,7 +77,7 @@ umpp P0 以 5 个正交只读 subagent 完成取证（架构分层 / UI-CSS / �
 | D3 RC + overrides | ⬜ **未落地** | `package.json` 无 `overrides`；`vue` 装 3.5.43 |
 | D4 双轨发布 | ✅ 生效 | `main` 未触碰；工作仅在 `dev-2026-09-25` |
 | D5 契约冻结 | ✅ 落地 | `tests/unit/contract-freeze.spec.ts`（20 用例）+ 变异测试验证 |
-| D6 七层骨架 + 守卫 | 🟡 骨架迁移进行中（L1 libraries + L2 engine 完成） | 守卫已落地（`arch:check` exit 0，CI `Static Gates` 阻断）；L1 把 `utils`/`config.ts`/`shared{ui,styles,locales,plugins,identity,toast}` 迁入 `src/libraries/`（89 文件，门禁全绿）；L2 把 `features/{database,cache,data-scheduler,migration,settings}` 迁入 `src/engine/`（19 文件，门禁全绿）；L3 provider / L4 store / L5 feature / L6 scenario 待办 |
+| D6 七层骨架 + 守卫 | ✅ 骨架迁移完成（L1–L6 全部归位） | 守卫已落地（`arch:check` exit 0，CI `Static Gates` 阻断）；L1 `libraries/`（89 文件）· L2 `engine/`（19）· L3 `provider/`（6）· L4 `store/`（3）· L5 `feature/`（9）· L6 `scenario/`（241）全部物理归位，六道门禁全绿（含 `git mv` 重命名识别）；`src/` 顶层收敛为七层骨架 + `domain`/`types` |
 | D7 前缀统一 | ⬜ 未落地 | `--usl-*` / `--sht-*` 均在原处 |
 | D8 Vite+ `vp check` | ⬜ 未落地 | 未引入 `vite-plus` |
 
