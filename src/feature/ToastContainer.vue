@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { useToast } from '@/feature/composables/useToast'
-import { CheckCircle, XCircle, Info, Loader2, X } from 'lucide-vue-next'
+import { useToast } from '@/feature/composables/use-toast';
+import { CheckCircle, XCircle, Info, Loader2, X } from 'lucide-vue-next';
 
-const { toasts, dismiss } = useToast()
+const { toasts, dismiss } = useToast();
 
 const icons = {
   success: CheckCircle,
   error: XCircle,
   info: Info,
   loading: Loader2,
-}
+};
 
 const colors = {
   success: 'umm:bg-state-success umm:text-state-success-on',
   error: 'umm:bg-state-error umm:text-state-error-on',
   info: 'umm:bg-state-info umm:text-state-info-on',
   loading: 'umm:bg-state-info umm:text-state-info-on',
-}
+};
 </script>
 
 <template vapor>
   <Teleport to="body">
-    <div class="umm:fixed umm:bottom-6 umm:right-6 umm:z-[999999] umm:flex umm:flex-col umm:gap-3 umm:items-end umm:pointer-events-none">
+    <div
+      class="umm:fixed umm:bottom-6 umm:right-6 umm:z-[999999] umm:flex umm:flex-col umm:gap-3 umm:items-end umm:pointer-events-none"
+    >
       <TransitionGroup
         enter-active-class="umm:transition-all umm:duration-300 umm:ease-out"
         leave-active-class="umm:transition-all umm:duration-200 umm:ease-in"
@@ -33,22 +35,23 @@ const colors = {
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          :class="
-  [
+          :class="[
             'umm:pointer-events-auto umm:flex umm:items-start umm:gap-3 umm:px-4 umm:py-3 umm:rounded-lg umm:shadow-lg umm:min-w-[280px] umm:max-w-[400px]',
             colors[toast.type],
-          ]
-"
+          ]"
         >
           <component
             :is="icons[toast.type]"
-            :class="
-  ['umm:w-5 umm:h-5 umm:mt-0.5 umm:shrink-0', toast.type === 'loading' && 'umm:animate-spin']
-"
+            :class="[
+              'umm:w-5 umm:h-5 umm:mt-0.5 umm:shrink-0',
+              toast.type === 'loading' && 'umm:animate-spin',
+            ]"
           />
           <div class="umm:flex-1 umm:min-w-0">
             <p class="umm:font-medium umm:text-sm">{{ toast.title }}</p>
-            <p v-if="toast.message" class="umm:text-xs umm:opacity-90 umm:mt-0.5">{{ toast.message }}</p>
+            <p v-if="toast.message" class="umm:text-xs umm:opacity-90 umm:mt-0.5">
+              {{ toast.message }}
+            </p>
           </div>
           <button
             @click="dismiss(toast.id)"

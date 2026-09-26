@@ -7,62 +7,7 @@
  * 组合入口仍是 global.ts 的 ALL_STYLES（顺序：主题变量表必须最先）。
  */
 
-import {
-  COLOR_CHIP_SHADOW,
-  COLOR_CHIP_SHADOW_HOVER,
-  COLOR_CHIP_BORDER,
-} from './tokens'
-
-/**
- * Search badge styles
- */
-export const SEARCH_BADGE_STYLES = `
-.umm-search-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  margin-left: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 12px;
-  background: var(--umm-fill-primary);
-  color: var(--umm-ink-on-fill);
-  box-shadow: var(--umm-shadow-primary);
-  transition: all 0.2s ease;
-  cursor: default;
-  user-select: none;
-}
-
-.umm-search-badge[data-status="done"] {
-  background: var(--umm-fill-done);
-  color: var(--umm-ink-done);
-  box-shadow: var(--umm-shadow-done);
-}
-
-.umm-search-badge[data-status="none"] {
-  background: var(--umm-fill-none);
-  color: var(--umm-ink-none);
-  box-shadow: var(--umm-shadow-none);
-}
-
-.umm-search-badge[data-status="wish"] {
-  background: var(--umm-fill-wish);
-  color: var(--umm-ink-wish);
-  box-shadow: var(--umm-shadow-wish);
-}
-
-.umm-search-badge[data-status="doing"] {
-  background: var(--umm-fill-doing);
-  color: var(--umm-ink-doing);
-  box-shadow: var(--umm-shadow-doing);
-}
-
-.umm-search-badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-`
+import { COLOR_CHIP_SHADOW, COLOR_CHIP_SHADOW_HOVER, COLOR_CHIP_BORDER } from './tokens';
 
 /**
  * Status label styles (detail pages)
@@ -141,7 +86,7 @@ export const STATUS_CHIP_STYLES = `
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 14px 32px ${COLOR_CHIP_SHADOW_HOVER} !important;
 }
-`
+`;
 
 /**
  * List-page status marker styles (Bangumi browse lists, etc.)
@@ -184,7 +129,7 @@ export const LIST_STATUS_STYLES = `
   border-radius: 999px;
   font-weight: 800;
 }
-`
+`;
 
 /**
  * Review-page status badge styles
@@ -251,4 +196,4 @@ export const REVIEWS_BADGE_STYLES = `
   color: var(--umm-ink-doing);
   border: 1px solid var(--umm-border-doing);
 }
-`
+`;

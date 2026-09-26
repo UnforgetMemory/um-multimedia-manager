@@ -21,7 +21,10 @@
      Brand outline + offset; follows element border-radius in modern Chrome ---- */
 a:focus-visible,
 button:focus-visible,
-[role="button"]:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role='button']:focus-visible {
   outline: 2px solid var(--umm-brand-accent);
   outline-offset: 2px;
 }
@@ -67,13 +70,22 @@ button:focus-visible,
    containing block for position:fixed descendants (interest dialog, photos
    viewer) — top:50% then resolves against the scroll content, not the
    viewport. Even transform:none endpoints still fill as identity matrices;
-   omitting motion entirely is the only leak-free form. */
+   omitting motion entirely is the only leak-free form.
+   同源纪律: this keyframe is duplicated verbatim in the SPA sheet
+   src/libraries/styles/style.css (Shadow DOM and document context cannot
+   share a file) — tests/unit/motion-discipline.spec.ts cross-asserts both
+   definitions stay byte-equivalent and motion-free. */
 @keyframes umm-mount-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .umm-mount {
-  animation: umm-mount-fade var(--umm-static-duration-enter, 500ms) var(--umm-static-ease-emphasized, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation: umm-mount-fade var(--umm-static-duration-enter, 500ms)
+    var(--umm-static-ease-emphasized, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
 /* ---- Image shimmer placeholder ---- */
@@ -147,8 +159,12 @@ button:focus-visible,
 }
 
 @keyframes umm-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ---- Status badge ---- */
@@ -173,7 +189,9 @@ button:focus-visible,
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.15),
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   /* Fallback ink only — each variant below overrides it explicitly. */
   color: var(--umm-static-neutral-00);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -187,7 +205,11 @@ button:focus-visible,
 }
 
 .umm-status--done {
-  background: linear-gradient(180deg, var(--umm-static-green-600) 0%, var(--umm-static-green-700) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--umm-static-green-600) 0%,
+    var(--umm-static-green-700) 100%
+  );
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: var(--umm-static-neutral-00);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -211,14 +233,22 @@ button:focus-visible,
      precedent). Supersedes the 2026-08-22 wish=amber semantic decision
      (explicit user override). History: deep ink on amber x2, v6 gold
      strip, orange-amber V1, warm-gold W1 — all user-rejected. */
-  background: linear-gradient(180deg, var(--umm-static-violet-600) 0%, var(--umm-static-violet-700) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--umm-static-violet-600) 0%,
+    var(--umm-static-violet-700) 100%
+  );
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: var(--umm-static-neutral-00);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .umm-status--doing {
-  background: linear-gradient(180deg, var(--umm-static-blue-500) 0%, var(--umm-static-blue-600) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--umm-static-blue-500) 0%,
+    var(--umm-static-blue-600) 100%
+  );
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: var(--umm-static-neutral-00);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -283,12 +313,14 @@ button:focus-visible,
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-radius: var(--umm-radius-lg, 12px);
   border: 1px solid var(--umm-island-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
-              0 4px 12px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.03);
   height: clamp(42px, 5vw, 50px);
-  transition: box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.35s ease;
+  transition:
+    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.35s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
   z-index: var(--umm-z-floating, 100);
@@ -296,15 +328,17 @@ button:focus-visible,
 }
 
 .umm-island:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06),
-              0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.06);
   border-color: var(--umm-island-border-hover);
   transform: translateY(-1px);
 }
 
 .umm-island:focus-within {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06),
-              0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.08);
   border-color: var(--umm-island-border-focus);
   transform: translateY(-1px);
 }
@@ -327,7 +361,9 @@ button:focus-visible,
   color: var(--umm-island-text-secondary);
   font-size: var(--umm-font-caption-size);
   font-weight: var(--umm-font-caption-weight, 500);
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   white-space: nowrap;
   cursor: pointer;
   background: transparent;
@@ -401,7 +437,9 @@ button:focus-visible,
   color: var(--umm-island-text-secondary);
   cursor: pointer;
   border-radius: 50%;
-  transition: all 0.25s ease;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
   flex-shrink: 0;
 }
 
@@ -424,18 +462,33 @@ button:focus-visible,
 }
 
 @keyframes umm-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes umm-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes umm-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Island responsive */
@@ -446,19 +499,41 @@ button:focus-visible,
     border-radius: 16px;
     padding: 0 10px;
   }
-  .umm-island-nav-label { display: none; }
-  .umm-island-nav-link { padding: 6px 8px; }
-  .umm-island-divider { margin: 0 4px; }
-  .umm-island-input { font-size: 14px; }
+  .umm-island-nav-label {
+    display: none;
+  }
+  .umm-island-nav-link {
+    padding: 6px 8px;
+  }
+  .umm-island-divider {
+    margin: 0 4px;
+  }
+  .umm-island-input {
+    font-size: 14px;
+  }
 }
 @media (max-width: 374px) {
-  .umm-island { margin: 0 6px 8px; border-radius: 12px; height: 38px; }
+  .umm-island {
+    margin: 0 6px 8px;
+    border-radius: 12px;
+    height: 38px;
+  }
 }
 @media (min-width: 1280px) {
-  .umm-island { max-width: 720px; }
+  .umm-island {
+    max-width: 720px;
+  }
 }
 @media (min-width: 2560px) {
-  .umm-island { max-width: 800px; height: 54px; }
-  .umm-island-nav-link { font-size: 16px; padding: 8px 14px; }
-  .umm-island-input { font-size: 17px; }
+  .umm-island {
+    max-width: 800px;
+    height: 54px;
+  }
+  .umm-island-nav-link {
+    font-size: 16px;
+    padding: 8px 14px;
+  }
+  .umm-island-input {
+    font-size: 17px;
+  }
 }

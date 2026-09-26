@@ -18,7 +18,7 @@ export const TOAST_CORE_CSS = `
   max-width: 420px;
   transform: translateX(120%);
   opacity: 0;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(8px);
   pointer-events: auto;
   position: relative;
@@ -137,4 +137,15 @@ export const TOAST_CORE_CSS = `
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 0 2px 2px 0;
 }
-`
+
+/* Reduced-motion guard (P-E wave): this sheet is also injected STANDALONE
+   by background __showInlineToast, where the legacy ALL_STYLES unified
+   guard may be absent — so the media query lives here as well. Scoped to
+   .umm-toast (the extension's own element), never a bare *. */
+@media (prefers-reduced-motion: reduce) {
+  .umm-toast,
+  .umm-toast * {
+    transition: none;
+  }
+}
+`;
