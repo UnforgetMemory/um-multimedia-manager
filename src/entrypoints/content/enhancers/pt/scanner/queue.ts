@@ -3,49 +3,50 @@
  * 后台请求详情页并提取平台 ID，使用信号量控制并发
  */
 
-import { Store } from '@/engine/database'
-import type { PtIdCacheEntry } from '@/types'
-import type { SiteScannerConfig } from '../types'
-import { Semaphore } from './semaphore'
-import { SITE_CONFIGS } from '../config/sites'
-import { sleep } from '@/libraries/utils'
+import { Store } from '@/engine/database';
+import type { PtIdCacheEntry } from '@/types';
+import type { SiteScannerConfig } from '../types';
+import { Semaphore } from './semaphore';
+import { SITE_CONFIGS } from '../config/sites';
+import { sleep } from '@/libraries/utils';
+import { fetchWithTimeout } from '@/libraries/utils/fetch-timeout';
 
 const ALLOWED_ORIGINS = new Set<string>(
-  SITE_CONFIGS.flatMap(config => [`https://${config.domain}`, `http://${config.domain}`]),
-)
+  SITE_CONFIGS.flatMap((config) => [`https://${config.domain}`, `http://${config.domain}`]),
+);
 
 function validateFetchUrl(url: string): boolean {
   try {
-    const parsed = new URL(url)
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
-    return ALLOWED_ORIGINS.has(parsed.origin)
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    return ALLOWED_ORIGINS.has(parsed.origin);
   } catch {
-    return false
+    return false;
   }
 }
 
 /** 扫描任务 */
 export interface ScanTask {
   /** 详情页 URL */
-  url: string
+  url: string;
   /** 站点配置 */
-  config: SiteScannerConfig
+  config: SiteScannerConfig;
   /** 优先级（数字越小优先级越高） */
-  priority?: number
+  priority?: number;
   /** 跳过缓存优先检查（调用方已批量确认未命中缓存时置 true） */
-  skipCacheCheck?: boolean
+  skipCacheCheck?: boolean;
 }
 
 /** 扫描结果 */
 export interface ScanResult {
   /** 详情页 URL */
-  url: string
+  url: string;
   /** 提取的 ID */
-  entry: PtIdCacheEntry
+  entry: PtIdCacheEntry;
   /** 是否成功 */
-  success: boolean
+  success: boolean;
   /** 错误信息 */
-  error?: string
+  error?: string;
 }
 
 /**
@@ -58,104 +59,124 @@ export interface ScanResult {
  * - 冷却时间（60秒内不重复扫描）
  */
 export class ScanQueue {
-  private semaphore: Semaphore
-  delayRange: [number, number]
-  private processing = new Set<string>() // URLs currently being processed
-  private cooldowns = new Map<string, number>() // Cooldown timestamps
-  private static COOLDOWN_MS = 60_000 // 1 minute cooldown
+  private semaphore: Semaphore;
+  delayRange: [number, number];
+  private processing = new Set<string>(); // URLs currently being processed
+  private cooldowns = new Map<string, number>(); // Cooldown timestamps
+  private static COOLDOWN_MS = 60_000; // 1 minute cooldown
 
   constructor(concurrency: number, delayRange: [number, number]) {
-    this.semaphore = new Semaphore(concurrency)
-    this.delayRange = delayRange
+    this.semaphore = new Semaphore(concurrency);
+    this.delayRange = delayRange;
   }
 
   /** Update concurrency (creates new semaphore) */
   updateConcurrency(concurrency: number): void {
-    this.semaphore = new Semaphore(concurrency)
+    this.semaphore = new Semaphore(concurrency);
   }
 
   /**
    * 检查 URL 是否在冷却期
    */
   private isOnCooldown(url: string): boolean {
-    const until = this.cooldowns.get(url)
-    if (until && Date.now() < until) return true
-    return false
+    const until = this.cooldowns.get(url);
+    if (until && Date.now() < until) return true;
+    return false;
   }
 
   /**
    * 设置冷却时间
    */
   private setCooldown(url: string): void {
-    this.cooldowns.set(url, Date.now() + ScanQueue.COOLDOWN_MS)
+    this.cooldowns.set(url, Date.now() + ScanQueue.COOLDOWN_MS);
   }
 
   /**
    * 随机延迟
    */
   private async randomDelay(): Promise<void> {
-    const [min, max] = this.delayRange
-    const delay = Math.floor(Math.random() * (max - min + 1)) + min
-    return sleep(delay)
+    const [min, max] = this.delayRange;
+    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+    return sleep(delay);
   }
 
   /**
    * 处理单个扫描任务
    */
-  private async processTask(task: ScanTask, onTaskComplete?: (result: ScanResult) => void): Promise<ScanResult> {
-    const { url, config } = task
+  private async processTask(
+    task: ScanTask,
+    onTaskComplete?: (result: ScanResult) => void,
+  ): Promise<ScanResult> {
+    const { url, config } = task;
 
     if (this.processing.has(url)) {
-      const result: ScanResult = { url, entry: { ptUrl: url, updatedAt: '' }, success: false, error: 'Already processing' }
-      return result
+      const result: ScanResult = {
+        url,
+        entry: { ptUrl: url, updatedAt: '' },
+        success: false,
+        error: 'Already processing',
+      };
+      return result;
     }
 
     if (this.isOnCooldown(url)) {
-      const result: ScanResult = { url, entry: { ptUrl: url, updatedAt: '' }, success: false, error: 'On cooldown' }
-      return result
+      const result: ScanResult = {
+        url,
+        entry: { ptUrl: url, updatedAt: '' },
+        success: false,
+        error: 'On cooldown',
+      };
+      return result;
     }
 
     if (!task.skipCacheCheck) {
-      const cached = await Store.ptIdCacheGet(url)
+      const cached = await Store.ptIdCacheGet(url);
       if (cached) {
-        const result: ScanResult = { url, entry: cached, success: true }
-        if (onTaskComplete) onTaskComplete(result)
-        return result
+        const result: ScanResult = { url, entry: cached, success: true };
+        if (onTaskComplete) onTaskComplete(result);
+        return result;
       }
     }
 
-    this.processing.add(url)
+    this.processing.add(url);
 
     try {
-      await this.semaphore.acquire()
-      await this.randomDelay()
+      await this.semaphore.acquire();
+      await this.randomDelay();
 
       if (!validateFetchUrl(url)) {
-        throw new Error('Blocked fetch to non-allowlisted origin')
+        throw new Error('Blocked fetch to non-allowlisted origin');
       }
-      const response = await fetch(url, { credentials: 'include' })
+      const response = await fetchWithTimeout(url, { credentials: 'include' });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        throw new Error(`HTTP ${response.status}`);
       }
 
-      const html = await response.text()
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(html, 'text/html')
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
 
-      const { doubanId, imdbId } = config.extractIdsFromDetail(doc)
+      const { doubanId, imdbId } = config.extractIdsFromDetail(doc);
 
       if (!doubanId && !imdbId) {
-        this.setCooldown(url)
-        const allLinks = doc.querySelectorAll('a[href]')
-        const doubanLinks = doc.querySelectorAll('a[href*="douban.com"]')
-        const imdbLinks = doc.querySelectorAll('a[href*="imdb.com"]')
-        console.warn(`[PT Scanner] No IDs found (total links: ${allLinks.length}, douban links: ${doubanLinks.length}, imdb links: ${imdbLinks.length})`)
-        const emptyEntry: PtIdCacheEntry = { ptUrl: url, updatedAt: new Date().toISOString() }
-        await Store.ptIdCachePut(emptyEntry)
-        const result: ScanResult = { url, entry: emptyEntry, success: false, error: 'No IDs found' }
-        if (onTaskComplete) onTaskComplete(result)
-        return result
+        this.setCooldown(url);
+        const allLinks = doc.querySelectorAll('a[href]');
+        const doubanLinks = doc.querySelectorAll('a[href*="douban.com"]');
+        const imdbLinks = doc.querySelectorAll('a[href*="imdb.com"]');
+        console.warn(
+          `[PT Scanner] No IDs found (total links: ${allLinks.length}, douban links: ${doubanLinks.length}, imdb links: ${imdbLinks.length})`,
+        );
+        const emptyEntry: PtIdCacheEntry = { ptUrl: url, updatedAt: new Date().toISOString() };
+        await Store.ptIdCachePut(emptyEntry);
+        const result: ScanResult = {
+          url,
+          entry: emptyEntry,
+          success: false,
+          error: 'No IDs found',
+        };
+        if (onTaskComplete) onTaskComplete(result);
+        return result;
       }
 
       const entry: PtIdCacheEntry = {
@@ -163,54 +184,57 @@ export class ScanQueue {
         doubanId: doubanId ? `movie::${doubanId}` : undefined,
         imdbId: imdbId ? `movie::${imdbId}` : undefined,
         updatedAt: new Date().toISOString(),
-      }
+      };
 
-      await Store.ptIdCachePut(entry)
-      this.setCooldown(url)
+      await Store.ptIdCachePut(entry);
+      this.setCooldown(url);
 
-      console.log(`[PT Scanner] Cached successfully`)
-      const result: ScanResult = { url, entry, success: true }
-      if (onTaskComplete) onTaskComplete(result)
-      return result
+      console.log(`[PT Scanner] Cached successfully`);
+      const result: ScanResult = { url, entry, success: true };
+      if (onTaskComplete) onTaskComplete(result);
+      return result;
     } catch (error: unknown) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      console.warn(`[PT Scanner] Failed: ${errorMsg}`)
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`[PT Scanner] Failed: ${errorMsg}`);
       const result: ScanResult = {
         url,
         entry: { ptUrl: url, updatedAt: '' },
         success: false,
         error: errorMsg,
-      }
-      if (onTaskComplete) onTaskComplete(result)
-      return result
+      };
+      if (onTaskComplete) onTaskComplete(result);
+      return result;
     } finally {
-      this.processing.delete(url)
-      this.semaphore.release()
+      this.processing.delete(url);
+      this.semaphore.release();
     }
   }
 
   /**
    * 批量扫描
    */
-  async scanBatch(tasks: ScanTask[], onTaskComplete?: (result: ScanResult) => void): Promise<ScanResult[]> {
-    const results: ScanResult[] = []
+  async scanBatch(
+    tasks: ScanTask[],
+    onTaskComplete?: (result: ScanResult) => void,
+  ): Promise<ScanResult[]> {
+    const results: ScanResult[] = [];
 
-    const validTasks = tasks.filter((task) =>
-      !this.processing.has(task.url) && !this.isOnCooldown(task.url),
-    )
+    const validTasks = tasks.filter(
+      (task) => !this.processing.has(task.url) && !this.isOnCooldown(task.url),
+    );
 
-    validTasks.sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100))
+    validTasks.sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
 
-    const promises = validTasks.map((task) => this.processTask(task, onTaskComplete))
-    const batchResults = await Promise.allSettled(promises)
+    const promises = validTasks.map((task) => this.processTask(task, onTaskComplete));
+    const batchResults = await Promise.allSettled(promises);
 
     for (const result of batchResults) {
       if (result.status === 'fulfilled') {
-        results.push(result.value)
+        results.push(result.value);
       }
     }
 
-    return results
+    return results;
   }
 
   /**
@@ -220,12 +244,12 @@ export class ScanQueue {
     return {
       processing: this.processing.size,
       cooldowns: this.cooldowns.size,
-    }
+    };
   }
 }
 
 // Global singleton
-let globalScanner: ScanQueue | null = null
+let globalScanner: ScanQueue | null = null;
 
 /**
  * Get or update the global scanner instance.
@@ -236,10 +260,10 @@ export function getScanner(
   delayRange: [number, number] = [1000, 2000],
 ): ScanQueue {
   if (!globalScanner) {
-    globalScanner = new ScanQueue(concurrency, delayRange)
+    globalScanner = new ScanQueue(concurrency, delayRange);
   } else {
-    globalScanner.updateConcurrency(concurrency)
-    globalScanner.delayRange = delayRange
+    globalScanner.updateConcurrency(concurrency);
+    globalScanner.delayRange = delayRange;
   }
-  return globalScanner
+  return globalScanner;
 }

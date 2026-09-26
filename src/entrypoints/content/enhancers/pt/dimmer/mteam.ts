@@ -1,37 +1,33 @@
-
-import { throttle } from '@/libraries/utils'
-import { getMTeamSets, applyCacheFallback } from './cache'
-import { getMTeamRowOutcome } from './mteam-match'
-import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types'
-import { dimElement } from '../utils'
+import { throttle } from '@/libraries/utils';
+import { getMTeamSets, applyCacheFallback } from './cache';
+import { getMTeamRowOutcome } from './mteam-match';
+import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types';
+import { dimElement } from '../utils';
 
 export class MTeamHandler implements ListPageHandler {
-  readonly id = 'mteam'
+  readonly id = 'mteam';
 
   match(_url: string): boolean {
-    const href = location.href
-    return (
-      href.includes('m-team.cc') &&
-      (href.includes('/browse') || href.includes('#/browse'))
-    )
+    const href = location.href;
+    return href.includes('m-team.cc') && (href.includes('/browse') || href.includes('#/browse'));
   }
 
   getSelector(): string {
-    return '#root, #app-content, body'
+    return '#root, #app-content, body';
   }
 
   contentCheck(el: Element): boolean {
-    return el.childElementCount > 0 && el.querySelector('a[href]') !== null
+    return el.childElementCount > 0 && el.querySelector('a[href]') !== null;
   }
 
-  private debug: (...args: any[]) => void = () => {}
-  private observer: MutationObserver | null = null
+  private debug: (...args: any[]) => void = () => {};
+  private observer: MutationObserver | null = null;
 
   /** Watched IDs cache (avoids repeated DB fetches on pollTimer cycles) */
-  private movieDoubanIds: Set<string> | null = null
-  private musicDoubanIds: Set<string> | null = null
-  private imdbIds: Set<string> | null = null
-  private setsExpiry = 0
+  private movieDoubanIds: Set<string> | null = null;
+  private musicDoubanIds: Set<string> | null = null;
+  private imdbIds: Set<string> | null = null;
+  private setsExpiry = 0;
 
   constructor() {}
 
@@ -40,10 +36,14 @@ export class MTeamHandler implements ListPageHandler {
    * PTDimmer.onRecordChange 调用，确保重跑 process() 会重新从 DB 拉取已看集合。
    */
   invalidateCache(): void {
-    this.setsExpiry = 0
+    this.setsExpiry = 0;
   }
 
-  private getCachedSets(): { movieDoubanIds: Set<string>; musicDoubanIds: Set<string>; imdbIds: Set<string> } | null {
+  private getCachedSets(): {
+    movieDoubanIds: Set<string>;
+    musicDoubanIds: Set<string>;
+    imdbIds: Set<string>;
+  } | null {
     if (
       this.movieDoubanIds &&
       this.musicDoubanIds &&
@@ -54,34 +54,38 @@ export class MTeamHandler implements ListPageHandler {
         movieDoubanIds: this.movieDoubanIds,
         musicDoubanIds: this.musicDoubanIds,
         imdbIds: this.imdbIds,
-      }
+      };
     }
-    return null
+    return null;
   }
 
   extractMTeamIds(row: Element): {
-    movieDoubanId: string | null
-    musicDoubanId: string | null
-    imdbId: string | null
+    movieDoubanId: string | null;
+    musicDoubanId: string | null;
+    imdbId: string | null;
   } {
-    const el = row as HTMLElement
-    const cached = el.dataset.ummIds
+    const el = row as HTMLElement;
+    const cached = el.dataset.ummIds;
     if (cached) {
-      try { return JSON.parse(cached) } catch { /* fall through */ }
+      try {
+        return JSON.parse(cached);
+      } catch {
+        /* fall through */
+      }
     }
 
     const result = {
       movieDoubanId: null as string | null,
       musicDoubanId: null as string | null,
       imdbId: null as string | null,
-    }
-    let scannedLinks = 0
+    };
+    let scannedLinks = 0;
 
     for (const link of Array.from(row.querySelectorAll('a[href]'))) {
-      scannedLinks++
-      let href = link.getAttribute('href') || ''
+      scannedLinks++;
+      let href = link.getAttribute('href') || '';
       try {
-        href = new URL(href, location.origin).href
+        href = new URL(href, location.origin).href;
       } catch {
         // ignore
       }
@@ -90,21 +94,18 @@ export class MTeamHandler implements ListPageHandler {
       // music.douban.com links (subdomain not excluded); the music check below then
       // re-classifies the same ID when the link is music-specific.
       if (!result.movieDoubanId) {
-        const match = href.match(/douban\.com\/subject\/(\d+)/)
-        if (match) result.movieDoubanId = match[1]
+        const subjectId = href.match(/douban\.com\/subject\/(\d+)/)?.[1];
+        if (subjectId) result.movieDoubanId = subjectId;
       }
 
       if (!result.musicDoubanId) {
-        const match = href.match(/music\.douban\.com\/subject\/(\d+)/)
-        if (match) result.musicDoubanId = match[1]
+        const subjectId = href.match(/music\.douban\.com\/subject\/(\d+)/)?.[1];
+        if (subjectId) result.musicDoubanId = subjectId;
       }
 
       if (!result.imdbId) {
-        const match = href.match(/imdb\.com\/title\/((?:tt)?\d+)/)
-        if (match) {
-          const id = match[1]
-          result.imdbId = id.startsWith('tt') ? id : `tt${id}`
-        }
+        const id = href.match(/imdb\.com\/title\/((?:tt)?\d+)/)?.[1];
+        if (id) result.imdbId = id.startsWith('tt') ? id : `tt${id}`;
       }
 
       // Query-param fallback: M-Team wraps douban/imdb links as ?douban= / ?imdb=
@@ -112,26 +113,23 @@ export class MTeamHandler implements ListPageHandler {
       // query when no ID was found in plain hrefs.
       if (!result.movieDoubanId || !result.musicDoubanId || !result.imdbId) {
         try {
-          const parsed = new URL(href, location.origin)
-          const doubanHref = parsed.searchParams.get('douban') || ''
-          const imdbHref = parsed.searchParams.get('imdb') || ''
+          const parsed = new URL(href, location.origin);
+          const doubanHref = parsed.searchParams.get('douban') || '';
+          const imdbHref = parsed.searchParams.get('imdb') || '';
 
           if (!result.movieDoubanId) {
-            const match = doubanHref.match(/douban\.com\/subject\/(\d+)/)
-            if (match) result.movieDoubanId = match[1]
+            const subjectId = doubanHref.match(/douban\.com\/subject\/(\d+)/)?.[1];
+            if (subjectId) result.movieDoubanId = subjectId;
           }
 
           if (!result.musicDoubanId) {
-            const match = doubanHref.match(/music\.douban\.com\/subject\/(\d+)/)
-            if (match) result.musicDoubanId = match[1]
+            const subjectId = doubanHref.match(/music\.douban\.com\/subject\/(\d+)/)?.[1];
+            if (subjectId) result.musicDoubanId = subjectId;
           }
 
           if (!result.imdbId && imdbHref) {
-            const match = imdbHref.match(/\/title\/((?:tt)?\d+)/)
-            if (match) {
-              const id = match[1]
-              result.imdbId = id.startsWith('tt') ? id : `tt${id}`
-            }
+            const id = imdbHref.match(/\/title\/((?:tt)?\d+)/)?.[1];
+            if (id) result.imdbId = id.startsWith('tt') ? id : `tt${id}`;
           }
         } catch {
           // ignore
@@ -140,42 +138,44 @@ export class MTeamHandler implements ListPageHandler {
 
       // Early exit if any ID found (matches legacy script behavior)
       if (result.movieDoubanId || result.musicDoubanId || result.imdbId) {
-        break
+        break;
       }
     }
 
-    try { el.dataset.ummIds = JSON.stringify(result) } catch { /* ignore quota errors */ }
-    return result
+    try {
+      el.dataset.ummIds = JSON.stringify(result);
+    } catch {
+      /* ignore quota errors */
+    }
+    return result;
   }
 
   getMTeamRows(root: Document | HTMLElement = document): Element[] {
-    return Array.from(
-      root.querySelectorAll("tr, [role='row'], .ant-table-row")
-    ).filter((row) => {
-      if (!(row instanceof HTMLElement)) return false
-      if (row.querySelector('th')) return false
-      if (row.querySelector('td.colhead')) return false
+    return Array.from(root.querySelectorAll("tr, [role='row'], .ant-table-row")).filter((row) => {
+      if (!(row instanceof HTMLElement)) return false;
+      if (row.querySelector('th')) return false;
+      if (row.querySelector('td.colhead')) return false;
       return Boolean(
         row.querySelector('a[href*="/detail/"]') ||
-          row.querySelector('a[href*="/mdb/title"]') ||
-          row.querySelector('.torrent-list__thumbnail')
-      )
-    })
+        row.querySelector('a[href*="/mdb/title"]') ||
+        row.querySelector('.torrent-list__thumbnail'),
+      );
+    });
   }
 
   private getMTeamRowSignature(
     row: Element,
     ids: { movieDoubanId: string | null; musicDoubanId: string | null; imdbId: string | null },
   ): string {
-    const detailLink = row.querySelector('a[href*="/detail/"]') as HTMLAnchorElement | null
-    const detailHref = detailLink?.getAttribute('href') || detailLink?.href || ''
+    const detailLink = row.querySelector('a[href*="/detail/"]') as HTMLAnchorElement | null;
+    const detailHref = detailLink?.getAttribute('href') || detailLink?.href || '';
 
     const scoreLinks = Array.from(row.querySelectorAll('a[href*="/mdb/title"]'))
       .map((link) => {
-        const anchor = link as HTMLAnchorElement
-        return anchor.getAttribute('href') || anchor.href || ''
+        const anchor = link as HTMLAnchorElement;
+        return anchor.getAttribute('href') || anchor.href || '';
       })
-      .join('|')
+      .join('|');
 
     return [
       detailHref,
@@ -183,7 +183,7 @@ export class MTeamHandler implements ListPageHandler {
       ids.musicDoubanId || '',
       ids.imdbId || '',
       scoreLinks,
-    ].join('::')
+    ].join('::');
   }
 
   processMTeamRows(
@@ -192,125 +192,136 @@ export class MTeamHandler implements ListPageHandler {
     musicDoubanIds: Set<string>,
     imdbIds: Set<string>,
   ): void {
-    let skipped = 0, dimmed = 0, notMatched = 0
+    let skipped = 0,
+      dimmed = 0,
+      notMatched = 0;
     rows.forEach((row) => {
-      const ids = this.extractMTeamIds(row)
-      const signature = this.getMTeamRowSignature(row, ids)
+      const ids = this.extractMTeamIds(row);
+      const signature = this.getMTeamRowSignature(row, ids);
       if (
         row.getAttribute('data-umm-mteam-signature') === signature &&
         row.getAttribute('data-umm-mteam-resolved') === 'true'
       ) {
-        skipped++
-        return
+        skipped++;
+        return;
       }
 
-      row.setAttribute('data-umm-mteam-signature', signature)
+      row.setAttribute('data-umm-mteam-signature', signature);
 
-      const outcome = getMTeamRowOutcome(ids, movieDoubanIds, musicDoubanIds, imdbIds)
+      const outcome = getMTeamRowOutcome(ids, movieDoubanIds, musicDoubanIds, imdbIds);
 
       if (outcome.matched) {
-        this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify(ids))
+        this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify(ids));
       }
 
       // 修复（audit M3）：仅 matched 行标记 resolved。未匹配行保持 unresolved，
       // 使 process() 的 unresolved 过滤非空 → applyCacheFallback 得以执行并消费 pt_id_cache。
       if (outcome.resolved) {
-        row.setAttribute('data-umm-mteam-resolved', 'true')
+        row.setAttribute('data-umm-mteam-resolved', 'true');
       }
-      row.setAttribute('data-umm-mteam-matched', outcome.matched ? 'true' : 'false')
+      row.setAttribute('data-umm-mteam-matched', outcome.matched ? 'true' : 'false');
 
       if (outcome.matched) {
-        dimElement(row as HTMLElement)
-        dimmed++
+        dimElement(row as HTMLElement);
+        dimmed++;
       } else {
-        notMatched++
+        notMatched++;
       }
-    })
-    this.debug('[M-Team] processMTeamRows done — total:', rows.length, '| dimmed:', dimmed, '| no match:', notMatched, '| dedup skipped:', skipped)
+    });
+    this.debug(
+      '[M-Team] processMTeamRows done — total:',
+      rows.length,
+      '| dimmed:',
+      dimmed,
+      '| no match:',
+      notMatched,
+      '| dedup skipped:',
+      skipped,
+    );
   }
 
-  private active = false
-  private processing = false
-  private processQueued = false
+  private active = false;
+  private processing = false;
+  private processQueued = false;
 
   private safeProcess(process: () => Promise<void>): void {
     if (this.processing) {
-      this.processQueued = true
-      return
+      this.processQueued = true;
+      return;
     }
-    this.processing = true
+    this.processing = true;
     void process()
       .catch((err) => {
-        console.warn('[PT Dimmer] process error:', err)
+        console.warn('[PT Dimmer] process error:', err);
       })
       .finally(() => {
-        this.processing = false
+        this.processing = false;
         if (this.processQueued && this.active) {
-          this.processQueued = false
-          this.safeProcess(process)
+          this.processQueued = false;
+          this.safeProcess(process);
         }
-      })
+      });
   }
 
-  private pollTimer: number | null = null
+  private pollTimer: number | null = null;
 
   setupMTeamWatcher(process: () => Promise<void>): void {
-    this.debug('[M-Team] Setting up MTeam watcher')
-    this.active = true
+    this.debug('[M-Team] Setting up MTeam watcher');
+    this.active = true;
 
     const wrappedProcess = async () => {
-      await process()
+      await process();
       if (!this.observer) {
-        this.attachMTeamObserver(process)
+        this.attachMTeamObserver(process);
       }
       // Observer attached and initial run complete — poll timer is no longer needed
       if (this.observer) {
-        this.stopPollTimer()
-        this.debug('[M-Team] Observer active, poll timer stopped')
+        this.stopPollTimer();
+        this.debug('[M-Team] Observer active, poll timer stopped');
       }
-    }
+    };
 
-    this.safeProcess(wrappedProcess)
+    this.safeProcess(wrappedProcess);
 
     // Safety net: only runs until observer is attached (typically < 3s)
     this.pollTimer = window.setInterval(() => {
-      this.safeProcess(process)
-    }, 1400)
-    this.debug('[M-Team] Poll timer started (safety net until observer attaches)')
+      this.safeProcess(process);
+    }, 1400);
+    this.debug('[M-Team] Poll timer started (safety net until observer attaches)');
   }
 
   private stopPollTimer(): void {
     if (this.pollTimer) {
-      clearInterval(this.pollTimer)
-      this.pollTimer = null
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
   private attachMTeamObserver(process: () => Promise<void>): void {
-    const root = document.getElementById('root')
-    if (!root) return
+    const root = document.getElementById('root');
+    if (!root) return;
 
-    this.debug('[M-Team] Observer target: #root (subtree)')
+    this.debug('[M-Team] Observer target: #root (subtree)');
     this.observer = new MutationObserver(
       this.throttle(() => {
-        this.debug('[M-Team] Mutation detected, re-processing...')
-        this.safeProcess(process)
+        this.debug('[M-Team] Mutation detected, re-processing...');
+        this.safeProcess(process);
       }, 180),
-    )
-    this.observer.observe(root, { childList: true, subtree: true })
+    );
+    this.observer.observe(root, { childList: true, subtree: true });
   }
 
   teardown(): void {
-    this.active = false
-    this.processing = false
-    this.processQueued = false
+    this.active = false;
+    this.processing = false;
+    this.processQueued = false;
     if (this.observer) {
-      this.observer.disconnect()
-      this.observer = null
+      this.observer.disconnect();
+      this.observer = null;
     }
     if (this.pollTimer) {
-      clearInterval(this.pollTimer)
-      this.pollTimer = null
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
@@ -318,49 +329,47 @@ export class MTeamHandler implements ListPageHandler {
     fn: T,
     delay: number,
   ): (...args: Parameters<T>) => void {
-    return throttle(fn, delay)
+    return throttle(fn, delay);
   }
 
   async process(context: HandlerContext): Promise<void> {
-    const { debug, idCache, cacheTimestamp } = context
-    this.debug = debug
+    const { debug, idCache, cacheTimestamp } = context;
+    this.debug = debug;
 
     // Use internal TTL cache to avoid repeated DB fetches on pollTimer cycles
-    const cached = this.getCachedSets()
-    let sets: CachedIdSets
+    const cached = this.getCachedSets();
+    let sets: CachedIdSets;
     if (cached) {
-      sets = cached
-      this.debug('[M-Team] Using cached ID sets')
+      sets = cached;
+      this.debug('[M-Team] Using cached ID sets');
     } else {
-      const result = await getMTeamSets(debug, idCache, cacheTimestamp)
-      sets = result
-      this.movieDoubanIds = new Set(result.movieDoubanIds)
-      this.musicDoubanIds = new Set(result.musicDoubanIds)
-      this.imdbIds = new Set(result.imdbIds)
-      this.setsExpiry = Date.now() + 30000
+      const result = await getMTeamSets(debug, idCache, cacheTimestamp);
+      sets = result;
+      this.movieDoubanIds = new Set(result.movieDoubanIds);
+      this.musicDoubanIds = new Set(result.musicDoubanIds);
+      this.imdbIds = new Set(result.imdbIds);
+      this.setsExpiry = Date.now() + 30000;
     }
-    const rows = this.getMTeamRows(document)
-    this.debug('[M-Team] Found', rows.length, 'rows')
-    this.processMTeamRows(rows, sets.movieDoubanIds, sets.musicDoubanIds, sets.imdbIds)
+    const rows = this.getMTeamRows(document);
+    this.debug('[M-Team] Found', rows.length, 'rows');
+    this.processMTeamRows(rows, sets.movieDoubanIds, sets.musicDoubanIds, sets.imdbIds);
 
     // Cache fallback: for unresolved rows, check pt_id_cache by detail URL
-    const unresolved = rows.filter(
-      (r) => r.getAttribute('data-umm-mteam-resolved') !== 'true',
-    )
+    const unresolved = rows.filter((r) => r.getAttribute('data-umm-mteam-resolved') !== 'true');
     if (unresolved.length > 0) {
-      this.debug('[M-Team] Cache fallback for', unresolved.length, 'unresolved rows')
+      this.debug('[M-Team] Cache fallback for', unresolved.length, 'unresolved rows');
       await applyCacheFallback(
         debug,
         unresolved,
         (row) => {
-          const link = row.querySelector('a[href*="/detail/"]') as HTMLAnchorElement | null
-          return link?.href ?? null
+          const link = row.querySelector('a[href*="/detail/"]') as HTMLAnchorElement | null;
+          return link?.href ?? null;
         },
         sets.movieDoubanIds,
         sets.musicDoubanIds,
         sets.imdbIds,
         dimElement,
-      )
+      );
     }
 
     // NOTE: We do NOT stop the reactive loop here — focused observer on row container
@@ -368,15 +377,15 @@ export class MTeamHandler implements ListPageHandler {
   }
 
   setup(_target: HTMLElement, process: () => Promise<void>): void {
-    if (this.active) return
-    this.setupMTeamWatcher(process)
+    if (this.active) return;
+    this.setupMTeamWatcher(process);
   }
 
   isActive(): boolean {
-    return this.active
+    return this.active;
   }
 
   isMTeamDomPresent(): boolean {
-    return document.querySelectorAll('[role="row"]').length > 3
+    return document.querySelectorAll('[role="row"]').length > 3;
   }
 }
