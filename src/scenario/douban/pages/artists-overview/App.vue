@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
 import type { ArtistsOverviewData } from './types';
 
@@ -11,7 +12,7 @@ defineProps<{ data: ArtistsOverviewData }>();
     <div class="umm-artists-root">
       <!-- Section: Recommended artists -->
       <div v-if="data.recommendedArtists.length > 0" class="umm-section">
-        <h2 class="umm-section-title">你可能感兴趣的音乐人</h2>
+        <h2 class="umm-section-title">{{ t('douban.ao.interested') }}</h2>
         <div class="umm-artist-grid">
           <a
             v-for="(artist, i) in data.recommendedArtists"
@@ -31,7 +32,7 @@ defineProps<{ data: ArtistsOverviewData }>();
 
       <!-- Section: Events -->
       <div v-if="data.events.length > 0" class="umm-section">
-        <h2 class="umm-section-title">推荐活动</h2>
+        <h2 class="umm-section-title">{{ t('douban.ao.events') }}</h2>
         <div class="umm-event-list">
           <a
             v-for="(evt, i) in data.events"
@@ -53,7 +54,7 @@ defineProps<{ data: ArtistsOverviewData }>();
 
       <!-- Section: Genre navigation -->
       <div v-if="data.genreNav.length > 0" class="umm-section">
-        <h2 class="umm-section-title">流派</h2>
+        <h2 class="umm-section-title">{{ t('douban.ao.genres') }}</h2>
         <div class="umm-genre-section">
           <div class="umm-genre-tags">
             <a

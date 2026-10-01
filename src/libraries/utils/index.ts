@@ -32,15 +32,34 @@ export const Utils = {
   },
 };
 
+// `never[]` param keeps the constraint maximally permissive (contravariance):
+// every callable signature satisfies it, same acceptance as the old unchecked form.
 /**
  * 节流函数（带 trailing edge）
  * 确保函数在指定间隔内至少执行一次，且最后一次调用会在延迟后执行。
  */
-export function throttle<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+/**
+ * Trailing-edge throttle.
+ *
+ * The returned function carries `cancel()`: without it the pending trailing
+ * call is unreachable from outside the closure, so a route/overlay teardown
+ * cannot stop a write that is already scheduled — the released page's DOM gets
+ * modified, and a background read fires after the owner is gone. Every caller
+ * that owns a teardown path should cancel it there.
+ */
+export interface Cancellable<T extends (...args: never[]) => void> {
+  (...args: Parameters<T>): void;
+  cancel(): void;
+}
+
+export function throttle<T extends (...args: never[]) => void>(
+  fn: T,
+  delay: number,
+): Cancellable<T> {
   let last = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
-  return ((...args: Parameters<T>) => {
+  const throttled = (...args: Parameters<T>): void => {
     const now = Date.now();
     if (now - last >= delay) {
       last = now;
@@ -52,19 +71,29 @@ export function throttle<T extends (...args: any[]) => void>(fn: T, delay: numbe
     }
     timer = setTimeout(
       () => {
+        timer = null;
         last = Date.now();
         fn(...args);
       },
       delay - (now - last),
     );
-  }) as T;
+  };
+
+  throttled.cancel = (): void => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  return throttled;
 }
 
 /**
  * 防抖函数
  * 在连续调用中，只在最后一次调用后的延迟时间到达时执行。
  */
-export function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+export function debounce<T extends (...args: never[]) => void>(fn: T, delay: number): T {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   return ((...args: Parameters<T>) => {

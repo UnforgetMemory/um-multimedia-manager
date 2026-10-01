@@ -3,7 +3,7 @@ import { forwardProps } from '@/libraries/ui/forward-props';
 import type { SelectItemProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { Check } from 'lucide-vue-next';
+import { Check } from '@/libraries/ui/icons';
 import { SelectItem, SelectItemIndicator, SelectItemText } from 'reka-ui';
 import { cn } from '@/libraries/utils/cn';
 

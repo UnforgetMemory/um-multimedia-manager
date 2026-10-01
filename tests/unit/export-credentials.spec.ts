@@ -1,10 +1,10 @@
 /**
- * handleExportData credential-inclusion semantics (ADR-016 decision 3).
+ * handleExportData credential-inclusion semantics (ADR-016 decision 3 + 2026-09-30).
  *
  * - payload.includeWebDAVCredentials === true  → settings includes webdavUrl,
  *   webdavUsername, webdavPassword (in addition to EXPORT_SETTINGS_KEYS)
- * - payload.includeWebDAVCredentials === false | undefined → settings excludes
- *   all three credential keys
+ * - payload.includeNeoDbToken === true → settings includes neodbToken
+ * - flags false | undefined → the corresponding credential keys stay out
  *
  * mediaDB.getAllStores() and settingsCache.get() are singletons with
  * reassignable methods, so they are stubbed here (same technique as
@@ -58,7 +58,7 @@ test.describe('handleExportData — WebDAV credential inclusion', () => {
   });
 
   async function exportSettings(
-    payload: { includeWebDAVCredentials?: boolean } | undefined,
+    payload: { includeWebDAVCredentials?: boolean; includeNeoDbToken?: boolean } | undefined,
   ): Promise<Record<string, unknown>> {
     let captured: unknown;
     await handleExportData(payload, (res?: unknown) => {
@@ -86,5 +86,26 @@ test.describe('handleExportData — WebDAV credential inclusion', () => {
     expect(settings).not.toHaveProperty('webdavUrl');
     expect(settings).not.toHaveProperty('webdavUsername');
     expect(settings).not.toHaveProperty('webdavPassword');
+  });
+
+  test('neodbToken stays out by default (shared backup must not carry the bearer token)', async () => {
+    const settings = await exportSettings(undefined);
+    expect(settings).not.toHaveProperty('neodbToken');
+  });
+
+  test('includeNeoDbToken=true → includes neodbToken only', async () => {
+    const settings = await exportSettings({ includeNeoDbToken: true });
+    expect(settings.neodbToken).toBe('neo-token-abc');
+    // WebDAV trio still gated separately.
+    expect(settings).not.toHaveProperty('webdavPassword');
+  });
+
+  test('includeNeoDbToken=false → excludes neodbToken even when WebDAV creds ride along', async () => {
+    const settings = await exportSettings({
+      includeWebDAVCredentials: true,
+      includeNeoDbToken: false,
+    });
+    expect(settings.webdavPassword).toBe('p@ssw0rd!');
+    expect(settings).not.toHaveProperty('neodbToken');
   });
 });

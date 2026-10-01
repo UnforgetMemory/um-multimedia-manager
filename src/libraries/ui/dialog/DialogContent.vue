@@ -4,7 +4,7 @@ import { forwardProps, forwardEmits } from '@/libraries/ui/forward-props';
 import type { DialogContentEmits, DialogContentProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { X } from 'lucide-vue-next';
+import { X } from '@/libraries/ui/icons';
 import { DialogClose, DialogContent, DialogOverlay, DialogPortal } from 'reka-ui';
 import { cn } from '@/libraries/utils/cn';
 

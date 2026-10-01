@@ -34,7 +34,6 @@
  * （shouldDimOnNavigate），点击即 dim。
  */
 
-import { AdultAvStore } from '@/provider/adult-av';
 import { initI18n, t } from '@/entrypoints/content/i18n';
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu';
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel';
@@ -50,6 +49,7 @@ import {
   withDimBatch,
 } from '@/entrypoints/content/handlers/sehuatang-controls';
 import { escapeHtml } from '@/libraries/utils/escape-html';
+import { errorLog, infoLog, warnLog } from '@/libraries/utils/logger';
 import { attachSehuatangOverlay } from './overlay';
 import { extractSearchKeyword } from './url';
 import { collectThreadTrackKeys } from '@/entrypoints/content/handlers/sehuatang-extract';
@@ -60,6 +60,14 @@ import {
   type SehuatangSearchResult,
 } from './search-extract';
 import { buildEmptyState } from './empty-state';
+// 背景读取的重试纪律：读不到不等于「都没看」，也不等于 0/0/0（见模块头）。
+import {
+  getCachedGlobalStats,
+  invalidateGlobalStats,
+  loadGlobalStats,
+  readWatchedIds,
+  STATS_UNKNOWN,
+} from './background-reads';
 
 function el(tag: string, className: string, text?: string): HTMLElement {
   const node = document.createElement(tag);
@@ -185,7 +193,7 @@ function hideOriginalContent(): void {
  */
 export async function runSehuatangSearchApp(): Promise<void> {
   await initI18n();
-  console.log('[UMM] Sehuatang search app activated');
+  infoLog('[UMM] Sehuatang search app activated');
 
   // DOM 守卫：#threadlist 与「结果:」meta 双双缺失 → 结构未知/非结果态，
   // dismiss 还原原生页；任一在场即托管（空结果页的确切 DOM 无夹具核实，
@@ -199,127 +207,140 @@ export async function runSehuatangSearchApp(): Promise<void> {
   }
   if (!overlay) return;
 
-  // 无关分区过滤（如「求片问答悬赏区」forum-143，用户裁决：无意义内容不渲染）。
-  const kept = results.filter((r) => !isSearchNoiseForum(r.forumId));
-  const filteredCount = results.length - kept.length;
+  try {
+    // 无关分区过滤（如「求片问答悬赏区」forum-143，用户裁决：无意义内容不渲染）。
+    const kept = results.filter((r) => !isSearchNoiseForum(r.forumId));
+    const filteredCount = results.length - kept.length;
 
-  // 搜索词回填：结果页 URL 用 kw（夹具核实）、本扩展生成用 srchtxt——两者都取；
-  // URL 无参数时退化到页面「结果:」h2 的关键词（宽容兜底）。
-  const initialKeyword = extractSearchKeyword(document.location?.href ?? '') || meta?.keyword || '';
+    // 搜索词回填：结果页 URL 用 kw（夹具核实）、本扩展生成用 srchtxt——两者都取；
+    // URL 无参数时退化到页面「结果:」h2 的关键词（宽容兜底）。
+    const initialKeyword =
+      extractSearchKeyword(document.location?.href ?? '') || meta?.keyword || '';
 
-  // 提取分页（#threadlist 之后是 .pgs.mbm > .pg，结构与列表页同源）。
-  const pagination = extractPagination(document.querySelector('.pgs .pg'));
+    // 提取分页（#threadlist 之后是 .pgs.mbm > .pg，结构与列表页同源）。
+    const pagination = extractPagination(document.querySelector('.pgs .pg'));
 
-  // 隐藏原内容（DOM 保留）。
-  hideOriginalContent();
+    // 隐藏原内容（DOM 保留）。
+    hideOriginalContent();
 
-  // 重建 overlay 内容根（--island：挂岛页面，底部遮挡补偿 padding 生效）。
-  const shell = el('div', 'umm-sht-shell umm-sht-shell--island');
-  const headerEl = buildHeader(meta, filteredCount);
-  shell.appendChild(headerEl);
+    // 重建 overlay 内容根（--island：挂岛页面，底部遮挡补偿 padding 生效）。
+    const shell = el('div', 'umm-sht-shell umm-sht-shell--island');
+    const headerEl = buildHeader(meta, filteredCount);
+    shell.appendChild(headerEl);
 
-  const grid = el('div', 'umm-sht-search-grid');
-  shell.appendChild(grid);
+    const grid = el('div', 'umm-sht-search-grid');
+    shell.appendChild(grid);
 
-  // 全空反馈：过滤后 0 条（站点空结果 / 结果全部来自无关分区）→ 复用列表页
-  // 空态插图，文案区分两种情形；无卡可渲染时跳过分页与后续 dimmer 链路，
-  // 岛降级为仅搜索入口（仍可改关键词重搜）。
-  if (kept.length === 0) {
-    shell.appendChild(
-      buildEmptyState(
-        document,
-        results.length === 0
-          ? { title: t('sht.search_empty_title'), hint: t('sht.search_empty_hint') }
-          : {
-              title: t('sht.search_empty_filtered_title'),
-              hint: t('sht.search_empty_filtered_hint'),
-            },
-      ),
-    );
-    const emptyIsland = buildFloatbar(document, { search: true, searchValue: initialKeyword });
-    if (emptyIsland) shell.appendChild(emptyIsland.pill);
-    overlay.mountContent(shell);
-    console.log(
-      `[UMM] Sehuatang search: ${results.length} results, empty after filter (filtered=${filteredCount})`,
-    );
-    return;
-  }
-
-  // 已看 dimmer：先空挂卡片（统一行为：hide OFF），已看检查后批量加类。
-  for (const r of kept) grid.appendChild(buildResultCard(r, false));
-
-  // 点击 dimmer：点击标题链接 → 立即落 .umm-viewed（不落库，写入归帖子页静默记录）。
-  // 统计行接线：本页已看即时读 DOM 类状态（初检 dim 与点击 dim 后各刷一次），
-  // 全局三段走 stats 消息单次拉取（失败降级 0——与列表页同纪律，不阻塞首屏）。
-  let globalStats = { jp: 0, us: 0, tid: 0 };
-  const pageBoxEl = headerEl.querySelector('.umm-header-info') as HTMLElement | null;
-  const globalBoxEl = headerEl.querySelector('.umm-sht-stats') as HTMLElement | null;
-  const renderStats = () => {
-    if (!grid.isConnected) return;
-    if (pageBoxEl?.isConnected) {
-      pageBoxEl.textContent = t('sht.page_watched', {
-        watched: String(countSehuatangCardStates(grid).watched),
-      });
+    // 全空反馈：过滤后 0 条（站点空结果 / 结果全部来自无关分区）→ 复用列表页
+    // 空态插图，文案区分两种情形；无卡可渲染时跳过分页与后续 dimmer 链路，
+    // 岛降级为仅搜索入口（仍可改关键词重搜）。
+    if (kept.length === 0) {
+      shell.appendChild(
+        buildEmptyState(
+          document,
+          results.length === 0
+            ? { title: t('sht.search_empty_title'), hint: t('sht.search_empty_hint') }
+            : {
+                title: t('sht.search_empty_filtered_title'),
+                hint: t('sht.search_empty_filtered_hint'),
+              },
+        ),
+      );
+      const emptyIsland = buildFloatbar(document, { search: true, searchValue: initialKeyword });
+      if (emptyIsland) shell.appendChild(emptyIsland.pill);
+      overlay.mountContent(shell);
+      infoLog(
+        `[UMM] Sehuatang search: ${results.length} results, empty after filter (filtered=${filteredCount})`,
+      );
+      return;
     }
-    if (globalBoxEl?.isConnected) {
-      globalBoxEl.textContent = t('sht.global_stats', {
-        jp: String(globalStats.jp),
-        us: String(globalStats.us),
-        tid: String(globalStats.tid),
-      });
-    }
-  };
-  AdultAvStore.stats()
-    .then((s) => {
-      globalStats = s;
-      renderStats();
-    })
-    .catch(() => {});
-  initSearchClickDimmer(grid, () => renderStats());
 
-  // 底部「灵动岛」：搜索框 + 分页统一入岛（buildFloatbar 统一合成；搜索页
-  // 无 返回/发新帖 场景动作）。buildPager 对空分页数据返回 null → 岛自然
-  // 退化为仅搜索。
-  const pager = buildPager(document, pagination);
-  const island = buildFloatbar(document, { search: true, searchValue: initialKeyword, pager });
-  if (island) shell.appendChild(island.pill);
+    // 已看 dimmer：先空挂卡片（统一行为：hide OFF），已看检查后批量加类。
+    for (const r of kept) grid.appendChild(buildResultCard(r, false));
 
-  overlay.mountContent(shell);
-  runVisibleEntrance(shell);
-
-  // 已看批量检查（与列表页同款，await 不阻塞首屏；首屏真卡已就位，到达后
-  // 单帧统一加 .umm-viewed）。collectThreadTrackKeys 直接消费搜索结果——
-  // 字段语义已与列表页 SehuatangThread 对齐（tid = TID-<tid> 键）。
-  const trackIds = collectThreadTrackKeys(kept);
-  if (trackIds.length === 0) {
-    console.log('[UMM] Sehuatang search: no trackable ids (no avId, no tid)');
-    return;
-  }
-  const watched = await AdultAvStore.batchCheckExists(trackIds);
-  if (!grid.isConnected) return;
-  // 已看集归一化一次（大写），避免逐卡两侧 toUpperCase 分配；批量落类走
-  // withDimBatch（几十张同帧加类不各播过渡——首屏 dim 提速）。
-  const watchedUpper = new Set(Array.from(watched).map((key) => key.toUpperCase()));
-  let dimmed = 0;
-  withDimBatch(grid, () => {
-    for (const card of Array.from(
-      grid.querySelectorAll('.umm-card[data-avid], .umm-card[data-tid]'),
-    ) as HTMLElement[]) {
-      if (card.classList.contains('umm-viewed')) continue; // 点击标记已落类 → 跳过
-      const avid = card.getAttribute('data-avid');
-      const tid = card.getAttribute('data-tid');
-      if (
-        (avid !== null && avid !== '' && watchedUpper.has(avid.toUpperCase())) ||
-        (tid !== null && tid !== '' && watchedUpper.has(tid.toUpperCase()))
-      ) {
-        card.classList.add('umm-viewed');
-        dimmed++;
+    // 点击 dimmer：点击标题链接 → 立即落 .umm-viewed（不落库，写入归帖子页静默记录）。
+    // 统计行接线：本页已看即时读 DOM 类状态（初检 dim 与点击 dim 后各刷一次），
+    // 全局三段走 stats 消息（失败渲染破折号，不阻塞首屏）。
+    const pageBoxEl = headerEl.querySelector('.umm-header-info') as HTMLElement | null;
+    const globalBoxEl = headerEl.querySelector('.umm-sht-stats') as HTMLElement | null;
+    const renderStats = () => {
+      if (!grid.isConnected) return;
+      if (pageBoxEl?.isConnected) {
+        pageBoxEl.textContent = t('sht.page_watched', {
+          watched: String(countSehuatangCardStates(grid).watched),
+        });
       }
+      if (globalBoxEl?.isConnected) {
+        const stats = getCachedGlobalStats();
+        globalBoxEl.textContent = t('sht.global_stats', {
+          jp: String(stats?.jp ?? STATS_UNKNOWN),
+          us: String(stats?.us ?? STATS_UNKNOWN),
+          tid: String(stats?.tid ?? STATS_UNKNOWN),
+        });
+      }
+    };
+    // 每次进入搜索页都读一次真数（不因上一页的缓存跳过）；失败的读取不写缓存，
+    // 因此破折号只表示「没读到」，永远不会是一个假的 0/0/0。
+    invalidateGlobalStats();
+    renderStats();
+    void loadGlobalStats().then((res) => {
+      if (res.ok) renderStats();
+      else warnLog('[UMM] Sehuatang search global stats unread, showing placeholder:', res.error);
+    });
+    initSearchClickDimmer(grid, () => renderStats());
+
+    // 底部「灵动岛」：搜索框 + 分页统一入岛（buildFloatbar 统一合成；搜索页
+    // 无 返回/发新帖 场景动作）。buildPager 对空分页数据返回 null → 岛自然
+    // 退化为仅搜索。
+    const pager = buildPager(document, pagination);
+    const island = buildFloatbar(document, { search: true, searchValue: initialKeyword, pager });
+    if (island) shell.appendChild(island.pill);
+
+    overlay.mountContent(shell);
+    runVisibleEntrance(shell);
+
+    // 已看批量检查（与列表页同款，await 不阻塞首屏；首屏真卡已就位，到达后
+    // 单帧统一加 .umm-viewed）。collectThreadTrackKeys 直接消费搜索结果——
+    // 字段语义已与列表页 SehuatangThread 对齐（tid = TID-<tid> 键）。
+    const trackIds = collectThreadTrackKeys(kept);
+    if (trackIds.length === 0) {
+      infoLog('[UMM] Sehuatang search: no trackable ids (no avId, no tid)');
+      return;
     }
-  });
-  // 初检 dim 落定后刷新统计行（本页已看从占位 → 实际 dim 数）。
-  renderStats();
-  console.log(
-    `[UMM] Sehuatang search rendered: ${kept.length} results (filtered=${filteredCount}), ${dimmed} dimmed`,
-  );
+    const checked = await readWatchedIds(trackIds);
+    if (!checked.ok) {
+      // 读失败 → 不淡化任何一条：搜索结果照常呈现，只是没有已看结论。
+      warnLog('[UMM] Sehuatang search watched read failed, dimming nothing:', checked.error);
+    }
+    const watched = checked.watched;
+    if (!grid.isConnected) return;
+    // 已看集归一化一次（大写），避免逐卡两侧 toUpperCase 分配；批量落类走
+    // withDimBatch（几十张同帧加类不各播过渡——首屏 dim 提速）。
+    const watchedUpper = new Set(Array.from(watched).map((key) => key.toUpperCase()));
+    let dimmed = 0;
+    withDimBatch(grid, () => {
+      for (const card of Array.from(
+        grid.querySelectorAll('.umm-card[data-avid], .umm-card[data-tid]'),
+      ) as HTMLElement[]) {
+        if (card.classList.contains('umm-viewed')) continue; // 点击标记已落类 → 跳过
+        const avid = card.getAttribute('data-avid');
+        const tid = card.getAttribute('data-tid');
+        if (
+          (avid !== null && avid !== '' && watchedUpper.has(avid.toUpperCase())) ||
+          (tid !== null && tid !== '' && watchedUpper.has(tid.toUpperCase()))
+        ) {
+          card.classList.add('umm-viewed');
+          dimmed++;
+        }
+      }
+    });
+    // 初检 dim 落定后刷新统计行（本页已看从占位 → 实际 dim 数）。
+    renderStats();
+    infoLog(
+      `[UMM] Sehuatang search rendered: ${kept.length} results (filtered=${filteredCount}), ${dimmed} dimmed`,
+    );
+  } catch (error) {
+    errorLog('[UMM] Sehuatang search build failed, dismissing overlay:', error);
+    overlay.dismiss();
+  }
 }

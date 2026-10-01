@@ -27,7 +27,7 @@ export interface SeriesItem {
 
 /** Sort option in the series page header */
 export interface SeriesSortOption {
-  label: string;
+  labelKey: string;
   url: string;
   active: boolean;
 }

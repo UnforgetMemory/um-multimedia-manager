@@ -13,6 +13,8 @@
  * for unit testability.
  */
 
+import { runChunked, type ChunkOptions, type ChunkedRun } from '@/libraries/utils/dom-chunk';
+
 export {
   createDebouncedScheduler,
   type TimerAdapter,
@@ -20,6 +22,9 @@ export {
 
 /** Record stores that trigger a Mukaku page refresh (Mukaku cards only link douban/imdb). */
 const REFRESH_STORES = new Set(['douban_records', 'imdb_records']);
+
+/** Cards un-marked per animation frame (a browse page can carry 100+ `.video-card`). */
+export const MUKAKU_CLEAR_CHUNK_SIZE = 20;
 
 /** Minimal structural type: an element that can clear processed markers and the dim class (Element satisfies this shape). */
 export type MukakuMarkerElement = {
@@ -38,9 +43,26 @@ export function clearMukakuMarkers(el: MukakuMarkerElement): void {
   el.classList?.remove('umm-dimmed');
 }
 
-/** Clear markers and the dim class from every processed card in the document, restoring the initial visual state for re-evaluation. */
-export function clearProcessedMarkers(root: Pick<Document, 'querySelectorAll'>): void {
-  root.querySelectorAll('[data-umm-mukaku-processed="true"]').forEach(clearMukakuMarkers);
+/**
+ * Clear markers and the dim class from every processed card, restoring the initial
+ * visual state for re-evaluation.
+ *
+ * Frame-chunked (same shape as the PT-side X9-B passes): a whole-document
+ * `querySelectorAll(...).forEach(remove)` over a hundred-plus cards is one
+ * host-page long task, and record events arrive in storms (a bulk import emits
+ * one per record). The caller owns the returned run — cancel it before starting
+ * a newer pass, and await `promise` before rescanning (it ALWAYS settles, even
+ * when cancelled). `options` is the runChunked test seam for the frame scheduler.
+ */
+export function clearProcessedMarkers(
+  root: Pick<Document, 'querySelectorAll'>,
+  options: ChunkOptions = {},
+): ChunkedRun {
+  return runChunked(
+    Array.from(root.querySelectorAll('[data-umm-mukaku-processed="true"]')),
+    clearMukakuMarkers,
+    { chunkSize: MUKAKU_CLEAR_CHUNK_SIZE, ...options },
+  );
 }
 
 /**

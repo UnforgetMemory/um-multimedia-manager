@@ -12,6 +12,7 @@
 
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { STORE_NAMES } from '@/engine/database';
+import { bootstrapLogging } from '@/entrypoints/content/bootstrap/logging';
 import {
   createVideoOverlay,
   parseBilibiliBvid,
@@ -23,9 +24,23 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   main() {
+    // Options 页的「调试日志」/级别只写进 chrome.storage：本上下文不读它就等于
+    // 生产环境恒静音（logger 默认跟随 DEV）。先于任何路由判断，非视频页也要能取证。
+    void bootstrapLogging();
+
+    /** Deferred work for the current video — a mode switch must cancel it. */
+    const deferred = new Set<ReturnType<typeof setTimeout>>();
     const later = (fn: () => void, ms: number): void => {
-      setTimeout(fn, ms);
+      const handle = setTimeout(() => {
+        deferred.delete(handle);
+        fn();
+      }, ms);
+      deferred.add(handle);
     };
+    function clearDeferred(): void {
+      for (const handle of deferred) clearTimeout(handle);
+      deferred.clear();
+    }
 
     const overlay = createVideoOverlay({
       storeName: STORE_NAMES.BILIBILI,
@@ -137,25 +152,40 @@ export default defineContentScript({
     }
 
     // ── SPA Navigation ───────────────────────────────────────
-    function onBvidChange() {
-      const nb = parseBilibiliBvid(location.pathname, location.search);
-      if (nb === overlay.id) return;
-      overlay.cleanup();
-      if (!nb) {
-        overlay.setCurrent(null);
-        return;
-      }
-      overlay.setCurrent(nb);
+    /**
+     * Bumped on every (re)start. `loadRecord()` resolves asynchronously, so its
+     * continuation needs to know whether a newer navigation already replaced it.
+     */
+    let videoGeneration = 0;
+
+    function startVideo(bvid: string): void {
+      const generation = ++videoGeneration;
+      overlay.setCurrent(bvid);
       overlay.create();
       overlay.loadRecord().then(() => {
+        if (generation !== videoGeneration) return;
         overlay.applyBtnStyle();
         overlay.syncTrackerStatus();
-        coinCheckBVID = nb;
+        coinCheckBVID = bvid;
         later(() => {
           if (overlay.id === coinCheckBVID) checkCoinForAutoMark();
         }, 1500);
         later(() => overlay.startRecommendationWatch(), 3000);
       });
+    }
+
+    function onBvidChange() {
+      const nb = parseBilibiliBvid(location.pathname, location.search);
+      if (nb === overlay.id) return;
+      ++videoGeneration;
+      clearDeferred();
+      stopCoinObserver();
+      overlay.cleanup();
+      if (!nb) {
+        overlay.setCurrent(null);
+        return;
+      }
+      startVideo(nb);
     }
 
     function watchUrl(): void {
@@ -194,20 +224,11 @@ export default defineContentScript({
       overlay.destroy();
       return;
     }
-    overlay.setCurrent(initialBvid);
+    const startBvid: string = initialBvid;
 
     function init() {
       watchUrl();
-      overlay.create();
-      overlay.loadRecord().then(() => {
-        overlay.applyBtnStyle();
-        overlay.syncTrackerStatus();
-        coinCheckBVID = overlay.id;
-        later(() => {
-          if (overlay.id === coinCheckBVID) checkCoinForAutoMark();
-        }, 1500);
-        later(() => overlay.startRecommendationWatch(), 3000);
-      });
+      startVideo(startBvid);
     }
 
     if (document.readyState === 'loading') {

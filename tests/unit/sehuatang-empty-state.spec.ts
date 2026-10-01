@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+// Rendered copy comes from the content i18n dictionaries, whose locale is module-level
+// shared state per worker — expectations go through the same t() instead of pinning Chinese.
+import { t } from '@/entrypoints/content/i18n';
 import { JSDOM } from 'jsdom';
 import {
   buildEmptyState,
@@ -119,12 +122,16 @@ test.describe('buildEmptyState — 结构与文案', () => {
     expect(node.className).toBe('umm-sht-empty');
     expect(node.getAttribute('role')).toBe('status');
     expect(node.querySelector('svg')).not.toBeNull();
-    expect(node.querySelector('.umm-sht-empty-title')?.textContent).toBe('全部已看过');
-    expect(node.querySelector('.umm-sht-empty-hint')?.textContent).toContain('隐藏已阅');
+    expect(node.querySelector('.umm-sht-empty-title')?.textContent).toBe(
+      t('sht.empty_watched_title'),
+    );
+    expect(node.querySelector('.umm-sht-empty-hint')?.textContent).toContain(t('Hide Viewed'));
   });
 
   test('自定义文案（搜索页复用：无结果 / 全过滤）→ 标题与提示替换，默认文案不再出现', () => {
     const doc = new JSDOM().window.document;
+    // 这里的文案是**调用方传进来的实参**，不是字典值：断言必须回到实参本身，
+    // 用 t(key) 反而会把「原样透传」这条契约绑到 worker 的 locale 上（en 下必红）。
     const node = buildEmptyState(doc, { title: '没有搜索结果', hint: '换个关键词试试' });
     expect(node.querySelector('.umm-sht-empty-title')?.textContent).toBe('没有搜索结果');
     expect(node.querySelector('.umm-sht-empty-hint')?.textContent).toBe('换个关键词试试');

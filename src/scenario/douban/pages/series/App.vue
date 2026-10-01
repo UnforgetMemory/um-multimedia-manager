@@ -3,6 +3,9 @@
 import UmmPageLinks from '@/scenario/douban/components/UmmPageLinks.vue';
 import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { formatCountGrouped } from '../../shared/format-count';
+import { t } from '../../shared/legacy-bridge';
 import type { SeriesPageData, SeriesItem } from './types';
 
 const props = defineProps<{
@@ -10,10 +13,16 @@ const props = defineProps<{
   recordMap?: Map<string, import('@/types').StoreRecord>;
 }>();
 
+// Seeded from the mount snapshot, then live-refreshed by `record:updated`.
+const { records } = useRecordCache(
+  'book',
+  () => props.data.items.filter((i) => i.subjectId).map((i) => i.subjectId),
+  props.recordMap,
+);
+
 // Get full record for an item
 function getItemRecord(item: SeriesItem): import('@/types').StoreRecord | undefined {
-  if (!props.recordMap) return undefined;
-  return props.recordMap.get(item.subjectId);
+  return records.value.get(item.subjectId);
 }
 
 // Star display helper (0-10 scale → 5 stars)
@@ -28,12 +37,6 @@ function starClass(item: SeriesItem, starIndex: number): string {
   if (stars >= filled) return 'umm-series-item-star umm-series-item-star--filled';
   if (stars >= filled - 0.5) return 'umm-series-item-star umm-series-item-star--half';
   return 'umm-series-item-star';
-}
-
-// Format count with Chinese-friendly units
-function formatCount(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '万';
-  return n.toLocaleString();
 }
 
 // Status label helper
@@ -60,10 +63,12 @@ function statusLabel(status: number): string {
         <h1 class="umm-series-title">{{ data.title }}</h1>
 
         <div v-if="data.publisher" class="umm-series-meta">
-          <span class="umm-series-meta-label">出版社：</span>{{ data.publisher }}
+          <span class="umm-series-meta-label">{{ t('douban.series.publisher') }}</span
+          >{{ data.publisher }}
         </div>
         <div v-if="data.volumes > 0" class="umm-series-meta">
-          <span class="umm-series-meta-label">册数：</span>{{ data.volumes }}
+          <span class="umm-series-meta-label">{{ t('douban.series.volumes') }}</span
+          >{{ data.volumes }}
         </div>
 
         <p v-if="data.description" class="umm-series-desc">{{ data.description }}</p>
@@ -74,7 +79,7 @@ function statusLabel(status: number): string {
             :href="`https://book.douban.com/series/collect?series_id=${data.id}`"
             class="umm-series-collect-btn"
             target="_blank"
-            >收藏丛书</a
+            >{{ t('douban.series.collect') }}</a
           >
         </div>
       </div>
@@ -82,23 +87,27 @@ function statusLabel(status: number): string {
       <!-- ═══ Stats bar ═══ -->
       <div class="umm-series-stats-bar">
         <span class="umm-series-stat-item">
-          共 <span class="umm-series-stat-value">{{ data.totalCount }}</span> 本
+          {{ t('douban.series.books_count_lead')
+          }}<span class="umm-series-stat-value">{{ data.totalCount }}</span
+          >{{ t('douban.series.books_count_tail') }}
         </span>
         <span v-if="data.volumes > 1" class="umm-series-stat-divider" />
         <span v-if="data.volumes > 1" class="umm-series-stat-item">
-          <span class="umm-series-stat-value">{{ data.volumes }}</span> 册
+          {{ t('douban.series.volume_count_lead')
+          }}<span class="umm-series-stat-value">{{ data.volumes }}</span
+          >{{ t('douban.series.volume_count_tail') }}
         </span>
       </div>
 
       <!-- ═══ Sort bar ═══ -->
       <div v-if="data.sortOptions.length > 0" class="umm-series-sortbar">
-        <span class="umm-series-sort-label">排序：</span>
+        <span class="umm-series-sort-label">{{ t('douban.series.sort') }}</span>
         <a
           v-for="opt in data.sortOptions"
-          :key="opt.label"
+          :key="opt.labelKey"
           :href="opt.url || undefined"
           :class="['umm-series-sort-link', opt.active ? 'umm-series-sort-link--active' : '']"
-          >{{ opt.label }}</a
+          >{{ t(opt.labelKey) }}</a
         >
       </div>
 
@@ -134,14 +143,16 @@ function statusLabel(status: number): string {
                 <span v-for="i in 5" :key="i" :class="starClass(item, i - 1)" />
               </span>
               <span class="umm-series-item-score">{{ item.rating }}</span>
-              <span class="umm-series-item-count">({{ formatCount(item.ratingCount) }})</span>
+              <span class="umm-series-item-count"
+                >({{ formatCountGrouped(item.ratingCount) }})</span
+              >
             </div>
 
             <div v-if="item.description" class="umm-series-item-desc">{{ item.description }}</div>
           </div>
         </div>
       </div>
-      <div v-else class="umm-series-empty">暂无内容</div>
+      <div v-else class="umm-series-empty">{{ t('douban.empty.content') }}</div>
 
       <!-- ═══ Paginator ═══ -->
       <UmmPageLinks

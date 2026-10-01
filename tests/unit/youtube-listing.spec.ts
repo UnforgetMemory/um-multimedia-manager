@@ -12,6 +12,7 @@ import {
   shouldDimStatus,
   unprocessedCardSelector,
   type CardLike,
+  type ListingRecordLike,
 } from '@/entrypoints/content/ui/youtube-listing';
 
 /**
@@ -162,5 +163,86 @@ test.describe('runYoutubeListingPass — 批量失败诊断（不得静默全灭
     const card = doc.querySelector('ytd-rich-item-renderer')!;
     expect(card.querySelector(`.${LISTING_BADGE_CLASS}`)!.textContent).toBe('未看');
     expect(card.hasAttribute(LISTING_VIEWED_ATTR)).toBe(false);
+  });
+});
+
+/**
+ * Event-driven refresh (X32). A pass marks every row it verdicted processed, so
+ * without an invalidation hook an external record write is invisible until the
+ * host DOM changes — and because the old update loop only ever ADDED the dim
+ * attribute and skipped rows with no record, even a fresh pass could not express
+ * the delete direction.
+ */
+test.describe('事件驱动刷新与删除方向（X32）', () => {
+  test('invalidateProcessedRows 只脏化事件键对应的那一行', async () => {
+    const { invalidateProcessedRows } = await import('@/entrypoints/content/ui/youtube-listing');
+    const doc = await docWithYtCards(CARD_A + CARD_B);
+    await runYoutubeListingPass({
+      root: doc,
+      storeName: 'youtube_records',
+      dbGetBulk: async () => [],
+    });
+    expect(doc.querySelectorAll(`[${LISTING_PROCESSED_ATTR}]`)).toHaveLength(2);
+
+    expect(invalidateProcessedRows(doc, storeKey(VID_A))).toBe(1);
+    expect(doc.querySelectorAll(`[${LISTING_PROCESSED_ATTR}]`)).toHaveLength(1);
+    // An unrelated key must not dirty anything: a whole-feed re-scan per foreign
+    // write is exactly the storm this hook exists to avoid.
+    expect(invalidateProcessedRows(doc, storeKey('ZZZZZZZZZZZ'))).toBe(0);
+  });
+
+  test('键缺省或为 * 时脏化全部行（批量写入 / 恢复形态）', async () => {
+    const { invalidateProcessedRows } = await import('@/entrypoints/content/ui/youtube-listing');
+    const doc = await docWithYtCards(CARD_A + CARD_B);
+    await runYoutubeListingPass({
+      root: doc,
+      storeName: 'youtube_records',
+      dbGetBulk: async () => [],
+    });
+
+    expect(invalidateProcessedRows(doc, '*')).toBe(2);
+    expect(doc.querySelectorAll(`[${LISTING_PROCESSED_ATTR}]`)).toHaveLength(0);
+  });
+
+  test('记录被删除后重扫：淡化属性被撤、徽章回到未看', async () => {
+    const { invalidateProcessedRows } = await import('@/entrypoints/content/ui/youtube-listing');
+    let entries: Array<{ key: string; record: ListingRecordLike | null }> = [
+      { key: storeKey(VID_A), record: { status: 2, rating: 8 } },
+    ];
+    const read = async (): Promise<Array<{ key: string; record: ListingRecordLike | null }>> =>
+      entries;
+    const doc = await docWithYtCards(CARD_A);
+
+    await runYoutubeListingPass({ root: doc, storeName: 'youtube_records', dbGetBulk: read });
+    const card = doc.querySelector('ytd-rich-item-renderer')!;
+    expect(card.getAttribute(LISTING_VIEWED_ATTR)).toBe('true');
+    expect(card.querySelector(`.${LISTING_BADGE_CLASS}`)!.textContent).toBe('已看 8');
+
+    entries = []; // the record was deleted elsewhere
+    expect(invalidateProcessedRows(doc, storeKey(VID_A))).toBe(1);
+    await runYoutubeListingPass({ root: doc, storeName: 'youtube_records', dbGetBulk: read });
+
+    expect(card.hasAttribute(LISTING_VIEWED_ATTR)).toBe(false);
+    expect(card.querySelector(`.${LISTING_BADGE_CLASS}`)!.textContent).toBe('未看');
+  });
+
+  test('状态降到阈值以下时同样撤淡化（不只看删除）', async () => {
+    const { invalidateProcessedRows } = await import('@/entrypoints/content/ui/youtube-listing');
+    let status = 2;
+    const read = async (): Promise<Array<{ key: string; record: ListingRecordLike | null }>> => [
+      { key: storeKey(VID_A), record: { status, rating: 0 } },
+    ];
+    const doc = await docWithYtCards(CARD_A);
+
+    await runYoutubeListingPass({ root: doc, storeName: 'youtube_records', dbGetBulk: read });
+    const card = doc.querySelector('ytd-rich-item-renderer')!;
+    expect(card.hasAttribute(LISTING_VIEWED_ATTR)).toBe(true);
+
+    status = 1; // 想看 — below DIMMER_THRESHOLD
+    invalidateProcessedRows(doc, storeKey(VID_A));
+    await runYoutubeListingPass({ root: doc, storeName: 'youtube_records', dbGetBulk: read });
+
+    expect(card.hasAttribute(LISTING_VIEWED_ATTR)).toBe(false);
+    expect(card.querySelector(`.${LISTING_BADGE_CLASS}`)!.textContent).toBe('想看');
   });
 });

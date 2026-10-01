@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { JSDOM } from 'jsdom';
 import { scanIMDbPageStatus, renderIMDbStatusChip } from '@/entrypoints/content/handlers/imdb';
 import type { UrlIdentity } from '@/types';
@@ -25,8 +28,8 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'https://www.imdb.com/title/tt26687035/',
   pretendToBeVisual: true,
 });
-(globalThis as { document?: unknown }).document = dom.window.document;
-(globalThis as { window?: unknown }).window = dom.window;
+defineGlobal('document', dom.window.document);
+defineGlobal('window', dom.window);
 
 function installFixture(html: string): void {
   dom.window.document.body.innerHTML = html;

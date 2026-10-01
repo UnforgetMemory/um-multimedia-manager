@@ -12,7 +12,9 @@
  *      「发新帖」类外部调用）；保留 #wp 的内层结构避免破坏全局 SPA 行为；
  *   4. 头：站点名 + 统计摘要；
  *   5. 主：分区折叠（每个分区 = 标题 + 子版块卡片 grid），分区之间为分组
- *      视觉断点；
+ *      视觉断点；分区总数由站点版式决定，故首个分区同步落位、其余经
+ *      runChunked 每帧「构建 + 插入」（避免一次写完把解析与样式/布局压进
+ *      同一帧），灵动岛始终垫在最后；
  *   6. 卡片：图标（站点自带的 `forum_new.gif` / `forum.gif` 二态区分）、
  *      子版块名、今日新增徽标、主题/帖数/最后发表；
  *   7. 入场级联：rAF + 批量读 rect 后统一写类名（首屏可见卡才有延迟，
@@ -24,7 +26,6 @@
  * 复用 .umm-card 基础类（与列表页同款 hover/grid 行为）。
  */
 
-import { AdultAvStore } from '@/provider/adult-av';
 import { initI18n, t } from '@/entrypoints/content/i18n';
 import { openSehuatangMenu } from '@/entrypoints/content/handlers/sehuatang-menu';
 import { showManualAddPanel } from '@/entrypoints/content/ui/manual-add-panel';
@@ -34,6 +35,9 @@ import {
   buildFloatbar,
 } from '@/entrypoints/content/handlers/sehuatang-controls';
 import { escapeHtml } from '@/libraries/utils/escape-html';
+import { runChunked } from '@/libraries/utils/dom-chunk';
+import { warnLog } from '@/libraries/utils/logger';
+import { invalidateGlobalStats, loadGlobalStats } from './background-reads';
 import { attachSehuatangOverlay } from './overlay';
 import { toSafeAbsoluteUrl } from './url';
 import {
@@ -184,7 +188,11 @@ export async function runSehuatangIndexApp(): Promise<void> {
     const shell = el('div', 'umm-sht-shell umm-sht-shell--island');
     shell.appendChild(buildHeader(stats));
 
-    for (const category of categories) {
+    // 分区数由站点版式决定（首页列出全部分区与其下子版块，可达数百个容器、上千
+    // 个节点）。原先一次建完再整块挂载 ⇒ 解析与样式/布局全压进同一帧。首个分区
+    // 保持同步建好（结构性失败仍由下面的 catch 负责拆壳还原），其余按帧「构建 +
+    // 插入」，岛永远垫在最后。
+    for (const category of categories.slice(0, 1)) {
       shell.appendChild(buildCategorySection(category));
     }
 
@@ -194,21 +202,36 @@ export async function runSehuatangIndexApp(): Promise<void> {
 
     overlay.mountContent(shell);
     runVisibleEntrance(shell);
+
+    const pillAnchor = island?.pill ?? null;
+    // runChunked 的 result 不接：这里的 write 只做「按数据建节点 + 插进已挂载的壳」，
+    // 唯一可能的抛错是编程错误，而它的后果（分区缺席）本身可见，e2e 的顺序/完备
+    // 断言也会当场红——不需要再叠一层不可达的还原分支。
+    runChunked(
+      categories.slice(1),
+      (category) => {
+        const section = buildCategorySection(category);
+        shell.insertBefore(section, pillAnchor);
+        // 逐分区入场：root 只给本分区，避免每帧对整个 shell 重扫卡片。
+        runVisibleEntrance(section);
+      },
+      { chunkSize: 1 },
+    );
     // 下行统计行：UMM 全局三段（挂载完成后拉取——await 保证渲染完成时序
-    // 确定，不阻塞 overlay 首帧；失败降级保持空态，与列表页同纪律）。
+    // 确定，不阻塞 overlay 首帧；读不到就保持空态，绝不渲染假的 0/0/0）。
     const statsLine = shell.querySelector('.umm-sht-stats') as HTMLElement | null;
     if (statsLine) {
-      try {
-        const s = await AdultAvStore.stats();
-        if (statsLine.isConnected) {
-          statsLine.textContent = t('sht.global_stats', {
-            jp: String(s.jp),
-            us: String(s.us),
-            tid: String(s.tid),
-          });
-        }
-      } catch {
-        /* 降级：统计不可用不阻断页面 */
+      // 每次进入首页都读一次真数（不沿用上一页的缓存结果）。
+      invalidateGlobalStats();
+      const read = await loadGlobalStats();
+      if (read.ok && read.stats && statsLine.isConnected) {
+        statsLine.textContent = t('sht.global_stats', {
+          jp: String(read.stats.jp),
+          us: String(read.stats.us),
+          tid: String(read.stats.tid),
+        });
+      } else if (!read.ok) {
+        warnLog('[UMM] Sehuatang index global stats unread, leaving the box empty:', read.error);
       }
     }
     // 样式已就位（attachSehuatangOverlay 已注入完整 overlay CSS，包含 HOME_CSS）。

@@ -1,0 +1,119 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/user-media-data.spec.ts.
+  NOT a real saved page: all data is fabricated; only the public
+  movie.douban.com/people/{uid}/collect DOM shape is reproduced to match the
+  extractor contracts in src/scenario/douban/pages/user-media/user-media-data.ts
+  + shared extractCollectPageShell:
+  #db-usr-profile sidebar, .opt-bar .sort (text = active, anchors = inactive),
+  .subject-num "1-25 / 2,513", .grid-on mode switch, .tabs-more filter groups
+  (span.gray label / .lnk-tab-more span / ul.tabs-more-list),
+  .grid-view .item blocks (.title a > em + /subject/ href, .pic img,
+  ratingN-t star class, .date, .comment), .paginator.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>星星的影视合集</title>
+  </head>
+  <body>
+    <div class="grid-16-8">
+      <div class="aside">
+        <div id="db-usr-profile">
+          <div class="pic">
+            <img src="https://img3.doubanio.com/icon/u9876543-2.jpg" alt="星星" />
+          </div>
+          <div class="info">
+            <h1>星星(我的收藏 2513)</h1>
+            <ul class="plim">
+              <li><a href="https://www.douban.com/people/xingxing/">主页</a></li>
+              <li><a href="https://movie.douban.com/people/xingxing/collect">我看</a></li>
+              <li><a href="https://book.douban.com/people/xingxing/collect">我读</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="article">
+        <div class="opt-bar clearfix">
+          <span class="sort"
+            >标记日期<span class="sep"> · </span><a href="?sort=rating">评价</a
+            ><span class="sep"> · </span><a href="?sort=title">标题</a></span
+          >
+          <span class="grid-on">网格视图</span>
+          <span class="list-on">列表视图</span>
+          <span class="subject-num">1-25 / 2,513</span>
+          <div class="tabs-more">
+            <span class="gray">类型:</span>
+            <a class="lnk-tab-more" href="#"><span>全部</span><i class="arrow">▾</i></a>
+            <ul class="tabs-more-list">
+              <li><a href="?tag=剧情">剧情</a></li>
+              <li><a href="?tag=喜剧">喜剧</a></li>
+              <li><a href="?tag=科幻">科幻</a></li>
+            </ul>
+          </div>
+          <div class="tabs-more">
+            <span class="gray">标签：</span>
+            <a class="lnk-tab-more" href="#"><span>未选</span><i class="arrow">▾</i></a>
+            <!-- 无 tabs-more-list：items 必须为空数组但 group 仍保留 -->
+          </div>
+          <div class="tabs-more">
+            <!-- 无 span.gray label → 整组丢弃 -->
+            <ul class="tabs-more-list">
+              <li><a href="?x=1">幽灵组</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid-view">
+          <div class="item">
+            <div class="pic">
+              <a class="nbg" href="https://movie.douban.com/subject/36185501/"
+                ><img src="https://img1.doubanio.com/view/photo/s_ratio_poster/p2923492298.jpg"
+              /></a>
+            </div>
+            <div class="title">
+              <a href="https://movie.douban.com/subject/36185501/"><em>好东西</em></a>
+            </div>
+            <div class="info">
+              <span class="user-stars rating5-t" title="力荐"></span>
+              <span class="date">2024-11-23 看过</span>
+              <span class="comment">举重若轻，年度最佳。</span>
+            </div>
+          </div>
+          <div class="item">
+            <div class="pic">
+              <a class="nbg" href="https://movie.douban.com/subject/2589592/"
+                ><img src="https://img9.doubanio.com/view/photo/s_ratio_poster/p2887417856.jpg"
+              /></a>
+            </div>
+            <div class="title">
+              <a href="https://movie.douban.com/subject/2589592/"><em>宇宙探索编辑部</em></a>
+            </div>
+            <div class="info">
+              <!-- 无评分元素 → rating 回退 '0' -->
+              <span class="date">2023-04-03 看过</span>
+            </div>
+          </div>
+          <div class="item">
+            <!-- 无 .title：链接走 .info a[href*="/subject/"] 兜底，name 取链接全文 -->
+            <div class="info">
+              <a href="https://movie.douban.com/subject/1291544/">违规建筑暂名</a>
+              <span class="user-stars rating3-t"></span>
+            </div>
+          </div>
+          <div class="item">
+            <div class="title">
+              <!-- href 不含 /subject/ → subjectId 解析失败，整条跳过 -->
+              <a href="https://movie.douban.com/annual/2023"><em>年度报告入口</em></a>
+            </div>
+          </div>
+        </div>
+        <div class="paginator">
+          <span class="thispage" data-total-page="101">1</span>
+          <a href="?start=25">2</a>
+          <a href="?start=50">3</a>
+          <span class="next"><a href="?start=25">后页&gt;</a></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

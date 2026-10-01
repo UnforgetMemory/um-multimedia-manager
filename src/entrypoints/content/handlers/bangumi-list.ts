@@ -20,6 +20,7 @@
 import { Store, STORE_NAMES } from '@/engine/database';
 import { t, initI18n } from '../i18n';
 import { waitForElement } from '../utils/dom';
+import { runChunked } from '@/libraries/utils/dom-chunk';
 import {
   extractListItemId,
   extractBrowserPathType,
@@ -33,6 +34,9 @@ const LIST_SELECTOR = 'ul.browserFull.browser-list';
 // 幂等标识属性：与语义色属性 data-status 分离（全局样式选择器只认 data-status，
 // 见 global.ts LIST_STATUS_STYLES；data-umm-list-status 仅为标记存在性判断）。
 const MARKER_ATTR = 'data-umm-list-status';
+
+/** Marks injected per animation frame (same budget as bilibili/YouTube/TMDB badges). */
+const BANGUMI_MARK_CHUNK_SIZE = 10;
 
 /**
  * 构建状态标记。规格（labelKey + statusAttr）由 bangumiListMarkerSpec 统一定义：
@@ -94,8 +98,9 @@ export async function handleBangumiListPage(): Promise<void> {
   // 浏览列表类型（anime/book/music/game）：music 列表的状态标记用“听”语义文案
   const mediaType = extractBrowserPathType(window.location.pathname);
 
-  // 只读可见条目的 store keys（{type}::{subjectId}），而非全表扫描；
-  // 空 key 集（无卡片 / 未知类型）回退全表拉取，保证标记永不静默消失。
+  // 只读可见条目的 store keys（{type}::{subjectId}），而非全表扫描。
+  // 无 key（页面类型不认识，或这一批 li 里没有可解析的 item_ 数字 id）时直接读空集：
+  // 标记循环同样拿不到 providerId，全表扫点亮不了任何一行，却会随每次 DOM 变动重复。
   const items = document.querySelectorAll<HTMLElement>(`${LIST_SELECTOR} li.item`);
   const prefix = bangumiTypePrefix(mediaType);
   const keys =
@@ -109,10 +114,10 @@ export async function handleBangumiListPage(): Promise<void> {
           .filter((key): key is string => key !== null);
 
   // 定向读取可见条目记录 → Map<providerId, { status, rating }>
-  const entries =
-    keys.length > 0
-      ? await Store.dbGetBulk(STORE_NAMES.BANGUMI, keys)
-      : await Store.dbGetAll(STORE_NAMES.BANGUMI);
+  // 键集合为空说明这一批里没有可解析的条目 id —— 后面的标记循环同样取不到
+  // providerId，所以全表扫既不会点亮任何一行，又会在 DOM 变动批次里被反复触发
+  // （与 X31-B / X40 收口掉的三处同族退化）。
+  const entries = keys.length > 0 ? await Store.dbGetBulk(STORE_NAMES.BANGUMI, keys) : [];
   const statusMap = new Map<string, { status: number; rating: number }>();
   for (const { key, record } of entries) {
     const providerId = extractProviderIdFromKey(key);
@@ -121,17 +126,27 @@ export async function handleBangumiListPage(): Promise<void> {
     }
   }
 
+  // Frame-chunked: a browser list can carry 200+ `li.item`, and one sync
+  // `insertAdjacentElement` per card is a host-page long task (same class as
+  // the bilibili/YouTube badge passes already fixed via runChunked).
+  // `runChunked` needs a real array (`items.slice`); NodeList has no slice.
+  // Await the run's `.promise` — ChunkedRun is not thenable, so a bare
+  // `await runChunked(...)` returns after the first (sync) chunk only.
   let marked = 0;
-  for (const li of items) {
-    const subjectId = extractListItemId(li.id);
-    if (subjectId === null) continue;
-    // 全状态注入：无本地记录或 status 0 均按 未看 标记
-    const entry = statusMap.get(subjectId);
-    const status = entry?.status ?? 0;
-    const rating = entry?.rating ?? 0;
-    markCard(li, status, rating, mediaType ?? undefined);
-    marked++;
-  }
+  await runChunked(
+    Array.from(items),
+    (li) => {
+      const subjectId = extractListItemId(li.id);
+      if (subjectId === null) return;
+      // 全状态注入：无本地记录或 status 0 均按 未看 标记
+      const entry = statusMap.get(subjectId);
+      const status = entry?.status ?? 0;
+      const rating = entry?.rating ?? 0;
+      markCard(li, status, rating, mediaType ?? undefined);
+      marked++;
+    },
+    { chunkSize: BANGUMI_MARK_CHUNK_SIZE },
+  ).promise;
 
   console.log(`[UMM] Bangumi list: ${items.length} cards, ${marked} marked`);
 }

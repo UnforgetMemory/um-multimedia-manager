@@ -3,6 +3,7 @@
  * UmmSearchCard — search result card for Douban movie/TV/music/book search page.
  * Displays cover, title, status badge, rating, metadata, and media format chips (music only).
  */
+import { safeHref } from '@/libraries/utils/safe-url';
 import type { SearchItem } from '../types';
 import type { StoreRecord } from '@/types';
 import { computed } from 'vue';
@@ -12,10 +13,11 @@ import { UmmRating } from '@/scenario/douban/components/umm-rating';
 import {
   ASPECT_RATIO,
   MEDIA_FORMATS,
-  FORMAT_LABELS,
+  FORMAT_LABEL_KEYS,
   FORMAT_COLORS,
 } from '@/scenario/douban/shared/media-formats';
 import { splitTitleYear } from '@/scenario/douban/shared/title-year';
+import { t } from '../../../shared/legacy-bridge';
 
 /** 规范化 IMDb ID → 小写 tt-xxx；非法值返回 null */
 function normalizeImdbId(id: string | undefined | null): string | null {
@@ -32,9 +34,13 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { type: 'movie' });
 
-const rec = props.records.get(String(props.item.id));
-const badgeStatus = rec?.status ?? 0;
-const badgeRating = rec?.rating ?? 0;
+// Lookup must stay inside a computed: a setup-time read freezes the badge at
+// whatever the map held when this card mounted, so a record written in another
+// tab would never land (the reason `useRecordCache` reloads looked like no-ops).
+const badge = computed(() => {
+  const rec = props.records.get(String(props.item.id));
+  return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 };
+});
 
 const isMusic = props.type === 'music';
 const isBook = props.type === 'book';
@@ -50,7 +56,12 @@ const mediaFormat = computed(() => {
   for (const seg of segments) {
     const trimmed = seg.trim();
     if (MEDIA_FORMATS.has(trimmed)) {
-      return FORMAT_LABELS[trimmed] || trimmed;
+      // Display names come from the dictionary; the color lookup MUST use the
+      // host string (FORMAT_COLORS' key domain is host formats — looking up
+      // with a localized display name drops the color from the zh "数字" chip,
+      // a regression caught by the X108 re-review).
+      const key = FORMAT_LABEL_KEYS[trimmed];
+      return { label: key ? t(key) : trimmed, hostFormat: trimmed };
     }
   }
   return null;
@@ -63,7 +74,7 @@ const titleParts = computed(() => splitTitleYear(props.item.title));
 <template vapor>
   <div class="umm-search-card-wrap" :class="{ 'umm-search-card-wrap--music': isMusic }">
     <a
-      :href="item.url"
+      :href="safeHref(item.url)"
       target="_blank"
       rel="noopener noreferrer"
       class="umm-search-card"
@@ -84,9 +95,11 @@ const titleParts = computed(() => splitTitleYear(props.item.title));
           }}</span>
         </div>
         <div v-if="isMusic && mediaFormat" class="umm-search-media-row">
-          <span class="umm-search-media-chip" :class="FORMAT_COLORS[mediaFormat] || ''">{{
-            mediaFormat
-          }}</span>
+          <span
+            class="umm-search-media-chip"
+            :class="FORMAT_COLORS[mediaFormat.hostFormat] || ''"
+            >{{ mediaFormat.label }}</span
+          >
         </div>
         <div v-if="titleParts.year" class="umm-search-year-row">
           <span class="umm-search-year">{{ titleParts.year }}</span>
@@ -96,8 +109,8 @@ const titleParts = computed(() => splitTitleYear(props.item.title));
         <div class="umm-search-card-title-row">
           <span class="umm-search-card-title">{{ titleParts.title }}</span>
           <UmmStatusBadgeWrapper
-            :status="badgeStatus"
-            :rating="badgeRating"
+            :status="badge.status"
+            :rating="badge.rating"
             variant="small"
             :type="type"
           />

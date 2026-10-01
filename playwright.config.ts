@@ -1,4 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+/* Spec files share one module registry per worker, and vendor modules capture
+ * DOM globals when they are first imported — so the globals must exist before
+ * any spec module is evaluated, not per file. */
+const domBaseline = path.resolve('tests/unit/helpers/worker-dom-baseline.mjs');
+if (!fs.existsSync(domBaseline)) {
+  throw new Error(`missing DOM baseline preload: ${domBaseline}`);
+}
+const baselineFlag = `--import=${pathToFileURL(domBaseline).href}`;
+process.env.NODE_OPTIONS = process.env.NODE_OPTIONS
+  ? `${process.env.NODE_OPTIONS} ${baselineFlag}`
+  : baselineFlag;
 
 /**
  * Read environment variables from file.
@@ -13,6 +28,9 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  /* tests/e2e runs real browser + loaded extension under playwright.e2e.config.ts
+   * (npm run test:e2e) — never sweep it into `npm run test:unit` / default runs. */
+  testIgnore: ['**/e2e/**'],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

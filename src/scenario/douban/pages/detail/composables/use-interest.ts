@@ -9,7 +9,7 @@
  */
 
 import { ref, type Ref, type MaybeRefOrGetter, toValue } from 'vue';
-import { FloatingToast } from '@/scenario/douban/shared/legacy-bridge';
+import { FloatingToast, t } from '@/scenario/douban/shared/legacy-bridge';
 import { fetchWithTimeout } from '@/libraries/utils/fetch-timeout';
 
 /**
@@ -180,12 +180,12 @@ export function useInterest(
         myTags.value = [];
         savedTags.value = [];
         currentComment.value = '';
-        error.value = '请求失败，请确认登录状态';
+        error.value = t('douban.interest.err_request');
         // 403 with DedeUserID cookie means session expired — show toast
         if (resp.status === 403) {
           const msg = isDoubanLoggedIn()
-            ? '豆瓣登录可能已过期，请刷新页面重新登录'
-            : '豆瓣登录已过期，请刷新页面重新登录';
+            ? t('douban.interest.err_session_maybe')
+            : t('douban.interest.err_session');
           FloatingToast.error('UMM', msg);
         }
         return;
@@ -268,11 +268,11 @@ export function useInterest(
 
     const ck = getCk();
     if (!ck) {
-      error.value = '未登录豆瓣';
+      error.value = t('douban.interest.err_not_logged_in');
       if (!isDoubanLoggedIn()) {
-        FloatingToast.error('UMM', '未登录豆瓣，请刷新页面重新登录');
+        FloatingToast.error('UMM', t('douban.interest.err_not_logged_in_refresh'));
       } else {
-        FloatingToast.error('UMM', 'CSRF token 缺失，请刷新页面');
+        FloatingToast.error('UMM', t('douban.interest.err_no_csrf'));
       }
       return false;
     }
@@ -321,8 +321,8 @@ export function useInterest(
       error.value = parsed?.message ? String(parsed.message) : `Request failed (${resp.status})`;
       if (resp.status === 403) {
         const msg = isDoubanLoggedIn()
-          ? '豆瓣登录可能已过期，请刷新页面重新登录'
-          : '豆瓣登录已过期，请刷新页面重新登录';
+          ? t('douban.interest.err_session_maybe')
+          : t('douban.interest.err_session');
         FloatingToast.error('UMM', msg);
       }
       return false;

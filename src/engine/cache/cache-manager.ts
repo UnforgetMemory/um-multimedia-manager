@@ -42,8 +42,10 @@ export class CacheManager {
     return this.l1.has(`${namespace}::${key}`);
   }
 
+  /** Drop one entry (`key`, `''` included — a legal cache key, as in LruCache);
+   *  when `key` is omitted, drop the whole namespace. */
   async invalidate(namespace: string, key?: string): Promise<void> {
-    if (key) {
+    if (key !== undefined) {
       const k = `${namespace}::${key}`;
       this.l1.delete(k);
     } else {

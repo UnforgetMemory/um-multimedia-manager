@@ -1,0 +1,325 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/personage-creations-extract.spec.ts.
+  NOT a real saved page: all user watch data is fabricated; only the public
+  personage works-list DOM shape (ul.creations > li.creation, .sort, #role_filter,
+  .paginator) is reproduced to match the extractor contract in
+  src/scenario/douban/pages/personage-creations/personage-creations-data.ts.
+  Page-1 snapshot of a 101-work personage (10 items rendered, data-total-page=10).
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>贾静雯 Alyssa Chia的全部作品 (101)</title>
+  </head>
+  <body>
+    <div id="content">
+      <div class="article">
+        <h1>贾静雯 Alyssa Chia的全部作品 (101)</h1>
+        <ul class="sort">
+          <li>
+            <a
+              class="cur"
+              href="https://www.douban.com/personage/27235071/creations?sortby=time&type=filmmaker&role=&format=pic"
+              >按时间排序</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.douban.com/personage/27235071/creations?sortby=collection&type=filmmaker&role=&format=pic"
+              >按标记排序</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.douban.com/personage/27235071/creations?sortby=vote&type=filmmaker&role=&format=pic"
+              >按评价排序</a
+            >
+          </li>
+        </ul>
+        <!-- 统计表格插入点：vote 排序下豆瓣在 .sort 后渲染评分分布 table（由 spec mutate 注入） -->
+        <div class="filter">
+          <select id="role_filter" name="role">
+            <option value="">全部</option>
+            <option value="A1">演员</option>
+            <option value="A3">出镜</option>
+            <option value="A2">配音</option>
+          </select>
+        </div>
+        <ul class="creations">
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36200101/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200101.jpg"
+                alt="魔法阿妈2"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36200101/">魔法阿妈2</a>
+                <span>(2028)</span>
+                <span>(未上映)</span>
+                <span>[ 演员 ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar00"></span></div>
+                <div class="roles">
+                  <div>导演: 王小棣</div>
+                  <div>主演: 贾静雯 / 杨丽音 / 卓胜利</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750002/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200102.jpg"
+                alt="回魂计"
+                width="68"
+              />
+            </a>
+            <span class="watch-status">看过</span>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750002/">回魂计</a>
+                <span>(2025)</span>
+                <span>[ 演员 (饰 曾秀怡) ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar35"></span></div>
+                <div class="roles">
+                  <div>导演: 游瀚青</div>
+                  <div>主演: 贾静雯 / 许光汉</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750003/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200103.jpg"
+                alt="蜡烛台"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750003/">蜡烛台</a>
+                <span>(2024)</span>
+                <span>(已上映)</span>
+                <span>[ 演员 (饰 江莉) ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar20"></span></div>
+                <div class="roles">
+                  <div>导演: 连奕琦</div>
+                  <div>主演: 贾静雯 / 温升豪</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750004/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200104.jpg"
+                alt="以美之名"
+                width="68"
+              />
+            </a>
+            <span class="watch-status">想看</span>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750004/">以美之名</a>
+                <span>(2023)</span>
+                <span>(已上映)</span>
+                <span>[ 演员 (饰 杨真真) ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar45"></span></div>
+                <div class="roles">
+                  <div>导演: 姚文逸</div>
+                  <div>主演: 贾静雯 / 姚晨</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750005/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200105.jpg"
+                alt="瀑布"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750005/">瀑布</a>
+                <span>(2021)</span>
+                <span>[ 演员 ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar40"></span></div>
+                <div class="roles">
+                  <div>导演: 钟孟宏</div>
+                  <div>主演: 贾静雯 / 王净</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750006/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200106.jpg"
+                alt="与神同行"
+                width="68"
+              />
+            </a>
+            <span class="watch-status">在看</span>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750006/">与神同行</a>
+                <span>(2019)</span>
+                <span>[ 配音 ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="value">6.8</span></div>
+                <div class="roles">
+                  <div>导演: 金容华</div>
+                  <div>主演: 河正宇 / 车太贤</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750007/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200107.jpg"
+                alt="大卖家"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750007/">大卖家</a>
+                <span>(2018)</span>
+                <span>[ 出镜 ]</span>
+              </h6>
+              <div class="roles">
+                <div>导演: 五百</div>
+                <div>主演: 贾静雯 / 周一围</div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750008/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200108.jpg"
+                alt="papaya 牛奶"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750008/">papaya 牛奶</a>
+                <span>(2017)</span>
+                <span>(未上映)</span>
+                <span>[ 演员 - 配音 ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar00"></span></div>
+                <div class="roles">
+                  <div>导演: 林孝谦</div>
+                  <div>主演: 贾静雯</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750009/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200109.jpg"
+                alt="伪婚男女"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750009/">伪婚男女</a>
+                <span>(2017)</span>
+                <span>[ 演员 ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar50"></span></div>
+                <div class="roles">
+                  <div>导演: 周美玲</div>
+                  <div>主演: 贾静雯 / 程予希</div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="creation item">
+            <a class="cover" href="https://movie.douban.com/subject/36750010/">
+              <img
+                src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200110.jpg"
+                alt="失序者"
+                width="68"
+              />
+            </a>
+            <div class="meta">
+              <h6>
+                <a href="https://movie.douban.com/subject/36750010/">失序者</a>
+                <span>(2016)</span>
+                <span>[ 演员 (饰 何医生) ]</span>
+              </h6>
+              <div class="info">
+                <div class="rating"><span class="rating-star allstar25"></span></div>
+                <div class="roles">
+                  <div>导演: 连春利</div>
+                  <div>主演: 贾静雯 / 修杰楷</div>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <div class="paginator">
+          <span class="total">101</span>
+          <span class="prev">前页</span>
+          <span class="thispage" data-total-page="10">1</span>
+          <span class="next"
+            ><a
+              href="https://www.douban.com/personage/27235071/creations?type=filmmaker&role=&sortby=time&format=pic&start=10"
+              >后页</a
+            ></span
+          >
+          <span class="last"
+            ><a
+              href="https://www.douban.com/personage/27235071/creations?type=filmmaker&role=&sortby=time&format=pic&start=90"
+              >最后一页</a
+            ></span
+          >
+        </div>
+      </div>
+    </div>
+    <!-- 侧栏推荐位：#content 之外的 li.creation，extractor 应经 closest('#content') 跳过 -->
+    <div id="aside">
+      <ul class="creations">
+        <li class="creation item">
+          <a class="cover" href="https://movie.douban.com/subject/36759999/">
+            <img
+              src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936299999.jpg"
+              alt="-sidebar-decoy"
+              width="48"
+            />
+          </a>
+          <div class="meta">
+            <h6>
+              <a href="https://movie.douban.com/subject/36759999/">sidebar 推荐项</a>
+              <span>(2020)</span> <span>[ 演员 ]</span>
+            </h6>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>

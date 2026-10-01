@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { fetchWithTimeout, withTimeout } from '@/libraries/utils/fetch-timeout';
 
 /**
@@ -8,7 +11,7 @@ import { fetchWithTimeout, withTimeout } from '@/libraries/utils/fetch-timeout';
 
 function hungFetch(): { calls: RequestInit[] } {
   const calls: RequestInit[] = [];
-  globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => {
+  defineGlobal('fetch', ((_input: RequestInfo | URL, init?: RequestInit) => {
     calls.push(init ?? {});
     return new Promise((_resolve, reject) => {
       init?.signal?.addEventListener('abort', () => {
@@ -17,7 +20,7 @@ function hungFetch(): { calls: RequestInit[] } {
         reject(err);
       });
     });
-  }) as typeof fetch;
+  }) as typeof fetch);
   return { calls };
 }
 
@@ -33,18 +36,18 @@ test('fetchWithTimeout attaches a timeout signal that rejects a hung request', a
     expect(calls[0]!.signal).toBeInstanceOf(AbortSignal);
     expect(calls[0]!.credentials).toBe('include');
   } finally {
-    globalThis.fetch = realFetch;
+    defineGlobal('fetch', realFetch);
   }
 });
 
 test('fetchWithTimeout resolves through when fetch settles before the deadline', async () => {
   const realFetch = globalThis.fetch;
   try {
-    globalThis.fetch = (async () => new Response('ok')) as typeof fetch;
+    defineGlobal('fetch', (async () => new Response('ok')) as typeof fetch);
     const resp = await fetchWithTimeout('https://fast.test/', { credentials: 'include' });
     expect(await resp.text()).toBe('ok');
   } finally {
-    globalThis.fetch = realFetch;
+    defineGlobal('fetch', realFetch);
   }
 });
 
@@ -59,7 +62,7 @@ test('fetchWithTimeout keeps a caller-provided signal untouched', async () => {
     expect(calls).toHaveLength(1); // 存在性守卫
     expect(calls[0]!.signal).toBe(controller.signal);
   } finally {
-    globalThis.fetch = realFetch;
+    defineGlobal('fetch', realFetch);
   }
 });
 

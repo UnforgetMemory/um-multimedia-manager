@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { openExternalUrl, safeHref } from '@/libraries/utils/safe-url';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
 import { ASPECT_RATIO } from '@/scenario/douban/shared/media-formats';
+import { t } from '../../shared/legacy-bridge';
 import type { PhotosPageData, PhotoItem } from './photos-data';
 
 const props = defineProps<{ data: PhotosPageData }>();
@@ -111,11 +113,11 @@ function clampPan(): void {
 }
 
 function goToPage(url: string): void {
-  if (url) window.location.href = url;
+  if (url) window.location.href = safeHref(url);
 }
 
 function openLink(href: string): void {
-  window.open(href, '_blank');
+  openExternalUrl(href);
 }
 
 function downloadPhoto(photo: PhotoItem): void {
@@ -154,23 +156,28 @@ onUnmounted(() => {
       <!-- Header -->
       <div class="umm-photos-header">
         <h1 class="umm-photos-title">{{ d.title }}</h1>
-        <span class="umm-photos-count">共 {{ d.pageInfo.totalCount }} 张</span>
+        <span class="umm-photos-count">{{
+          t('douban.photos.count', { count: d.pageInfo.totalCount })
+        }}</span>
 
         <div class="umm-photos-nav">
           <span
             class="umm-nav-btn"
             :class="{ 'umm-nav-btn--disabled': !d.pageInfo.prevUrl }"
             @click="goToPage(d.pageInfo.prevUrl)"
-            >‹ 上一页</span
+            >{{ t('douban.photos.prev') }}</span
           >
-          <span class="umm-nav-page"
-            >第 {{ d.pageInfo.currentPage }} / {{ d.pageInfo.totalPages }} 页</span
-          >
+          <span class="umm-nav-page">{{
+            t('douban.photos.page_info', {
+              current: d.pageInfo.currentPage,
+              total: d.pageInfo.totalPages,
+            })
+          }}</span>
           <span
             class="umm-nav-btn"
             :class="{ 'umm-nav-btn--disabled': !d.pageInfo.nextUrl }"
             @click="goToPage(d.pageInfo.nextUrl)"
-            >下一页 ›</span
+            >{{ t('douban.photos.next') }}</span
           >
         </div>
       </div>
@@ -198,7 +205,9 @@ onUnmounted(() => {
           >
         </div>
 
-        <div v-if="d.photos.length === 0" class="umm-photo-empty">暂无筛选结果</div>
+        <div v-if="d.photos.length === 0" class="umm-photo-empty">
+          {{ t('douban.photos.empty') }}
+        </div>
         <div
           v-else
           class="umm-photo-grid"
@@ -213,13 +222,13 @@ onUnmounted(() => {
             <div class="umm-photo-cover">
               <UmmImageWrapper
                 :src="photo.src"
-                :alt="photo.caption || '照片'"
+                :alt="photo.caption || t('douban.photos.photo')"
                 :aspect-ratio="aspectRatio"
               />
               <button
                 type="button"
                 class="umm-dl-btn"
-                title="下载"
+                :title="t('douban.photos.download')"
                 @click.stop="downloadPhoto(photo)"
               >
                 <svg
@@ -249,16 +258,19 @@ onUnmounted(() => {
           class="umm-nav-btn"
           :class="{ 'umm-nav-btn--disabled': !d.pageInfo.prevUrl }"
           @click="goToPage(d.pageInfo.prevUrl)"
-          >‹ 上一页</span
+          >{{ t('douban.photos.prev') }}</span
         >
-        <span class="umm-nav-page"
-          >第 {{ d.pageInfo.currentPage }} / {{ d.pageInfo.totalPages }} 页</span
-        >
+        <span class="umm-nav-page">{{
+          t('douban.photos.page_info', {
+            current: d.pageInfo.currentPage,
+            total: d.pageInfo.totalPages,
+          })
+        }}</span>
         <span
           class="umm-nav-btn"
           :class="{ 'umm-nav-btn--disabled': !d.pageInfo.nextUrl }"
           @click="goToPage(d.pageInfo.nextUrl)"
-          >下一页 ›</span
+          >{{ t('douban.photos.next') }}</span
         >
       </div>
 
@@ -289,10 +301,10 @@ onUnmounted(() => {
       <!-- Download button: top-left -->
       <button
         class="umm-gallery-dl"
-        title="下载"
+        :title="t('douban.photos.download')"
         @click="currentPhoto && downloadPhoto(currentPhoto)"
       >
-        下载
+        {{ t('douban.photos.download') }}
       </button>
 
       <!-- Image container -->
@@ -310,7 +322,7 @@ onUnmounted(() => {
           <img
             v-if="currentPhoto"
             :src="currentPhoto.src"
-            :alt="currentPhoto.caption || '照片'"
+            :alt="currentPhoto.caption || t('douban.photos.photo')"
             class="umm-gallery-img"
             :style="{
               transform: `scale(${galleryZoom}) translate(${galleryPanX}px, ${galleryPanY}px)`,

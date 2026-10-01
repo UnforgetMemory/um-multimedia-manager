@@ -107,8 +107,9 @@ export function extractUserProfileData(): UserProfileData | null {
   if (!userId) return null;
 
   // ---- Display name from #db-usr-profile h1 (first text node only) ----
+  // Return an empty string when missing: the data layer never produces final strings; the "user <id>" fallback is resolved by the render layer via i18n (X108).
   const h1El = document.querySelector('#db-usr-profile .info h1');
-  const displayName = h1El ? getFirstTextNode(h1El) : `用户 ${userId}`;
+  const displayName = h1El ? getFirstTextNode(h1El) : '';
 
   // ---- Avatar from sidebar .userface (large) ----
   const avatarEl = document.querySelector<HTMLImageElement>('.basic-info .userface');

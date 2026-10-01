@@ -21,6 +21,15 @@ function useStorage(): Storage {
   return dom.window.sessionStorage;
 }
 
+// Workers are shared across spec files; the jsdom sessionStorage stub must
+// not outlive this file (each test re-installs its own fresh storage).
+const ORIGINAL_SESSION_STORAGE = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+test.afterAll(() => {
+  if (ORIGINAL_SESSION_STORAGE)
+    Object.defineProperty(globalThis, 'sessionStorage', ORIGINAL_SESSION_STORAGE);
+  else delete (globalThis as Record<string, unknown>).sessionStorage;
+});
+
 test.describe('reportSaveFailure — 写入跨页标记', () => {
   test('写入 {at, reason, detail} 结构到 sessionStorage', () => {
     const storage = useStorage();

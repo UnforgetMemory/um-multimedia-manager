@@ -34,7 +34,7 @@ export default {
   'common.unlistened': 'Unlistened',
   'common.importData': 'Import Data',
   'common.exportData': 'Export Data',
-  'common.includeWebdavCredentials': 'Include / restore WebDAV credentials',
+  'common.includeWebdavCredentials': 'Include / restore credentials (WebDAV + NeoDB token)',
   'common.includeWebdavCredentialsHint':
     'When on: export embeds credentials in the file; import restores them after confirmation. Off by default (safer against malicious backups).',
   'common.startImport': 'Start Import',
@@ -61,6 +61,7 @@ export default {
   'common.savedToDb': 'Saved to database',
   'common.ratingRequired': 'Please select a valid rating (1-10)',
   'common.saveRating': 'Save Rating',
+  'common.refresh': 'Refresh',
   'common.activity': 'Activity',
   'common.last90Days': 'Last 90 Days',
   'common.daysCount': '{n}d',
@@ -115,6 +116,8 @@ export default {
   'validation.doubanFormat': 'Douban ID must be numeric',
   'validation.neodbFormat': 'NeoDB ID format invalid',
   'validation.tmdbFormat': 'TMDB ID must be numeric',
+  'validation.bilibiliFormat': 'Bilibili ID must start with BV',
+  'validation.youtubeFormat': 'YouTube video ID must be 11 characters',
   'validation.bangumiFormat': 'Bangumi ID must be numeric',
   'validation.javFormat': 'Invalid adult video ID format (e.g. FC2-PPV-1234567, ABP-123)',
   'validation.unknownPlatform': 'Unknown platform',
@@ -193,6 +196,7 @@ export default {
   'weekday.saturday': 'Saturday',
 
   // Toast messages
+  'toast.closeNotification': 'Close notification',
   'toast.saved': 'Saved',
   'toast.saveFailed': 'Save failed',
   'toast.connectionSuccess': 'Connection successful',
@@ -214,9 +218,9 @@ export default {
   // Confirm dialog
   'confirm.importData': 'Import Data',
   'confirm.importRecords': 'About to import {count} records',
-  'confirm.exportWithCredentials': 'Export with WebDAV credentials',
+  'confirm.exportWithCredentials': 'Export with credentials (WebDAV + NeoDB token)',
   'confirm.exportWithCredentialsDesc':
-    'The export file will contain the WebDAV URL, username, and password in plaintext. Keep this file safe to avoid leakage.',
+    'The export file will contain the WebDAV URL, username, password, and NeoDB token in plaintext. Keep this file safe to avoid leakage.',
   'confirm.importWithCredentialsDesc':
-    'This file contains WebDAV credentials. Importing will overwrite your current WebDAV URL, username, and password.',
+    'This file contains credentials (WebDAV + NeoDB token). Importing will overwrite your current WebDAV URL, username, password, and NeoDB token.',
 } as const;

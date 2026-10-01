@@ -231,6 +231,8 @@ async function pushToNeoDB(
       r.el.style.pointerEvents = r.pe;
     });
 
+  // WHY finally: every exit must end the loading state — the token-missing and
+  // communication-failure paths below return early.
   try {
     const settings = await Store.getSettings();
     if (!settings.neodbToken) {
@@ -334,10 +336,10 @@ async function pushToNeoDB(
         'error',
       );
     }
-    restoreBtns();
   } catch (error: unknown) {
     errorLog('Push to NeoDB failed:', error);
     showToast(t('neodb.sync_failed'), 'error');
+  } finally {
     restoreBtns();
   }
 }

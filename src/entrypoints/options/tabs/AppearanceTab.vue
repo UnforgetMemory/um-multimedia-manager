@@ -3,7 +3,7 @@ import { useThemeStore } from '@/store/theme';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { Card, CardContent, CardHeader } from '@/libraries/ui/card';
-import { Sun, Moon, Monitor, Globe } from 'lucide-vue-next';
+import { Sun, Moon, Monitor, Globe } from '@/libraries/ui/icons';
 import { LOCALE_OPTIONS, persistLocale } from '@/libraries/plugins/i18n';
 import type { Locale } from '@/libraries/locales';
 import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';

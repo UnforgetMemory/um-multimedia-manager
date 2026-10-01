@@ -12,7 +12,7 @@ import {
  * Sehuatang detail cache — DB layer tests (ADR-024 D2).
  *
  * Tests the standalone `umm-sehuatang-cache` IndexedDB wrapper
- * (src/features/sehuatang-cache/models.ts) directly against a real
+ * (src/provider/sehuatang-cache/models.ts) directly against a real
  * fake-indexeddb IDBFactory — the message layer is out of scope here.
  *
  * Isolation discipline (same as adult-av-db-layer.spec.ts): fresh

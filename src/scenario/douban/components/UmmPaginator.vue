@@ -13,8 +13,36 @@
  * Emits:
  * - page-change(page: number)
  */
-import { computed } from 'vue';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { computed, h, type FunctionalComponent } from 'vue';
+
+/**
+ * Chevron arrows inlined (not `@/libraries/ui/icons`): this component ships
+ * inside douban-main.js (content-script IIFE). Pulling the icons module here
+ * would drag the shared `createIcon` factory into that bundle for two glyphs.
+ */
+const chevron = (d: string, name: string): FunctionalComponent => {
+  const Comp: FunctionalComponent = (_props, { attrs }) =>
+    h(
+      'svg',
+      {
+        xmlns: 'http://www.w3.org/2000/svg',
+        width: 24,
+        height: 24,
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        'stroke-width': 2,
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        ...attrs,
+      },
+      [h('path', { d })],
+    );
+  Comp.displayName = name;
+  return Comp;
+};
+const ChevronLeft = chevron('m15 18-6-6 6-6', 'ChevronLeft');
+const ChevronRight = chevron('m9 18 6-6-6-6', 'ChevronRight');
 
 const props = defineProps<{
   currentPage: number;

@@ -6,6 +6,10 @@
  * card shell on the page. Dim + badge anchors are applied surgically in JS.
  */
 
+import { runChunked, type ChunkOptions } from '@/libraries/utils/dom-chunk';
+import { sleep } from '@/libraries/utils';
+import { errorMessage } from '@/libraries/utils/error-message';
+import { warnLog } from '@/libraries/utils/logger';
 import {
   parseBilibiliBvidFromHref,
   storeKey,
@@ -15,6 +19,22 @@ import {
 
 /** status >= DIMMER_TRIGGER → dimmed */
 export const DIMMER_TRIGGER = 2;
+
+/**
+ * Bulk-record-read ladder. The single read behind every badge used to sit in a
+ * silent catch, so a rejected DB_GET_BULK left the whole page showing the
+ * phase-1 "unwatched" placeholder as if the background had answered it —
+ * a wrong number is worse than no number, hence retry then withdraw.
+ */
+const BULK_READ_ATTEMPTS = 3;
+const BULK_READ_BACKOFF_MS = [400, 1200] as const;
+
+/**
+ * Cards mutated per animation frame (X9-B): badge creation does
+ * createElement/appendChild + a cached getComputedStyle read, so writes are
+ * chunked AND every chunk runs a read phase before its write phase.
+ */
+const LISTING_CHUNK_SIZE = 10;
 
 export const LISTING_PROCESSED_ATTR = 'data-umm-bili-processed';
 export const LISTING_BADGE_CLASS = 'umm-bili-badge';
@@ -205,23 +225,51 @@ export function findDimShell(card: Element): Element | null {
   return null;
 }
 
+/**
+ * Read-phase snapshot for badge injection: anchor resolution + its computed
+ * position, captured WITHOUT touching the DOM. Passing it to setListingBadge
+ * keeps getComputedStyle out of the write phase (one forced layout per chunk
+ * instead of one per card).
+ */
+export interface BadgeAnchorState {
+  card: HTMLElement;
+  anchorSel: string | null;
+  anchorPosition: string | null;
+}
+
+/** Pure read phase — must not mutate anything. */
+export function readBadgeAnchorState(card: HTMLElement): BadgeAnchorState {
+  const anchorSel = resolveBadgeAnchorSelector(card);
+  const anchor = anchorSel ? card.querySelector<HTMLElement>(anchorSel) : null;
+  const anchorPosition = anchor
+    ? (card.ownerDocument?.defaultView?.getComputedStyle(anchor).position ?? null)
+    : null;
+  return { card, anchorSel, anchorPosition };
+}
+
 export function setListingBadge(
   card: HTMLElement,
   status: number,
   rating?: number,
   badgeClass: string = LISTING_BADGE_CLASS,
   dimmerClass: string = LISTING_DIMMER_CLASS,
+  precomputed?: BadgeAnchorState | null,
 ): HTMLElement {
   let badge = card.querySelector<HTMLElement>(`.${badgeClass}`);
   if (!badge) {
     const doc = card.ownerDocument || document;
     badge = doc.createElement('div');
     badge.className = badgeClass;
-    const anchorSel = resolveBadgeAnchorSelector(card);
+    // Writes below consume the cached read when present; direct single-card
+    // callers outside the chunked pass fall back to measuring here.
+    const usePre = precomputed && precomputed.card === card ? precomputed : null;
+    const anchorSel = usePre ? usePre.anchorSel : resolveBadgeAnchorSelector(card);
     const anchor = anchorSel ? card.querySelector<HTMLElement>(anchorSel) : null;
     if (anchor) {
       // Surgical positioning only — never global CSS on every cover node.
-      const computed = doc.defaultView?.getComputedStyle(anchor).position;
+      const computed = usePre
+        ? usePre.anchorPosition
+        : (doc.defaultView?.getComputedStyle(anchor).position ?? null);
       if (computed === 'static' || !computed) {
         anchor.style.position = 'relative';
       }
@@ -272,67 +320,167 @@ export interface ListingPassResult {
   dimmed: number;
   badgeHits: number;
   bulkKeys: string[];
+  /** False only when every read attempt failed — badges were then withdrawn, not answered. */
+  bulkReadOk: boolean;
 }
 
+/** Withdraw the phase-1 placeholder badge: "unread" must not render as "unwatched". */
+function removeListingBadge(card: HTMLElement): void {
+  card.querySelector(`.${LISTING_BADGE_CLASS}`)?.remove();
+}
+
+/**
+ * X9-B: both write phases go through runChunked. Phase 1 items are card
+ * GROUPS (chunkSize cards each) run 1 group per frame, so within a frame all
+ * getComputedStyle reads complete before any badge/attr writes — interleaved
+ * read/write per card was forcing layout on every card of the batch.
+ * The 250ms observer throttle gates pass triggers, not this write pass.
+ */
 export async function runListingDimmerPass(opts: {
   root: ParentNode;
   storeName: string;
   dbGetBulk: ListingBulkReader;
+  /** Cards mutated per animation frame. */
+  chunkSize?: number;
+  /** Injectable frame scheduler for tests; defaults to requestAnimationFrame. */
+  schedule?: ChunkOptions['schedule'];
+  /** Injectable bulk-read backoff, so a failing read is testable without sleeping. */
+  readWait?: (ms: number) => Promise<void>;
 }): Promise<ListingPassResult> {
-  const { root, storeName, dbGetBulk } = opts;
+  const { root, storeName, dbGetBulk, chunkSize = LISTING_CHUNK_SIZE, schedule, readWait } = opts;
   const unprocessed = `${LISTING_CARD_SELECTOR}:not([${LISTING_PROCESSED_ATTR}])`;
-  const cards = root.querySelectorAll<HTMLElement>(unprocessed);
+  const cards = Array.from(root.querySelectorAll<HTMLElement>(unprocessed));
   const result: ListingPassResult = {
-    scanned: 0,
+    scanned: cards.length,
     withBvid: 0,
     dimmed: 0,
     badgeHits: 0,
     bulkKeys: [],
+    bulkReadOk: true,
   };
   if (cards.length === 0) return result;
-  result.scanned = cards.length;
+
+  const groups: HTMLElement[][] = [];
+  for (let i = 0; i < cards.length; i += chunkSize) groups.push(cards.slice(i, i + chunkSize));
 
   const batch: Array<{ el: HTMLElement; bvid: string }> = [];
-  cards.forEach((card) => {
-    card.setAttribute(LISTING_PROCESSED_ATTR, 'true');
-    const bvid = extractBvidFromCard(card);
-    if (!bvid) return;
-    batch.push({ el: card, bvid });
-    setListingBadge(card, 0);
-  });
+  await runChunked(
+    groups,
+    (group) => {
+      // Read phase: batch all computed-style measurements for this frame.
+      const states = group.map(readBadgeAnchorState);
+      // Write phase: mutations only from here on.
+      for (const state of states) {
+        state.card.setAttribute(LISTING_PROCESSED_ATTR, 'true');
+        const bvid = extractBvidFromCard(state.card);
+        if (!bvid) continue;
+        batch.push({ el: state.card, bvid });
+        setListingBadge(state.card, 0, undefined, LISTING_BADGE_CLASS, LISTING_DIMMER_CLASS, state);
+      }
+    },
+    { chunkSize: 1, schedule },
+  ).promise;
   result.withBvid = batch.length;
   if (batch.length === 0) return result;
 
   const keys = bulkKeysForBvids(batch.map((b) => b.bvid));
   result.bulkKeys = keys;
 
-  try {
-    const entries = await dbGetBulk(storeName, keys);
-    const byKey = new Map<string, ListingRecordLike>();
-    for (const entry of entries) {
-      if (!entry?.key) continue;
-      byKey.set(entry.key, entry.record || {});
+  let entries: Awaited<ReturnType<ListingBulkReader>> | null = null;
+  let readError: unknown;
+  for (let attempt = 0; attempt < BULK_READ_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      await (readWait ?? sleep)(
+        BULK_READ_BACKOFF_MS[Math.min(attempt - 1, BULK_READ_BACKOFF_MS.length - 1)]!,
+      );
     }
-    for (const { el, bvid } of batch) {
-      const record = byKey.get(storeKey(bvid));
-      if (!record) continue;
-      const status = record.status || 0;
-      const rating = record.rating || 0;
+    try {
+      entries = await dbGetBulk(storeName, keys);
+      break;
+    } catch (err: unknown) {
+      readError = err;
+    }
+  }
+  if (!entries) {
+    // Nothing was answered: drop the placeholders instead of shipping them as
+    // verdicts, and leave the cards marked processed so withdrawing a badge
+    // cannot re-arm the host-page observer into a read loop.
+    result.bulkReadOk = false;
+    warnLog(
+      '[UMM] Bilibili listing DB_GET_BULK unread after all attempts, badges withdrawn:',
+      errorMessage(readError),
+    );
+    await runChunked(
+      batch.map((item) => item.el),
+      removeListingBadge,
+      { chunkSize, schedule },
+    ).promise;
+    return result;
+  }
+
+  const byKey = new Map<string, ListingRecordLike>();
+  for (const entry of entries) {
+    if (!entry?.key) continue;
+    byKey.set(entry.key, entry.record || {});
+  }
+  const updates: Array<{ el: HTMLElement; record: ListingRecordLike | null }> = [];
+  for (const { el, bvid } of batch) {
+    // A row with NO record is an answer ("not watched"), not a missing verdict:
+    // skipping it is what made the delete direction unrepresentable on re-scan.
+    updates.push({ el, record: byKey.get(storeKey(bvid)) ?? null });
+  }
+  // Badge nodes already exist from phase 1, so this pass is pure writes —
+  // still chunked to keep each frame's mutation cost bounded.
+  await runChunked(
+    updates,
+    ({ el, record }) => {
+      const status = record?.status ?? 0;
+      const rating = record?.rating ?? 0;
+      const shell = findDimShell(el);
       if (shouldDimStatus(status)) {
         // Exclusive visual dim: shell XOR card — never both (compound opacity).
-        const shell = findDimShell(el);
         if (shell) {
           shell.classList.add(LISTING_SHELL_DIM_CLASS);
+          el.classList.remove(LISTING_DIMMER_CLASS);
         } else {
           el.classList.add(LISTING_DIMMER_CLASS);
         }
         result.dimmed += 1;
+      } else {
+        if (shell) shell.classList.remove(LISTING_SHELL_DIM_CLASS);
+        el.classList.remove(LISTING_DIMMER_CLASS);
       }
       setListingBadge(el, status, rating);
-      result.badgeHits += 1;
-    }
-  } catch {
-    // background unreachable — default badges stay
-  }
+      if (record) result.badgeHits += 1;
+    },
+    { chunkSize, schedule },
+  ).promise;
   return result;
+}
+
+/**
+ * Drop the processed mark on the rows this record event can change so the next
+ * pass re-reads them; a keyless or `'*'` broadcast is a bulk write (import /
+ * restore) and dirties every row, while an unrelated key dirties none — one
+ * foreign write must never re-scan the whole feed.
+ *
+ * Returns the number of dirtied rows (0 ⇒ no re-scan needed).
+ */
+export function invalidateProcessedRows(root: ParentNode, eventKey?: string): number {
+  const bareId = eventKey && eventKey !== '*' ? eventKey.split('::').pop() : undefined;
+  let dirtied = 0;
+  for (const card of Array.from(
+    root.querySelectorAll<HTMLElement>(`[${LISTING_PROCESSED_ATTR}]`),
+  )) {
+    if (!eventKey || eventKey === '*') {
+      card.removeAttribute(LISTING_PROCESSED_ATTR);
+      dirtied++;
+      continue;
+    }
+    if (bareId && extractBvidFromCard(card) === bareId) {
+      card.removeAttribute(LISTING_PROCESSED_ATTR);
+      dirtied++;
+    }
+  }
+  return dirtied;
 }

@@ -1,0 +1,158 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/personage-data.spec.ts.
+  NOT a real saved page — all data is fabricated (fake personage id). Reproduces
+  the public DOM shape of https://www.douban.com/personage/{id}/ as queried by
+  src/scenario/douban/pages/personage/personage-data.ts:
+  section.subject-target (h1.subject-name, .avatar-container img.avatar,
+  ul.subject-property li .label/.value), meta[property="og:description"],
+  section.subject-intro .desc .content fallback, section.subject-picture
+  (ul > a > li.picture with background-image style), section.subject-awards
+  (span year + award link + status spans + work link),
+  #work-collections-sortby-time / #work-collections-sortby-collect li.creation
+  (a.img_wrap, subject link, .rating-val, .timeline-year), ul.unreleased li,
+  "全部 N 部" creations?sortby link, and #partners li.partners-mod-item.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      property="og:description"
+      content="张明远，1975年出生于重庆，  中国内地导演、编剧。  2023年凭《长途跋涉》获金鸡奖最佳导演。"
+    />
+    <title>张明远 Mingyuan Zhang</title>
+  </head>
+  <body>
+    <div class="column-wrap">
+      <section class="module subject-target">
+        <h1 class="subject-name">张明远</h1>
+        <div class="avatar-container">
+          <img class="avatar" src="https://img1.doubanio.com/icon/ra90000001-9.jpg" alt="张明远" />
+        </div>
+        <ul class="subject-property">
+          <li><span class="label">性别:</span><span class="value">男</span></li>
+          <li><span class="label">出生地:</span><span class="value">中国,重庆</span></li>
+          <li><span class="label">IMDb编号:</span><span class="value">nm1234567</span></li>
+          <li><span class="label">职业:</span></li>
+        </ul>
+      </section>
+      <section class="module subject-intro">
+        <h2>影人简介</h2>
+        <div class="desc">
+          <div class="content">张明远，1975年出生于重庆，中国内地导演、编剧。（完整简介见豆瓣）</div>
+        </div>
+      </section>
+      <section class="module subject-picture">
+        <h2>图片</h2>
+        <ul class="gallery">
+          <a href="https://www.douban.com/personage/90000001/photos/1">
+            <li class="picture" style="background-image: url(https://img1.doubanio.com/view/photo/albumpublic/pz90000001-1.jpg)"></li>
+          </a>
+          <a href="https://www.douban.com/personage/90000001/photos/2">
+            <li class="picture" style="background-image:url('https://img2.doubanio.com/view/photo/albumpublic/pz90000001-2.jpg')"></li>
+          </a>
+          <a href="https://www.douban.com/personage/90000001/photos/3">
+            <li class="picture"></li>
+          </a>
+        </ul>
+      </section>
+      <section class="module subject-awards">
+        <h2>获奖</h2>
+        <ul class="awards">
+          <li class="award-item">
+            <span>2023</span>
+            <a href="https://movie.douban.com/awards/jin36/">第36届中国电影金鸡奖</a>
+            <span>最佳导演</span>
+            <span>获奖</span>
+            <a href="https://movie.douban.com/subject/30010001/">《长途跋涉》</a>
+          </li>
+          <li class="award-item">
+            <span>2021</span>
+            <a href="https://movie.douban.com/awards/bfa28/">第28届北京大学生电影节</a>
+            <span>最佳新锐导演</span>
+            <span>提名</span>
+            <a href="https://movie.douban.com/subject/30010002/">《雾中灯塔》</a>
+          </li>
+          <li class="award-item">
+            <span>2019</span>
+            <a href="https://movie.douban.com/awards/golden1000/">第1届金鹤奖</a>
+            <span>人气奖</span>
+          </li>
+        </ul>
+      </section>
+    </div>
+    <div class="aside-wrap">
+      <div id="work-collections-sortby-time">
+        <h3>
+          近期作品
+          <a class="all" href="https://www.douban.com/personage/90000001/creations?sortby=time&format=pic">全部 43 部 ></a>
+        </h3>
+        <ul class="creations">
+          <li class="creation">
+            <a class="img_wrap" href="https://movie.douban.com/subject/30010001/" title="长途跋涉">
+              <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p30010001.jpg" />
+            </a>
+            <a href="https://movie.douban.com/subject/30010001/">长途跋涉</a>
+            <span class="timeline-year">2026</span>
+            <span class="rating-val">8.7</span>
+          </li>
+          <li class="creation">
+            <a class="img_wrap" href="https://movie.douban.com/subject/30010002/" title="雾中灯塔">
+              <img src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p30010002.jpg" />
+            </a>
+            <span class="timeline-year">2025</span>
+          </li>
+          <li class="creation"><span class="timeline-year">1999</span></li>
+        </ul>
+        <ul class="unreleased">
+          <li><a href="https://movie.douban.com/subject/30010003/">沙漠巴士</a><span>(2027)</span></li>
+          <li><span>(信息不全)</span></li>
+        </ul>
+      </div>
+      <div id="work-collections-sortby-collect">
+        <h3>
+          热门作品
+          <a class="all" href="https://www.douban.com/personage/90000001/creations?sortby=collect&format=pic">全部 43 部 ></a>
+        </h3>
+        <ul class="creations">
+          <li class="creation">
+            <a class="img_wrap" href="https://movie.douban.com/subject/30010001/" title="长途跋涉">
+              <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p30010001.jpg" />
+            </a>
+            <a href="https://movie.douban.com/subject/30010001/">长途跋涉</a>
+            <span class="timeline-year">2026</span>
+            <span class="rating-val">8.7</span>
+          </li>
+          <li class="creation">
+            <a class="img_wrap" href="https://movie.douban.com/subject/30010002/" title="雾中灯塔">
+              <img src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p30010002.jpg" />
+            </a>
+            <a href="https://movie.douban.com/subject/30010002/">雾中灯塔</a>
+            <span class="timeline-year">2025</span>
+            <span class="rating-val">7.9</span>
+          </li>
+        </ul>
+      </div>
+      <div id="partners">
+        <h3>合作影人</h3>
+        <ul class="partners-mod-list">
+          <li class="partners-mod-item">
+            <a class="partners-mod-pic" href="https://www.douban.com/personage/90000002/">
+              <img src="https://img3.doubanio.com/icon/ra90000002-9.jpg" />
+            </a>
+            <div class="partners-mod-info">
+              <a href="https://www.douban.com/personage/90000002/">李雪梅</a>
+              <span>合作作品 (4)</span>
+            </div>
+          </li>
+          <li class="partners-mod-item">
+            <div class="partners-mod-info">
+              <a href="https://www.douban.com/personage/90000003/">王志强</a>
+              <span>合作作品 (2)</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

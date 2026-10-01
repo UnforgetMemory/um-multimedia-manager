@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/photos-data.spec.ts.
+  NOT a real saved page; reproduces BOTH page shapes consumed by
+  src/scenario/douban/pages/photos/photos-data.ts:
+    - /subject/{id}/photos  单类型图集 (ul.poster-col3 + #photos_filter + .paginator)
+    - /subject/{id}/all_photos 汇总页  (div.mod ul.pic-col5 + .aside 链接)
+  The two sections coexist in this file; the extractor branches on pathname.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>肖申克的救赎的图片(剧照)</title>
+  </head>
+  <body>
+    <div id="content">
+      <h1>肖申克的救赎的剧照</h1>
+      <div id="photos_filter">
+        <ul>
+          <li><a href="https://movie.douban.com/subject/1292052/photos?type=R">海报(13)</a></li>
+          <li><span class="cur">剧照(320)</span></li>
+          <li class="up"><a href="#top">回到顶部</a></li>
+          <li><a href="https://movie.douban.com/subject/1292052/photos?type=W">壁纸(4)</a></li>
+          <ul class="sub">
+            <li><a href="https://movie.douban.com/subject/1292052/all_photos">全部</a></li>
+            <li><a href="https://movie.douban.com/subject/1292052/photos?type=S&amp;sortby=time">时间排序</a></li>
+          </ul>
+        </ul>
+      </div>
+      <ul class="poster-col3 clearfix">
+        <li data-id="2924970668">
+          <div class="cover">
+            <a href="https://movie.douban.com/photo/2924970668/"><img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2924970668.jpg" alt="" /></a>
+          </div>
+          <div class="name">安迪与瑞德在屋顶 <a href="https://movie.douban.com/photo/2924970668/#comments">5</a></div>
+        </li>
+        <li data-id="1896369053">
+          <div class="cover">
+            <a href="https://movie.douban.com/photo/1896369053/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAP8AAAAA" data-src="https://img2.doubanio.com/view/photo/normal/s1896369053.jpg" alt="" /></a>
+          </div>
+          <div class="name">海报 A2</div>
+        </li>
+        <li data-id="480988254">
+          <div class="name">缺封面图的项，应被跳过</div>
+        </li>
+        <li>
+          <div class="cover"><a href="https://movie.douban.com/photo/111/"><img src="https://img3.doubanio.com/view/photo/normal/s111.jpg" alt="" /></a></div>
+        </li>
+      </ul>
+      <div class="paginator">
+        <span class="prev"><a href="https://movie.douban.com/subject/1292052/photos?type=S&amp;start=0">前页</a></span>
+        <span class="thispage" data-total-page="18">2</span>
+        <span class="next"><a href="https://movie.douban.com/subject/1292052/photos?type=S&amp;start=36">后页</a></span>
+        <div class="count">(320)</div>
+      </div>
+      <!-- all_photos 汇总模块 -->
+      <div class="mod">
+        <h2>全部图片<span class="pl"> · · · · · ·</span></h2>
+        <ul class="pic-col5">
+          <li><a href="https://movie.douban.com/photo/2924970668/"><img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2924970668.jpg" alt="" /></a></li>
+          <li><a href="https://movie.douban.com/photo/1896369053/"><img data-src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p1896369053.jpg" alt="" /></a></li>
+          <li><span>无链接项，应被跳过</span></li>
+          <li class="more-pics"><a href="https://movie.douban.com/subject/1292052/photos">浏览更多</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="aside">
+      <div class="links">
+        <ul>
+          <li><a href="https://movie.douban.com/subject/1292052/">&gt; 返回电影页面</a></li>
+          <li><a href="https://movie.douban.com/subject/1292052/trailer">&gt; 预告片 (13)</a></li>
+          <li><a href="https://movie.douban.com/movies">   </a></li>
+        </ul>
+      </div>
+      <div class="mb30"><a href="https://movie.douban.com/subject/1292052/celebrities">演职员表</a></div>
+    </div>
+  </body>
+</html>

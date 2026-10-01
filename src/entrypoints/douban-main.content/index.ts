@@ -5,6 +5,7 @@
  */
 
 import { defineContentScript } from 'wxt/utils/define-content-script';
+import { bootstrapLogging } from '@/entrypoints/content/bootstrap/logging';
 import { mountDoubanMain } from '@/scenario/douban/main';
 
 export default defineContentScript({
@@ -26,6 +27,10 @@ export default defineContentScript({
   cssInjectionMode: 'manual',
 
   async main() {
+    // Options 页的「调试日志」与「日志级别」只写进 chrome.storage：本上下文不把
+    // 它们读回 configureLogging()，就等于生产恒静音（logger 默认跟随 DEV）——开关
+    // 看着接了却什么也不出，豆瓣页也收不到诊断。先于挂载，首帧日志同样按级别过滤。
+    await bootstrapLogging();
     await mountDoubanMain();
   },
 });

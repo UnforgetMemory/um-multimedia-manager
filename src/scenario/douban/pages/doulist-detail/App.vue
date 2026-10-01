@@ -7,9 +7,14 @@
  * via record data when available.
  */
 
+import { safeHref } from '@/libraries/utils/safe-url';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import UmmPageLinks from '@/scenario/douban/components/UmmPageLinks.vue';
 import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels';
+import { candidateRecordKeys } from '@/scenario/douban/shared/subject-keys';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { formatCountK } from '../../shared/format-count';
+import { t } from '../../shared/legacy-bridge';
 import type { DoulistDetailPageData, DoulistDetailItem } from './types';
 
 const props = defineProps<{
@@ -17,14 +22,25 @@ const props = defineProps<{
   recordMap?: Map<string, import('@/types').StoreRecord>;
 }>();
 
+// Keys are full `{type}::{id}` store keys (a doulist mixes movies, books and
+// music), so the cache runs without a prefix and keeps the bare-id map shape
+// the mount snapshot produced.
+const { records } = useRecordCache(
+  undefined,
+  () =>
+    props.data.items.flatMap((item) =>
+      item.subjectId ? candidateRecordKeys(item.subjectId, item.subjectUrl) : [],
+    ),
+  props.recordMap,
+);
+
 function setFilter(url: string) {
-  window.location.href = url;
+  window.location.href = safeHref(url);
 }
 
 // Get full record for an item
 function getItemRecord(item: DoulistDetailItem): import('@/types').StoreRecord | undefined {
-  if (!props.recordMap) return undefined;
-  return props.recordMap.get(item.subjectId);
+  return records.value.get(item.subjectId);
 }
 
 // Star display helper (0-10 scale → 5 stars)
@@ -39,13 +55,6 @@ function starClass(item: DoulistDetailItem, starIndex: number): string {
   if (stars >= filled) return 'umm-dlist-item-star umm-dlist-item-star--filled';
   if (stars >= filled - 0.5) return 'umm-dlist-item-star umm-dlist-item-star--half';
   return 'umm-dlist-item-star';
-}
-
-// Format count
-function formatCount(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '万';
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
-  return n.toString();
 }
 
 // Status label helper for doulist items
@@ -88,8 +97,12 @@ function statusBadgeText(status: number, rating: number): string {
               }}</span>
             </div>
             <div class="umm-dlist-times">
-              <span v-if="data.createdTime">创建 {{ data.createdTime }}</span>
-              <span v-if="data.updatedTime">更新 {{ data.updatedTime }}</span>
+              <span v-if="data.createdTime">{{
+                t('douban.dl.created', { time: data.createdTime })
+              }}</span>
+              <span v-if="data.updatedTime">{{
+                t('douban.dl.updated', { time: data.updatedTime })
+              }}</span>
             </div>
             <p v-if="data.description" class="umm-dlist-desc">{{ data.description }}</p>
           </div>
@@ -98,11 +111,15 @@ function statusBadgeText(status: number, rating: number): string {
           <div class="umm-dlist-info-mid">
             <div class="umm-dlist-stats-bar">
               <span class="umm-dlist-stat-item">
-                共 <span class="umm-dlist-stat-value">{{ data.totalCount }}</span> 项
+                {{ t('douban.dl.total_lead')
+                }}<span class="umm-dlist-stat-value">{{ data.totalCount }}</span
+                >{{ t('douban.dl.total_tail') }}
               </span>
               <span class="umm-dlist-stat-divider" />
               <span class="umm-dlist-stat-item">
-                本页 <span class="umm-dlist-stat-value">{{ data.items.length }}</span> 项
+                {{ t('douban.dl.page_count_lead')
+                }}<span class="umm-dlist-stat-value">{{ data.items.length }}</span
+                >{{ t('douban.dl.page_count_tail') }}
               </span>
             </div>
 
@@ -149,12 +166,16 @@ function statusBadgeText(status: number, rating: number): string {
                       <span v-for="i in 5" :key="i" :class="starClass(item, i - 1)" />
                     </span>
                     <span class="umm-dlist-item-score">{{ item.rating }}</span>
-                    <span class="umm-dlist-item-count">({{ formatCount(item.ratingCount) }})</span>
+                    <span class="umm-dlist-item-count">({{ formatCountK(item.ratingCount) }})</span>
                   </div>
 
                   <div class="umm-dlist-item-meta">
-                    <template v-if="item.director">导演: {{ item.director }}<br /></template>
-                    <template v-if="item.actors">主演: {{ item.actors }}<br /></template>
+                    <template v-if="item.director"
+                      >{{ t('douban.dl.director') }} {{ item.director }}<br
+                    /></template>
+                    <template v-if="item.actors"
+                      >{{ t('douban.dl.cast') }} {{ item.actors }}<br
+                    /></template>
                     <template v-if="item.genres">{{ item.genres }}<br /></template>
                     <template v-if="item.region || item.year">{{
                       [item.region, item.year].filter(Boolean).join(' · ')
@@ -163,7 +184,7 @@ function statusBadgeText(status: number, rating: number): string {
                 </div>
               </div>
             </div>
-            <div v-else class="umm-dlist-empty">暂无内容</div>
+            <div v-else class="umm-dlist-empty">{{ t('douban.empty.content') }}</div>
           </div>
 
           <!-- Bottom: paginator -->

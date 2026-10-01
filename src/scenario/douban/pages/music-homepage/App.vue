@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { t } from '../../shared/legacy-bridge';
 import { useRecordCache } from '../../shared/composables/use-record-cache';
 import { useDoubanSection } from '../homepage/composables/use-douban-section';
 import { usePageObserver } from '../homepage/composables/use-homepage-observer';
@@ -17,7 +18,7 @@ import type { GenreTag, PopularArtistItem } from './types';
 // Only ids of currently-visible albums are fetched (dbGetBulk), never a
 // full-store scan. Grows as late-parsed albums appear; see collectIds().
 const visibleIds = ref<string[]>([]);
-const { records, load, unsubscribe } = useRecordCache('music', visibleIds);
+const { records, load } = useRecordCache('music', visibleIds);
 
 const { items: newAlbums, refresh: refreshNewAlbums } = useDoubanSection(extractNewAlbums, records);
 const genreTags = ref<GenreTag[]>([]);
@@ -70,8 +71,6 @@ onMounted(async () => {
   })();
 });
 
-onUnmounted(unsubscribe);
-
 function recordFor(item: { subjectId: string }) {
   const rec = records.value.get(item.subjectId);
   return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 };
@@ -83,7 +82,7 @@ function recordFor(item: { subjectId: string }) {
     <div class="umm-top-panel">
       <div v-if="genreTags.length > 0" class="umm-section">
         <div class="umm-section-hd">
-          <h2>热门音乐人分类</h2>
+          <h2>{{ t('douban.mh.hot_artists') }}</h2>
         </div>
         <div class="umm-genre-tags">
           <a
@@ -100,12 +99,12 @@ function recordFor(item: { subjectId: string }) {
 
       <div class="umm-section">
         <div class="umm-section-hd">
-          <h2>新碟榜</h2>
+          <h2>{{ t('douban.mh.new_albums') }}</h2>
         </div>
         <div v-if="newAlbums.length > 0" class="umm-album-grid">
           <UmmMediaCard
             v-for="item in newAlbums"
-            :key="`${item.subjectId}-${recordFor(item).status}-${recordFor(item).rating}`"
+            :key="item.subjectId || item.href"
             mode="grid"
             :poster-url="item.posterUrl"
             :title="item.title"
@@ -120,7 +119,7 @@ function recordFor(item: { subjectId: string }) {
 
       <div v-if="popularArtists.length > 0" class="umm-section">
         <div class="umm-section-hd">
-          <h2>流行音乐人</h2>
+          <h2>{{ t('douban.mh.pop_artists') }}</h2>
         </div>
         <div class="umm-artist-grid">
           <a

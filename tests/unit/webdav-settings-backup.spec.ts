@@ -22,7 +22,7 @@ import {
   collectBackupSettings,
   calculateSettingsHash,
   SETTINGS_DATASET_KEY,
-} from '@/entrypoints/background/handlers/webdav';
+} from '@/entrypoints/background/handlers/webdav-settings';
 import type { AppSettings } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -67,12 +67,15 @@ test.describe('collectBackupSettings', () => {
     settingsCache.get = originalGet;
   });
 
-  test('excludes WebDAV credential keys (webdavUrl / webdavUsername / webdavPassword)', () => {
+  test('excludes credential keys (WebDAV trio + neodbToken) even when present', () => {
     settingsCache.get = () => mockSettings();
     const result = collectBackupSettings();
     expect(result).not.toHaveProperty('webdavUrl');
     expect(result).not.toHaveProperty('webdavUsername');
     expect(result).not.toHaveProperty('webdavPassword');
+    // Positive exclusion with a live string value — the undefined-path case below
+    // cannot catch "key re-added to EXPORT_SETTINGS_KEYS".
+    expect(result).not.toHaveProperty('neodbToken');
   });
 
   test('includes all EXPORT_SETTINGS_KEYS when present in cache', () => {

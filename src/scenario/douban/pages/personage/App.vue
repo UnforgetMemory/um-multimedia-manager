@@ -1,10 +1,18 @@
 <script setup lang="ts">
+import { openExternalUrl } from '@/libraries/utils/safe-url';
+import type { StoreRecord } from '@/types';
 import { ref, computed } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import { UmmMediaCard } from '@/scenario/douban/components/umm-media-card';
-import type { PersonagePageData } from './personage-data';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { subjectIdFromUrl } from '../../shared/subject-keys';
+import type { PersonagePageData, WorkItem } from './personage-data';
 
-const props = defineProps<{ data: PersonagePageData }>();
+const props = defineProps<{
+  data: PersonagePageData;
+  recordMap?: Map<string, StoreRecord>;
+}>();
 const d = props.data;
 
 const bioExpanded = ref(false);
@@ -13,6 +21,32 @@ const showAllAwards = ref(false);
 const displayAwards = computed(() => (showAllAwards.value ? d.awards : d.awards.slice(0, 5)));
 
 const hasMoreAwards = computed(() => d.awards.length > 5);
+
+// Seeded from the mount-time batch read, then live-refreshed by record events.
+const { records } = useRecordCache(
+  'movie',
+  () =>
+    [...d.recentWorks, ...d.popularWorks]
+      .map((work) => subjectIdFromUrl(work.url))
+      .filter((id): id is string => Boolean(id)),
+  props.recordMap ?? new Map<string, StoreRecord>(),
+);
+
+interface WorkWithBadge extends WorkItem {
+  badgeStatus: number;
+  badgeRating: number;
+}
+
+/** Badges are derived, never written back into the extracted data. */
+function withBadges(works: WorkItem[]): WorkWithBadge[] {
+  return works.map((work) => {
+    const rec = records.value.get(subjectIdFromUrl(work.url) ?? '');
+    return { ...work, badgeStatus: rec?.status ?? 0, badgeRating: rec?.rating ?? 0 };
+  });
+}
+
+const recentWorks = computed(() => withBadges(d.recentWorks));
+const popularWorks = computed(() => withBadges(d.popularWorks));
 
 function toggleBio(): void {
   bioExpanded.value = !bioExpanded.value;
@@ -23,7 +57,7 @@ function toggleAwards(): void {
 }
 
 function openUrl(url: string): void {
-  if (url) window.open(url, '_blank');
+  if (url) openExternalUrl(url);
 }
 </script>
 
@@ -31,7 +65,7 @@ function openUrl(url: string): void {
   <UmmPageLayout type="movie">
     <div class="umm-personage-root">
       <!-- Empty state -->
-      <div v-if="!d.name" class="umm-personage-empty">未找到影人信息</div>
+      <div v-if="!d.name" class="umm-personage-empty">{{ t('douban.pg.empty') }}</div>
       <template v-else>
         <!-- Profile header -->
         <div class="umm-profile-header">
@@ -49,18 +83,18 @@ function openUrl(url: string): void {
 
         <!-- Biography -->
         <div v-if="d.biography" class="umm-section">
-          <h2 class="umm-section-title">人物简介</h2>
+          <h2 class="umm-section-title">{{ t('douban.pg.bio') }}</h2>
           <p class="umm-bio-text" :class="{ 'umm-bio-text--expanded': bioExpanded }">
             {{ d.biography }}
           </p>
           <button v-if="d.biography.length > 120" class="umm-bio-expand" @click="toggleBio">
-            {{ bioExpanded ? '(收起)' : '(展开)' }}
+            {{ bioExpanded ? t('Collapse') : t('Expand') }}
           </button>
         </div>
 
         <!-- Photos -->
         <div v-if="d.photos.length" class="umm-section">
-          <h2 class="umm-section-title">图片</h2>
+          <h2 class="umm-section-title">{{ t('douban.image_word') }}</h2>
           <div class="umm-photo-strip">
             <div
               v-for="(photo, i) in d.photos"
@@ -75,8 +109,10 @@ function openUrl(url: string): void {
         <!-- Awards -->
         <div v-if="d.awards.length" class="umm-section">
           <h2 class="umm-section-title">
-            获奖情况
-            <span class="umm-photos-count">（共 {{ d.awards.length }} 项）</span>
+            {{ t('douban.detail.awards') }}
+            <span class="umm-photos-count">{{
+              t('douban.pg.awards_count', { count: d.awards.length })
+            }}</span>
           </h2>
           <ul class="umm-awards-list">
             <li v-for="(award, i) in displayAwards" :key="i" class="umm-award-item">
@@ -98,52 +134,61 @@ function openUrl(url: string): void {
             </li>
           </ul>
           <button v-if="hasMoreAwards" class="umm-bio-expand" @click="toggleAwards">
-            {{ showAllAwards ? '(收起)' : `(查看全部 ${d.awards.length} 项)` }}
+            {{ showAllAwards ? t('Collapse') : t('View All Awards', { count: d.awards.length }) }}
           </button>
         </div>
 
         <!-- Recent works -->
-        <div v-if="d.recentWorks.length" class="umm-section">
-          <h2 class="umm-section-title">最近的 {{ d.recentWorks.length }} 部作品</h2>
+        <div v-if="recentWorks.length" class="umm-section">
+          <h2 class="umm-section-title">
+            {{ t('douban.pg.recent_works', { count: recentWorks.length }) }}
+          </h2>
           <div class="umm-works-grid">
             <UmmMediaCard
-              v-for="(work, i) in d.recentWorks"
-              :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
+              v-for="(work, i) in recentWorks"
+              :key="i"
               mode="grid"
               :poster-url="work.poster"
               :title="work.title"
               :href="work.url"
               :rating="work.rating"
-              :badge-status="work.recordStatus ?? 0"
-              :badge-rating="work.recordRating ?? 0"
+              :badge-status="work.badgeStatus"
+              :badge-rating="work.badgeRating"
             />
           </div>
         </div>
 
         <!-- Popular works -->
-        <div v-if="d.popularWorks.length" class="umm-section">
-          <h2 class="umm-section-title">收藏人数最多的 {{ d.popularWorks.length }} 部作品</h2>
+        <div v-if="popularWorks.length" class="umm-section">
+          <h2 class="umm-section-title">
+            {{ t('douban.pg.popular_works', { count: popularWorks.length }) }}
+          </h2>
           <div class="umm-works-grid">
             <UmmMediaCard
-              v-for="(work, i) in d.popularWorks"
-              :key="`${i}-${work.recordStatus ?? 0}-${work.recordRating ?? 0}`"
+              v-for="(work, i) in popularWorks"
+              :key="i"
               mode="grid"
               :poster-url="work.poster"
               :title="work.title"
               :href="work.url"
               :rating="work.rating"
-              :badge-status="work.recordStatus ?? 0"
-              :badge-rating="work.recordRating ?? 0"
+              :badge-status="work.badgeStatus"
+              :badge-rating="work.badgeRating"
             />
           </div>
-          <button v-if="d.moreWorksUrl" class="umm-personage-btn" @click="openUrl(d.moreWorksUrl)">
-            更多影视作品{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →
+          <button
+            v-if="d.morePopularUrl"
+            class="umm-personage-btn"
+            @click="openUrl(d.morePopularUrl)"
+          >
+            {{ t('douban.pg.more_works')
+            }}{{ d.morePopularCount ? ' ' + d.morePopularCount : '' }} →
           </button>
         </div>
 
         <!-- Unreleased works -->
         <div v-if="d.unreleasedWorks.length" class="umm-section">
-          <h2 class="umm-section-title">未上映作品</h2>
+          <h2 class="umm-section-title">{{ t('douban.pg.upcoming') }}</h2>
           <div class="umm-unreleased-grid">
             <a
               v-for="(work, i) in d.unreleasedWorks"
@@ -157,13 +202,15 @@ function openUrl(url: string): void {
             </a>
           </div>
           <button v-if="d.moreWorksUrl" class="umm-personage-btn" @click="openUrl(d.moreWorksUrl)">
-            更多影视作品{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →
+            {{ t('douban.pg.more_works') }}{{ d.moreWorksCount ? ' ' + d.moreWorksCount : '' }} →
           </button>
         </div>
 
         <!-- Partners -->
         <div v-if="d.partners.length" class="umm-section">
-          <h2 class="umm-section-title">合作过的人物（{{ d.partners.length }} 人）</h2>
+          <h2 class="umm-section-title">
+            {{ t('douban.pg.partners', { count: d.partners.length }) }}
+          </h2>
           <div class="umm-partners-grid">
             <a
               v-for="(partner, i) in d.partners"
@@ -178,7 +225,9 @@ function openUrl(url: string): void {
               />
               <div class="umm-partner-body">
                 <div class="umm-partner-name">{{ partner.name }}</div>
-                <div class="umm-partner-count">合作 {{ partner.workCount }} 部</div>
+                <div class="umm-partner-count">
+                  {{ t('douban.pg.partner_works', { count: partner.workCount }) }}
+                </div>
               </div>
             </a>
           </div>

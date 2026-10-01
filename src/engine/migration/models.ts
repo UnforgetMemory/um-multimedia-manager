@@ -19,7 +19,7 @@
 
 import type { StoreRecord, PtIdCacheEntry, MigrationStatus } from '@/types';
 // dataset（备份 ZIP）格式版本常量的唯一事实源已下沉到 libraries 层
-// （纯数据、无错误类型耦合，见 src/utils/dataset-version.ts）。
+// （纯数据、无错误类型耦合，见 src/libraries/utils/dataset-version.ts）。
 // 此处 import 供本模块 validateDatasetVersion 使用，并再导出以保持既有
 // 消费方（webdav/data handlers 与若干 spec）的导入路径不变。
 import {
@@ -83,13 +83,45 @@ export class MigrationError extends Error {
 
 // ==================== Migration Step Interface ====================
 
+/**
+ * Loosely-typed snapshot as it flows through the migration pipeline:
+ * untrusted IndexedDB/import JSON narrowed to an indexable object only.
+ */
+export type MigrationPayload = Record<string, unknown>;
+
+/**
+ * Fields the record migrators (v0→1, v1→2) actually read from unversioned
+ * legacy rows. All optional: the v1..v15 IndexedDB schemas wrote varying
+ * subsets (comment/linkedIds/recordVersion arrived over time). Values are
+ * `unknown` because the migrators only apply `??` defaults on nullish input —
+ * malformed legacy values pass through untouched (behavior contract).
+ */
+interface LegacyRecordSnapshot {
+  url?: unknown;
+  status?: unknown;
+  rating?: unknown;
+  comment?: unknown;
+  updatedAt?: unknown;
+  linkedIds?: unknown;
+  [key: string]: unknown;
+}
+
+/** Fields the cache v0→1 migrator reads from legacy pt-id rows (same tolerance rules). */
+interface LegacyCacheEntrySnapshot {
+  ptUrl?: unknown;
+  doubanId?: unknown;
+  imdbId?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
 export interface MigrationStep {
   /** Source version (0 = unversioned legacy) */
   from: number;
   /** Target version */
   to: number;
-  /** Transform function — receives raw record, returns migrated record */
-  migrate: (record: any) => any;
+  /** Transform function — receives a payload snapshot, returns the migrated snapshot */
+  migrate: (record: MigrationPayload) => MigrationPayload;
 }
 
 // ==================== Record Migrations ====================
@@ -103,7 +135,7 @@ const recordMigrations: MigrationStep[] = [
   {
     from: 0,
     to: 1,
-    migrate: (record: any) => ({
+    migrate: (record: LegacyRecordSnapshot) => ({
       ...record,
       // Ensure all required fields exist with defaults
       url: record.url ?? '',
@@ -118,7 +150,7 @@ const recordMigrations: MigrationStep[] = [
   {
     from: 1,
     to: 2,
-    migrate: (record: any) => ({
+    migrate: (record: LegacyRecordSnapshot) => ({
       ...record,
       // Ensure comment field exists
       comment: record.comment ?? undefined,
@@ -135,7 +167,7 @@ const cacheMigrations: MigrationStep[] = [
   {
     from: 0,
     to: 1,
-    migrate: (entry: any) => ({
+    migrate: (entry: LegacyCacheEntrySnapshot) => ({
       ...entry,
       ptUrl: entry.ptUrl ?? '',
       doubanId: entry.doubanId ?? undefined,
@@ -170,17 +202,22 @@ export interface MigrationResult<T> {
  *    c. Apply step, advance version
  * 5. Return migrated record
  */
-export function migrateRecord(
-  raw: any,
+export function migrateRecord<T = MigrationPayload>(
+  raw: unknown,
   steps: MigrationStep[],
   currentVersion: number,
   minSupported: number = 0,
-): MigrationResult<any> {
-  const recordVersion = raw?.schemaVersion ?? 0;
+): MigrationResult<T> {
+  // The engine reads exactly one field from the untrusted payload. schemaVersion
+  // is only ever written as a number (stamp/migrate steps); this view exposes
+  // that contract while any other runtime shape flows through the same
+  // comparisons it did when the parameter was untyped.
+  const source = raw as (MigrationPayload & { schemaVersion?: number }) | null | undefined;
+  const recordVersion = source?.schemaVersion ?? 0;
 
   // Already at current version — no migration needed
   if (recordVersion === currentVersion) {
-    return { record: raw, migrated: false, steps: [] };
+    return { record: raw as T, migrated: false, steps: [] };
   }
 
   // Version too new — data from a newer extension version
@@ -204,7 +241,7 @@ export function migrateRecord(
   }
 
   // Iterative migration: apply each step in order
-  let result = { ...raw };
+  let result: MigrationPayload = { ...source };
   const appliedSteps: number[] = [];
   let version = recordVersion;
 
@@ -232,7 +269,7 @@ export function migrateRecord(
     }
   }
 
-  return { record: result, migrated: true, steps: appliedSteps };
+  return { record: result as T, migrated: true, steps: appliedSteps };
 }
 
 /** Snapshot fields accepted from untrusted import data (see normalizeStoreRecord). */
@@ -256,15 +293,16 @@ const RECORD_FIELD_WHITELIST = [
  * import): rejects non-object/array payloads, strips unknown fields (CWE-915
  * mass-assignment), and drops out-of-range status/rating values.
  */
-export function normalizeStoreRecord(raw: any): MigrationResult<StoreRecord> {
+export function normalizeStoreRecord(raw: unknown): MigrationResult<StoreRecord> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new MigrationError('Invalid record: expected a record object', 'INVALID_RECORD', {});
   }
 
+  const source = raw as MigrationPayload;
   // Whitelist snapshot fields only — unknown keys from a malicious dataset are dropped.
-  const sanitized: Record<string, unknown> = {};
+  const sanitized: MigrationPayload = {};
   for (const key of RECORD_FIELD_WHITELIST) {
-    if (key in raw) sanitized[key] = raw[key];
+    if (key in source) sanitized[key] = source[key];
   }
 
   // Numeric sanity: status ∈ [0,3], rating ∈ [0,10]; invalid values are dropped
@@ -294,24 +332,26 @@ export function normalizeStoreRecord(raw: any): MigrationResult<StoreRecord> {
     delete sanitized.linkedIds;
   }
 
-  return migrateRecord(
+  return migrateRecord<StoreRecord>(
     sanitized,
     recordMigrations,
     CURRENT_RECORD_VERSION,
     MIN_SUPPORTED_RECORD_VERSION,
-  ) as MigrationResult<StoreRecord>;
+  );
 }
 
 /**
  * Normalize a PtIdCacheEntry on read.
+ * Cache rows are untrusted legacy JSON — the v0→1 step fills missing fields
+ * with defaults instead of rejecting them, so no boundary validation applies.
  */
-export function normalizeCacheEntry(raw: any): MigrationResult<PtIdCacheEntry> {
-  return migrateRecord(
+export function normalizeCacheEntry(raw: unknown): MigrationResult<PtIdCacheEntry> {
+  return migrateRecord<PtIdCacheEntry>(
     raw,
     cacheMigrations,
     CURRENT_CACHE_VERSION,
     MIN_SUPPORTED_RECORD_VERSION,
-  ) as MigrationResult<PtIdCacheEntry>;
+  );
 }
 
 /**

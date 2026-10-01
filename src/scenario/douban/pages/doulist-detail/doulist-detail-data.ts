@@ -225,7 +225,12 @@ export function extractDoulistDetailData(): DoulistDetailPageData | null {
     const parts = timeText.split('创建');
     createdTime = (parts[0] ?? '').trim();
     if (parts[1]) {
-      updatedTime = parts[1].replace('更新', '').trim();
+      // Real pages join the two stamps with " · " — keep only the timestamp,
+      // strip both the trailing "更新" (Updated) label and the leading separator.
+      updatedTime = parts[1]
+        .replace('更新', '')
+        .replace(/^[\s·]+/, '')
+        .trim();
     }
   }
 

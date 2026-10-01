@@ -28,6 +28,13 @@ test.beforeAll(() => {
   };
 });
 
+// Workers are shared across spec files; the location stub must not outlive this one.
+const ORIGINAL_LOCATION = Object.getOwnPropertyDescriptor(globalThis, 'location');
+test.afterAll(() => {
+  if (ORIGINAL_LOCATION) Object.defineProperty(globalThis, 'location', ORIGINAL_LOCATION);
+  else delete (globalThis as Record<string, unknown>).location;
+});
+
 function getHhanConfig() {
   const config = SITE_CONFIGS.find((c) => c.domain === 'hhanclub.net');
   expect(config, 'SITE_CONFIGS 必须包含 hhanclub.net 条目').toBeTruthy();

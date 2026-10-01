@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { EXPORT_SETTINGS_KEYS } from '@/entrypoints/background/handlers/data';
+import { EXPORT_SETTINGS_KEYS, IMPORT_SETTINGS_KEYS } from '@/entrypoints/background/handlers/data';
 
 /**
  * 安全回归测试：IMPORT_DATA 设置白名单必须排除凭据类键。
@@ -11,10 +11,10 @@ import { EXPORT_SETTINGS_KEYS } from '@/entrypoints/background/handlers/data';
  * 排除 webdav 凭据键。
  */
 
-const CREDENTIAL_KEYS = ['webdavUrl', 'webdavUsername', 'webdavPassword'];
+const CREDENTIAL_KEYS = ['webdavUrl', 'webdavUsername', 'webdavPassword', 'neodbToken'];
 
 test.describe('IMPORT_DATA settings whitelist (安全回归 #4a)', () => {
-  test('白名单排除 webdavUrl/webdavUsername/webdavPassword（凭据注入防护）', () => {
+  test('白名单排除 webdav 三件套与 neodbToken（凭据注入防护）', () => {
     const keys = EXPORT_SETTINGS_KEYS as string[];
     for (const key of CREDENTIAL_KEYS) {
       expect(keys).not.toContain(key);
@@ -28,10 +28,14 @@ test.describe('IMPORT_DATA settings whitelist (安全回归 #4a)', () => {
     }
   });
 
-  test('import/export 白名单对称（同一集合，未来改动不重新引入不对称）', () => {
-    // IMPORT_SETTINGS_KEYS 由 EXPORT_SETTINGS_KEYS 派生（见 data.ts），
-    // 因此断言 EXPORT 集合本身不含凭据即保证 import 安全。
-    const keys = new Set(EXPORT_SETTINGS_KEYS as string[]);
-    expect(keys.size).toBe(EXPORT_SETTINGS_KEYS.length); // 无重复
+  test('import/export 白名单对称：两侧键集逐元素相等', () => {
+    // 对称性必须由两个集合同时证明：只查 EXPORT 无法在 IMPORT 被单独放宽后变红。
+    for (const key of EXPORT_SETTINGS_KEYS) {
+      expect(IMPORT_SETTINGS_KEYS.has(key)).toBe(true);
+    }
+    for (const key of IMPORT_SETTINGS_KEYS) {
+      expect(EXPORT_SETTINGS_KEYS as string[]).toContain(key);
+    }
+    expect(IMPORT_SETTINGS_KEYS.size).toBe(EXPORT_SETTINGS_KEYS.length);
   });
 });

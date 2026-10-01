@@ -101,6 +101,34 @@ test.describe('invalidateSchedulerStore', () => {
   });
 });
 
+test.describe('CacheManager.invalidate key presence', () => {
+  test("empty-string key drops only the ns::'' entry, never escalates to the namespace", async () => {
+    const cm = new CacheManager();
+    await cm.set('ns', '', 'empty-key');
+    await cm.set('ns', 'a', 'va');
+    await cm.set('other', '', 'other-empty');
+
+    await cm.invalidate('ns', '');
+
+    expect(cm.has('ns', '')).toBe(false);
+    expect(cm.has('ns', 'a'), 'sibling entry must survive').toBe(true);
+    expect(cm.has('other', '')).toBe(true);
+  });
+
+  test('omitted key keeps its documented meaning: whole-namespace purge, empty-string entry included', async () => {
+    const cm = new CacheManager();
+    await cm.set('ns', '', 'empty-key');
+    await cm.set('ns', 'a', 'va');
+    await cm.set('other', 'b', 'vb');
+
+    await cm.invalidate('ns');
+
+    expect(cm.has('ns', '')).toBe(false);
+    expect(cm.has('ns', 'a')).toBe(false);
+    expect(cm.has('other', 'b'), 'other namespaces must survive').toBe(true);
+  });
+});
+
 test.describe('registerCacheManager / getCacheManager', () => {
   test('roundtrip returns the registered shared manager', () => {
     const cm = new CacheManager();

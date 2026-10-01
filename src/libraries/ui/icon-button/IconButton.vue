@@ -9,7 +9,7 @@ import { cn } from '@/libraries/utils/cn';
  *
  * Enforces an accessible name: `label` becomes aria-label + native tooltip.
  * Pair with a Tooltip component for discoverability when the action is not
- * obvious. Icon content goes into the default slot (lucide-vue-next).
+ * obvious. Icon content goes into the default slot (inline SVG icons).
  */
 interface Props {
   /** Accessible name — required, rendered as aria-label + native tooltip */

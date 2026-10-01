@@ -2,22 +2,25 @@
  * Interest-marking bar (想看/在看/已看) with star rating, tags, and comment dialog.
  * Emits `save` with tab, stars, tags, and comment for the parent to submit.
  *
- * 对话框可访问性（P-D）：role=dialog + aria-modal + aria-labelledby；Escape 关闭；
- * Tab/Shift+Tab 在面板内循环（焦点陷阱，document 捕获阶段监听——键盘事件为
- * composed，Shadow DOM 内也可达）；打开聚焦首个可聚焦控件，关闭焦点归还触发按钮。
- * 与 Sehuatang 菜单（entrypoints/content/handlers/sehuatang-menu.ts）有意各留一份
- * 陷阱实现：当前仅 2 个消费方，未达「第三处消费证据」提取门槛。
+ * 对话框可访问性走 `libraries/ui-contracts/dialog-aria` + `libraries/utils/focus-trap`
+ * （与 sehuatang-menu / doulist-dialog 同一契约实现）——overlay 组件库合并波的
+ * DOM 契约层统一。Escape 关闭；Tab/Shift+Tab 在面板内循环（document 捕获阶段
+ * 监听——键盘事件为 composed，Shadow DOM 内也可达）。
  */
 import { defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 import type { MediaType } from '../shared/status-labels';
 import { interestBarLabels } from '../shared/status-labels';
 import { t } from '../shared/legacy-bridge';
+import { dialogAriaAttrs } from '@/libraries/ui-contracts/dialog-aria';
+import { focusFirst, handleTrapTabKey } from '@/libraries/utils/focus-trap';
 
-const RATING_LABELS = ['', '很差', '较差', '还行', '推荐', '力荐'] as const;
-
-/** 面板内可聚焦控件（与 sehuatang-menu 焦点陷阱同一选择器基准） */
-const FOCUSABLE_SELECTOR =
-  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const RATING_KEYS = [
+  'douban.rating.1',
+  'douban.rating.2',
+  'douban.rating.3',
+  'douban.rating.4',
+  'douban.rating.5',
+] as const;
 
 export const UmmInterestBar = defineComponent({
   name: 'UmmInterestBar',
@@ -46,13 +49,8 @@ export const UmmInterestBar = defineComponent({
     const panelEl = ref<HTMLElement | null>(null);
     const titleId = useId();
 
-    function panelFocusables(): HTMLElement[] {
-      if (!panelEl.value) return [];
-      return Array.from(panelEl.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-    }
-
     /**
-     * 捕获阶段 keydown：Escape 关闭 + Tab 焦点陷阱。
+     * 捕获阶段 keydown：Escape 关闭 + Tab 焦点陷阱（共享 `handleTrapTabKey`）。
      * 监听挂在 document 上——overlay 位于 Shadow DOM，键盘事件 composed 冒穿至
      * document；捕获阶段先于宿主页面自身监听器，可安全 stopPropagation。
      */
@@ -64,24 +62,9 @@ export const UmmInterestBar = defineComponent({
         close();
         return;
       }
-      if (e.key !== 'Tab') return;
       const panel = panelEl.value;
       if (!panel) return;
-      const focusables = panelFocusables();
-      if (focusables.length === 0) return;
-      const first = focusables[0]!;
-      const last = focusables[focusables.length - 1]!;
-      const root = panel.getRootNode() as Document | ShadowRoot;
-      const active = root.activeElement;
-      if (e.shiftKey) {
-        if (active === first || !panel.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else if (active === last || !panel.contains(active)) {
-        e.preventDefault();
-        first.focus();
-      }
+      handleTrapTabKey(e, panel);
     }
 
     onMounted(() => {
@@ -94,7 +77,7 @@ export const UmmInterestBar = defineComponent({
     watch(open, async (isOpen) => {
       if (!isOpen) return;
       await nextTick();
-      panelFocusables()[0]?.focus();
+      focusFirst(panelEl.value!);
     });
 
     function openDialog(): void {
@@ -190,6 +173,7 @@ export const UmmInterestBar = defineComponent({
             'button',
             {
               class: cls('umm-dialog-pick', tab.value === 'wish' && 'umm-dialog-pick--active'),
+              'data-umm-pick': 'wish',
               onClick: () => {
                 tab.value = 'wish';
               },
@@ -205,6 +189,7 @@ export const UmmInterestBar = defineComponent({
               'button',
               {
                 class: cls('umm-dialog-pick', tab.value === 'do' && 'umm-dialog-pick--active'),
+                'data-umm-pick': 'do',
                 onClick: () => {
                   tab.value = 'do';
                 },
@@ -220,6 +205,7 @@ export const UmmInterestBar = defineComponent({
             'button',
             {
               class: cls('umm-dialog-pick', tab.value === 'collect' && 'umm-dialog-pick--active'),
+              'data-umm-pick': 'collect',
               onClick: () => {
                 tab.value = 'collect';
               },
@@ -247,7 +233,9 @@ export const UmmInterestBar = defineComponent({
               ),
             );
           }
-          const lbl = stars.value >= 1 && stars.value <= 5 ? RATING_LABELS[stars.value] : '评分';
+          const key =
+            stars.value >= 1 && stars.value <= 5 ? RATING_KEYS[stars.value - 1] : undefined;
+          const lbl = t(key ?? 'douban.rating.none');
           sc.push(h('span', { class: 'umm-star-label' }, lbl));
           dc.push(h('div', { class: 'umm-dialog-stars' }, sc));
         }
@@ -298,7 +286,7 @@ export const UmmInterestBar = defineComponent({
           h('div', { class: 'umm-tag-add' }, [
             h('input', {
               class: 'umm-dialog-input',
-              placeholder: '自定义标签',
+              placeholder: t('Custom Tag Placeholder'),
               value: newTagText.value,
               disabled: props.loading,
               onKeydown: (e: KeyboardEvent) => {
@@ -319,7 +307,7 @@ export const UmmInterestBar = defineComponent({
                 onClick: addNewTag,
                 type: 'button',
               },
-              '添加',
+              t('douban.dialog.add'),
             ),
           ]),
         );
@@ -329,7 +317,7 @@ export const UmmInterestBar = defineComponent({
         dc.push(
           h('textarea', {
             class: 'umm-dialog-textarea',
-            placeholder: '写点评论…',
+            placeholder: t('Write Comment Placeholder'),
             maxlength: 350,
             rows: 3,
             value: inputComment.value,
@@ -355,7 +343,7 @@ export const UmmInterestBar = defineComponent({
                 disabled: saveDisabled,
                 onClick: handleSave,
               },
-              props.loading ? '保存中…' : '保存',
+              props.loading ? t('douban.dialog.saving') : t('douban.dialog.save'),
             ),
             h(
               'button',
@@ -364,7 +352,7 @@ export const UmmInterestBar = defineComponent({
                 disabled: props.loading,
                 onClick: close,
               },
-              '取消',
+              t('douban.dialog.cancel'),
             ),
           ]),
         );
@@ -377,13 +365,11 @@ export const UmmInterestBar = defineComponent({
             {
               ref: panelEl,
               class: 'umm-dialog-panel',
-              role: 'dialog',
-              'aria-modal': 'true',
-              'aria-labelledby': titleId,
+              ...dialogAriaAttrs({ labelledBy: titleId }),
             },
             [
               h('div', { class: 'umm-dialog-header' }, [
-                h('span', { class: 'umm-dialog-title', id: titleId }, '标记'),
+                h('span', { class: 'umm-dialog-title', id: titleId }, t('douban.btn.mark')),
                 h(
                   'button',
                   {

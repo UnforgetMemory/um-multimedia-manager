@@ -15,6 +15,7 @@ import {
   TOAST_DEDUP_TITLE_MS,
   TOAST_CONTAINER_CLEANUP_MS,
 } from '@/libraries/toast';
+import { toastAria } from '@/libraries/toast-aria';
 import { TOAST_CORE_CSS } from '@/libraries/styles/toast-css';
 
 // ─── 内部类型 ────────────────────────────────────────────
@@ -197,9 +198,9 @@ function createToastElement(
   const persistentClass = persistent ? ' umm-toast--persistent' : '';
   toast.className = `umm-toast ${typeClass}${persistentClass}`;
 
-  const ariaLive = type === 'error' ? 'assertive' : 'polite';
-  toast.setAttribute('role', 'alert');
-  toast.setAttribute('aria-live', ariaLive);
+  const aria = toastAria(type);
+  toast.setAttribute('role', aria.role);
+  toast.setAttribute('aria-live', aria.live);
   toast.setAttribute('aria-atomic', 'true');
 
   const content = document.createElement('div');

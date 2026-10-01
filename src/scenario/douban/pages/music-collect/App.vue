@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { t } from '../../shared/legacy-bridge';
 import { collectTitleLabel } from '../../shared/collect-title-label';
 import { statusBadgeLabels } from '../../shared/status-labels';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
@@ -45,7 +46,9 @@ function toRatingScore(rating: string): string | undefined {
       <!-- Title Bar -->
       <div class="umm-mc-titlebar">
         <h2 class="umm-mc-titlebar-label">{{ titleLabel }}</h2>
-        <span class="umm-mc-titlebar-count">共 {{ data.total.toLocaleString() }} 张</span>
+        <span class="umm-mc-titlebar-count">{{
+          t('douban.mc.count', { count: data.total.toLocaleString() })
+        }}</span>
       </div>
 
       <!-- Sort Bar -->
@@ -63,7 +66,7 @@ function toRatingScore(rating: string): string | undefined {
 
       <!-- Empty State -->
       <div v-if="data.total === 0 && data.items.length === 0" class="umm-mc-empty">
-        <div class="umm-mc-empty-text">暂无内容</div>
+        <div class="umm-mc-empty-text">{{ t('douban.empty.content') }}</div>
       </div>
 
       <!-- Grid -->

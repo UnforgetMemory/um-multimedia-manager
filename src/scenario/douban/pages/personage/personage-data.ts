@@ -16,8 +16,6 @@ export interface WorkItem {
   poster: string;
   rating: string;
   year?: string;
-  recordStatus?: number;
-  recordRating?: number;
 }
 
 export interface AwardItem {
@@ -49,6 +47,11 @@ export interface PersonagePageData {
   unreleasedWorks: WorkItem[];
   moreWorksUrl: string;
   moreWorksCount: string;
+  /** The 热门作品 section's OWN "全部 N 部" link. Distinct from `moreWorksUrl`
+   *  (which belongs to 近期作品 / 未上映作品); one value for both buttons sent the
+   *  popular-works button to the time-sorted list. */
+  morePopularUrl: string;
+  morePopularCount: string;
   partners: PartnerItem[];
 }
 
@@ -299,6 +302,7 @@ export function extractPersonagePageData(): PersonagePageData | null {
     );
 
   const moreWorks = extractMoreWorksLink('#work-collections-sortby-time');
+  const morePopular = extractMoreWorksLink('#work-collections-sortby-collect');
 
   return {
     personageId: extractPersonageId(),
@@ -313,6 +317,8 @@ export function extractPersonagePageData(): PersonagePageData | null {
     unreleasedWorks: extractUnreleasedWorks(),
     moreWorksUrl: moreWorks.url,
     moreWorksCount: moreWorks.count,
+    morePopularUrl: morePopular.url,
+    morePopularCount: morePopular.count,
     partners: extractPartners(),
   };
 }

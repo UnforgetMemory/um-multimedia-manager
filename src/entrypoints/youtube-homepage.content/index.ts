@@ -17,6 +17,7 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { Store, STORE_NAMES } from '@/engine/database';
 import { throttle } from '@/libraries/utils';
+import { bootstrapLogging } from '@/entrypoints/content/bootstrap/logging';
 import {
   createVideoOverlay,
   parseYoutubeSearchId,
@@ -24,21 +25,40 @@ import {
 } from '@/entrypoints/content/ui/video-overlay';
 import {
   buildListingDimmerCss,
+  invalidateProcessedRows,
   LISTING_STYLE_ID,
   runYoutubeListingPass,
   VIDEO_CARD_SELECTOR,
 } from '@/entrypoints/content/ui/youtube-listing';
+import { initEventBus, onEvent } from '@/libraries/utils/event-bus';
 
 export default defineContentScript({
   matches: ['*://www.youtube.com/*', '*://m.youtube.com/*'],
   runAt: 'document_idle',
 
   main() {
-    const later = (fn: () => void, ms: number): void => {
-      setTimeout(fn, ms);
-    };
-    // MutationObserver 回调节流窗口（trailing 语义，audit §P-C）
+    // Options 页的「调试日志」/级别只写进 chrome.storage：本上下文不读它就等于
+    // 生产环境恒静音（logger 默认跟随 DEV）。先于模式判定，两种模式都要能取证。
+    void bootstrapLogging();
+
+    // MutationObserver 回调节流窗口（trailing 语义）
     const OBSERVER_THROTTLE_MS = 250;
+    /** Upper bound on one feed-mount wait; the same-route poll re-arms a fresh one. */
+    const FEED_WAIT_TIMEOUT_MS = 20_000;
+
+    /** Deferred work owned by this entrypoint — cancelled whenever its mode stops. */
+    const deferred = new Set<ReturnType<typeof setTimeout>>();
+    const later = (fn: () => void, ms: number): void => {
+      const handle = setTimeout(() => {
+        deferred.delete(handle);
+        fn();
+      }, ms);
+      deferred.add(handle);
+    };
+    function clearDeferred(): void {
+      for (const handle of deferred) clearTimeout(handle);
+      deferred.clear();
+    }
 
     const overlay = createVideoOverlay({
       storeName: STORE_NAMES.YOUTUBE,
@@ -107,6 +127,14 @@ export default defineContentScript({
     // ══════════════════════════════════════════════════════════
 
     let listingObserver: MutationObserver | null = null;
+    /**
+     * Feed-not-mounted-yet watchers. They must be tracked: an unattached one
+     * keeps running `querySelector` on every body mutation and can start a
+     * listing observer after the user already left the listing route.
+     */
+    let waitingObserver: MutationObserver | null = null;
+    let domReadyListener: (() => void) | null = null;
+    let waitDeadline: ReturnType<typeof setTimeout> | null = null;
 
     function injectListingStyles(): void {
       if (document.getElementById(LISTING_STYLE_ID)) return;
@@ -118,7 +146,7 @@ export default defineContentScript({
 
     /**
      * One scan pass collects all unprocessed visible cards and resolves
-     * their statuses with a SINGLE DB_GET_BULK (audit §P-C N+1 fix) —
+     * their statuses with a SINGLE DB_GET_BULK (N+1 fix) —
      * pure logic + bulk key construction live in youtube-listing.ts.
      */
     function scanCards(): Promise<unknown> {
@@ -129,8 +157,49 @@ export default defineContentScript({
       });
     }
 
+    let releaseRecordSub: (() => void) | undefined;
+
+    /**
+     * The DOM observer only reacts to host mutations; a record written from the
+     * popup, another tab or a sync run changes nothing in the feed. The event bus
+     * is the only path that can reach an already-rendered row, so dirtiness is
+     * cleared per event key (a foreign write must not re-scan the whole feed).
+     */
+    function subscribeRecordEvents(): void {
+      if (releaseRecordSub) return;
+      initEventBus();
+      const onRecordChange = (data: unknown): void => {
+        const payload = data as { storeName?: unknown; key?: unknown } | undefined;
+        if (payload?.storeName !== STORE_NAMES.YOUTUBE) return;
+        const key = typeof payload.key === 'string' ? payload.key : undefined;
+        if (invalidateProcessedRows(document, key) > 0) void scanCards();
+      };
+      const offUpdated = onEvent('record:updated', onRecordChange);
+      const offDeleted = onEvent('record:deleted', onRecordChange);
+      releaseRecordSub = () => {
+        offUpdated();
+        offDeleted();
+      };
+    }
+
+    function stopWaitingForFeed(): void {
+      waitingObserver?.disconnect();
+      waitingObserver = null;
+      if (domReadyListener) {
+        document.removeEventListener('DOMContentLoaded', domReadyListener);
+        domReadyListener = null;
+      }
+      if (waitDeadline !== null) {
+        clearTimeout(waitDeadline);
+        waitDeadline = null;
+      }
+    }
+
     function initListingMode(): void {
-      const tryInit = () => {
+      stopWaitingForFeed();
+      injectListingStyles();
+      subscribeRecordEvents();
+      const tryInit = (): boolean => {
         const feed = document.querySelector(
           'ytd-rich-grid-renderer, ytd-item-section-renderer, ytd-section-list-renderer',
         );
@@ -141,24 +210,30 @@ export default defineContentScript({
         }
         return false;
       };
-      if (!tryInit()) {
-        const onReady = () => {
-          if (!tryInit()) {
-            const obs = new MutationObserver(() => {
-              if (tryInit()) obs.disconnect();
-            });
-            obs.observe(document.body, { childList: true, subtree: true });
-          }
-        };
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', onReady);
-        } else {
-          onReady();
+      if (tryInit()) return;
+      waitDeadline = setTimeout(stopWaitingForFeed, FEED_WAIT_TIMEOUT_MS);
+      const onReady = (): void => {
+        if (tryInit()) {
+          stopWaitingForFeed();
+          return;
         }
+        if (waitingObserver) return;
+        const obs = new MutationObserver(() => {
+          if (tryInit()) stopWaitingForFeed();
+        });
+        waitingObserver = obs;
+        obs.observe(document.body, { childList: true, subtree: true });
+      };
+      if (document.readyState === 'loading') {
+        domReadyListener = onReady;
+        document.addEventListener('DOMContentLoaded', onReady);
+      } else {
+        onReady();
       }
     }
 
     function startListingObserver(): void {
+      listingObserver?.disconnect();
       const target =
         document.querySelector('#contents, ytd-rich-grid-renderer, ytd-item-section-renderer') ||
         document.body;
@@ -177,7 +252,10 @@ export default defineContentScript({
         listingObserver.disconnect();
         listingObserver = null;
       }
-      const style = document.getElementById('umm-yt-listing-styles');
+      releaseRecordSub?.();
+      releaseRecordSub = undefined;
+      stopWaitingForFeed();
+      const style = document.getElementById(LISTING_STYLE_ID);
       if (style) style.remove();
     }
 
@@ -185,9 +263,17 @@ export default defineContentScript({
     //  DETAIL MODE (watch page)
     // ══════════════════════════════════════════════════════════
 
+    /**
+     * Bumped on every (re)start and on teardown: `loadRecord()` resolves late, and
+     * its continuation must not arm watchers for a video that is already gone.
+     */
+    let detailGeneration = 0;
+
     function initDetailMode(): void {
       const vid = getVideoId();
       if (!vid) return;
+      const generation = ++detailGeneration;
+      clearDeferred();
       overlay.setCurrent(vid);
       overlay.create();
       overlay.ensureButton();
@@ -195,6 +281,8 @@ export default defineContentScript({
       later(() => overlay.ensureButton(), 3000);
 
       overlay.loadRecord().then(() => {
+        // A DB answer for a video the user already left must not arm its watchers.
+        if (generation !== detailGeneration) return;
         overlay.applyBtnStyle();
         overlay.syncTrackerStatus();
         later(() => overlay.startRecommendationWatch(), 3000);
@@ -202,6 +290,8 @@ export default defineContentScript({
     }
 
     function stopDetailMode(): void {
+      ++detailGeneration;
+      clearDeferred();
       overlay.cleanup();
     }
 
@@ -222,7 +312,11 @@ export default defineContentScript({
             stopDetailMode();
             initDetailMode();
           }
+          return;
         }
+        // Listing: a mount wait that hit its deadline gets one fresh attempt
+        // while the route still wants badges.
+        if (!listingObserver && !waitingObserver) initListingMode();
         return;
       }
       // Mode switch

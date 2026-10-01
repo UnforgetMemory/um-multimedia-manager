@@ -1,0 +1,127 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/celebrities-data.spec.ts.
+  NOT a real saved page: all data is fabricated; only the public
+  /subject/{id}/celebrities DOM shape (#celebrities > .list-wrapper >
+  ul.celebrities-list > li.celebrity, .avatar bg-image, .info .name/.role/.works)
+  is reproduced to match the extractor contract in
+  src/scenario/douban/pages/celebrities/celebrities-data.ts.
+  Two groups (director/cast); cast includes edge items: no personage link,
+  no avatar background, no role title attribute, verified-account marker.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>抓特务 的全部演职员</title>
+  </head>
+  <body>
+    <div id="content">
+      <h1>抓特务 的全部演职员</h1>
+      <div id="celebrities">
+        <div class="list-wrapper">
+          <h2>导演 Director</h2>
+          <ul class="celebrities-list">
+            <li class="celebrity">
+              <a href="https://movie.douban.com/personage/27481219/"
+                ><div
+                  class="avatar"
+                  style="
+                    background-image: url('https://img2.doubanio.com/view/personage/m/public/27481219.jpg');
+                  "
+                ></div
+              ></a>
+              <div class="info">
+                <div class="name">
+                  <a href="https://movie.douban.com/personage/27481219/">冯小刚 Xiaogang Feng</a>
+                </div>
+                <div class="role" title="导演 Director">导演 Director</div>
+                <span class="works">
+                  代表作:
+                  <a href="https://movie.douban.com/subject/1291858/" title="芳华">芳华</a>
+                  ·
+                  <a href="https://movie.douban.com/subject/35496751/" title="非诚勿扰3"
+                    >非诚勿扰3</a
+                  >
+                  ·
+                  <a href="https://movie.douban.com/subject/1292215/" title="一声叹息">一声叹息</a>
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="list-wrapper">
+          <h2>演员 Cast</h2>
+          <ul class="celebrities-list">
+            <li class="celebrity">
+              <a href="https://movie.douban.com/personage/27559201/" class="has-account"
+                ><div
+                  class="avatar"
+                  style="
+                    background-image: url('https://img9.doubanio.com/view/personage/m/public/27559201.jpg');
+                  "
+                ></div
+              ></a>
+              <div class="info">
+                <div class="name">
+                  <a href="https://movie.douban.com/personage/27559201/">雷佳音 Jiayu Lei</a>
+                </div>
+                <div class="role" title="演员 Actor (饰 肖大力)">演员 Actor (饰 肖大力)</div>
+                <span class="works">
+                  代表作:
+                  <a href="https://movie.douban.com/subject/26647089/" title="人世间">人世间</a>
+                  ·
+                  <a href="https://movie.douban.com/subject/35637211/" title="第二十条">第二十条</a>
+                </span>
+              </div>
+            </li>
+            <li class="celebrity">
+              <a href="https://movie.douban.com/personage/27400011/"
+                ><div
+                  class="avatar"
+                  style="background-image: url('https://img1.doubanio.com/f/movie/placeholder.png')"
+                ></div
+              ></a>
+              <div class="info">
+                <div class="name">
+                  <a href="https://movie.douban.com/personage/27400011/">胡歌 Ge Hu</a>
+                </div>
+                <!-- 无 title 属性：roleDetail 需回退为 role 文本 -->
+                <div class="role">演员 Actor (饰 马识途)</div>
+                <!-- 无 works 区块 -->
+              </div>
+            </li>
+            <li class="celebrity">
+              <!-- 未建档演职员：无 personage 链接 → 必须跳过 -->
+              <div class="avatar"></div>
+              <div class="info">
+                <div class="role">饰 路人甲</div>
+              </div>
+            </li>
+            <li class="celebrity">
+              <div class="sns-card">
+                <a href="https://movie.douban.com/personage/27520001/"
+                  ><div class="avatar"></div
+                ></a>
+              </div>
+              <div class="info">
+                <div class="name">
+                  <a href="https://movie.douban.com/personage/27520001/">周野芒 Yemang Zhou</a>
+                </div>
+                <div class="role" title="演员 Actor">演员 Actor</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="list-wrapper">
+          <h2>制片人 Producer</h2>
+          <ul class="celebrities-list">
+            <li class="celebrity">
+              <!-- 分组内唯一条目缺 info 区块 → 组为空则整组丢弃 -->
+              <a href="https://movie.douban.com/personage/27600001/"><div class="avatar"></div></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

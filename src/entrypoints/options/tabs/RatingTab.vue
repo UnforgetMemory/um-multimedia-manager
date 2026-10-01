@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Store } from '@/engine/database';
 import type { Domain, Provider } from '@/libraries/config';
 import type { StoreRecord } from '@/types';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/libraries/ui/button';
-import { Star, CheckCircle2, XCircle, Database, RefreshCw } from 'lucide-vue-next';
+import { Star, CheckCircle2, XCircle, Database, RefreshCw } from '@/libraries/ui/icons';
 import { useToast } from '@/feature/composables/use-toast';
+import { useDebouncedQuery } from '@/feature/composables/use-debounced-query';
 import { errorMessage } from '@/libraries/utils/error-message';
-import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/provider/adult-av/models';
-import { JAV_ID_REGEX, autoDetectPlatform } from '@/provider/adult-av/auto-detect';
+import { JAV_IDS_STORE_NAME } from '@/provider/adult-av/models';
+import { autoDetectPlatform } from '@/provider/adult-av/auto-detect';
 import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';
 
 import FormField from '@/libraries/ui/form-field/FormField.vue';
 import { PlatformSearchForm } from '@/libraries/ui/platform-search-form';
 import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants';
+import { parseRecordInput, type RecordProvider } from '../record-input-parser';
 
 const { t } = useI18n();
 const toast = useToast();
@@ -34,221 +36,26 @@ const selectedJavSource = ref<string>('local');
 const ratingQueryResult = ref<RatingQueryRecord | null>(null);
 const isQuerying = ref(false);
 const hasQueryed = ref(false);
-let queryDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function currentParse() {
+  return parseRecordInput(
+    ratingInput.value,
+    selectedPlatform.value as RecordProvider,
+    selectedDomain.value,
+    selectedJavSource.value,
+  );
+}
 
 const parseResult = computed(() => {
   if (!ratingInput.value.trim()) return null;
-  return parseRatingInput();
+  return currentParse();
 });
-
-function validateAndNormalizeProviderId(
-  provider: Provider | 'jav_ids',
-  _type: Domain,
-  rawId: string,
-): { valid: boolean; normalizedId: string; error?: string } {
-  const trimmed = rawId.trim();
-  if (!trimmed) return { valid: false, normalizedId: '', error: t('validation.idRequired') };
-  if (provider === 'imdb') {
-    if (/^tt\d+$/i.test(trimmed)) return { valid: true, normalizedId: trimmed.toLowerCase() };
-    if (/^\d+$/.test(trimmed)) return { valid: true, normalizedId: `tt${trimmed}` };
-    return { valid: false, normalizedId: '', error: t('validation.imdbFormat') };
-  }
-  if (provider === 'douban') {
-    if (/^\d+$/.test(trimmed)) return { valid: true, normalizedId: trimmed };
-    return { valid: false, normalizedId: '', error: t('validation.doubanFormat') };
-  }
-  if (provider === 'neodb') {
-    if (/^[\w-]+$/.test(trimmed)) return { valid: true, normalizedId: trimmed };
-    return { valid: false, normalizedId: '', error: t('validation.neodbFormat') };
-  }
-  if (provider === 'tmdb') {
-    if (/^\d+$/.test(trimmed)) return { valid: true, normalizedId: trimmed };
-    return { valid: false, normalizedId: '', error: t('validation.tmdbFormat') };
-  }
-  if (provider === 'jav_ids') {
-    if (JAV_ID_REGEX.test(trimmed)) return { valid: true, normalizedId: normalizeAvId(trimmed) };
-    return { valid: false, normalizedId: '', error: t('validation.javFormat') };
-  }
-  if (provider === 'bilibili') {
-    if (/^BV[a-zA-Z0-9]+$/.test(trimmed)) return { valid: true, normalizedId: trimmed };
-    return { valid: false, normalizedId: '', error: t('validation.imdbFormat') };
-  }
-  if (provider === 'youtube') {
-    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return { valid: true, normalizedId: trimmed };
-    return { valid: false, normalizedId: '', error: t('validation.imdbFormat') };
-  }
-  if (provider === 'bangumi') {
-    if (/^\d+$/.test(trimmed)) return { valid: true, normalizedId: trimmed };
-    return { valid: false, normalizedId: '', error: t('validation.bangumiFormat') };
-  }
-  return { valid: false, normalizedId: '', error: t('validation.unknownPlatform') };
-}
-
-function parseRatingInput() {
-  const input = ratingInput.value.trim();
-  if (!input) return null;
-  const provider = selectedPlatform.value as Provider | 'jav_ids';
-  let type = selectedDomain.value;
-
-  // URL-based parsing
-  const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/);
-  if (doubanMatch) {
-    const isBook = input.includes('book');
-    const isMusic = input.includes('music');
-    const id = doubanMatch[1];
-    const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie';
-    return {
-      type: isBook ? 'book' : isMusic ? 'music' : 'movie',
-      provider: 'douban' as Provider,
-      providerId: id,
-      url: `https://${subdomain}.douban.com/subject/${id}/`,
-      valid: true,
-    };
-  }
-  const imdbMatch = input.match(/imdb\.com\/title\/(tt\d+)/i);
-  if (imdbMatch) {
-    const id = (imdbMatch[1] ?? '').toLowerCase();
-    return {
-      type: 'movie',
-      provider: 'imdb' as Provider,
-      providerId: id,
-      url: `https://www.imdb.com/title/${id}/`,
-      valid: true,
-    };
-  }
-  const neodbMatch = input.match(/neodb\.social\/(movie|tv|album)\/([\w-]+)/);
-  if (neodbMatch) {
-    const [, pathType, id] = neodbMatch;
-    return {
-      type: pathType === 'album' ? 'music' : pathType,
-      provider: 'neodb' as Provider,
-      providerId: id,
-      url: `https://neodb.social/${pathType}/${id}/`,
-      valid: true,
-    };
-  }
-  const tmdbMovieMatch = input.match(/themoviedb\.org\/movie\/(\d+)/);
-  if (tmdbMovieMatch) {
-    const id = tmdbMovieMatch[1];
-    return {
-      type: 'movie',
-      provider: 'tmdb' as Provider,
-      providerId: id,
-      url: `https://www.themoviedb.org/movie/${id}/`,
-      valid: true,
-    };
-  }
-  const tmdbTvMatch = input.match(/themoviedb\.org\/tv\/(\d+)/);
-  if (tmdbTvMatch) {
-    const id = tmdbTvMatch[1];
-    return {
-      type: 'tv',
-      provider: 'tmdb' as Provider,
-      providerId: id,
-      url: `https://www.themoviedb.org/tv/${id}/`,
-      valid: true,
-    };
-  }
-  const bilibiliMatch = input.match(/bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/i);
-  if (bilibiliMatch) {
-    const id = bilibiliMatch[1];
-    return {
-      type: 'video',
-      provider: 'bilibili' as Provider,
-      providerId: id,
-      url: `https://www.bilibili.com/video/${id}/`,
-      valid: true,
-    };
-  }
-  const youtubeMatch = input.match(/(?:youtube\.com|youtu\.be)\/watch\?v=([a-zA-Z0-9_-]{11})/i);
-  if (youtubeMatch) {
-    const id = youtubeMatch[1];
-    return {
-      type: 'video',
-      provider: 'youtube' as Provider,
-      providerId: id,
-      url: `https://www.youtube.com/watch?v=${id}/`,
-      valid: true,
-    };
-  }
-  const bangumiMatch = input.match(/(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)/i);
-  if (bangumiMatch) {
-    const id = bangumiMatch[1];
-    return {
-      type: 'tv',
-      provider: 'bangumi' as Provider,
-      providerId: id,
-      url: `https://bgm.tv/subject/${id}/`,
-      valid: true,
-    };
-  }
-
-  // Auto-detect jav_id format — only if platform is jav_ids
-  if (provider === 'jav_ids' && JAV_ID_REGEX.test(input)) {
-    const key = `${selectedJavSource.value}::${normalizeAvId(input)}`;
-    return {
-      type: 'jav_ids',
-      provider: 'jav_ids' as Provider | 'jav_ids',
-      providerId: key,
-      url: '',
-      valid: true,
-    };
-  }
-
-  // ID-based parsing for jav_ids
-  if (provider === 'jav_ids') {
-    const validation = validateAndNormalizeProviderId(provider, type, input);
-    if (!validation.valid)
-      return { type, provider, providerId: input, url: '', valid: false, error: validation.error };
-    const key = `${selectedJavSource.value}::${validation.normalizedId}`;
-    return {
-      type: 'jav_ids',
-      provider: 'jav_ids' as Provider | 'jav_ids',
-      providerId: key,
-      url: '',
-      valid: true,
-    };
-  }
-
-  const validation = validateAndNormalizeProviderId(provider, type, input);
-  if (!validation.valid)
-    return { type, provider, providerId: input, url: '', valid: false, error: validation.error };
-
-  const nId = validation.normalizedId;
-  let url = '';
-  if (provider === 'bangumi') {
-    // Bangumi subject URLs never encode media type; canonical type is always 'tv'
-    // (matches Identity.fromUrl + LinkedTab) so saves land on `tv::<id>` keys.
-    type = 'tv';
-    url = `https://bgm.tv/subject/${nId}/`;
-  } else if (provider === 'douban')
-    url =
-      type === 'music'
-        ? `https://music.douban.com/subject/${nId}/`
-        : type === 'book'
-          ? `https://book.douban.com/subject/${nId}/`
-          : type === 'game'
-            ? `https://www.douban.com/game/${nId}/`
-            : `https://movie.douban.com/subject/${nId}/`;
-  else if (provider === 'imdb') url = `https://www.imdb.com/title/${nId}/`;
-  else if (provider === 'neodb') {
-    const p = type === 'tv' ? 'tv' : type === 'music' ? 'album' : 'movie';
-    url = `https://neodb.social/${p}/${nId}/`;
-  } else if (provider === 'tmdb')
-    url =
-      type === 'tv'
-        ? `https://www.themoviedb.org/tv/${nId}/`
-        : `https://www.themoviedb.org/movie/${nId}/`;
-  else if (provider === 'bilibili') url = `https://www.bilibili.com/video/${nId}/`;
-  else if (provider === 'youtube') url = `https://www.youtube.com/watch?v=${nId}/`;
-  return { type, provider, providerId: nId, url, valid: true };
-}
 
 function getStatusLabel(status: number, type: string): string {
   if (type === 'music') {
     const labels: Record<number, string> = {
       0: t('common.unlistened'),
-      1: t('common.rating'),
+      1: t('common.wish'),
       2: t('common.listened'),
       3: t('common.doing'),
     };
@@ -256,7 +63,7 @@ function getStatusLabel(status: number, type: string): string {
   }
   const labels: Record<number, string> = {
     0: t('common.unwatched'),
-    1: t('common.rating'),
+    1: t('common.wish'),
     2: t('common.watched'),
     3: t('common.doing'),
   };
@@ -264,9 +71,10 @@ function getStatusLabel(status: number, type: string): string {
 }
 
 async function queryRecordFromDB() {
-  const parsed = parseRatingInput();
-  // Narrow the parse union: every valid branch yields non-empty type/providerId at runtime
-  if (!parsed || !parsed.type || !parsed.providerId) {
+  const parsed = currentParse();
+  // An invalid parse echoes the raw input as providerId — never read (let
+  // alone write) a key built from it.
+  if (!parsed.valid || !parsed.type || !parsed.providerId) {
     ratingQueryResult.value = null;
     hasQueryed.value = false;
     isQuerying.value = false;
@@ -288,19 +96,22 @@ async function queryRecordFromDB() {
         ? { ...record, type: parsed.type, provider: parsed.provider, providerId: parsed.providerId }
         : null;
     }
-  } catch {
-    ratingQueryResult.value = null;
   } finally {
     hasQueryed.value = true;
     isQuerying.value = false;
   }
 }
 
-function debouncedQuery() {
-  if (isQuerying.value) return;
-  if (queryDebounceTimer) clearTimeout(queryDebounceTimer);
-  queryDebounceTimer = setTimeout(() => queryRecordFromDB(), 500);
-}
+const { run: debouncedQuery } = useDebouncedQuery(queryRecordFromDB, {
+  isRunning: () => isQuerying.value,
+  onError: (error: unknown) => {
+    // WHY: a failed read is not "no record" — clear the empty state and report
+    // through the SPA toast (same channel as saveRating failures).
+    ratingQueryResult.value = null;
+    hasQueryed.value = false;
+    toast.error(t('common.loadFailed'), errorMessage(error));
+  },
+});
 
 watch(ratingInput, (v) => {
   const input = v.trim();
@@ -342,9 +153,11 @@ async function saveRating() {
     toast.error(t('common.ratingRequired'));
     return;
   }
-  const parsed = parseRatingInput();
-  if (!parsed) {
-    toast.error(t('validation.cannotParse'));
+  const parsed = currentParse();
+  // A valid:false result still carries a truthy object echoing the raw input —
+  // saving it would write `{type}::<garbage>` keys and broadcast record:updated.
+  if (!parsed.valid) {
+    toast.error(t('validation.cannotParse'), t(parsed.errorKey));
     return;
   }
   try {
@@ -380,10 +193,6 @@ async function saveRating() {
     toast.error(t('toast.saveFailed'), errorMessage(e));
   }
 }
-
-onUnmounted(() => {
-  if (queryDebounceTimer) clearTimeout(queryDebounceTimer);
-});
 </script>
 
 <template vapor>
@@ -419,7 +228,7 @@ onUnmounted(() => {
           class="umm:flex umm:items-center umm:gap-2 umm:p-2 umm:rounded-md umm:bg-state-error/10 umm:dark:bg-state-error/20 umm:text-xs"
         >
           <XCircle class="umm:h-3.5 umm:w-3.5 umm:text-state-error umm:shrink-0" />
-          <span class="umm:text-state-error">{{ parseResult.error }}</span>
+          <span class="umm:text-state-error">{{ t(parseResult.errorKey) }}</span>
         </div>
       </Transition>
 

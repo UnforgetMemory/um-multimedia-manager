@@ -3,7 +3,7 @@
  *
  * 五条互斥分支——风控页优先级最高（URL 判型失效，见 0），其余按 classifyPage
  * 统一决策（thread > forumdisplay > search > index）：
- *   0. 风控页（年龄门，DOM 双标记检测）→ src/content/sehuatang/app-risk.ts。
+ *   0. 风控页（年龄门，DOM 双标记检测）→ src/scenario/sehuatang/app-risk.ts。
  *      任意路径都可能返回风控页（站点根/分区/帖子/搜索/portal 均可能），
  *      URL 完全不可预判——classifyPage 的 URL 体系对它失效，判定只能靠
  *      文档 DOM 双标记（div.domain + a.enter-btn）。**必须先于一切分支**：
@@ -16,15 +16,15 @@
  *      分类落 jav_ids/usav_ids；提取失败 → TID 兜底落 sehuatang_ids）。
  *      三表互不冲突，且列表页/搜索页 dimmer 双键命中该记录。
  *   2. 列表页（forumdisplay）→ 接管 shadow host，编排完整 overlay 应用
- *      （src/content/sehuatang/app.ts）。刻意独立于 legacy content.ts 管线：
+ *      （src/scenario/sehuatang/app.ts）。刻意独立于 legacy content.ts 管线：
  *      不经 DB 健康检查串行门禁——首屏渲染只依赖行内 DOM 数据。仍需
  *      injectGlobalStyles：☰ 菜单/手动添加/查询面板/FloatingToast 是
  *      light-DOM 组件，依赖其 --umm-* 变量与组件样式（原页面被覆盖，注入
  *      零视觉成本）。
- *   3. 搜索页（search.php?mod=forum）→ src/content/sehuatang/app-search.ts。
+ *   3. 搜索页（search.php?mod=forum）→ src/scenario/sehuatang/app-search.ts。
  *      读模式（仅 dimmer，**不落库**）：原条目无磁力/详情子请求，dimmer
  *      是唯一反馈；数据变更交给用户点击进入帖子后的「帖子详情页静默记录」。
- *   4. 首页（pg_index）→ src/content/sehuatang/app-home.ts。导航模式：只
+ *   4. 首页（pg_index）→ src/scenario/sehuatang/app-home.ts。导航模式：只
  *      渲染分区网格 + 子版块卡片，**不接触已看库**（首页无帖子条目，dimmer
  *      无语义）。
  *
@@ -40,6 +40,9 @@
 
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { initEventBus } from '@/libraries/utils/event-bus';
+import { warnLog } from '@/libraries/utils/logger';
+import { bootstrapLogging } from '@/entrypoints/content/bootstrap/logging';
+import { startLocaleSync, subscribeLocale } from '@/entrypoints/content/i18n';
 import { injectGlobalStyles } from '@/entrypoints/content/styles/global';
 import { AdultAvStore } from '@/provider/adult-av';
 import { classifyPage } from '@/scenario/sehuatang/url';
@@ -83,6 +86,14 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   async main() {
+    // 先于任何路由判断装配两件全局事项：①「调试日志」/「日志级别」只写在
+    // chrome.storage，本上下文不读回 configureLogging() 就等于生产恒静音（logger
+    // 默认跟随 DEV），风控页与帖子页也就取不到诊断；②语言在线同步——三个编排入口
+    // 各自 `await initI18n()`，但没人注册 onChanged 监听，Options 改语言不回填已开
+    // 标签页（此前登记在 i18n-init-wiring 的基线里）。
+    await bootstrapLogging();
+    startLocaleSync();
+
     // 风控页优先级最高：DOM 检测（URL 不可预判——见文件头分支 0）。
     if (isRiskGateDocument(document)) {
       await runSehuatangRiskApp();
@@ -102,12 +113,46 @@ export default defineContentScript({
     if (kind !== 'forumdisplay' && kind !== 'search' && kind !== 'index') return;
     initEventBus();
     injectGlobalStyles();
-    if (kind === 'forumdisplay') {
-      await runSehuatangOverlayApp();
-    } else if (kind === 'search') {
-      await runSehuatangSearchApp();
-    } else {
-      await runSehuatangIndexApp();
-    }
+    const mountApp =
+      kind === 'forumdisplay'
+        ? runSehuatangOverlayApp
+        : kind === 'search'
+          ? runSehuatangSearchApp
+          : runSehuatangIndexApp;
+    await mountApp();
+    // Language live remount (X106 leftover). `t()` reads a module-level locale
+    // and is not a reactive source, so a painted overlay never re-renders on its
+    // own. The three orchestration entries already support re-entry
+    // (`releasePageResources` + `attachSehuatangOverlay` cleanup), so the
+    // fill-back path is the same as Douban's: re-run the mount function. Menu
+    // rebuild-on-click already picked up new strings; this covers the painted
+    // header stats / copy button / empty state.
+    //
+    // Single-flight + trailing re-run: a second locale event that arrives while
+    // `mountApp()` is still awaiting `initI18n()` must not be dropped — the
+    // first pass already read a possibly-stale locale.
+    let remounting = false;
+    let pendingRemount = false;
+    const runRemount = (): void => {
+      remounting = true;
+      void mountApp()
+        .catch((error: unknown) => {
+          warnLog('[UMM] Sehuatang locale remount failed:', error);
+        })
+        .finally(() => {
+          remounting = false;
+          if (pendingRemount) {
+            pendingRemount = false;
+            runRemount();
+          }
+        });
+    };
+    subscribeLocale(() => {
+      if (remounting) {
+        pendingRemount = true;
+        return;
+      }
+      runRemount();
+    });
   },
 });

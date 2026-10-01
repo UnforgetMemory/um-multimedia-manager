@@ -4,6 +4,7 @@
  * Combines UmmScrollRow + UmmMediaCard with automatic record lookup.
  * Used by screening, hot-movie, and hot-tv sections.
  */
+import { safeHref } from '@/libraries/utils/safe-url';
 import type { StoreRecord } from '@/types';
 import UmmScrollRow from './UmmScrollRow.vue';
 import UmmMediaCard from './UmmMediaCard.vue';
@@ -42,10 +43,10 @@ function recordFor(item: MediaRowItem) {
   <UmmScrollRow v-if="items.length > 0" :title="title" :mode="grid ? 'grid' : 'scroll'">
     <UmmMediaCard
       v-for="item in items"
-      :key="`${item.subjectId}-${recordFor(item).status}-${recordFor(item).rating}`"
+      :key="item.subjectId || item.href"
       :poster-url="item.posterUrl"
       :title="item.title"
-      :href="item.href"
+      :href="safeHref(item.href)"
       :rate="item.rate"
       :intro="item.intro"
       :author="item.author"

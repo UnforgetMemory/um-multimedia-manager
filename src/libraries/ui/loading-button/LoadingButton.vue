@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FunctionalComponent, SVGAttributes } from 'vue';
 import { Button } from '@/libraries/ui/button';
-import { RefreshCw } from 'lucide-vue-next';
+import { RefreshCw } from '@/libraries/ui/icons';
 
 defineProps<{
   icon: FunctionalComponent<SVGAttributes>;

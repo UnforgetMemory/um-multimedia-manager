@@ -23,14 +23,15 @@
 
 import { AdultAvStore } from '@/provider/adult-av';
 import { settingsItems } from '@/engine/settings/items';
-import { classifyAvId, normalizeAvId } from '@/provider/adult-av/models';
 import { t, initI18n } from '@/entrypoints/content/i18n';
 import { throttle } from '@/libraries/utils';
-import { onEvent } from '@/libraries/utils/event-bus';
+import { errorLog, infoLog, warnLog } from '@/libraries/utils/logger';
+import { resetStatsUnreachableGate } from './app-notify';
+import { releaseTrailingWriters, trackTrailingWriter } from './app-trailing-writers';
+import { onEvent, type EventType } from '@/libraries/utils/event-bus';
 import { FloatingToast } from '@/entrypoints/content/utils/toast';
 import {
   mountSehuatangControls,
-  countSehuatangCardStates,
   markCardsViewed,
   dimCardsVisually,
   runVisibleEntrance,
@@ -47,7 +48,14 @@ import {
   type SehuatangThread,
 } from '@/entrypoints/content/handlers/sehuatang-extract';
 import { attachSehuatangOverlay } from './overlay';
-import { syncEmptyHiddenState } from './empty-state';
+// 头部统计/空态刷新（页面级隐藏数与挂载点状态随本模块拆出，2026-09-28）。
+import {
+  addHiddenAtMount,
+  registerEmptyShell,
+  resetHeaderStatsPage,
+  setHiddenAtMount,
+  updateHeaderInfo,
+} from './app-header-stats';
 import {
   createDetailLoader,
   DETAIL_FLAG,
@@ -58,20 +66,16 @@ import {
 import { buildCard, renderSkeleton, cardTrackKeys } from './card-render';
 import { reportSaveFailure, consumeSaveFailure } from './save-failure';
 import { buildHeader } from './header';
+// 背景读取的重试/缓存纪律（失败的读取不是结论，见模块头）。
+import {
+  bumpGlobalStats as bumpStats,
+  invalidateGlobalStats,
+  readWatchedIds,
+} from './background-reads';
 
-// 页面生命周期状态：每次 handler 运行重置。
-// 三段已看统计缓存（ADR-025 D5）：避免每卡/每次刷新都全量读三表（2N 次消息 → 1 次）。
-interface AvStats {
-  jp: number;
-  us: number;
-  tid: number;
-}
-let statsCache: AvStats | null = null;
-let statsLoading = false;
-// 初始进程被隐藏（不渲染）的已看数——「本页隐藏」统计源；运行时标记永不隐藏。
-let hiddenAtMount = 0;
-// 空态挂载点（shell 引用）：updateHeaderInfo 刷新时按需挂/撤「全部已看过」空态。
-let emptyShellRef: HTMLElement | null = null;
+// 页面生命周期状态：每次 handler 运行重置。三段已看统计缓存与已看批量检查的
+// 重试纪律均在 ./background-reads（失败的读取不进缓存）；头部两个框所读的
+// 「本页隐藏数」与空态挂载点在 ./app-header-stats（2026-09-28 拆出）。
 
 // 保存失败诊断（跨页 sessionStorage 标记 + 消费）见 ./save-failure（2026-09-25 拆出）
 
@@ -79,6 +83,14 @@ let emptyShellRef: HTMLElement | null = null;
 let activePaginationObserver: MutationObserver | null = null;
 let activeDetailLoader: DetailLoader | null = null;
 let activeUnsubscribeEvents: (() => void) | null = null;
+
+/** 记录事件订阅通道：生产绑定 = event-bus 的 onEvent（行为不变）；测试经
+ *  `__bindRecordEventSinkForTests` 注入捕获器（显式注入 API 先例：`__bindSettingsAreaForTests`）。 */
+type RecordEventSink = (event: EventType, cb: () => void) => () => void;
+let recordEventSink: RecordEventSink = onEvent;
+export function __bindRecordEventSinkForTests(sink?: RecordEventSink): void {
+  recordEventSink = sink ?? onEvent;
+}
 
 /**
  * 本次会话内「仅视觉」标记的卡片（点击跳转触发，不落库）。
@@ -89,75 +101,8 @@ let activeUnsubscribeEvents: (() => void) | null = null;
  */
 let visuallyMarked = new WeakSet<HTMLElement>();
 
-/** 统计刷新（节流 trailing 120ms，合并高频触发；历史数走缓存）。
- *  120ms 是「点击 dim 后『本页已看』数字几乎无感跟进」与「合并连续触发」的折中
- *  （原 250ms 在连续复制/分页场景有明显数字滞后）。 */
-const throttledRefreshStats = throttle((headerEl: HTMLElement, grid: HTMLElement) => {
-  refreshHeaderStats(headerEl, grid);
-}, 120);
-
-function refreshHeaderStats(headerEl: HTMLElement, grid: HTMLElement) {
-  const infoEl = headerEl.querySelector('.umm-header-info') as HTMLElement | null;
-  if (!infoEl) return;
-  const statsEl = headerEl.querySelector('.umm-sht-stats') as HTMLElement | null;
-  const { watched } = countSehuatangCardStates(grid);
-  const render = () => {
-    // 两个 box 分写：本页状态（已看/隐藏）与全局三段（日系/欧美/帖子）。
-    infoEl.textContent = t('sht.page_box', {
-      watched: String(watched),
-      hidden: String(hiddenAtMount),
-    });
-    if (statsEl) {
-      statsEl.textContent = t('sht.global_stats', {
-        jp: String(statsCache?.jp ?? 0),
-        us: String(statsCache?.us ?? 0),
-        tid: String(statsCache?.tid ?? 0),
-      });
-    }
-  };
-  render();
-  if (statsCache === null && !statsLoading) {
-    statsLoading = true;
-    AdultAvStore.stats()
-      .then((stats) => {
-        statsCache = stats;
-        render();
-      })
-      .catch(() => {
-        /* 降级：保持空值，下次重试 */
-      })
-      .finally(() => {
-        statsLoading = false;
-      });
-  }
-}
-
-/** 本地标记已看后：三段统计缓存按分类器增量修正（不等下一次全量读三表）。 */
-function bumpStats(ids: string[]): void {
-  if (!statsCache) return;
-  for (const id of ids) {
-    const kind = classifyAvId(normalizeAvId(id));
-    if (kind === 'us') statsCache.us += 1;
-    else if (kind === 'tid') statsCache.tid += 1;
-    else statsCache.jp += 1;
-  }
-}
-
-/** 头部统计 + 复制全部按钮态（懒加载时代：按钮不再等详情全量到达，
- * 有未看卡即可点——点击后对未加载项并发补抓）。 */
-function updateHeaderInfo(headerEl: HTMLElement, grid: HTMLElement) {
-  // 「全部已看过」空态同步：初始挂载 / AJAX 分页 / 菜单切换与运行时标记
-  // 三处状态变更都汇入本函数，这里是空态挂撤的唯一刷新点（节流统计之外
-  // 同步执行，空态挂撤无延迟）。
-  syncEmptyHiddenState(emptyShellRef, grid, hiddenAtMount);
-  throttledRefreshStats(headerEl, grid);
-  const btnEl = headerEl.querySelector('.umm-copy-btn') as HTMLButtonElement | null;
-  if (btnEl && !btnEl.hasAttribute('data-umm-copying')) {
-    const unviewed = grid.querySelectorAll('.umm-card:not(.umm-viewed)').length;
-    btnEl.disabled = unviewed === 0;
-    btnEl.textContent = `⚡ ${t('Copy All Magnets')} (${unviewed})`;
-  }
-}
+// 头部统计（本页已看/隐藏 + 全局三段）与空态挂撤见 ./app-header-stats
+// （2026-09-28 拆出）；updateHeaderInfo 是三处状态变更的汇合点。
 
 /** 构建单卡静态结构（零网络；封面/磁力由 DetailLoader 懒加载回填）。 */
 // buildCard / renderSkeleton 见 ./card-render（2026-09-25 拆出）
@@ -207,7 +152,7 @@ function makeDetailFiller(
             FloatingToast.success(t('Copy Done', { count: String(1) }));
           })
           .catch((error: unknown) => {
-            console.warn('[UMM] Sehuatang clipboard write failed:', error);
+            warnLog('[UMM] Sehuatang clipboard write failed:', error);
           });
         // 统一标记路径：data-avid = trackId（番号或 TID 兜底），类落下即
         // dimmer 生效；落库走单次批量消息，失败自动逐条兜底 + 跨页失败标记。
@@ -227,7 +172,7 @@ function makeDetailFiller(
           (added, ids) => {
             bumpStats(ids);
             refresh();
-            console.log(`[UMM] saved watched ids (${added}):`, ids.join(', ') || '(none)');
+            infoLog(`[UMM] saved watched ids (${added}):`, ids.join(', ') || '(none)');
           },
           (error) => {
             reportSaveFailure(String(error));
@@ -339,16 +284,24 @@ function subscribeRecordUpdates(grid: HTMLElement, headerEl: HTMLElement): () =>
     ) as HTMLElement[];
     const ids = cards.flatMap(cardTrackKeys);
     if (ids.length === 0) return;
-    void AdultAvStore.batchCheckExists(ids).then((watchedIds) => {
-      applyWatchedClasses(grid, watchedIds, preserveVisualMarks);
-      statsCache = null;
+    void readWatchedIds(ids).then((res) => {
+      if (!res.ok) {
+        // 重读失败时保留现有标记：一次读不到不等于「没看过」，
+        // 更不等于可以把已确认的 dimmer 全部抹掉。
+        warnLog('[UMM] Sehuatang watched re-read failed, keeping current marks:', res.error);
+        return;
+      }
+      applyWatchedClasses(grid, res.watched, preserveVisualMarks);
+      invalidateGlobalStats();
       updateHeaderInfo(headerEl, grid);
     });
   };
   const syncUpdated = throttle(() => runSync(true), 300);
   const syncDeleted = throttle(() => runSync(false), 300);
-  const offUpdated = onEvent('record:updated', syncUpdated);
-  const offDeleted = onEvent('record:deleted', syncDeleted);
+  trackTrailingWriter(syncUpdated);
+  trackTrailingWriter(syncDeleted);
+  const offUpdated = recordEventSink('record:updated', syncUpdated);
+  const offDeleted = recordEventSink('record:deleted', syncDeleted);
   return () => {
     offUpdated();
     offDeleted();
@@ -382,15 +335,18 @@ async function processNewThreads(
 
   const hideViewed = grid.classList.contains('umm-sht-hide-viewed');
   const trackIds = collectThreadTrackKeys(threads);
-  // batchCheckExists 内部吞异常（adult-av/index.ts），直接 await 即可。
-  const watchedIds =
-    trackIds.length > 0 ? await AdultAvStore.batchCheckExists(trackIds) : new Set<string>();
+  const checked = await readWatchedIds(trackIds);
+  if (!checked.ok) {
+    // 读不到仍要出卡（分页不能因一次坏消息断掉），但绝不按「都没看」隐藏。
+    warnLog('[UMM] Sehuatang paged watched read failed, rendering unfiltered:', checked.error);
+  }
+  const watchedIds = checked.watched;
 
   let toRender: SehuatangThread[] = threads;
   if (hideViewed) {
     const partitioned = partitionInitialVisible(threads, watchedIds);
     toRender = partitioned.visible;
-    hiddenAtMount += partitioned.hiddenCount;
+    addHiddenAtMount(partitioned.hiddenCount);
   }
   const newCards = mountCards(grid, toRender, loader);
 
@@ -426,6 +382,7 @@ function startPaginationSync(grid: HTMLElement, headerEl: HTMLElement, loader: D
     const rows = pendingRows.splice(0);
     void processNewThreads(rows, grid, headerEl, loader);
   }, 250);
+  trackTrailingWriter(flush);
 
   const observer = new MutationObserver((mutations) => {
     for (const row of collectNewThreadRows(mutations, processed)) pendingRows.push(row);
@@ -442,6 +399,8 @@ function startPaginationSync(grid: HTMLElement, headerEl: HTMLElement, loader: D
  * 断连分页观察器、销毁详情加载器（含取消在途 fetch）、解除事件订阅。
  */
 function releasePageResources(): void {
+  // 先撤销待决尾调用（定时器在 throttle 闭包里，外部拿不到）。
+  releaseTrailingWriters();
   activePaginationObserver?.disconnect();
   activePaginationObserver = null;
   activeDetailLoader?.destroy();
@@ -456,7 +415,7 @@ function releasePageResources(): void {
  */
 export async function runSehuatangOverlayApp(): Promise<void> {
   await initI18n();
-  console.log('[UMM] Sehuatang overlay app activated');
+  infoLog('[UMM] Sehuatang overlay app activated');
 
   // Forumdisplay 列表页 DOM 守卫：帖子表格是唯一标记。早期入口仅凭 URL
   // 建壳；详情/搜索等 URL 形态已被 url.ts 排除，此处兜底 DOM 复核。
@@ -470,101 +429,121 @@ export async function runSehuatangOverlayApp(): Promise<void> {
   }
   if (!overlay) return;
 
-  // 上一页面遗留的保存失败诊断：立即呈现原因（跨页证据）。
-  consumeSaveFailure();
+  try {
+    // 上一页面遗留的保存失败诊断：立即呈现原因（跨页证据）。
+    consumeSaveFailure();
 
-  // 重入清理：断连旧观察器/加载器/订阅（幂等重挂载）。
-  releasePageResources();
+    // 重入清理：断连旧观察器/加载器/订阅（幂等重挂载）。
+    releasePageResources();
 
-  // 页面生命周期状态重置。
-  statsCache = null;
-  statsLoading = false;
-  hiddenAtMount = 0;
-  emptyShellRef = null;
-  visuallyMarked = new WeakSet<HTMLElement>();
+    // 页面生命周期状态重置。
+    invalidateGlobalStats();
+    resetStatsUnreachableGate();
+    resetHeaderStatsPage();
+    visuallyMarked = new WeakSet<HTMLElement>();
 
-  // 隐藏已看设置读取与 UI 构建并行（storage 读不阻塞结构搭建）。
-  const hideViewedPromise = settingsItems()
-    .sehuatangHideViewed.getValue()
-    .catch(() => false);
+    // 隐藏已看设置读取与 UI 构建并行（storage 读不阻塞结构搭建）。
+    const hideViewedPromise = settingsItems()
+      .sehuatangHideViewed.getValue()
+      .catch((error: unknown) => {
+        warnLog('[UMM] Sehuatang hide-viewed setting read failed, defaulting to show:', error);
+        return false;
+      });
 
-  // 原始帖子表隐藏（DOM 保留：AJAX 分页观察与发新帖 click() 转发依赖）。
-  threadList.style.display = 'none';
+    // 原始帖子表隐藏（DOM 保留：AJAX 分页观察与发新帖 click() 转发依赖）。
+    threadList.style.display = 'none';
 
-  // overlay 内容根：壳（header + 网格）单帧挂载，替换 loading 骨架。
-  // --island 修饰类：列表页挂载「灵动岛」（搜索+分页+动作，buildFloatbar
-  // 统一合成），遮挡补偿 padding（GRID_CSS 的 padding-bottom）作用任何挂岛
-  // 页面；风控页无岛不多留白。
-  const shell = document.createElement('div');
-  shell.className = 'umm-sht-shell umm-sht-shell--island';
-  const grid = document.createElement('div');
-  grid.className = 'umm-preview-grid';
-  shell.appendChild(grid);
-  // 空态挂载点登记：此后每次 updateHeaderInfo 刷新都会按需挂/撤空态。
-  emptyShellRef = shell;
+    // overlay 内容根：壳（header + 网格）单帧挂载，替换 loading 骨架。
+    // --island 修饰类：列表页挂载「灵动岛」（搜索+分页+动作，buildFloatbar
+    // 统一合成），遮挡补偿 padding（GRID_CSS 的 padding-bottom）作用任何挂岛
+    // 页面；风控页无岛不多留白。
+    const shell = document.createElement('div');
+    shell.className = 'umm-sht-shell umm-sht-shell--island';
+    const grid = document.createElement('div');
+    grid.className = 'umm-preview-grid';
+    shell.appendChild(grid);
+    // 空态挂载点登记：此后每次 updateHeaderInfo 刷新都会按需挂/撤空态。
+    registerEmptyShell(shell);
 
-  // 封面模糊遮罩 + hover 揭示（防抖），事件委托覆盖异步加载的图片。
-  initImageReveal(grid);
+    // 封面模糊遮罩 + hover 揭示（防抖），事件委托覆盖异步加载的图片。
+    initImageReveal(grid);
 
-  // 详情懒加载器：IO 视口驱动 → 缓存 → fetch。headerRef 打破 loader（copy-all
-  // 依赖）与 filler（磁力回调依赖 header）的循环：header 构建后回填引用。
-  const headerRef: { current: HTMLElement | null } = { current: null };
-  const loader = createDetailLoader(makeDetailFiller(grid, headerRef));
-  activeDetailLoader = loader;
+    // 详情懒加载器：IO 视口驱动 → 缓存 → fetch。headerRef 打破 loader（copy-all
+    // 依赖）与 filler（磁力回调依赖 header）的循环：header 构建后回填引用。
+    const headerRef: { current: HTMLElement | null } = { current: null };
+    const loader = createDetailLoader(makeDetailFiller(grid, headerRef));
+    activeDetailLoader = loader;
 
-  // 点击跳转即 dimmer（仅页面状态，不落库）——只对「无磁力可复制」的两类条目生效。
-  initNavigateDimmer(grid, headerRef);
+    // 点击跳转即 dimmer（仅页面状态，不落库）——只对「无磁力可复制」的两类条目生效。
+    initNavigateDimmer(grid, headerRef);
 
-  const hideViewed = await hideViewedPromise;
+    const hideViewed = await hideViewedPromise;
 
-  const threads = parseThreadList();
-  console.log(`[UMM] Found ${threads.length} threads`);
+    const threads = parseThreadList();
+    infoLog(`[UMM] Found ${threads.length} threads`);
 
-  // 已看批量检查与渲染并行扇出（首屏不被消息/DB 阻塞）。
-  const trackIds = collectThreadTrackKeys(threads);
-  const watchedPromise =
-    trackIds.length > 0
-      ? AdultAvStore.batchCheckExists(trackIds)
-      : Promise.resolve(new Set<string>());
+    // 已看批量检查与渲染并行扇出（首屏不被消息/DB 阻塞）。空 id 集不发任何消息。
+    const trackIds = collectThreadTrackKeys(threads);
+    const watchedPromise = readWatchedIds(trackIds);
 
-  if (hideViewed) {
-    grid.classList.add('umm-sht-hide-viewed');
-    // 骨架先行：已看检查到达前不渲染真卡（已看条目零闪现）；
-    // 检查完成后单帧换真卡（无入场中途 pop）。
-    renderSkeleton(grid, threads.length);
-    const headerEl = buildHeader(shell, grid, loader, { updateHeaderInfo, bumpStats });
-    headerRef.current = headerEl;
-    mountSehuatangControls(document, headerEl, { floatbarParent: shell });
-    overlay.mountContent(shell);
+    if (hideViewed) {
+      grid.classList.add('umm-sht-hide-viewed');
+      // 骨架先行：已看检查到达前不渲染真卡（已看条目零闪现）；
+      // 检查完成后单帧换真卡（无入场中途 pop）。
+      renderSkeleton(grid, threads.length);
+      const headerEl = buildHeader(shell, grid, loader, { updateHeaderInfo, bumpStats });
+      headerRef.current = headerEl;
+      mountSehuatangControls(document, headerEl, { floatbarParent: shell });
+      overlay.mountContent(shell);
 
-    const watchedIds = await watchedPromise;
-    console.log(`[UMM] watched check: queried ${trackIds.length} → matched ${watchedIds.size}`);
-    // 导航/重入致 grid 脱离文档 → 放弃本轮回填，避免对游离节点操作。
-    if (!grid.isConnected) return;
-    const partitioned = partitionInitialVisible(threads, watchedIds);
-    hiddenAtMount = partitioned.hiddenCount;
-    grid.replaceChildren();
-    mountCards(grid, partitioned.visible, loader);
-    runVisibleEntrance(grid, 45);
-    updateHeaderInfo(headerEl, grid);
-    startPaginationSync(grid, headerEl, loader);
-    activeUnsubscribeEvents = subscribeRecordUpdates(grid, headerEl);
-  } else {
-    const headerEl = buildHeader(shell, grid, loader, { updateHeaderInfo, bumpStats });
-    headerRef.current = headerEl;
-    mountSehuatangControls(document, headerEl, { floatbarParent: shell });
-    mountCards(grid, threads, loader);
-    overlay.mountContent(shell);
-    runVisibleEntrance(grid, 45);
-    updateHeaderInfo(headerEl, grid);
-    startPaginationSync(grid, headerEl, loader);
-    activeUnsubscribeEvents = subscribeRecordUpdates(grid, headerEl);
+      const checked = await watchedPromise;
+      const watchedIds = checked.watched;
+      infoLog(
+        `[UMM] watched check: queried ${trackIds.length} → matched ${watchedIds.size}${checked.ok ? '' : ' (read failed)'}`,
+      );
+      if (!checked.ok) {
+        // 读失败 → 不隐藏任何条目（骨架换成全量真卡）：宁可多显示，不可把
+        // 「没读到」渲染成「都看过」而永久隐藏条目。
+        warnLog('[UMM] Sehuatang watched check unread, hiding nothing:', checked.error);
+      }
+      // 导航/重入致 grid 脱离文档 → 放弃本轮回填，避免对游离节点操作。
+      if (!grid.isConnected) return;
+      const partitioned = partitionInitialVisible(threads, watchedIds);
+      setHiddenAtMount(partitioned.hiddenCount);
+      grid.replaceChildren();
+      mountCards(grid, partitioned.visible, loader);
+      runVisibleEntrance(grid, 45);
+      updateHeaderInfo(headerEl, grid);
+      startPaginationSync(grid, headerEl, loader);
+      activeUnsubscribeEvents = subscribeRecordUpdates(grid, headerEl);
+    } else {
+      const headerEl = buildHeader(shell, grid, loader, { updateHeaderInfo, bumpStats });
+      headerRef.current = headerEl;
+      mountSehuatangControls(document, headerEl, { floatbarParent: shell });
+      mountCards(grid, threads, loader);
+      overlay.mountContent(shell);
+      runVisibleEntrance(grid, 45);
+      updateHeaderInfo(headerEl, grid);
+      startPaginationSync(grid, headerEl, loader);
+      activeUnsubscribeEvents = subscribeRecordUpdates(grid, headerEl);
 
-    // hide OFF：真卡已渲染，已看检查到达后一次性批量加 dimmer 类。
-    const watchedIds = await watchedPromise;
-    console.log(`[UMM] watched check: queried ${trackIds.length} → matched ${watchedIds.size}`);
-    if (!grid.isConnected) return;
-    applyWatchedClasses(grid, watchedIds);
-    updateHeaderInfo(headerEl, grid);
+      // hide OFF：真卡已渲染，已看检查到达后一次性批量加 dimmer 类。
+      const checked = await watchedPromise;
+      infoLog(`[UMM] watched check: queried ${trackIds.length} → matched ${checked.watched.size}`);
+      if (!checked.ok) {
+        // 读不到就不落任何 dim 类：缺标记是可见的「未淡」，假淡是丢信息。
+        warnLog('[UMM] Sehuatang watched check unread, dimming nothing:', checked.error);
+      }
+      if (!grid.isConnected) return;
+      applyWatchedClasses(grid, checked.watched);
+      updateHeaderInfo(headerEl, grid);
+    }
+  } catch (error) {
+    // attachSehuatangOverlay already tore the old shell down — without this
+    // catch a mid-build throw leaves the host page hidden and the overlay empty.
+    // Same posture as app-home: dismiss restores the original page.
+    errorLog('[UMM] Sehuatang list build failed, dismissing overlay:', error);
+    releasePageResources();
+    overlay.dismiss();
   }
 }

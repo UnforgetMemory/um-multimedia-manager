@@ -2,7 +2,10 @@
 import type { DoubanSearchData, SearchItem } from './types';
 import type { StoreRecord } from '@/types';
 import { computed, ref } from 'vue';
+import { safeHref } from '@/libraries/utils/safe-url';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { t } from '../../shared/legacy-bridge';
 import UmmSearchCard from './components/UmmSearchCard.vue';
 import UmmSearchFilter, { type FilterType } from './components/UmmSearchFilter.vue';
 
@@ -25,7 +28,10 @@ const currentPage = computed(() =>
 const jumpToPage = ref<number | null>(null);
 const filterType = ref<FilterType>('all');
 
-/** TV detection: check if item has a "剧集" label from Douban's own metadata */
+/** TV detection: check if item has a "剧集" label from Douban's own metadata.
+ *  这里是宿主侧栏匹配串（合法债务）：与 `douban.search.filter_tv` 同字面但不同
+ *  角色——不要把它「抽取」成 t()，词典化后 en-US 下匹配恒假、页签筛选恒空，
+ *  而钉 zh-CN 跑的用例看不见这种坏。 */
 function isTvItem(item: SearchItem): boolean {
   return item.labels?.some((l) => l.text === '剧集') ?? false;
 }
@@ -35,6 +41,14 @@ const filteredItems = computed(() => {
   const wantTv = filterType.value === 'tv';
   return props.searchData.items.filter((i) => isTvItem(i) === wantTv);
 });
+
+// Seeded from the mount-time batch read so the first paint already has badges;
+// the subscription only re-reads when a visible subject is written elsewhere.
+const { records: liveRecordMap } = useRecordCache(
+  props.type,
+  () => filteredItems.value.filter((i) => i.id).map((i) => String(i.id)),
+  props.recordMap ?? new Map<string, StoreRecord>(),
+);
 
 const pageWindow = computed(() => {
   const tp = totalPages.value;
@@ -57,7 +71,7 @@ function pageUrl(page: number): string {
 }
 
 function navigate(url: string): void {
-  location.href = url;
+  location.href = safeHref(url);
 }
 
 function handlePageJump(): void {
@@ -97,11 +111,17 @@ function clampJumpInput(): void {
       <div v-else-if="searchData" class="umm-search-hd">
         <div class="umm-search-hd-left">
           <h1 class="umm-search-title">
-            {{ type === 'music' ? '音乐搜索' : type === 'book' ? '图书搜索' : '搜索结果' }}
+            {{
+              type === 'music'
+                ? t('douban.search.title_music')
+                : type === 'book'
+                  ? t('douban.search.title_book')
+                  : t('douban.search.title')
+            }}
           </h1>
         </div>
         <span class="umm-search-hd-meta">
-          "{{ searchData.text }}" · {{ searchData.total }} 个结果
+          {{ t('douban.search.results', { text: searchData.text, count: searchData.total }) }}
         </span>
       </div>
 
@@ -110,12 +130,12 @@ function clampJumpInput(): void {
           v-for="item in filteredItems"
           :key="item.id"
           :item="item"
-          :records="recordMap || new Map()"
+          :records="liveRecordMap"
           :type="type"
         />
       </div>
       <div v-else class="umm-search-empty">
-        <p>无法获取搜索结果数据。</p>
+        <p>{{ t('douban.search.unavailable') }}</p>
       </div>
 
       <div v-if="totalPages > 1" class="umm-paginator">
@@ -124,14 +144,14 @@ function clampJumpInput(): void {
           :href="pageUrl(1)"
           @click.prevent="navigate(pageUrl(1))"
           class="umm-page-link"
-          >首页</a
+          >{{ t('douban.search.first') }}</a
         >
         <a
           v-if="currentPage > 1"
           :href="pageUrl(currentPage - 1)"
           @click.prevent="navigate(pageUrl(currentPage - 1))"
           class="umm-page-link"
-          >‹ 上一页</a
+          >{{ t('douban.search.prev') }}</a
         >
         <template v-for="p in pageWindow" :key="p">
           <a v-if="p === currentPage" class="umm-page-link umm-page-link--active">{{ p }}</a>
@@ -148,14 +168,14 @@ function clampJumpInput(): void {
           :href="pageUrl(currentPage + 1)"
           @click.prevent="navigate(pageUrl(currentPage + 1))"
           class="umm-page-link"
-          >下一页 ›</a
+          >{{ t('douban.search.next') }}</a
         >
         <a
           v-if="currentPage < totalPages"
           :href="pageUrl(totalPages)"
           @click.prevent="navigate(pageUrl(totalPages))"
           class="umm-page-link"
-          >末页</a
+          >{{ t('douban.search.last') }}</a
         >
         <span class="umm-page-jump">
           <input
@@ -169,7 +189,7 @@ function clampJumpInput(): void {
             @blur="clampJumpInput"
             v-model.number="jumpToPage"
           />
-          <button class="umm-page-go" @click="handlePageJump">跳转</button>
+          <button class="umm-page-go" @click="handlePageJump">{{ t('douban.search.go') }}</button>
         </span>
       </div>
     </div>

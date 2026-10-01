@@ -52,11 +52,13 @@ export function usePaginator(
       if (isSafeDoubanUrl(link.url)) window.location.href = link.url;
       return;
     }
-    if (page < currentPage.value && prevPageUrl() && isSafeDoubanUrl(prevPageUrl()!)) {
-      window.location.href = prevPageUrl()!;
-    } else if (page > currentPage.value && nextPageUrl() && isSafeDoubanUrl(nextPageUrl()!)) {
-      window.location.href = nextPageUrl()!;
-    }
+    const adjacent =
+      page < currentPage.value
+        ? prevPageUrl()
+        : page > currentPage.value
+          ? nextPageUrl()
+          : undefined;
+    if (adjacent && isSafeDoubanUrl(adjacent)) window.location.href = adjacent;
   }
 
   return { currentPage, totalPages, onPageChange };

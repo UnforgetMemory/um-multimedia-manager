@@ -65,8 +65,10 @@ export function extractMovieProfileData(): MovieProfileData | null {
           return;
         }
 
-        // Add as stat
-        stats.push({ label, count, url: fullUrl });
+        // Add as stat — but only when the heading really carries a count link.
+        // Without one, `linkHref` is '' and `fullUrl` degrades to the bare
+        // origin, which grew a "0" pill that opened the movie homepage.
+        if (countLink) stats.push({ label, count, url: fullUrl });
       }
 
       // Process content after h2

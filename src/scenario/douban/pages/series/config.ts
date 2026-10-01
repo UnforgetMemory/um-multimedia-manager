@@ -2,7 +2,7 @@ import { definePageMount } from '../../mount-factory';
 import { createApp } from 'vue';
 import { hideNavForPage } from '../../shared/hide-nav';
 import { withRetry } from '../../shared/retry';
-import { loadRecordMap } from '../../shared/load-record-map';
+import { loadRecordMapForIds } from '../../shared/load-record-map';
 
 /** Mount config for the Douban book series page overlay */
 export const mountSeries = definePageMount({
@@ -20,10 +20,10 @@ export const mountSeries = definePageMount({
     if (!data) throw new Error('[UMM] Could not extract series page data');
     hideNavForPage({ type: 'series' });
 
-    // Enrich items with book record status from IndexedDB
+    // Seed the overlay's live record cache with the visible book ids
     try {
       const ids = data.items.filter((i) => i.subjectId).map((i) => i.subjectId);
-      const recordMap = await loadRecordMap('book', ids);
+      const recordMap = await loadRecordMapForIds('book', ids);
       return { data, recordMap };
     } catch {
       return {

@@ -49,6 +49,34 @@ export function isAlbumsPage(url: string): boolean {
   return /^https?:\/\/music\.douban\.com\/albums\/\d+/.test(url);
 }
 
+/** Media scope covered by URL-based inference (detail/search page families). */
+export type DoubanMediaScope = 'movie' | 'music' | 'book';
+
+/**
+ * SINGLE source of truth for media-type inference from a Douban URL.
+ * Covers both hostname forms (music.douban.com / book.douban.com detail pages)
+ * and search-path forms (search.douban.com/music|book); defaults to 'movie'.
+ * Parses host + first path segment only — never substring-matches the URL,
+ * so free-text query params (e.g. ?search_text=music.douban.com) cannot flip it.
+ */
+export function inferMediaTypeFromUrl(url: string): DoubanMediaScope {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return 'movie';
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'music.douban.com') return 'music';
+  if (host === 'book.douban.com') return 'book';
+  if (host === 'search.douban.com') {
+    const segment = parsed.pathname.split('/')[1];
+    if (segment === 'music') return 'music';
+    if (segment === 'book') return 'book';
+  }
+  return 'movie';
+}
+
 export function isDetailPage(url: string): boolean {
   return /^https?:\/\/(movie|music|book)\.douban\.com\/subject\//.test(url);
 }
@@ -220,20 +248,10 @@ export function detectPageType(url: string = location.href): PageType | null {
   if (isBookUserProfile(url)) return { type: 'book-profile' };
   if (isBookHomepage(url)) return { type: 'book-homepage' };
   if (isDetailPage(url)) {
-    const mediaType = url.includes('music.douban.com')
-      ? 'music'
-      : url.includes('book.douban.com')
-        ? 'book'
-        : 'movie';
-    return { type: 'detail', mediaType };
+    return { type: 'detail', mediaType: inferMediaTypeFromUrl(url) };
   }
   if (isSearchPage(url)) {
-    const mediaType = url.includes('search.douban.com/music')
-      ? 'music'
-      : url.includes('search.douban.com/book')
-        ? 'book'
-        : 'movie';
-    return { type: 'search', mediaType };
+    return { type: 'search', mediaType: inferMediaTypeFromUrl(url) };
   }
   if (isPersonageCreationsPage(url)) return { type: 'personage-creations' };
   if (isPersonagePage(url)) return { type: 'personage' };

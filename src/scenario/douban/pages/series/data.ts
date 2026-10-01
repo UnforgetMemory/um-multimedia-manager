@@ -57,8 +57,8 @@ function extractSortOptions(): SeriesSortOption[] {
   const baseUrl = location.pathname;
 
   return [
-    { label: '按收藏人数排序', url: baseUrl, active: order !== 'time' },
-    { label: '按出版时间先后排序', url: `${baseUrl}?order=time`, active: order === 'time' },
+    { labelKey: 'douban.series.sort_collection', url: baseUrl, active: order !== 'time' },
+    { labelKey: 'douban.series.sort_time', url: `${baseUrl}?order=time`, active: order === 'time' },
   ];
 }
 

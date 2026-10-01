@@ -1,4 +1,5 @@
 import { ref, defineComponent, h } from 'vue';
+import { safeHref } from '@/libraries/utils/safe-url';
 
 /**
  * UmmImage — image renderer with shimmer loading overlay.
@@ -67,7 +68,7 @@ export const UmmImage = defineComponent({
         return h(
           'a',
           {
-            href: props.href,
+            href: safeHref(props.href),
             target: '_blank',
             rel: 'noopener noreferrer',
             class: 'umm-image-container',

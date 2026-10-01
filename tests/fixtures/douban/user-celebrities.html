@@ -1,0 +1,111 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/user-celebrities-data.spec.ts.
+  NOT a real saved page: all data is fabricated; only the public
+  movie.douban.com/people/{uid}/celebrities DOM shape is reproduced to match
+  the extractor contract in
+  src/scenario/douban/pages/user-celebrities/user-celebrities-data.ts:
+  #db-usr-profile sidebar (.pic img / .info ul li a / h1 "(N)" count),
+  .side-info-txt h3 (new-style name), .grid-view .item blocks
+  (.title a > em, .pic img, .info .intro ×N: roles + works anchors).
+  Items cover: two-intro celebrity (works = ALL anchors of intro[1]),
+  single-intro (no works), no-em title, anchor-less item (skipped), paginator.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>星星我关注的名人</title>
+  </head>
+  <body>
+    <div class="grid-16-8">
+      <div class="aside">
+        <div id="db-usr-profile" class="article">
+          <div class="pic">
+            <img src="https://img3.doubanio.com/icon/u9876543-2.jpg" alt="星星" />
+          </div>
+          <div class="info">
+            <h1>我关注的名人(14)</h1>
+            <ul class="plim">
+              <li><a href="https://www.douban.com/people/xingxing/">主页</a></li>
+              <li><a href="https://movie.douban.com/people/xingxing/collect">我看</a></li>
+              <li><a href="https://book.douban.com/people/xingxing/collect">我读</a></li>
+            </ul>
+          </div>
+        </div>
+        <!-- 新版 mine 侧栏：displayName 优先取 .side-info-txt h3 -->
+        <div class="side-info">
+          <span class="side-info-avatar">
+            <img src="https://img3.doubanio.com/icon/u9876543-2s.jpg" alt="星星" />
+          </span>
+          <div class="side-info-txt">
+            <h3>星星同学</h3>
+          </div>
+        </div>
+      </div>
+      <div class="article">
+        <div class="grid-view">
+          <div class="item">
+            <div class="pic">
+              <a href="https://movie.douban.com/celebrity/1000596/"
+                ><img src="https://img1.doubanio.com/cele/b/public/1000596.jpg" alt=""
+              /></a>
+            </div>
+            <div class="title">
+              <a href="https://movie.douban.com/celebrity/1000596/"><em>娜塔莉-波特曼</em></a>
+            </div>
+            <div class="info">
+              <div class="intro">演员</div>
+              <div class="intro">
+                代表作:
+                <a href="https://movie.douban.com/subject/1308817/">黑天鹅</a>
+                ·
+                <a href="https://movie.douban.com/subject/1292153/">这个杀手不太冷</a>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="pic">
+              <a href="https://movie.douban.com/celebrity/1054415/"
+                ><img src="https://img9.doubanio.com/cele/b/public/1054415.jpg" alt=""
+              /></a>
+            </div>
+            <div class="title">
+              <a href="https://movie.douban.com/celebrity/1054415/"
+                ><em>基努-里维斯</em> Keanu Reeves</a
+              >
+            </div>
+            <div class="info">
+              <!-- 单 intro：只作为 roles，works 必须为空 -->
+              <div class="intro">演员 / 制片人</div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="title">
+              <!-- 无 em：name 回退为链接全文 -->
+              <a href="https://movie.douban.com/celebrity/1002007/">宫崎骏 Hayao Miyazaki</a>
+            </div>
+            <div class="info">
+              <div class="intro">导演 / 编剧</div>
+              <div class="intro">
+                <a href="https://movie.douban.com/subject/1291561/">千与千寻</a>
+                ·
+                <a href="https://movie.douban.com/celebrity/1002007/">个人主页</a>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <!-- 无标题链接 → 跳过 -->
+            <div class="pic"><img src="https://img2.doubanio.com/cele/b/public/0.jpg" /></div>
+            <div class="info"><div class="intro">未知</div></div>
+          </div>
+        </div>
+        <div class="paginator">
+          <span class="prev"><a href="?start=0">&lt;前页</a></span>
+          <span class="thispage" data-total-page="1">1</span>
+          <a href="?start=30">2</a>
+          <span class="next"><a href="?start=30">后页&gt;</a></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

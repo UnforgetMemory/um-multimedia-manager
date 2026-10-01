@@ -24,11 +24,17 @@ import type { GlobalStyleBlock } from './styles/global';
 let ptdimmerInstance: PTDimmer | null = null;
 
 /**
+ * Teardown handle a route handler may return. The router calls it before the
+ * next dispatch runs, so observers/timers never outlive the route that created them.
+ */
+export type RouteDisposer = () => void;
+
+/**
  * 路由规则接口
  */
 interface RouteRule {
   match: (url: string) => boolean;
-  handler: (identity: UrlIdentity | null) => Promise<void> | void;
+  handler: (identity: UrlIdentity | null) => Promise<RouteDisposer | void> | RouteDisposer | void;
   /**
    * 该路由实际消费的 injectGlobalStyles 块子集（X5 按需注入）。
    * - undefined（缺省）→ 全量注入，行为与历史完全一致。
@@ -62,9 +68,10 @@ const ROUTES: RouteRule[] = [
   {
     match: (url) => url.includes('www.imdb.com/title/tt'),
     handler: async (identity) => {
-      if (identity) {
-        await handleIMDbDetailPage(identity);
-      }
+      if (!identity) return;
+      // A lingering state observer keeps rescanning the previous title
+      // after SPA navigation away, so it tears down with this route.
+      return await handleIMDbDetailPage(identity);
     },
   },
 
@@ -76,9 +83,7 @@ const ROUTES: RouteRule[] = [
       url.includes('neodb.social/album/') ||
       url.includes('neodb.social/book/'),
     handler: async (identity) => {
-      if (identity) {
-        await handleNeoDBDetailPage(identity);
-      }
+      if (identity) return await handleNeoDBDetailPage(identity);
     },
   },
 
@@ -88,9 +93,7 @@ const ROUTES: RouteRule[] = [
       /bgm\.tv|bangumi\.tv|chii\.in/.test(url) &&
       extractBangumiSubjectId(new URL(url).pathname) !== null,
     handler: async (identity) => {
-      if (identity) {
-        await handleBangumiDetailPage(identity);
-      }
+      if (identity) return await handleBangumiDetailPage(identity);
     },
   },
 
@@ -124,9 +127,15 @@ const ROUTES: RouteRule[] = [
     // 徽章/按钮/面板等块在本路由零引用 → 最小子集（theme-vars 由 API 自动前置）。
     styleBlocks: ['dimmer', 'focus-visible', 'scrollbar'],
     handler: async () => {
-      if (!ptdimmerInstance) ptdimmerInstance = new PTDimmer();
-      ptdimmerInstance.cleanup();
-      await ptdimmerInstance.runFor(location.href);
+      const instance = ptdimmerInstance ?? new PTDimmer();
+      ptdimmerInstance = instance;
+      instance.cleanup();
+      await instance.runFor(location.href);
+      // cleanup() is idempotent — a same-route re-dispatch already cleaned inside runFor.
+      return () => {
+        instance.cleanup();
+        if (ptdimmerInstance === instance) ptdimmerInstance = null;
+      };
     },
   },
 
@@ -141,7 +150,7 @@ const ROUTES: RouteRule[] = [
       }
     },
     handler: async () => {
-      await handleTMDBHomepage();
+      return await handleTMDBHomepage();
     },
   },
 
@@ -149,9 +158,7 @@ const ROUTES: RouteRule[] = [
   {
     match: (url) => url.includes('themoviedb.org/movie/') || url.includes('themoviedb.org/tv/'),
     handler: async (identity) => {
-      if (identity) {
-        await handleTMDBDetailPage(identity);
-      }
+      if (identity) return await handleTMDBDetailPage(identity);
     },
   },
 
@@ -162,7 +169,7 @@ const ROUTES: RouteRule[] = [
     // 零 --umm-* var 依赖、零 ALL_STYLES 类名消费）→ 全局面板零消费。
     styleBlocks: [],
     handler: async () => {
-      await handleJavDBPage();
+      return await handleJavDBPage();
     },
   },
 ];
@@ -195,20 +202,43 @@ export function getGlobalStyleBlocksForUrl(url: string): readonly GlobalStyleBlo
 }
 
 /**
+ * Route lifetime state.
+ *
+ * `activeDisposer` is the teardown of the route currently live. `dispatchSeq`
+ * guards overlapping dispatches: SPA URLs change faster than awaited handlers
+ * settle, so a disposer that arrives after a newer dispatch began is released
+ * immediately instead of being registered as the live one.
+ */
+let activeDisposer: RouteDisposer | null = null;
+let dispatchSeq = 0;
+
+function runDisposer(disposer: RouteDisposer | void | null): void {
+  if (typeof disposer !== 'function') return;
+  try {
+    disposer();
+  } catch (error: unknown) {
+    errorLog('Router: Route disposer failed:', error);
+  }
+}
+
+function disposeActiveRoute(): void {
+  const disposer = activeDisposer;
+  activeDisposer = null;
+  runDisposer(disposer);
+}
+
+/**
  * 执行路由分发
  */
 export async function dispatchRoute(url: string): Promise<void> {
   const route = findMatchingRoute(url);
+  // Teardown runs before the next handler starts, so a handler never has to
+  // reason about resources its predecessor left behind.
+  disposeActiveRoute();
+  const seq = ++dispatchSeq;
 
   if (!route) {
     infoLog(`Router: No matching route for: ${url}`);
-    // Clean up PTDimmer if it was running (e.g. user navigated away from a PT site)
-    // Use both module-level variable AND static reference for bulletproof cleanup
-    const dimmer = ptdimmerInstance || PTDimmer.currentInstance;
-    if (dimmer) {
-      infoLog('Router: Cleaning up PTDimmer on route unmatch');
-      dimmer.cleanup();
-    }
     return;
   }
 
@@ -218,8 +248,15 @@ export async function dispatchRoute(url: string): Promise<void> {
     // 解析身份标识
     const identity = UrlResolverBuilder.fromUrl(url);
 
-    // 执行处理器
-    await route.handler(identity);
+    // 执行处理器（可返回本路由的 teardown）
+    const disposer = await route.handler(identity);
+
+    if (seq !== dispatchSeq) {
+      // A newer dispatch owns the page now — this one's resources are stale.
+      runDisposer(disposer);
+      return;
+    }
+    activeDisposer = typeof disposer === 'function' ? disposer : null;
 
     infoLog('Router: Route handler executed successfully');
   } catch (error: unknown) {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import type { ReviewDetailData } from './types';
 
 defineProps<{
@@ -29,8 +30,12 @@ function starHtml(rating: number): string {
             <a :href="data.subjectUrl" target="_blank">{{ data.subjectTitle }}</a>
           </h3>
           <div class="umm-rd-subject-meta">
-            <span v-if="data.director" class="umm-rd-subj-item">导演 {{ data.director }}</span>
-            <span v-if="data.cast" class="umm-rd-subj-item">主演 {{ data.cast }}</span>
+            <span v-if="data.director" class="umm-rd-subj-item">{{
+              t('douban.rd.director', { name: data.director })
+            }}</span>
+            <span v-if="data.cast" class="umm-rd-subj-item">{{
+              t('douban.rd.cast', { name: data.cast })
+            }}</span>
             <span v-if="data.genre" class="umm-rd-subj-item">{{ data.genre }}</span>
             <span v-if="data.region" class="umm-rd-subj-item">{{ data.region }}</span>
             <span v-if="data.releaseDate" class="umm-rd-subj-item">{{ data.releaseDate }}</span>
@@ -69,11 +74,13 @@ function starHtml(rating: number): string {
 
       <!-- Stats bar -->
       <div class="umm-rd-stats">
-        <span v-if="data.readCount > 0" class="umm-rd-stat">{{ data.readCount }} 阅读</span>
+        <span v-if="data.readCount > 0" class="umm-rd-stat">{{
+          t('douban.rev.read', { count: data.readCount })
+        }}</span>
         <span v-if="data.source" class="umm-rd-stat">{{ data.source }}</span>
         <span class="umm-rd-stat-sep" />
-        <span class="umm-rd-stat">{{ data.usefulCount }} 有用</span>
-        <span class="umm-rd-stat">{{ data.uselessCount }} 没用</span>
+        <span class="umm-rd-stat">{{ t('douban.useful', { count: data.usefulCount }) }}</span>
+        <span class="umm-rd-stat">{{ t('douban.rev.useless', { count: data.uselessCount }) }}</span>
       </div>
     </div>
   </UmmPageLayout>

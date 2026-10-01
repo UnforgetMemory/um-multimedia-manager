@@ -1,11 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { nextTick, ref } from 'vue';
 import { loadRecordEntries, type StoreApi } from '@/scenario/douban/shared/record-cache-core';
 import { loadRecordMap } from '@/scenario/douban/shared/load-record-map';
-import { useRecordCache } from '@/scenario/douban/shared/composables/use-record-cache';
+import {
+  useRecordCache,
+  type RecordCacheDeps,
+} from '@/scenario/douban/shared/composables/use-record-cache';
+import { type RecordEvent } from '@/scenario/douban/shared/composables/use-record-refresh';
 import {
   subjectTypeFromHref,
   candidateRecordKeys,
   matchesVisibleId,
+  subjectIdFromUrl,
 } from '@/scenario/douban/shared/subject-keys';
 import type { StoreRecord } from '@/types';
 
@@ -193,6 +199,23 @@ test.describe('matchesVisibleId', () => {
   });
 });
 
+test.describe('subjectIdFromUrl', () => {
+  test('extracts the numeric subject id from a detail URL', () => {
+    expect(subjectIdFromUrl('https://movie.douban.com/subject/1292052/')).toBe('1292052');
+    expect(subjectIdFromUrl('https://book.douban.com/subject/10086/?from=cb')).toBe('10086');
+  });
+
+  test('returns undefined for urls without a subject segment', () => {
+    expect(subjectIdFromUrl('https://movie.douban.com/celebrity/1054441/')).toBeUndefined();
+    expect(subjectIdFromUrl('')).toBeUndefined();
+    expect(subjectIdFromUrl(undefined)).toBeUndefined();
+  });
+
+  test('stops at the first subject segment when a url embeds another', () => {
+    expect(subjectIdFromUrl('https://movie.douban.com/subject/1/photos?x=/subject/2/')).toBe('1');
+  });
+});
+
 // ==================== useRecordCache (targeted ids) ====================
 
 test.describe('useRecordCache (targeted ids)', () => {
@@ -236,5 +259,220 @@ test.describe('equivalence: loadRecordMap vs loadRecordEntries', () => {
     // by verifying the contract: loadRecordMap delegates to loadRecordEntries
     expect(coreMap.size).toBe(2);
     expect(coreMap.get('37332784')).toEqual({ status: 2, rating: 8 });
+  });
+});
+
+// ==================== useRecordCache (seeded snapshot + live refresh) ====================
+
+function createBus() {
+  const calls: Array<{ prefix?: string; ids?: string[] }> = [];
+  const handlers = new Map<RecordEvent, (data: unknown) => void>();
+  const deps: RecordCacheDeps = {
+    subscribe: (event, handler) => {
+      handlers.set(event, handler);
+      return () => {
+        if (handlers.get(event) === handler) handlers.delete(event);
+      };
+    },
+    loadEntries: async (prefix, ids) => {
+      calls.push({ prefix, ids });
+      return new Map([['999', { status: 1, rating: 0 } as StoreRecord]]);
+    },
+  };
+  return {
+    deps,
+    calls,
+    emit: (event: RecordEvent, data: unknown) => handlers.get(event)?.(data),
+    subscribedEvents: () => [...handlers.keys()].sort(),
+  };
+}
+
+test.describe('useRecordCache (seeded snapshot + live refresh)', () => {
+  const seed = new Map([['1292052', { status: 2, rating: 8 } as StoreRecord]]);
+
+  test('seed is readable synchronously and costs no round trip', () => {
+    const bus = createBus();
+    const { records, loading } = useRecordCache('movie', () => ['1292052'], seed, bus.deps);
+    expect(loading.value).toBe(false);
+    expect(records.value.get('1292052')).toEqual({ status: 2, rating: 8 });
+    expect(bus.calls).toEqual([]);
+    expect(bus.subscribedEvents()).toEqual(['record:deleted', 'record:updated']);
+  });
+
+  test('a visible key replaces the seed with the re-read map', async () => {
+    const bus = createBus();
+    const { records } = useRecordCache('movie', () => ['1292052', '37332784'], seed, bus.deps);
+    bus.emit('record:updated', { storeName: 'douban_records', key: 'movie::1292052' });
+    await expect.poll(() => bus.calls.length).toBe(1);
+    expect(bus.calls[0]).toEqual({ prefix: 'movie', ids: ['1292052', '37332784'] });
+    expect(records.value.has('1292052')).toBe(false);
+    expect(records.value.get('999')).toEqual({ status: 1, rating: 0 });
+  });
+
+  test('a delete for a visible key reloads too', async () => {
+    const bus = createBus();
+    const { records } = useRecordCache('movie', () => ['1292052'], seed, bus.deps);
+    bus.emit('record:deleted', { storeName: 'douban_records', key: 'movie::1292052' });
+    await expect.poll(() => bus.calls.length).toBe(1);
+    expect(records.value.get('1292052')).toBeUndefined();
+  });
+
+  test('a key outside the visible set leaves the seed untouched', async () => {
+    const bus = createBus();
+    const { records } = useRecordCache('movie', () => ['1292052'], seed, bus.deps);
+    bus.emit('record:updated', { storeName: 'douban_records', key: 'movie::777' });
+    bus.emit('record:updated', { storeName: 'imdb_records', key: 'movie::1292052' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(bus.calls).toEqual([]);
+    expect(records.value.get('1292052')).toEqual({ status: 2, rating: 8 });
+  });
+
+  test('a keyless bulk broadcast reloads, and unsubscribe stops reloads', async () => {
+    const bus = createBus();
+    const { records, unsubscribe } = useRecordCache('movie', () => ['1292052'], seed, bus.deps);
+    bus.emit('record:updated', { storeName: 'douban_records' });
+    await expect.poll(() => bus.calls.length).toBe(1);
+    await expect.poll(() => records.value.has('999')).toBe(true);
+    unsubscribe();
+    expect(bus.subscribedEvents()).toEqual([]);
+    bus.emit('record:updated', { storeName: 'douban_records', key: 'movie::1292052' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(bus.calls.length).toBe(1);
+  });
+
+  // Rows appended after mount (pagination / infinite scroll) are absent from the
+  // seed map. Before this contract the only page that ever covered them was the
+  // accidental full-store scan in config — which X31-B removes, so the read has
+  // to follow the visible id set instead.
+  test('the visible id set grows → one targeted re-read for the new set', async () => {
+    const ids = ref(['1292052']);
+    const bus = createBus();
+    useRecordCache('movie', ids, seed, bus.deps);
+    expect(bus.calls).toEqual([]); // the mount-time set is already seeded
+
+    ids.value = ['1292052', '37332784'];
+    await nextTick();
+    expect(bus.calls).toEqual([{ prefix: 'movie', ids: ['1292052', '37332784'] }]);
+  });
+
+  test('an id list that only changes identity re-reads nothing', async () => {
+    const ids = ref(['1292052', '37332784']);
+    const bus = createBus();
+    useRecordCache('movie', ids, seed, bus.deps);
+
+    ids.value = ['37332784', '1292052']; // same set, new array + new order
+    await nextTick();
+    ids.value = ['1292052', '37332784'];
+    await nextTick();
+    expect(bus.calls).toEqual([]);
+  });
+
+  test('the set emptying out clears the map without any read', async () => {
+    const ids = ref(['1292052']);
+    const bus = createBus();
+    const { records } = useRecordCache('movie', ids, seed, bus.deps);
+
+    ids.value = [];
+    await nextTick();
+    expect(bus.calls).toEqual([]);
+    expect(records.value.size).toBe(0);
+  });
+});
+
+/**
+ * Read amplification upper bound (X34). The visible-id re-read added in X31-B
+ * must cost ONE targeted read per settle window — never one per card. A feed
+ * that appends hundreds of cards inside a frame, or grows over ten pages, must
+ * not turn into hundreds of DB_GET_BULK round trips: that is precisely the
+ * "UI 运算过于集中" class this repo keeps getting burned by.
+ */
+test.describe('可见集增长的读取放大上界（X34）', () => {
+  test('同一帧内 200 次数组变更 → 只发一次批量读', async () => {
+    const bus = createBus();
+    const ids = ref<string[]>(['a0']);
+    useRecordCache('movie', ids, undefined, bus.deps);
+    expect(bus.calls).toEqual([]); // no seed, and no eager read either
+
+    for (let i = 1; i <= 200; i++) {
+      ids.value = [...ids.value, `a${i}`];
+    }
+    await nextTick();
+    expect(bus.calls).toHaveLength(1);
+    expect(bus.calls[0]?.ids).toHaveLength(201);
+  });
+
+  test('分三页追加 → 恰好三次读取，每次带当页可见全集', async () => {
+    const bus = createBus();
+    const ids = ref<string[]>(['p1a', 'p1b']);
+    useRecordCache('movie', ids, undefined, bus.deps);
+
+    for (const page of [
+      ['p1a', 'p1b', 'p2a'],
+      ['p1a', 'p1b', 'p2a', 'p3a'],
+    ]) {
+      ids.value = [...page];
+      await nextTick();
+    }
+
+    expect(bus.calls.map((call) => call.ids?.length)).toEqual([3, 4]);
+    expect(bus.calls.every((call) => call.prefix === 'movie')).toBe(true);
+  });
+
+  test('页面内容不变、只是换了新数组对象 → 一次都不读', async () => {
+    const bus = createBus();
+    const ids = ref<string[]>(['x1', 'x2']);
+    useRecordCache('movie', ids, undefined, bus.deps);
+
+    for (let i = 0; i < 20; i++) {
+      ids.value = ['x2', 'x1'];
+      await nextTick();
+    }
+    expect(bus.calls).toEqual([]);
+  });
+});
+
+/**
+ * Event-storm coalescing. A bulk import / restore broadcasts once per store
+ * (often `key:'*'`); without a trailing debounce each broadcast forces a full
+ * re-read of the visible id set — N records ⇒ N DB round trips + N Vue map
+ * replacements. The settle window is the same 300ms trailing-edge debounce the
+ * PT dimmer uses (`createDebouncedScheduler`).
+ */
+test.describe('事件风暴合并（X81 余面）', () => {
+  test('同一窗口内 20 条 record:updated → 恰好一次批量读', async () => {
+    const bus = createBus();
+    const ids = () => ['1292052'];
+    useRecordCache('movie', ids, undefined, bus.deps);
+
+    for (let i = 0; i < 20; i++) {
+      bus.emit('record:updated', { storeName: 'douban_records', key: '*' });
+    }
+    // Still inside the debounce window — nothing has been read yet.
+    expect(bus.calls).toEqual([]);
+    await expect.poll(() => bus.calls.length, { timeout: 1000 }).toBe(1);
+    expect(bus.calls[0]).toEqual({ prefix: 'movie', ids: ['1292052'] });
+  });
+
+  test('混杂可见键 / 通配 / 无关店，合并后仍只读一次', async () => {
+    const bus = createBus();
+    useRecordCache('movie', () => ['1292052', '37332784'], undefined, bus.deps);
+
+    bus.emit('record:updated', { storeName: 'douban_records', key: 'movie::1292052' });
+    bus.emit('record:updated', { storeName: 'imdb_records', key: 'movie::1292052' });
+    bus.emit('record:updated', { storeName: 'douban_records', key: '*' });
+    bus.emit('record:deleted', { storeName: 'douban_records', key: 'movie::37332784' });
+    await expect.poll(() => bus.calls.length, { timeout: 1000 }).toBe(1);
+    expect(bus.calls[0]?.ids).toEqual(['1292052', '37332784']);
+  });
+
+  test('窗口外的第二波事件各自触发一次读取（尾沿语义，非永久合并）', async () => {
+    const bus = createBus();
+    useRecordCache('movie', () => ['1292052'], undefined, bus.deps);
+
+    bus.emit('record:updated', { storeName: 'douban_records', key: '*' });
+    await expect.poll(() => bus.calls.length, { timeout: 1000 }).toBe(1);
+
+    bus.emit('record:updated', { storeName: 'douban_records', key: '*' });
+    await expect.poll(() => bus.calls.length, { timeout: 1000 }).toBe(2);
   });
 });

@@ -1,5 +1,6 @@
 import { defineComponent, h } from 'vue';
 import UmmDynamicIsland from '@/scenario/douban/components/UmmDynamicIsland.vue';
+import { t } from '../shared/legacy-bridge';
 
 /**
  * UmmPageLayout — unified page template for all Douban pages.
@@ -47,23 +48,31 @@ export const UmmPageLayout = defineComponent({
 
       const defaultFooter = [
         h('div', { class: 'umm-footer-main' }, [
-          h(
-            'span',
-            { class: 'umm-footer-copyright' },
-            '© 2005－2026 douban.com, all rights reserved 北京豆网科技有限公司',
-          ),
+          h('span', { class: 'umm-footer-copyright' }, t('douban.footer.copyright')),
           h('span', { class: 'umm-footer-links' }, [
-            h('a', { href: 'https://www.douban.com/about', target: '_blank' }, '关于豆瓣'),
+            h(
+              'a',
+              { href: 'https://www.douban.com/about', target: '_blank' },
+              t('douban.footer.about'),
+            ),
             ' · ',
-            h('a', { href: 'https://www.douban.com/jobs', target: '_blank' }, '在豆瓣工作'),
+            h(
+              'a',
+              { href: 'https://www.douban.com/jobs', target: '_blank' },
+              t('douban.footer.jobs'),
+            ),
             ' · ',
             h(
               'a',
               { href: 'https://www.douban.com/about?topic=contactus', target: '_blank' },
-              '联系我们',
+              t('douban.footer.contact'),
             ),
             ' · ',
-            h('a', { href: 'https://www.douban.com/about/legal', target: '_blank' }, '法律声明'),
+            h(
+              'a',
+              { href: 'https://www.douban.com/about/legal', target: '_blank' },
+              t('douban.footer.legal'),
+            ),
             ' · ',
             h(
               'a',
@@ -71,10 +80,14 @@ export const UmmPageLayout = defineComponent({
                 href: `https://help.douban.com/?app=${props.type === 'game' ? 'main' : props.type === 'music' ? 'music' : props.type === 'book' ? 'book' : 'movie'}`,
                 target: '_blank',
               },
-              '帮助中心',
+              t('douban.footer.help'),
             ),
             ' · ',
-            h('a', { href: 'https://www.douban.com/doubanapp/', target: '_blank' }, '移动应用'),
+            h(
+              'a',
+              { href: 'https://www.douban.com/doubanapp/', target: '_blank' },
+              t('douban.footer.app'),
+            ),
           ]),
         ]),
         h('div', { class: 'umm-footer-extra' }, [

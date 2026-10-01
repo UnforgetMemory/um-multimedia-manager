@@ -44,25 +44,25 @@ export function configureLogging(options: { enabled?: boolean; level?: LogLevel 
 // ==================== Log Functions ====================
 
 /** Debug — verbose, development only */
-export function debugLog(...args: any[]): void {
+export function debugLog(...args: unknown[]): void {
   if (!config.enabled || LEVEL_PRIORITY[config.level] > LEVEL_PRIORITY.debug) return;
   console.log('[UMM Debug]', ...args);
 }
 
 /** Info — general operational messages */
-export function infoLog(...args: any[]): void {
+export function infoLog(...args: unknown[]): void {
   if (!config.enabled || LEVEL_PRIORITY[config.level] > LEVEL_PRIORITY.info) return;
   console.info('[UMM]', ...args);
 }
 
 /** Warning — recoverable issues */
-export function warnLog(...args: any[]): void {
+export function warnLog(...args: unknown[]): void {
   if (!config.enabled || LEVEL_PRIORITY[config.level] > LEVEL_PRIORITY.warn) return;
   console.warn('[UMM Warning]', ...args);
 }
 
 /** Error — failures that need attention */
-export function errorLog(...args: any[]): void {
+export function errorLog(...args: unknown[]): void {
   if (!config.enabled || LEVEL_PRIORITY[config.level] > LEVEL_PRIORITY.error) return;
   console.error('[UMM Error]', ...args);
 }

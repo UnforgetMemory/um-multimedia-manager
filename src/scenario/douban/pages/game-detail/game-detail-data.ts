@@ -33,8 +33,6 @@ export interface GameRecItem {
   poster: string;
   link: string;
   subjectId: string;
-  recStatus: number;
-  personalRating?: number;
 }
 
 export interface GameDetailData {
@@ -52,6 +50,8 @@ export interface GameDetailData {
   collectionComment: string;
   initialStatus: number;
   initialRating: number;
+  /** The page's own douban record, read by `config.beforeMount` (never by the extractor). */
+  record?: import('@/types').StoreRecord | null;
   synopsisHtml: string;
   galleryItems: GamePhotoItem[];
   shortComments: GameShortComment[];
@@ -313,43 +313,7 @@ function extractRecItems(): GameRecItem[] {
       poster: img.src || img.getAttribute('src') || '',
       link: href,
       subjectId: idMatch?.[1] || '',
-      recStatus: 0,
     });
   });
   return items;
-}
-
-export async function enrichGameRecItems(recItems: GameRecItem[]): Promise<GameRecItem[]> {
-  if (recItems.length === 0) return recItems;
-  try {
-    const { Store } = await import('@/engine/database');
-    const keys = [
-      ...new Set(
-        recItems
-          .map((i) => i.subjectId)
-          .filter((id): id is string => Boolean(id))
-          .map((id) => `game::${id}`),
-      ),
-    ];
-    if (keys.length === 0) return recItems;
-    const entries = await Store.dbGetBulk('douban_records', keys);
-    const recordMap = new Map<string, { status: number; rating: number }>();
-    for (const { key, record } of entries) {
-      const id = key.split('::')[1];
-      if (id && (record.status ?? 0) > 0) {
-        recordMap.set(id, { status: record.status, rating: record.rating || 0 });
-      }
-    }
-    for (const item of recItems) {
-      if (!item.subjectId) continue;
-      const rec = recordMap.get(item.subjectId);
-      if (rec) {
-        item.recStatus = rec.status;
-        if (rec.rating > 0) item.personalRating = rec.rating;
-      }
-    }
-  } catch {
-    /* silent */
-  }
-  return recItems;
 }

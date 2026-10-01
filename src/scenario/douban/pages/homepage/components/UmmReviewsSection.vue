@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeHref } from '@/libraries/utils/safe-url';
 import { onMounted, watch } from 'vue';
 import { statusBadgeLabels } from '@/scenario/douban/shared/status-labels';
 import type { StoreRecord } from '@/types';
@@ -14,7 +15,9 @@ function enhanceReviews(): void {
 
     const movieLink = review.querySelector('.review-hd a');
     if (!movieLink) return;
-    const href = (movieLink as HTMLAnchorElement).href || movieLink.getAttribute('href');
+    const href = safeHref(
+      (movieLink as HTMLAnchorElement).href || movieLink.getAttribute('href') || '',
+    );
     if (!href) return;
     const match = href.match(/\/subject\/(\d+)/);
     if (!match) return;

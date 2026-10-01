@@ -8,31 +8,53 @@
 import type { UrlIdentity, StoreRecord } from '@/types';
 import { Store } from '@/engine/database';
 import { Utils, throttle } from '@/libraries/utils';
+import { runChunked, type ChunkedRun } from '@/libraries/utils/dom-chunk';
 import { intervalWhenVisible } from '@/libraries/utils/visibility';
 import { createStatusChip } from '../utils/dom';
 import { createDetailPageHandler } from './create-detail-handler';
 
 // ---- Constants ----
 
-/** Each TMDB card is a div.relative containing a poster link with data-media-type. */
+/**
+ * Card grouping node: the nearest `div.relative` ancestor of a poster link.
+ * It is NOT the enumeration source — see `TMDB_POSTER_LINK_SELECTOR`.
+ */
 const TMDB_CARD_SELECTOR = 'div.relative';
 
-/** Poster link identified by data-media-type attr (more reliable than href regex). */
+/**
+ * Poster link identified by data-media-type attr (more reliable than href regex).
+ * This doubles as the enumeration source for a scan: every key the handler acts
+ * on is derived from this one element, so iterating it is exactly the card set —
+ * whereas the old `document.querySelectorAll('div.relative')` returned every
+ * TMDB SPA wrapper carrying that Tailwind class (hundreds of nested containers,
+ * each re-searched for a poster link on every body mutation and poll tick).
+ */
 const TMDB_POSTER_LINK_SELECTOR =
   'a[data-media-type][href*="/movie/"], a[data-media-type][href*="/tv/"]';
 
 /** Detail page title anchor. */
 const TMDB_TITLE_SELECTOR = '.title a[href*="/movie/"], .title a[href*="/tv/"]';
 
+/** Class of the injected homepage badge — also the "already painted" marker. */
+const UMM_BADGE_CLASS = 'umm-homepage-badge';
+
+/** Cards badged per animation frame (same budget as the bilibili/YouTube passes). */
+const TMDB_BADGE_CHUNK_SIZE = 10;
+
 // ---- Homepage — Card Badge Injection ----
 
+/** One card: the grouping container, the badge host, and the store key to paint. */
+interface TMDBBadgeUnit {
+  container: HTMLElement;
+  posterLink: HTMLElement;
+  key: string;
+}
+
 /**
- * Extract TMDB ID and media type from a card element.
+ * Extract TMDB ID and media type from a poster link element.
  * Uses the reliable data-media-type attr and numeric ID from href.
  */
-function extractTMDBIdFromCard(card: Element): { id: string; mediaType: string } | null {
-  const posterLink = card.querySelector<HTMLAnchorElement>(TMDB_POSTER_LINK_SELECTOR);
-  if (!posterLink) return null;
+function extractTMDBIdFromLink(posterLink: Element): { id: string; mediaType: string } | null {
   const href = posterLink.getAttribute('href') || '';
   const mediaType = posterLink.getAttribute('data-media-type') || '';
   if (!mediaType || !href) return null;
@@ -45,9 +67,36 @@ function extractTMDBIdFromCard(card: Element): { id: string; mediaType: string }
 }
 
 /**
+ * Cards currently rendered, in document order, one per card container.
+ *
+ * `claimed` keeps the old "first poster link of a container wins" rule: a card
+ * whose leading link is unparseable is skipped as a whole, exactly as when the
+ * old per-container scan resolved that card's link and got no ID.
+ */
+function collectTMDBBadgeUnits(): TMDBBadgeUnit[] {
+  const units: TMDBBadgeUnit[] = [];
+  const claimed = new Set<HTMLElement>();
+  for (const posterLink of document.querySelectorAll<HTMLElement>(TMDB_POSTER_LINK_SELECTOR)) {
+    const container = posterLink.closest<HTMLElement>(TMDB_CARD_SELECTOR) ?? posterLink;
+    if (claimed.has(container)) continue;
+    claimed.add(container);
+    const extracted = extractTMDBIdFromLink(posterLink);
+    if (!extracted) continue;
+    units.push({ container, posterLink, key: `${extracted.mediaType}::${extracted.id}` });
+  }
+  return units;
+}
+
+/**
  * Fetch tmdb_records for the given store keys into a Map<storeKey, StoreRecord>.
- * Empty key set (no cards rendered yet) falls back to the full-store scan so
- * badges never silently disappear before the first card batch appears.
+ *
+ * The empty-key fallback here is DELIBERATE and differs from the ones removed in
+ * X31-B/X40/X58: the caller only reaches it on the very first pass of a lazy
+ * homepage, and the result is merged into a cache that later card batches read
+ * from — so the scan is consumed, not discarded. Where the other sites re-ran a
+ * whole-store read per mutation with nothing to paint, this one warms a cache
+ * once. Keep it that way only while that holds; if the caller ever starts
+ * calling this per visible card, it becomes the same defect.
  */
 async function buildRecordMap(keys: string[]): Promise<Map<string, StoreRecord>> {
   const entries =
@@ -61,20 +110,10 @@ async function buildRecordMap(keys: string[]): Promise<Map<string, StoreRecord>>
   return map;
 }
 
-/** Collect the store keys ({mediaType}::{id}) of all currently rendered cards. */
-function collectTMDBKeys(): string[] {
-  return [...document.querySelectorAll<HTMLElement>(TMDB_CARD_SELECTOR)]
-    .map((card) => {
-      const extracted = extractTMDBIdFromCard(card);
-      return extracted ? `${extracted.mediaType}::${extracted.id}` : null;
-    })
-    .filter((key): key is string => key !== null);
-}
-
 /** Create a homepage badge DOM element with status label + optional rating. */
 function createHomepageBadge(status: number, rating: number): HTMLElement {
   const badge = document.createElement('span');
-  badge.className = 'umm-homepage-badge';
+  badge.className = UMM_BADGE_CLASS;
   badge.dataset.status =
     status === 2 ? 'done' : status === 3 ? 'doing' : status === 1 ? 'wish' : 'none';
 
@@ -93,33 +132,79 @@ function createHomepageBadge(status: number, rating: number): HTMLElement {
   return badge;
 }
 
+/** A card queued for painting, with its geometry read already resolved. */
+interface TMDBBadgeStep {
+  unit: TMDBBadgeUnit;
+  /** Computed `position` snapshot — the write phase must never measure again. */
+  position: string;
+}
+
 /**
- * Render a badge on a single card.
- * Injects into the poster link (gets position:relative for child absolute positioning).
+ * Read phase for one card: locate the badge host and measure it, mutating nothing.
+ * Returns null when the card is already painted, so a re-scan costs no write and
+ * (crucially) no forced layout.
  */
-async function renderCardBadge(card: Element, recordMap: Map<string, StoreRecord>): Promise<void> {
-  if (card.querySelector('.umm-homepage-badge')) return;
+function readTMDBBadgeStep(unit: TMDBBadgeUnit): TMDBBadgeStep | null {
+  if (unit.container.querySelector(`.${UMM_BADGE_CLASS}`)) return null;
+  return { unit, position: getComputedStyle(unit.posterLink).position };
+}
 
-  const extracted = extractTMDBIdFromCard(card);
-  if (!extracted) return;
-
-  const key = `${extracted.mediaType}::${extracted.id}`;
-  const record = recordMap.get(key);
-
+/**
+ * Write phase for one card: consumes the cached read. Injects into the poster
+ * link (gets position:relative for child absolute positioning).
+ */
+function writeTMDBBadge(step: TMDBBadgeStep, recordMap: Map<string, StoreRecord>): void {
+  const record = recordMap.get(step.unit.key);
   const status = record?.status === 2 ? 2 : record?.status === 3 ? 3 : record?.status === 1 ? 1 : 0;
   const rating = record?.rating || 0;
-
   const badge = createHomepageBadge(status, rating);
 
-  const posterLink = card.querySelector<HTMLElement>(TMDB_POSTER_LINK_SELECTOR);
-  if (posterLink) {
-    if (getComputedStyle(posterLink).position === 'static') {
-      posterLink.style.position = 'relative';
-    }
-    posterLink.appendChild(badge);
-  } else {
-    card.appendChild(badge);
+  if (step.position === 'static') step.unit.posterLink.style.position = 'relative';
+  step.unit.posterLink.appendChild(badge);
+}
+
+/**
+ * The one in-flight chunked write pass.
+ *
+ * WHY the single-run guard: `scanAllCards` awaits a bulk DB read before it
+ * paints, and its own badge inserts re-arm the body MutationObserver — so
+ * without supersession two passes interleave, doubling the writes per frame and
+ * pushing `getComputedStyle` back into the write loop (the forced-layout bug
+ * class already fixed for the bilibili/YouTube listings).
+ */
+let activeBadgeRun: ChunkedRun | null = null;
+
+function cancelBadgeRun(): void {
+  activeBadgeRun?.cancel();
+  activeBadgeRun = null;
+}
+
+/** Badge the given cards, one chunk per animation frame, reads before writes. */
+function runBadgePass(units: TMDBBadgeUnit[], recordMap: Map<string, StoreRecord>): Promise<void> {
+  cancelBadgeRun();
+
+  const groups: TMDBBadgeUnit[][] = [];
+  for (let i = 0; i < units.length; i += TMDB_BADGE_CHUNK_SIZE) {
+    groups.push(units.slice(i, i + TMDB_BADGE_CHUNK_SIZE));
   }
+
+  const run = runChunked(
+    groups,
+    (group) => {
+      const steps: TMDBBadgeStep[] = [];
+      for (const unit of group) {
+        const step = readTMDBBadgeStep(unit);
+        if (step) steps.push(step);
+      }
+      for (const step of steps) writeTMDBBadge(step, recordMap);
+    },
+    { chunkSize: 1 },
+  );
+  activeBadgeRun = run;
+  void run.promise.finally(() => {
+    if (activeBadgeRun === run) activeBadgeRun = null;
+  });
+  return run.promise;
 }
 
 /**
@@ -133,10 +218,12 @@ function observeTMDBGrids(recordMap: Map<string, StoreRecord>): () => void {
   // Keys already fetched — new cards trigger a bulk fetch of only the missing ones.
   const seen = new Set<string>(recordMap.keys());
   let initialScanDone = false;
+  let stopped = false;
 
   const scanAllCards = throttle(async () => {
-    const cards = document.querySelectorAll<HTMLElement>(TMDB_CARD_SELECTOR);
-    const keys = collectTMDBKeys();
+    if (stopped) return;
+    const units = collectTMDBBadgeUnits();
+    const keys = units.map((unit) => unit.key);
     const missing = keys.filter((key) => !seen.has(key));
     for (const key of missing) seen.add(key);
     // First scan with no cards yet (lazy-loading) → full-store fallback;
@@ -144,14 +231,10 @@ function observeTMDBGrids(recordMap: Map<string, StoreRecord>): () => void {
     if (missing.length > 0 || (!initialScanDone && keys.length === 0)) {
       initialScanDone = true;
       const fetched = await buildRecordMap(missing);
+      if (stopped) return;
       for (const [key, record] of fetched) recordMap.set(key, record);
     }
-    const pendings: Promise<void>[] = [];
-    for (const card of cards) {
-      if (!card.querySelector(TMDB_POSTER_LINK_SELECTOR)) continue;
-      pendings.push(renderCardBadge(card, recordMap));
-    }
-    await Promise.all(pendings);
+    await runBadgePass(units, recordMap);
   }, 280);
 
   const bodyObserver = new MutationObserver(scanAllCards);
@@ -162,18 +245,38 @@ function observeTMDBGrids(recordMap: Map<string, StoreRecord>): () => void {
   scanAllCards();
 
   return () => {
+    stopped = true;
     bodyObserver.disconnect();
     pollInterval.destroy();
+    // Teardown owns the frames it started: a stranded pass would keep writing
+    // into a document whose route has already moved on.
+    cancelBadgeRun();
   };
 }
 
-/** Entry point: homepage card badge injection. */
-export async function handleTMDBHomepage(): Promise<void> {
+/**
+ * Homepage scan teardown. `beforeunload` alone is not enough: TMDB is an SPA, so
+ * home → detail keeps the same document alive while the observer, the poll and
+ * the keyed record map go on scanning a grid that is gone.
+ */
+let activeHomepageCleanup: (() => void) | null = null;
+
+/** Entry point: homepage card badge injection. Returns the route teardown. */
+export async function handleTMDBHomepage(): Promise<() => void> {
   // The first throttled scan (leading edge) performs the initial keyed fetch.
   const recordMap = new Map<string, StoreRecord>();
-  const cleanup = observeTMDBGrids(recordMap);
+  // A re-dispatch on the same route replaces the previous scan set.
+  activeHomepageCleanup?.();
 
-  window.addEventListener('beforeunload', cleanup, { once: true });
+  const stop = observeTMDBGrids(recordMap);
+  const teardown = (): void => {
+    stop();
+    recordMap.clear();
+    if (activeHomepageCleanup === teardown) activeHomepageCleanup = null;
+  };
+  activeHomepageCleanup = teardown;
+  window.addEventListener('beforeunload', teardown, { once: true });
+  return teardown;
 }
 
 // ---- Detail Page — Status Chip Injection ----
@@ -248,10 +351,10 @@ const _handleTMDBDetailPage = createDetailPageHandler({
   },
 });
 
-export async function handleTMDBDetailPage(identity: UrlIdentity): Promise<void> {
+export async function handleTMDBDetailPage(identity: UrlIdentity): Promise<(() => void) | void> {
   if (!identity) return;
   try {
-    await _handleTMDBDetailPage(identity);
+    return await _handleTMDBDetailPage(identity);
   } catch {
     return;
   }

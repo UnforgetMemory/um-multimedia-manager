@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { t } from '../../shared/legacy-bridge';
 import { collectTitleLabel } from '../../shared/collect-title-label';
 import { statusBadgeLabels } from '../../shared/status-labels';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
@@ -38,11 +39,13 @@ const titleLabel = computed(() =>
 
       <div class="umm-titlebar">
         <h2 class="umm-titlebar-label">{{ titleLabel }}</h2>
-        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 个</span>
+        <span class="umm-titlebar-count">{{
+          t('douban.gc.count', { count: data.total.toLocaleString() })
+        }}</span>
       </div>
 
       <div v-if="data.total === 0 && data.items.length === 0" class="umm-gc-empty">
-        <div class="umm-gc-empty-text">暂无内容</div>
+        <div class="umm-gc-empty-text">{{ t('douban.empty.content') }}</div>
       </div>
 
       <div v-if="data.items.length > 0" class="umm-gc-list">
@@ -60,9 +63,9 @@ const titleLabel = computed(() =>
             <span v-else class="umm-gc-title">{{ item.title }}</span>
             <div v-if="item.platforms" class="umm-gc-platforms">{{ item.platforms }}</div>
             <div class="umm-gc-meta">
-              <span v-if="item.rating" class="umm-gc-rating"
-                >{{ parseRating(item.rating) }} 分</span
-              >
+              <span v-if="item.rating" class="umm-gc-rating">{{
+                t('douban.gc.score', { count: parseRating(item.rating) })
+              }}</span>
               <span v-if="item.date" class="umm-gc-date">{{ item.date }}</span>
             </div>
             <div v-if="item.comment" class="umm-gc-comment">{{ item.comment }}</div>
@@ -71,7 +74,7 @@ const titleLabel = computed(() =>
       </div>
 
       <div v-if="totalPages > 0" class="umm-gc-pageinfo">
-        第 {{ currentPage }} 页 / 共 {{ totalPages }} 页
+        {{ t('douban.gc.page_info', { current: currentPage, total: totalPages }) }}
       </div>
 
       <UmmPaginator

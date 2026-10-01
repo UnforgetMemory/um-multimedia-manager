@@ -14,11 +14,10 @@ import { initRouter, hasMatchingRoute, getGlobalStyleBlocksForUrl } from './cont
 import { initI18n, startLocaleSync } from './content/i18n';
 import { injectGlobalStyles } from './content/styles/global';
 import { FloatingToast } from './content/utils/toast';
-import { infoLog, errorLog, configureLogging } from '@/libraries/utils/logger';
+import { infoLog, errorLog } from '@/libraries/utils/logger';
+import { bootstrapLogging } from './content/bootstrap/logging';
+import { startThemeAttrSync } from '@/scenario/douban/overlay/theme-sync';
 import { sleep } from '@/libraries/utils';
-import type { LogLevel } from '@/types';
-import { STORAGE_KEYS } from '@/libraries/config';
-import { settingsItems } from '@/engine/settings/items';
 import { initEventBus } from '@/libraries/utils/event-bus';
 
 export default defineContentScript({
@@ -134,29 +133,8 @@ export default defineContentScript({
   async main() {
     initEventBus();
 
-    // Configure logging from storage
-    try {
-      const items = settingsItems();
-      const [debugEnabled, level] = await Promise.all([
-        items.debugEnabled.getValue(),
-        items.logLevel.getValue(),
-      ]);
-      configureLogging({ enabled: debugEnabled, level });
-    } catch {
-      /* keep defaults */
-    }
-
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local') return;
-      const enabledChange = changes[STORAGE_KEYS.DEBUG_ENABLED];
-      const levelChange = changes[STORAGE_KEYS.LOG_LEVEL];
-      if (enabledChange || levelChange) {
-        configureLogging({
-          enabled: enabledChange?.newValue as boolean | undefined,
-          level: levelChange?.newValue as LogLevel | undefined,
-        });
-      }
-    });
+    // Configure logging from storage and keep following the Options page.
+    await bootstrapLogging();
 
     infoLog('Script loaded on:', window.location.href);
 
@@ -185,11 +163,11 @@ export default defineContentScript({
       window.addEventListener('popstate', tryInit);
       const origPushState = history.pushState;
       const origReplaceState = history.replaceState;
-      history.pushState = function (...args: [any, string, string?]) {
+      history.pushState = function (...args: Parameters<typeof history.pushState>) {
         origPushState.apply(this, args);
         tryInit();
       };
-      history.replaceState = function (...args: [any, string, string?]) {
+      history.replaceState = function (...args: Parameters<typeof history.replaceState>) {
         origReplaceState.apply(this, args);
         tryInit();
       };
@@ -202,6 +180,12 @@ export default defineContentScript({
       try {
         await initI18n();
         startLocaleSync();
+        // global.ts 的暗色表（THEME_VARS_DARK + GLOW_VARS）整片锚在
+        // `html[data-umm-theme="dark"]` 上。legacy 站点没有 overlay 壳、此前也没人落
+        // 这个属性 —— 暗色用户的徽章/按钮/辉光在 IMDb/NeoDB/Bangumi/TMDB/PT/JavDB
+        // 上恒落亮色调色板。`background: false`：宿主画布不归 UMM 重画（html 背景
+        // 镜像是 Douban overlay 全屏壳那侧的需求，见 scenario/douban/main.ts）。
+        startThemeAttrSync({ background: false });
 
         // Wait for background DB
         let attempts = 0;

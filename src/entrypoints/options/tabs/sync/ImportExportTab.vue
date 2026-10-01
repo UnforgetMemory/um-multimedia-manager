@@ -2,24 +2,49 @@
 import { ref } from 'vue';
 import { safeSendMessage } from '@/libraries/utils/context';
 import { useI18n } from 'vue-i18n';
-import { Download, Upload } from 'lucide-vue-next';
+import { Download, Upload } from '@/libraries/ui/icons';
 import { useConfirmStore } from '@/store/confirm';
 import { useToast } from '@/feature/composables/use-toast';
 import { Switch } from '@/libraries/ui/switch';
 import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';
 import SectionHeader from '@/libraries/ui/section-header/SectionHeader.vue';
 import LoadingButton from '@/libraries/ui/loading-button/LoadingButton.vue';
+import type { AppSettings, MessagePayloadMap, StoreRecordSnapshot } from '@/types';
+
+/** Backup file accepted here: v2 ExportData (stores) or pre-v2 export (datasets). */
+interface ImportedBackup {
+  schema?: string;
+  version?: number;
+  exportedAt?: string;
+  stores?: Record<string, Record<string, ImportStoreEntry>>;
+  datasets?: Record<string, Record<string, LegacyBackupRecord[]>>;
+  settings?: Partial<AppSettings>;
+}
+
+/** Legacy dataset record — every field optional; the rebuild below supplies the defaults. */
+interface LegacyBackupRecord {
+  id?: string;
+  providerId?: string;
+  url?: string;
+  status?: number;
+  rating?: number | null;
+  updatedAt?: string;
+  linkedIds?: Record<string, string>;
+}
+
+/** Rebuilt entries may keep `rating: null`; the background write path normalizes it. */
+type ImportStoreEntry = Omit<StoreRecordSnapshot, 'rating'> & { rating: number | null };
 
 const { t } = useI18n();
 const toast = useToast();
 const { show } = useConfirmStore();
 const isExporting = ref(false);
 const isImporting = ref(false);
-// ADR-016 decision 3: opt-in switch for WebDAV credentials on export AND
-// import. Defaults to off. Export warns about plaintext; import only applies
-// credentials when this switch is on AND the user confirms (malicious-backup
-// gate stays closed by default).
-const includeWebdavCredentials = ref(false);
+// ADR-016 decision 3 + 2026-09-30: one opt-in switch for credential material
+// (WebDAV trio + NeoDB token) on export AND import. Defaults to off. Export
+// warns about plaintext; import only applies credentials when this switch is
+// on AND the user confirms (malicious-backup gate stays closed by default).
+const includeCredentials = ref(false);
 
 async function performExport() {
   isExporting.value = true;
@@ -27,7 +52,10 @@ async function performExport() {
     const response = await safeSendMessage(
       {
         type: 'EXPORT_DATA',
-        payload: { includeWebDAVCredentials: includeWebdavCredentials.value },
+        payload: {
+          includeWebDAVCredentials: includeCredentials.value,
+          includeNeoDbToken: includeCredentials.value,
+        },
       },
       { timeout: 30000 },
     );
@@ -50,10 +78,10 @@ async function performExport() {
 }
 
 async function exportData() {
-  // ADR-016 decision 3: when the user opts to include WebDAV credentials,
-  // surface a confirm dialog warning that the file will contain the password
+  // ADR-016 decision 3: when the user opts to include credentials,
+  // surface a confirm dialog warning that the file will contain secrets
   // in plaintext. Only proceed after explicit confirmation.
-  if (!includeWebdavCredentials.value) {
+  if (!includeCredentials.value) {
     await performExport();
     return;
   }
@@ -81,7 +109,7 @@ function triggerImport() {
       try {
         const raw = (event.target?.result as string) || '';
         const clean = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
-        let payload: any;
+        let payload: ImportedBackup;
         try {
           payload = JSON.parse(clean);
         } catch (parseErr: unknown) {
@@ -100,15 +128,18 @@ function triggerImport() {
         }
         let recordCount = 0;
         if (payload.stores) {
-          for (const sn in payload.stores) recordCount += Object.keys(payload.stores[sn]).length;
+          for (const sn in payload.stores) {
+            recordCount += Object.keys(payload.stores[sn] ?? {}).length;
+          }
         }
         const fileHasCreds = !!(
           payload?.settings &&
           (payload.settings.webdavUrl ||
             payload.settings.webdavUsername ||
-            payload.settings.webdavPassword)
+            payload.settings.webdavPassword ||
+            payload.settings.neodbToken)
         );
-        const restoreCreds = includeWebdavCredentials.value && fileHasCreds;
+        const restoreCreds = includeCredentials.value && fileHasCreds;
         show({
           title: t('confirm.importData'),
           description: t('confirm.importRecords', { count: recordCount.toLocaleString() }),
@@ -123,14 +154,17 @@ function triggerImport() {
             try {
               let importPayload = payload;
               if (payload.datasets && !payload.stores) {
-                const stores: Record<string, Record<string, any>> = {};
+                const stores: Record<string, Record<string, ImportStoreEntry>> = {};
                 for (const provider of ['douban', 'imdb', 'neodb', 'tmdb']) {
                   const sn = `${provider}_records`;
-                  if (payload.datasets[provider]) {
-                    stores[sn] = {};
-                    for (const type of Object.keys(payload.datasets[provider])) {
-                      for (const r of payload.datasets[provider][type]) {
-                        stores[sn][`${type}::${r.providerId || r.id}`] = {
+                  const byType = payload.datasets[provider];
+                  if (byType) {
+                    const bucket: Record<string, ImportStoreEntry> = {};
+                    for (const type of Object.keys(byType)) {
+                      const records = byType[type];
+                      if (!records) continue;
+                      for (const r of records) {
+                        bucket[`${type}::${r.providerId || r.id}`] = {
                           url: r.url || '',
                           status: r.status ?? 1,
                           rating: r.rating ?? null,
@@ -139,6 +173,7 @@ function triggerImport() {
                         };
                       }
                     }
+                    stores[sn] = bucket;
                   }
                 }
                 importPayload = { stores, settings: payload.settings };
@@ -146,7 +181,13 @@ function triggerImport() {
               const res = await safeSendMessage(
                 {
                   type: 'IMPORT_DATA',
-                  payload: { ...importPayload, includeWebDAVCredentials: restoreCreds },
+                  // Files may be pre-v2 (no schema/version); the handler normalizes,
+                  // while the ExportData contract only describes the v2 success shape.
+                  payload: {
+                    ...importPayload,
+                    includeWebDAVCredentials: restoreCreds,
+                    includeNeoDbToken: restoreCreds,
+                  } as MessagePayloadMap['IMPORT_DATA'],
                 },
                 { timeout: 30000 },
               );
@@ -205,7 +246,7 @@ function triggerImport() {
       >
         {{ t('common.includeWebdavCredentials') }}
       </label>
-      <Switch id="umm-include-webdav-creds" v-model="includeWebdavCredentials" />
+      <Switch id="umm-include-webdav-creds" v-model="includeCredentials" />
     </div>
     <p class="umm:text-xs umm:text-muted-foreground umm:mt-1">
       {{ t('common.includeWebdavCredentialsHint') }}

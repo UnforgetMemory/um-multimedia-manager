@@ -29,9 +29,9 @@ function extractUserInfo(): UserInfo | null {
   const avatarImg = document.querySelector<HTMLImageElement>('.book-user-profile .avatar');
   const avatarUrl = avatarImg?.src ?? '';
 
-  // Display name
+  // Display name — return an empty string when missing; the "user <id>" fallback is resolved by the render layer via i18n (X108).
   const usernameEl = document.querySelector('.book-user-profile .username');
-  const displayName = usernameEl?.textContent?.trim() ?? `用户 ${userId}`;
+  const displayName = usernameEl?.textContent?.trim() ?? '';
 
   // Join date
   const plEl = document.querySelector('.book-user-profile .time-registered');

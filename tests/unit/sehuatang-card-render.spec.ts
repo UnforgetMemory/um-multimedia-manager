@@ -20,6 +20,14 @@ function useDom(html = ''): Document {
   return dom.window.document;
 }
 
+// Workers are shared across spec files; the jsdom document must not outlive
+// this file (every test installs its own via useDom before asserting).
+const ORIGINAL_DOCUMENT = Object.getOwnPropertyDescriptor(globalThis, 'document');
+test.afterAll(() => {
+  if (ORIGINAL_DOCUMENT) Object.defineProperty(globalThis, 'document', ORIGINAL_DOCUMENT);
+  else delete (globalThis as Record<string, unknown>).document;
+});
+
 function thread(overrides: Partial<SehuatangThread> = {}): SehuatangThread {
   return {
     tid: '3664524',

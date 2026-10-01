@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { JSDOM } from 'jsdom';
 import { onCrossPlatformSave } from '@/scenario/douban/pages/detail/composables/use-cross-platform-sync';
 import type { StoreRecord, UrlIdentity } from '@/types';
@@ -37,15 +40,13 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'https://movie.douban.com/subject/12345/',
   pretendToBeVisual: true,
 });
-(globalThis as { document?: unknown }).document = dom.window.document;
-(globalThis as { window?: unknown }).window = dom.window;
+defineGlobal('document', dom.window.document);
+defineGlobal('window', dom.window);
 if (
   typeof (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame === 'undefined'
 ) {
-  (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame =
-    dom.window.requestAnimationFrame.bind(dom.window);
-  (globalThis as { cancelAnimationFrame?: unknown }).cancelAnimationFrame =
-    dom.window.cancelAnimationFrame.bind(dom.window);
+  defineGlobal('requestAnimationFrame', dom.window.requestAnimationFrame.bind(dom.window));
+  defineGlobal('cancelAnimationFrame', dom.window.cancelAnimationFrame.bind(dom.window));
 }
 
 interface SentMessage {
@@ -112,12 +113,12 @@ function installChromeStub(opts: StubOptions = {}): { sent: SentMessage[] } {
       onMessage: { addListener: () => {} },
     },
   };
-  (globalThis as { chrome?: unknown }).chrome = chromeStub;
+  defineGlobal('chrome', chromeStub);
   return { sent };
 }
 
 function clearChromeStub(): void {
-  (globalThis as { chrome?: unknown }).chrome = undefined;
+  defineGlobal('chrome', undefined);
 }
 
 function of(sent: SentMessage[], type: string): SentMessage[] {

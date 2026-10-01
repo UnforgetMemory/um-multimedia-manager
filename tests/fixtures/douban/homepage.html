@@ -1,0 +1,238 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/homepage-extract.spec.ts.
+  NOT a real saved page: only the public movie.douban.com homepage DOM shape
+  (#screening .ui-slide-item, #billboard table, .recent-hot-* swiper subject
+  cards, #reviews .review) is reproduced to match the extractor contract in
+  src/scenario/douban/pages/homepage/homepage-extract.ts. All titles/ratings
+  are fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>豆瓣电影</title>
+  </head>
+  <body>
+    <div id="db-nav-global"></div>
+
+    <!-- 正在热映 carousel -->
+    <div id="screening">
+      <h2>正在热映</h2>
+      <ul class="ui-slide">
+        <li
+          class="ui-slide-item"
+          data-dstat-areaid="70_1"
+          data-title="海边的消息"
+          data-rate="7.9"
+          data-star="40"
+          data-intro="2026-08-14 上映"
+        >
+          <div class="poster">
+            <a href="https://movie.douban.com/subject/36770001/"
+              ><img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2937700010.jpg" alt="海边的消息"
+            /></a>
+          </div>
+        </li>
+        <li
+          class="ui-slide-item"
+          data-dstat-areaid="70_1"
+          data-title="雪原列车"
+          data-rate="6.5"
+          data-star="35"
+          data-intro="2026-08-07 上映"
+        >
+          <div class="poster">
+            <a href="https://movie.douban.com/subject/36770002/"
+              ><img src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p2937700020.jpg"
+            /></a>
+          </div>
+        </li>
+        <li
+          class="ui-slide-item"
+          data-dstat-areaid="70_0"
+          data-title="长夜将尽"
+          data-rate="8.4"
+          data-star="45"
+          data-intro="2026-07-31 上映"
+        >
+          <div class="poster">
+            <a href="https://movie.douban.com/subject/36770003/"
+              ><img src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2937700030.jpg"
+            /></a>
+          </div>
+        </li>
+        <!-- no data-dstat-areaid → inherits the last group index -->
+        <li class="ui-slide-item" data-title="雾港疑云" data-rate="">
+          <div class="poster">
+            <a href="https://movie.douban.com/subject/36770004/"
+              ><img src="https://img9.doubanio.com/view/photo/s_ratio_poster/public/p2937700040.jpg" alt="雾港疑云"
+            /></a>
+          </div>
+        </li>
+        <!-- swiper lazy-mode clone → must be skipped via .ui-slide-item-duplicate -->
+        <li
+          class="ui-slide-item ui-slide-item-duplicate"
+          data-dstat-areaid="70_0"
+          data-title="长夜将尽"
+          data-rate="8.4"
+          data-star="45"
+        >
+          <div class="poster">
+            <a href="https://movie.douban.com/subject/36770003/"
+              ><img src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2937700030.jpg"
+            /></a>
+          </div>
+        </li>
+        <!-- ad card without a subject link → skipped -->
+        <li class="ui-slide-item" data-dstat-areaid="70_0" data-title="推广">
+          <div class="poster">
+            <a href="https://site.douban.com/promo/"><img src="https://img1.doubanio.com/promo.jpg" /></a>
+          </div>
+        </li>
+        <!-- duplicate subjectId of 36770002 → deduplicated -->
+        <li
+          class="ui-slide-item"
+          data-dstat-areaid="70_0"
+          data-title="雪原列车"
+          data-rate="6.5"
+          data-star="35"
+        >
+          <div class="poster">
+            <a href="https://movie.douban.com/subject/36770002/"
+              ><img src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p2937700020.jpg"
+            /></a>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 一周口碑榜 -->
+    <div id="billboard">
+      <h2>一周口碑榜</h2>
+      <table>
+        <tr>
+          <td class="order">1</td>
+          <td class="title">
+            <a href="https://movie.douban.com/subject/36451002/">初步举证</a>
+          </td>
+          <td class="rating">9.6</td>
+        </tr>
+        <tr>
+          <td class="order">2</td>
+          <td class="title"><a href="/subject/26997634/">坂本日常</a></td>
+          <td class="rating">9.1</td>
+        </tr>
+        <!-- no td.order → skipped -->
+        <tr>
+          <td class="title"><a href="https://movie.douban.com/subject/36550001/">无序号条目</a></td>
+        </tr>
+        <!-- link without extractable subject id → skipped -->
+        <tr>
+          <td class="order">4</td>
+          <td class="title"><a href="https://movie.douban.com/annual/2025/">2025 年度榜单</a></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 最近热门电影 -->
+    <div class="recent-hot-movie">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide">
+          <div class="subject-card">
+            <a href="https://movie.douban.com/subject/36770101/">
+              <div class="subject-card-item-cover">
+                <img src="https://img1.doubanio.com/view/photo/cover/s_public/p2937701010.jpg" />
+              </div>
+              <div class="subject-card-item-title">
+                <span class="subject-card-item-title-text">暗涌</span>
+              </div>
+              <div class="subject-card-item-rating">
+                <span class="subject-card-item-rating-score">9.0</span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="swiper-slide">
+          <div class="subject-card">
+            <a href="https://movie.douban.com/subject/36770102/">
+              <div class="subject-card-item-cover">
+                <img src="https://img2.doubanio.com/view/photo/cover/s_public/p2937701020.jpg" />
+              </div>
+              <div class="subject-card-item-title">
+                <span class="subject-card-item-title-text">南方来信</span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="swiper-slide swiper-slide-duplicate">
+          <div class="subject-card">
+            <a href="https://movie.douban.com/subject/36770101/">
+              <div class="subject-card-item-cover">
+                <img src="https://img1.doubanio.com/view/photo/cover/s_public/p2937701010.jpg" />
+              </div>
+              <div class="subject-card-item-title">
+                <span class="subject-card-item-title-text">暗涌</span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <!-- card without any subject link → skipped -->
+        <div class="swiper-slide">
+          <div class="subject-card">
+            <div class="subject-card-item-title">
+              <span class="subject-card-item-title-text">无链接卡片</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近热门电视剧（含集数信息） -->
+    <div class="recent-hot-tv">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide">
+          <div class="subject-card">
+            <a href="https://movie.douban.com/subject/36880101/">
+              <div class="subject-card-item-cover">
+                <img src="https://img3.doubanio.com/view/photo/cover/s_public/p2937702010.jpg" />
+              </div>
+              <div class="subject-card-item-title">
+                <span class="subject-card-item-title-text">回廊亭案件簿</span>
+              </div>
+              <div class="subject-card-item-rating">
+                <span class="subject-card-item-rating-score">8.2</span>
+              </div>
+              <div class="subject-card-item-episodes-info">更新至第8集</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 精选评价 -->
+    <div id="reviews">
+      <div class="review">
+        <div class="review-hd">
+          <a href="https://movie.douban.com/subject/1292052/">肖申克的救赎</a>
+          <span class="title">影评标题一</span>
+        </div>
+        <div class="review-content">希望是个好东西，也许是世间最好的东西。</div>
+      </div>
+      <div class="review">
+        <div class="review-hd">
+          <a href="https://movie.douban.com/subject/6874403/">让子弹飞</a>
+        </div>
+        <div class="review-content">站着，还把钱挣了。</div>
+      </div>
+      <!-- review-hd link without /subject/ → skipped -->
+      <div class="review">
+        <div class="review-hd"><a href="/review/13800001/">仅长评链接</a></div>
+        <div class="review-content">正文</div>
+      </div>
+      <!-- no review-hd anchor → skipped -->
+      <div class="review">
+        <div class="review-content">没有条目的评价</div>
+      </div>
+    </div>
+  </body>
+</html>

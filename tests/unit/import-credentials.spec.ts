@@ -5,8 +5,9 @@ import {
   handleImportData,
   IMPORT_SETTINGS_KEYS,
   WEBDAV_CREDENTIAL_KEYS,
+  NEO_DB_CREDENTIAL_KEYS,
 } from '@/entrypoints/background/handlers/data';
-import type { ExportData } from '@/types';
+import type { ExportData, MessageResponse } from '@/types';
 
 /**
  * Import credential restore (user-reported bug):
@@ -21,9 +22,21 @@ import type { ExportData } from '@/types';
  * - settings go through settingsCache.updateAll (immediate effect)
  */
 
+type ImportResponse = MessageResponse<'IMPORT_DATA'>;
+
+// Pre-seeded failure: an import that never calls sendResponse still fails `res.success`
+// assertions exactly like the old undefined-read TypeError path.
+function unansweredImport(): ImportResponse {
+  return { success: false, error: 'sendResponse never called' };
+}
+
 const emptyStores = {} as ExportData['stores'];
 
-function payload(settings: Record<string, unknown>, includeWebDAVCredentials?: boolean) {
+function payload(
+  settings: Record<string, unknown>,
+  includeWebDAVCredentials?: boolean,
+  includeNeoDbToken?: boolean,
+) {
   return {
     schema: 'umm-export' as const,
     version: 2 as const,
@@ -31,6 +44,7 @@ function payload(settings: Record<string, unknown>, includeWebDAVCredentials?: b
     stores: emptyStores,
     settings,
     includeWebDAVCredentials,
+    includeNeoDbToken,
   };
 }
 
@@ -59,7 +73,7 @@ test.describe('IMPORT_DATA WebDAV credentials', () => {
   });
 
   test('default import strips credentials (security gate stays closed)', async () => {
-    let res: any;
+    let res = unansweredImport();
     await handleImportData(
       payload({
         theme: 'dark',
@@ -68,7 +82,7 @@ test.describe('IMPORT_DATA WebDAV credentials', () => {
         webdavPassword: 'stolen',
       }),
       (r?: unknown) => {
-        res = r;
+        res = r as ImportResponse;
       },
     );
     expect(res.success).toBe(true);
@@ -79,7 +93,7 @@ test.describe('IMPORT_DATA WebDAV credentials', () => {
   });
 
   test('includeWebDAVCredentials=true restores all three credential keys', async () => {
-    let res: any;
+    let res = unansweredImport();
     await handleImportData(
       payload(
         {
@@ -91,7 +105,7 @@ test.describe('IMPORT_DATA WebDAV credentials', () => {
         true,
       ),
       (r?: unknown) => {
-        res = r;
+        res = r as ImportResponse;
       },
     );
     expect(res.success).toBe(true);
@@ -104,9 +118,9 @@ test.describe('IMPORT_DATA WebDAV credentials', () => {
   });
 
   test('includeWebDAVCredentials=true but file has no creds → nothing credential-shaped applied', async () => {
-    let res: any;
+    let res = unansweredImport();
     await handleImportData(payload({ theme: 'dark' }, true), (r?: unknown) => {
-      res = r;
+      res = r as ImportResponse;
     });
     expect(res.success).toBe(true);
     expect(applied[0]).toEqual({ theme: 'dark' });
@@ -116,6 +130,43 @@ test.describe('IMPORT_DATA WebDAV credentials', () => {
     for (const key of WEBDAV_CREDENTIAL_KEYS) {
       expect(IMPORT_SETTINGS_KEYS.has(key)).toBe(false);
     }
+    for (const key of NEO_DB_CREDENTIAL_KEYS) {
+      expect(IMPORT_SETTINGS_KEYS.has(key)).toBe(false);
+    }
     expect(WEBDAV_CREDENTIAL_KEYS).toEqual(['webdavUrl', 'webdavUsername', 'webdavPassword']);
+    expect(NEO_DB_CREDENTIAL_KEYS).toEqual(['neodbToken']);
+  });
+
+  test('default import strips neodbToken (malicious backup must not rewrite the bearer)', async () => {
+    let res = unansweredImport();
+    await handleImportData(
+      payload({ theme: 'dark', neodbToken: 'attacker-token' }),
+      (r?: unknown) => {
+        res = r as ImportResponse;
+      },
+    );
+    expect(res.success).toBe(true);
+    expect(applied[0]).toEqual({ theme: 'dark' });
+  });
+
+  test('includeNeoDbToken=true restores neodbToken; WebDAV trio stays gated', async () => {
+    let res = unansweredImport();
+    await handleImportData(
+      payload(
+        {
+          theme: 'light',
+          neodbToken: 'own-token',
+          webdavPassword: 'stolen',
+        },
+        false,
+        true,
+      ),
+      (r?: unknown) => {
+        res = r as ImportResponse;
+      },
+    );
+    expect(res.success).toBe(true);
+    expect(applied[0]).toMatchObject({ theme: 'light', neodbToken: 'own-token' });
+    expect(applied[0]).not.toHaveProperty('webdavPassword');
   });
 });

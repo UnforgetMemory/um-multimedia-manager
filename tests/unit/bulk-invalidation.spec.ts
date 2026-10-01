@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { CacheManager } from '@/engine/cache/cache-manager';
 import { DataScheduler } from '@/engine/data-scheduler/data-scheduler';
 import {
@@ -120,9 +123,11 @@ test.describe('linked-store invalidation + broadcast on DB_SYNC_PAGE_RECORD', ()
         },
       },
     };
-    Reflect.set(globalThis, 'chrome', stub);
+    defineGlobal('chrome', stub);
   });
 
+  // Real delete (not defineGlobal undefined): tests here must observe chrome
+  // being absent between runs, matching the previous Reflect.deleteProperty semantics.
   test.afterEach(() => {
     Reflect.deleteProperty(globalThis, 'chrome');
   });

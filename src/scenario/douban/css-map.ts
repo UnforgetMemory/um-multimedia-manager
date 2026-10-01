@@ -58,10 +58,15 @@ import statbarCss from './styles/statbar.css?raw';
  * CSS chunk lookup table — maps preset names (used in css-composer.ts presets)
  * to their raw CSS string values from ?raw imports.
  *
- * NOTE: 本表是 css-map 的唯一对外消费面（mount-factory.ts 经 `cssMap` 聚合消费）。
- * 44 个 ?raw 常量必须保持**直接变量引用**形态：WXT content script 为 lib 模式
- * IIFE 强制内联（无运行时 chunk 切分），任何「按需动态化」均不减产物字节
- * （见 ADR/审计 P-G 实测）。新增/删除样式块须与 css-composer presets 同步。
+ * NOTE: this table is the only external consumer surface of css-map
+ * (mount-factory.ts consumes it via the `cssMap` aggregate). The 45 ?raw
+ * constants must stay in **direct variable reference** form: the content
+ * script is bundled by WXT as a single IIFE (manifest has no `type: module`,
+ * zero `import(` in the artifact), so "making it dynamic on demand" would not
+ * shrink the bundle — measured: adding one `await import('./styles/series.css?raw')`
+ * to the table and rebuilding gave `douban-main.js` 879,405 → 879,671 B
+ * (+266 B of wrapper code only), with no new chunk written. Adding/removing
+ * style blocks must stay in sync with the css-composer presets.
  */
 export const cssMap: Record<string, string> = {
   'static-tokens': staticTokensCss,

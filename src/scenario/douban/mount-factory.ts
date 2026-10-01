@@ -28,8 +28,16 @@
 import type { Component, App } from 'vue';
 import type { PageType } from './shared/url-detector';
 import { mountUmmOverlay } from './overlay';
+import {
+  createOverlay,
+  getOverlayShellOptions,
+  removeOverlayShell,
+  showMountFailure,
+} from './overlay';
 import { composeStylesForPage } from './css-composer';
 import { cssMap } from './css-map';
+import { sanitizePageData } from '@/libraries/utils/safe-url';
+import { runPageMount } from './mount-plan';
 
 /**
  * Configuration for defining a Douban page mount function.
@@ -70,10 +78,12 @@ export interface PageMountConfig<T = undefined> {
    * - Call `hideNavForPage()` to suppress native navigation
    * - Retry DOM extraction with backoff
    *
-   * The return value is passed as the `data` argument to `createApp` and
-   * `afterMount`.
+   * The second argument registers an undo for any host-DOM mutation made
+   * here; it runs automatically if the mount later fails. The resolved
+   * value is deep-sanitized (dangerous URL schemes neutralized) before
+   * being forwarded to `createApp` / `afterMount` as the `data` argument.
    */
-  beforeMount?: (shadow: ShadowRoot) => Promise<T>;
+  beforeMount?: (shadow: ShadowRoot, registerRollback: (fn: () => void) => void) => Promise<T>;
 
   /**
    * Create the Vue app instance.
@@ -108,26 +118,38 @@ export interface PageMountConfig<T = undefined> {
  * @returns An async function that performs the mount when called.
  */
 export function definePageMount<T = undefined>(config: PageMountConfig<T>): () => Promise<void> {
-  return async () => {
-    const css = composeStylesForPage(config.cssPreset, cssMap);
-    const { default: RootCmp } = await config.importApp();
-
-    mountUmmOverlay({
-      overlayId: config.overlayId,
-      css,
-      async beforeMount(shadow) {
-        if (config.beforeMount) {
-          return await config.beforeMount(shadow);
-        }
+  return () =>
+    runPageMount<T>(
+      {
+        overlayId: config.overlayId,
+        composeCss: () => composeStylesForPage(config.cssPreset, cssMap),
+        loadComponent: async () => (await config.importApp()).default,
+        createApp: (root, data) => config.createApp(root, data as T),
+        ...(config.beforeMount ? { beforeMount: config.beforeMount } : {}),
+        ...(config.afterMount
+          ? {
+              afterMount: (
+                shadow: ShadowRoot,
+                app: App,
+                container: HTMLDivElement,
+                data: T | undefined,
+              ) => config.afterMount!(shadow, app, container, data as T),
+            }
+          : {}),
+        sanitize: sanitizePageData,
       },
-      createApp(_shadow, ctx) {
-        return config.createApp(RootCmp, ctx as T);
+      {
+        mountOverlay: mountUmmOverlay,
+        getShellOptions: getOverlayShellOptions,
+        createShell: createOverlay,
+        removeShell: removeOverlayShell,
+        showFailure: showMountFailure,
+        // Deliberately a bare console.warn: logger is gated by the debug switch,
+        // and a bootstrap failure is the one thing a user's console must still
+        // show (X28 rule: never trade production visibility for a green gate).
+        onBootstrapFailure: (error: unknown) => {
+          console.warn('[UMM] page app import failed:', error);
+        },
       },
-      afterMount(shadow, app, container, ctx) {
-        if (config.afterMount) {
-          return config.afterMount(shadow, app, container, ctx as T);
-        }
-      },
-    });
-  };
+    );
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { Store } from '@/engine/database';
 import { STORAGE_KEYS } from '@/libraries/config';
 import { safeSendMessage } from '@/libraries/utils/context';
@@ -8,7 +8,7 @@ import { Button } from '@/libraries/ui/button';
 import { Input } from '@/libraries/ui/input';
 import { Badge } from '@/libraries/ui/badge';
 import { Card, CardContent, CardHeader } from '@/libraries/ui/card';
-import { RefreshCw, Download, Upload } from 'lucide-vue-next';
+import { RefreshCw, Download, Upload } from '@/libraries/ui/icons';
 import { useConfirmStore } from '@/store/confirm';
 import { useToast } from '@/feature/composables/use-toast';
 import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';
@@ -27,6 +27,14 @@ const loading = ref({ sync: false, download: false, upload: false });
 const isAnyRunning = computed(() => Object.values(loading.value).some((v) => v));
 
 let webdavOnChangedUnsub: (() => void) | null = null;
+let syncCount = 0;
+
+/** Storage key → webdavConfig field, applied one by one on cross-tab sync. */
+const WEBDAV_SYNC_FIELDS: Array<[string, 'url' | 'username' | 'password']> = [
+  [STORAGE_KEYS.WEBDAV_URL, 'url'],
+  [STORAGE_KEYS.WEBDAV_USERNAME, 'username'],
+  [STORAGE_KEYS.WEBDAV_PASSWORD, 'password'],
+];
 
 onMounted(async () => {
   const settings = await Store.getSettings();
@@ -41,27 +49,25 @@ onMounted(async () => {
     settings.webdavPassword
   );
 
-  // Sync WebDAV config across tabs
-  const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area !== 'local') return;
-    const relevant = [
-      STORAGE_KEYS.WEBDAV_URL,
-      STORAGE_KEYS.WEBDAV_USERNAME,
-      STORAGE_KEYS.WEBDAV_PASSWORD,
-    ];
-    if (!relevant.some((k) => k in changes)) return;
-    webdavConfig.value = {
-      url: (changes[STORAGE_KEYS.WEBDAV_URL]?.newValue as string) ?? webdavConfig.value.url,
-      username:
-        (changes[STORAGE_KEYS.WEBDAV_USERNAME]?.newValue as string) ?? webdavConfig.value.username,
-      password:
-        (changes[STORAGE_KEYS.WEBDAV_PASSWORD]?.newValue as string) ?? webdavConfig.value.password,
-    };
+  // Sync WebDAV config across tabs. Per-field application behind a syncCount
+  // window (SettingsTab pattern): a whole-object reassign would clobber
+  // in-progress keystrokes, and an untyped newValue reaches `.startsWith` later.
+  const onChange = async (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (area !== 'local' || syncCount > 0) return;
+    const touched = WEBDAV_SYNC_FIELDS.filter(([key]) => key in changes);
+    if (touched.length === 0) return;
+    syncCount++;
+    for (const [key, field] of touched) {
+      const v = changes[key]?.newValue;
+      webdavConfig.value[field] = typeof v === 'string' ? v : '';
+    }
     isConfigSaved.value = !!(
       webdavConfig.value.url &&
       webdavConfig.value.username &&
       webdavConfig.value.password
     );
+    await nextTick();
+    syncCount--;
   };
   chrome.storage.onChanged.addListener(onChange);
   webdavOnChangedUnsub = () => {
@@ -105,7 +111,10 @@ async function testConnection() {
     { type: 'WEBDAV_TEST', payload: webdavConfig.value },
     { timeout: 10000 },
   );
-  if (result?.success) toast.success(t('toast.connectionSuccess'));
+  // The probe's **verdict** lives in `ok`; `success` only means "the background
+  // answered". The old code checked success alone ⇒ 401/403 auth failures
+  // popped a green success toast, and the server-provided message was dropped.
+  if (result?.success && result?.ok) toast.success(t('toast.connectionSuccess'));
   else toast.error(t('toast.connectionFailed'), result?.message);
 }
 

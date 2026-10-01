@@ -40,14 +40,37 @@ let debugInitialized = false;
 let syncCount = 0;
 let settingsChangedUnsub: (() => void) | null = null;
 
-/** Debounced save for rapid-toggle safety */
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-function debouncedSave(fn: () => Promise<void>, ms = 300): void {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    debounceTimer = null;
-    fn().catch(() => {});
-  }, ms);
+/**
+ * Debounced save per source: one shared timer would let the second watcher
+ * cancel the first's pending save (toggle auto-sync then debug within the
+ * window → auto-sync change never persists, silently).
+ */
+type SaveSlot = 'autoSync' | 'debug';
+const saveTimers = new Map<SaveSlot, ReturnType<typeof setTimeout>>();
+const pendingSaves = new Map<SaveSlot, () => Promise<void>>();
+function debouncedSave(slot: SaveSlot, fn: () => Promise<void>, ms = 300): void {
+  const existing = saveTimers.get(slot);
+  if (existing) clearTimeout(existing);
+  pendingSaves.set(slot, fn);
+  saveTimers.set(
+    slot,
+    setTimeout(() => {
+      saveTimers.delete(slot);
+      const due = pendingSaves.get(slot);
+      pendingSaves.delete(slot);
+      due?.().catch(() => {});
+    }, ms),
+  );
+}
+/** Unmount must not drop a pending save — fire it now instead. */
+function flushPendingSaves(): void {
+  for (const [slot, timer] of saveTimers) {
+    clearTimeout(timer);
+    saveTimers.delete(slot);
+    const fn = pendingSaves.get(slot);
+    pendingSaves.delete(slot);
+    fn?.().catch(() => {});
+  }
 }
 
 onMounted(async () => {
@@ -98,7 +121,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   settingsChangedUnsub?.();
-  if (debounceTimer) clearTimeout(debounceTimer);
+  flushPendingSaves();
 });
 
 async function saveNeoDBToken() {
@@ -112,7 +135,7 @@ async function saveNeoDBToken() {
 
 watch(autoSyncNeoDB, (v, oldV) => {
   if (!autoSyncInitialized || syncCount > 0) return;
-  debouncedSave(async () => {
+  debouncedSave('autoSync', async () => {
     try {
       await Store.updateSettings({ autoSyncNeoDB: v });
       toast.info(v ? t('toast.autoSyncEnabled') : t('toast.autoSyncDisabled'));
@@ -125,7 +148,7 @@ watch(autoSyncNeoDB, (v, oldV) => {
 
 watch([debugEnabled, logLevel], ([e, l], [oldE, oldL]) => {
   if (!debugInitialized || syncCount > 0) return;
-  debouncedSave(async () => {
+  debouncedSave('debug', async () => {
     try {
       await Store.updateSettings({ debugEnabled: e, logLevel: l });
       toast.info(e ? t('toast.logEnabled', { level: l }) : t('toast.logDisabled'));

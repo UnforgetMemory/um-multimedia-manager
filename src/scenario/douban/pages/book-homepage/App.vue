@@ -9,7 +9,7 @@
  * Reuses UmmMediaRow/UmmStatusBadge/UmmPageLayout components from movie/music
  * homepage, with type="book" to select correct badge labels and aspect ratio.
  */
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRecordCache } from '../../shared/composables/use-record-cache';
 import { useDoubanSection } from '../homepage/composables/use-douban-section';
 import { usePageObserver } from '../homepage/composables/use-homepage-observer';
@@ -17,12 +17,13 @@ import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import UmmMediaRow from '../homepage/components/UmmMediaRow.vue';
 import { UmmStatusBadge } from '@/scenario/douban/components/umm-status-badge';
 import { parseBookExpress, parsePopularBooks, parseBookActivities } from './book-homepage-extract';
+import { t } from '../../shared/legacy-bridge';
 import type { BookActivityItem, PopularBookItem } from './types';
 
 // Only ids of currently-visible books are fetched (dbGetBulk), never a
 // full-store scan. Grows as late-parsed books appear; see collectIds().
 const visibleIds = ref<string[]>([]);
-const { records, load, unsubscribe } = useRecordCache('book', visibleIds);
+const { records, load } = useRecordCache('book', visibleIds);
 
 const { items: expressBooks, refresh: refreshExpress } = useDoubanSection(
   parseBookExpress,
@@ -70,8 +71,6 @@ onMounted(async () => {
   setTimeout(refreshFromDom, 6000);
 });
 
-onUnmounted(unsubscribe);
-
 function recordFor(item: { subjectId: string }) {
   const rec = records.value.get(item.subjectId);
   return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 };
@@ -99,14 +98,20 @@ function trendIcon(trend: PopularBookItem['trend']): string {
 <template vapor>
   <UmmPageLayout type="book">
     <div class="umm-top-panel">
-      <UmmMediaRow title="新书速递" :items="expressBooks" :records="records" type="book" grid />
+      <UmmMediaRow
+        :title="t('douban.bh.express')"
+        :items="expressBooks"
+        :records="records"
+        type="book"
+        grid
+      />
 
       <div v-if="popularBooks.length > 0" class="umm-section">
-        <h2 class="umm-section-hd">每月热门图书榜</h2>
+        <h2 class="umm-section-hd">{{ t('douban.bh.hot_ranking') }}</h2>
         <div class="umm-ranking-list">
           <a
             v-for="book in popularBooks"
-            :key="`${book.subjectId}-${recordFor(book).status}-${recordFor(book).rating}`"
+            :key="book.subjectId"
             :href="book.href"
             target="_blank"
             rel="noopener noreferrer"
@@ -134,7 +139,9 @@ function trendIcon(trend: PopularBookItem['trend']): string {
                 <template v-if="book.prevRank">
                   · {{ trendIcon(book.trend) }}{{ book.prevRank }}</template
                 >
-                <template v-else-if="book.trend === 'new'"> · 新上榜</template>
+                <template v-else-if="book.trend === 'new'">
+                  · {{ t('douban.bh.new_badge') }}</template
+                >
               </span>
             </div>
             <span v-if="book.rating" class="umm-ranking-rating">{{ book.rating }}</span>
@@ -143,7 +150,7 @@ function trendIcon(trend: PopularBookItem['trend']): string {
       </div>
 
       <div v-if="activities.length > 0" class="umm-section">
-        <h2 class="umm-section-hd">读书活动</h2>
+        <h2 class="umm-section-hd">{{ t('douban.bh.activities') }}</h2>
         <div class="umm-activity-grid">
           <a
             v-for="(act, i) in activities"

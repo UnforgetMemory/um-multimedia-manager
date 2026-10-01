@@ -1,7 +1,7 @@
 import { definePageMount } from '../../mount-factory';
 import { createApp } from 'vue';
 import { hideNavForPage } from '../../shared/hide-nav';
-import { loadRecordMap } from '../../shared/load-record-map';
+import { loadRecordMapForIds } from '../../shared/load-record-map';
 
 export const mountAlbums = definePageMount({
   cssPreset: 'albums',
@@ -14,7 +14,7 @@ export const mountAlbums = definePageMount({
     // music.douban.com/albums — all versions are music subjects; thread their
     // ids for a targeted batch read instead of a full-store scan
     const ids = data.versions.filter((v) => v.id).map((v) => String(v.id));
-    const recordMap = await loadRecordMap('music', ids);
+    const recordMap = await loadRecordMapForIds('music', ids);
     hideNavForPage({ type: 'albums' });
     return { data, recordMap };
   },

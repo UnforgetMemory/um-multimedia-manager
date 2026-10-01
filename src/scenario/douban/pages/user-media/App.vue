@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { t } from '../../shared/legacy-bridge';
 import { collectTitleLabel } from '../../shared/collect-title-label';
 import { statusBadgeLabels } from '../../shared/status-labels';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
@@ -37,7 +38,9 @@ const titleLabel = computed(() =>
       <!-- Title Bar -->
       <div class="umm-titlebar">
         <h2 class="umm-titlebar-label">{{ titleLabel }}</h2>
-        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 部</span>
+        <span class="umm-titlebar-count">{{
+          t('douban.um.count', { count: data.total.toLocaleString() })
+        }}</span>
       </div>
 
       <!-- Sort & Filter Bar -->
@@ -66,7 +69,7 @@ const titleLabel = computed(() =>
       <!-- Empty State -->
       <div v-if="data.total === 0 && data.items.length === 0" class="umm-umedia-empty">
         <div class="umm-umedia-empty-icon">📭</div>
-        <div class="umm-umedia-empty-text">暂无内容</div>
+        <div class="umm-umedia-empty-text">{{ t('douban.empty.content') }}</div>
       </div>
 
       <!-- Grid -->

@@ -13,6 +13,10 @@
  * The video progress tracker and the style builders were split out (P2):
  *   - video-progress-tracker.ts — VideoProgressTracker class
  *   - video-overlay-styles.ts — sBtnFloat/sBadge/sOverlay/… style helpers
+ * The status modal and the recommendation decoration were split out next
+ * (ADR-026 req 9 file-size gate):
+ *   - video-overlay-modal.ts — status-modal DOM + theme re-apply (view layer)
+ *   - video-overlay-recommendations.ts — card scan / bulk DB read / badge stamp
  *
  * Store keys follow decision-3: 'movie::' + id (the v13 migration normalized
  * legacy 'video::X' keys; content scripts must read/write the canonical form).
@@ -27,12 +31,7 @@ import { Store } from '@/engine/database';
 // Single source of truth: video-overlay-pure.ts (locked by tests/unit/video-overlay.spec.ts).
 // Local aliases keep the ~90% shared internal references (COLORS/LABELS/DISPLAY) intact;
 // the re-exports below preserve the original public export surface for site consumers.
-import {
-  STATUS_COLORS as COLORS,
-  STATUS_LABELS as LABELS,
-  STATUS_DISPLAY_ORDER as DISPLAY,
-  storeKey,
-} from './video-overlay-pure';
+import { STATUS_LABELS as LABELS, storeKey } from './video-overlay-pure';
 
 export {
   STATUS_COLORS as VIDEO_COLORS,
@@ -47,33 +46,39 @@ export {
 
 // ── Split modules (P2: video-overlay.ts was 861L) ─────────────────────────
 // Style builders + theme vars live in video-overlay-styles.ts;
-// the video progress tracker lives in video-progress-tracker.ts.
-import {
-  ThemeVars,
-  sActionRow,
-  sBadge,
-  sBtnFloat,
-  sCancelBtn,
-  sCard,
-  sOverlay,
-  sRatingBtn,
-  sRatingGrid,
-  sRatingLabel,
-  sRatingSection,
-  sSaveBtn,
-  sSectionRow,
-  sStatusBtn,
-  sTitle,
-} from './video-overlay-styles';
+// the video progress tracker lives in video-progress-tracker.ts;
+// the status modal DOM lives in video-overlay-modal.ts;
+// recommendation scanning/decoration lives in video-overlay-recommendations.ts.
+import { ThemeVars, sBadge, sBtnFloat } from './video-overlay-styles';
 import { VideoProgressTracker } from './video-progress-tracker';
+import { createStatusModal } from './video-overlay-modal';
+import type { StatusModal } from './video-overlay-modal';
+import { observeRecommendations, refreshRecommendations } from './video-overlay-recommendations';
+import { watchRecord } from '@/libraries/utils/watch-record';
+import type { RecommendationConfig } from './video-overlay-recommendations';
 
 // ════════════════════════════════════════════════════════════════════════
 // Site configuration
 // ════════════════════════════════════════════════════════════════════════
 
+/** Grace period before the recommendation pass starts (site chrome still hydrating). */
+const REC_WATCH_DELAY_MS = 3000;
+/** Trailing settle for a recommendation-card mutation burst. */
+const REC_REFRESH_DELAY_MS = 300;
+
 export interface VideoOverlaySiteConfig {
   /** IndexedDB record store name (STORE_NAMES.BILIBILI / STORE_NAMES.YOUTUBE). */
   storeName: string;
+  /**
+   * Record-event subscription seam; defaults to the shared bus watcher.
+   * Injected in tests because `event-bus` keeps module-level state per worker:
+   * a spec that used the real bus would pass or fail by file-order luck.
+   */
+  subscribeRecord?: (
+    storeName: string,
+    key: string | undefined,
+    onChange: () => void,
+  ) => () => void;
   /** Attribute prefix for FAB/modal elements: 'umm-bili' | 'umm-yt'. */
   attrPrefix: string;
   /** Font stack for the FAB / overlay / recommendation badges. */
@@ -104,14 +109,7 @@ export interface VideoOverlaySiteConfig {
   /** Detail-mode dimmer CSS, injected once into <head>. */
   dimmerCss: string;
   dimmerStyleId: string;
-  recommendation: {
-    cardSelector: string;
-    linkSelector: string;
-    idFromLink: (link: HTMLAnchorElement) => string | null;
-    dimmedAttr: string;
-    thumbSelector: string;
-    containerSelectors: string[];
-  };
+  recommendation: RecommendationConfig;
 }
 
 export interface VideoOverlay {
@@ -159,11 +157,20 @@ class VideoOverlayImpl implements VideoOverlay {
   private statusValue = 0;
   private ratingValue = 0;
   private btn: HTMLDivElement | null = null;
-  private modal: HTMLDivElement | null = null;
+  private modalUi: StatusModal | null = null;
   private isDark = false;
   private tracker: VideoProgressTracker | null = null;
   private recObserver: MutationObserver | null = null;
+  /** Released by cleanup(): the record-event subscription of this overlay. */
+  private releaseRecordWatch: (() => void) | null = null;
   private stopTheme: (() => void) | null = null;
+  /**
+   * Deferred work still waiting to run (recommendation watch / refresh kicks),
+   * keyed by slot. Every handle is tracked so teardown can cancel it — deferred
+   * work must never revive a page that was already torn down.
+   */
+  private pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private pendingSeq = 0;
 
   get status(): number {
     return this.statusValue;
@@ -206,7 +213,7 @@ class VideoOverlayImpl implements VideoOverlay {
       if (newDark === this.isDark) return;
       this.isDark = newDark;
       this.applyBtnStyle();
-      if (this.modal) this.applyModalTheme();
+      if (this.modalUi) this.modalUi.applyTheme();
     };
 
     const obs = new MutationObserver((mutations) => {
@@ -370,275 +377,118 @@ class VideoOverlayImpl implements VideoOverlay {
   // ── Modal ──────────────────────────────────────────────────
 
   closeModal(): void {
-    if (this.modal) {
-      this.modal.remove();
-      this.modal = null;
+    if (this.modalUi) {
+      this.modalUi.el.remove();
+      this.modalUi = null;
     }
-  }
-
-  private applyModalTheme(): void {
-    if (!this.modal) return;
-    const t = this.tv();
-    const card = this.modal.firstChild as HTMLElement | null;
-    if (!card) return;
-    this.modal.style.background = t.overlay;
-    card.style.background = t.card;
-    card.style.color = t.fg;
-
-    const cancel = card.querySelector(
-      `[data-${this.config.attrPrefix}-cancel]`,
-    ) as HTMLButtonElement | null;
-    if (cancel) cancel.style.cssText = sCancelBtn(t);
-
-    const rl = card.querySelector(`[data-${this.config.attrPrefix}-rl]`) as HTMLDivElement | null;
-    if (rl) rl.style.cssText = sRatingLabel(t);
-
-    const ratingBtns = card.querySelectorAll(
-      `[data-${this.config.attrPrefix}-rb]`,
-    ) as NodeListOf<HTMLButtonElement>;
-    ratingBtns.forEach((rb) => {
-      const v = parseInt(rb.textContent!, 10);
-      rb.style.cssText = sRatingBtn(t, v, this.ratingValue);
-    });
   }
 
   showModal(): void {
-    if (this.modal) return;
-    const t = this.tv();
-    this.modal = document.createElement('div');
-    this.modal.setAttribute(`data-${this.config.attrPrefix}-modal`, '');
-    this.modal.style.cssText = sOverlay(t, this.config.fontFamily);
-
-    const card = document.createElement('div');
-    card.style.cssText = sCard(t);
-
-    const title = document.createElement('div');
-    title.setAttribute(`data-${this.config.attrPrefix}-title`, '');
-    title.textContent = '\u6807\u8bb0\u72b6\u6001';
-    title.style.cssText = sTitle();
-    card.appendChild(title);
-
-    let sbtns: HTMLButtonElement[] = [];
-    let sv: HTMLButtonElement | null = null;
-    let rr: HTMLDivElement | null = null;
-
-    const updateUI = () => {
-      if (!sbtns.length || !sv || !rr) return;
-      sbtns.forEach((b, i) => {
-        const idx = DISPLAY[i];
-        if (idx === undefined) return;
-        b.style.cssText = sStatusBtn(idx, this.statusValue);
-      });
-      sv.style.cssText = sSaveBtn(this.statusValue);
-      rr.style.cssText = sRatingSection(this.statusValue === 2);
-    };
-
-    const sr = document.createElement('div');
-    sr.setAttribute(`data-${this.config.attrPrefix}-sr`, '');
-    sr.style.cssText = sSectionRow();
-    sbtns = [];
-    DISPLAY.forEach((idx) => {
-      const b = document.createElement('button');
-      b.setAttribute(`data-${this.config.attrPrefix}-sb`, '');
-      b.textContent = LABELS[idx];
-      b.style.cssText = sStatusBtn(idx, this.statusValue);
-      b.addEventListener('mouseenter', () => {
-        if (this.statusValue !== idx) b.style.opacity = '1';
-      });
-      b.addEventListener('mouseleave', () => {
-        if (this.statusValue !== idx) b.style.opacity = '0.85';
-      });
-      b.onclick = () => {
-        this.statusValue = idx;
-        updateUI();
-      };
-      sbtns.push(b);
-      sr.appendChild(b);
+    if (this.modalUi) return;
+    // DOM building lives in video-overlay-modal.ts; this host keeps all record
+    // state and persists on save (close + repaint FAB + write + sync tracker).
+    this.modalUi = createStatusModal({
+      attrPrefix: this.config.attrPrefix,
+      fontFamily: this.config.fontFamily,
+      getThemeVars: () => this.tv(),
+      getStatus: () => this.statusValue,
+      getRating: () => this.ratingValue,
+      setStatus: (status) => {
+        this.statusValue = status;
+      },
+      setRating: (rating) => {
+        this.ratingValue = rating;
+      },
+      onCancel: () => this.closeModal(),
+      onSave: () => {
+        this.closeModal();
+        this.applyBtnStyle();
+        this.saveRecord(this.statusValue, this.statusValue === 2 ? this.ratingValue : 0);
+        this.syncTrackerStatus();
+      },
     });
-    card.appendChild(sr);
-
-    rr = document.createElement('div');
-    rr.setAttribute(`data-${this.config.attrPrefix}-rr`, '');
-    rr.style.cssText = sRatingSection(this.statusValue === 2);
-    const rl = document.createElement('div');
-    rl.setAttribute(`data-${this.config.attrPrefix}-rl`, '');
-    rl.textContent = '\u8bc4\u5206';
-    rl.style.cssText = sRatingLabel(t);
-    rr.appendChild(rl);
-
-    const rGrid = document.createElement('div');
-    rGrid.setAttribute(`data-${this.config.attrPrefix}-rg`, '');
-    rGrid.style.cssText = sRatingGrid();
-    for (let ri = 0; ri <= 10; ri++) {
-      const rb = document.createElement('button');
-      rb.setAttribute(`data-${this.config.attrPrefix}-rb`, '');
-      rb.textContent = String(ri);
-      rb.style.cssText = sRatingBtn(t, ri, this.ratingValue);
-      rb.addEventListener('mouseenter', () => {
-        if (ri !== this.ratingValue) rb.style.opacity = '1';
-      });
-      rb.addEventListener('mouseleave', () => {
-        if (ri !== this.ratingValue) rb.style.opacity = '0.85';
-      });
-      rb.onclick = ((v: number) => () => {
-        this.ratingValue = v;
-        const all = rGrid.querySelectorAll(
-          `[data-${this.config.attrPrefix}-rb]`,
-        ) as NodeListOf<HTMLButtonElement>;
-        all.forEach((b) => {
-          const bv = parseInt(b.textContent!, 10);
-          b.style.cssText = sRatingBtn(t, bv, this.ratingValue);
-        });
-      })(ri);
-      rGrid.appendChild(rb);
-    }
-    rr.appendChild(rGrid);
-    card.appendChild(rr);
-
-    const ar = document.createElement('div');
-    ar.setAttribute(`data-${this.config.attrPrefix}-ar`, '');
-    ar.style.cssText = sActionRow();
-
-    const cb = document.createElement('button');
-    cb.setAttribute(`data-${this.config.attrPrefix}-cancel`, '');
-    cb.textContent = '\u53d6\u6d88';
-    cb.style.cssText = sCancelBtn(t);
-    cb.addEventListener('mouseenter', () => {
-      cb.style.opacity = '0.8';
-    });
-    cb.addEventListener('mouseleave', () => {
-      cb.style.opacity = '1';
-    });
-    cb.onclick = () => this.closeModal();
-    ar.appendChild(cb);
-
-    sv = document.createElement('button');
-    sv.setAttribute(`data-${this.config.attrPrefix}-save`, '');
-    sv.textContent = '\u4fdd\u5b58';
-    sv.style.cssText = sSaveBtn(this.statusValue);
-    sv.addEventListener('mouseenter', () => {
-      sv.style.opacity = '0.85';
-    });
-    sv.addEventListener('mouseleave', () => {
-      sv.style.opacity = '1';
-    });
-    sv.onclick = () => {
-      this.closeModal();
-      this.applyBtnStyle();
-      this.saveRecord(this.statusValue, this.statusValue === 2 ? this.ratingValue : 0);
-      this.syncTrackerStatus();
-    };
-    ar.appendChild(sv);
-
-    card.appendChild(ar);
-    this.modal.appendChild(card);
-    document.body.appendChild(this.modal);
+    document.body.appendChild(this.modalUi.el);
   }
 
-  // ── Recommendation decoration ─────────────────────────────
+  // ── Recommendation decoration (DOM work lives in video-overlay-recommendations.ts) ──
 
-  private decorateRecommendations(
-    recordMap: Map<string, { status: number; rating: number }>,
-  ): void {
-    const rec = this.config.recommendation;
-    const items = document.querySelectorAll<HTMLElement>(rec.cardSelector);
-    for (const item of items) {
-      const link = item.querySelector<HTMLAnchorElement>(rec.linkSelector);
-      if (!link) continue;
-      const vid = rec.idFromLink(link);
-      if (!vid) continue;
-      const entry = recordMap.get(storeKey(vid));
-      const st = entry?.status ?? 0;
-      const ra = entry?.rating ?? 0;
+  /** Schedule deferred work; `slot` coalesces repeat scheduling into one trailing run. */
+  private after(ms: number, run: () => void, slot?: string): void {
+    const key = slot ?? `pending-${++this.pendingSeq}`;
+    const previous = this.pendingTimers.get(key);
+    if (previous !== undefined) clearTimeout(previous);
+    const handle = setTimeout(() => {
+      this.pendingTimers.delete(key);
+      run();
+    }, ms);
+    this.pendingTimers.set(key, handle);
+  }
 
-      if (st === 2) {
-        item.setAttribute(rec.dimmedAttr, 'true');
-      }
-      const existing = item.querySelector('[data-umm-rec-badge]');
-      if (existing) continue;
-      const badge = document.createElement('div');
-      badge.setAttribute('data-umm-rec-badge', '');
-      let badgeText = LABELS[st]?.slice(0, 2) ?? '';
-      if (st === 2 && ra > 0) badgeText += ' ' + ra;
-      badge.textContent = badgeText;
-      badge.style.cssText =
-        'position:absolute;top:4px;left:4px;z-index:10;font-size:10px;font-weight:700;' +
-        'background:' +
-        COLORS[st] +
-        ';color:#fff;padding:1px 5px;border-radius:6px;' +
-        'font-family:' +
-        this.config.fontFamily +
-        ';line-height:1.6;cursor:default';
-      const thumb = item.querySelector<HTMLElement>(rec.thumbSelector);
-      if (thumb) {
-        thumb.style.position = 'relative';
-        thumb.appendChild(badge);
-      }
-    }
+  private cancelPending(): void {
+    for (const handle of this.pendingTimers.values()) clearTimeout(handle);
+    this.pendingTimers.clear();
   }
 
   refreshRecommendations(): Promise<void> {
     if (!this.id) return Promise.resolve();
-    // Read only the visible recommendation cards' store keys instead of
-    // materializing the whole store. Empty key set (no cards yet) falls back
-    // to the full-store scan so badges never silently disappear.
-    const rec = this.config.recommendation;
-    const keys = [...document.querySelectorAll<HTMLElement>(rec.cardSelector)]
-      .map((item) => {
-        const link = item.querySelector<HTMLAnchorElement>(rec.linkSelector);
-        if (!link) return null;
-        const vid = rec.idFromLink(link);
-        return vid ? storeKey(vid) : null;
-      })
-      .filter((key): key is string => key !== null);
-    const request =
-      keys.length > 0
-        ? Store.dbGetBulk(this.config.storeName, keys)
-        : Store.dbGetAll(this.config.storeName);
-    return request
-      .then((entries) => {
-        const recordMap = new Map<string, { status: number; rating: number }>();
-        for (const entry of entries) {
-          if (entry?.key && typeof entry.record?.status === 'number') {
-            recordMap.set(entry.key, {
-              status: entry.record.status,
-              rating: entry.record.rating || 0,
-            });
-          }
-        }
-        setTimeout(() => this.decorateRecommendations(recordMap), 500);
-      })
-      .catch(() => {
-        // background unreachable — skip decoration
-      });
+    return refreshRecommendations(
+      this.config.storeName,
+      this.config.recommendation,
+      this.config.fontFamily,
+    );
   }
 
   watchRecommendations(): void {
-    let target: Element | null = null;
-    for (const sel of this.config.recommendation.containerSelectors) {
-      target = document.querySelector(sel);
-      if (target) break;
-    }
-    if (!target) return;
-    if (this.recObserver) this.recObserver.disconnect();
-    this.recObserver = new MutationObserver(() => {
-      setTimeout(() => {
-        void this.refreshRecommendations();
-      }, 300);
+    const observer = observeRecommendations(this.config.recommendation, () => {
+      this.after(
+        REC_REFRESH_DELAY_MS,
+        () => {
+          void this.refreshRecommendations();
+        },
+        'rec-refresh',
+      );
     });
-    this.recObserver.observe(target, { childList: true, subtree: true });
+    if (!observer) return;
+    if (this.recObserver) this.recObserver.disconnect();
+    this.recObserver = observer;
+  }
+
+  /**
+   * A record written from the popup, another tab or a sync run changes no host
+   * DOM, so the feed observer never fires and recommendation badges stay stale
+   * until reload. Any write in this store re-runs the targeted bulk read
+   * through the same trailing settle the feed bursts already use.
+   */
+  private watchRecordChanges(): void {
+    if (this.releaseRecordWatch) return;
+    const subscribe = this.config.subscribeRecord ?? watchRecord;
+    this.releaseRecordWatch = subscribe(this.config.storeName, undefined, () => {
+      this.after(
+        REC_REFRESH_DELAY_MS,
+        () => {
+          void this.refreshRecommendations();
+        },
+        'rec-refresh',
+      );
+    });
   }
 
   startRecommendationWatch(): void {
-    setTimeout(() => {
-      void this.refreshRecommendations();
-      this.watchRecommendations();
-    }, 3000);
+    this.watchRecordChanges();
+    this.after(
+      REC_WATCH_DELAY_MS,
+      () => {
+        void this.refreshRecommendations();
+        this.watchRecommendations();
+      },
+      'rec-watch',
+    );
   }
 
   // ── Teardown ───────────────────────────────────────────────
 
   cleanup(): void {
+    this.cancelPending();
     if (this.tracker) {
       this.tracker.destroy();
       this.tracker = null;
@@ -647,9 +497,13 @@ class VideoOverlayImpl implements VideoOverlay {
       this.recObserver.disconnect();
       this.recObserver = null;
     }
-    if (this.modal) {
-      this.modal.remove();
-      this.modal = null;
+    if (this.releaseRecordWatch) {
+      this.releaseRecordWatch();
+      this.releaseRecordWatch = null;
+    }
+    if (this.modalUi) {
+      this.modalUi.el.remove();
+      this.modalUi = null;
     }
     if (this.btn) {
       this.btn.remove();

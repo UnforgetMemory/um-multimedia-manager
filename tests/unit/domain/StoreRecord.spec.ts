@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { StoreRecord } from '@/domain/record/store-record';
+import type { StoreRecordSnapshot } from '@/domain/record/store-record';
 
 test.describe('StoreRecord aggregate', () => {
   test('fresh creates a record with NONE status and unrated', () => {
@@ -51,11 +52,12 @@ test.describe('StoreRecord aggregate', () => {
     expect(snapshot.rating).toBe(0);
     expect(snapshot.linkedIds).toEqual({ imdb: 'movie::tt1375666' });
     // No class-specific methods
-    expect(typeof (snapshot as any).markAsWatched).toBe('undefined');
+    const bag = snapshot as unknown as Record<string, unknown>;
+    expect(typeof bag.markAsWatched).toBe('undefined');
   });
 
   test('fromSnapshot reconstructs domain object', () => {
-    const snapshot = {
+    const snapshot: StoreRecordSnapshot = {
       url: 'https://movie.douban.com/subject/1292052/',
       status: 2,
       rating: 7,
@@ -64,7 +66,7 @@ test.describe('StoreRecord aggregate', () => {
       linkedIds: { imdb: 'movie::tt1375666' },
       recordVersion: 3,
     };
-    const r = StoreRecord.fromSnapshot(snapshot as any);
+    const r = StoreRecord.fromSnapshot(snapshot);
     expect(r.url).toBe(snapshot.url);
     expect(r.status.toNumber()).toBe(2);
     expect(r.rating.toNumber()).toBe(7);
@@ -74,14 +76,14 @@ test.describe('StoreRecord aggregate', () => {
   });
 
   test('fromSnapshot handles missing optional fields', () => {
-    const snapshot = {
+    const snapshot: StoreRecordSnapshot = {
       url: 'https://example.com/',
       status: 0,
       rating: 0,
       updatedAt: '2026-07-19T00:00:00.000Z',
       linkedIds: {},
     };
-    const r = StoreRecord.fromSnapshot(snapshot as any);
+    const r = StoreRecord.fromSnapshot(snapshot);
     expect(r.comment).toBeUndefined();
     expect(r.schemaVersion).toBeUndefined();
     expect(r.recordVersion).toBeUndefined();

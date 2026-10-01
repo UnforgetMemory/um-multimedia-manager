@@ -10,6 +10,7 @@ import {
   LISTING_DIMMER_CLASS,
   LISTING_SHELL_DIM_CLASS,
   LISTING_STYLE_ID,
+  readBadgeAnchorState,
   setListingBadge,
 } from '@/entrypoints/content/ui/bilibili-listing';
 
@@ -168,6 +169,17 @@ test('CSS inject: no global cover position rules, no :has shells, dim only marke
 
   await mountInjectedPage(page);
 
+  // The text checks above are evadable (whitespace/selector variants), so prove
+  // the same contract from resolved style: our CSS must leave cover boxes static,
+  // otherwise badges anchor to the cover instead of the thumbnail.
+  const coverPositions = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('.bili-video-card__cover')].map(
+      (el) => getComputedStyle(el).position,
+    ),
+  );
+  expect(coverPositions.length).toBeGreaterThan(0);
+  expect(coverPositions).not.toContain('relative');
+
   // Non-dimmed cards must not receive opacity/filter from us
   const unwatched = page.locator('.bili-video-card[data-bsb-bvid="BV1UNWATCHED"]');
   const unwatchedStyles = await unwatched.evaluate((el) => {
@@ -251,13 +263,13 @@ test('layout geometry: cover height stays aspect-ratio; badge sits inside thumbn
       (c) => c.includes('thumbnail') || c.includes('image--link') || c.includes('bili-video-card'),
     ),
   ).toBe(true);
-  // Critical: cover containers themselves are NOT forced relative by global CSS
+  // Site baseline (no UMM CSS on this page): covers are static in the real
+  // layout, which is why the badge anchor has to be the thumbnail.
   const coverPos = await page.evaluate(() => {
     return [...document.querySelectorAll<HTMLElement>('.bili-video-card__cover')].map(
       (el) => el.style.position || getComputedStyle(el).position,
     );
   });
-  // Cover may be static or site-defined; we must not have written inline relative on all covers
   const inlineRelativeCovers = await page.evaluate(
     () =>
       [...document.querySelectorAll<HTMLElement>('.bili-video-card__cover')].filter(
@@ -265,9 +277,11 @@ test('layout geometry: cover height stays aspect-ratio; badge sits inside thumbn
       ).length,
   );
   expect(inlineRelativeCovers).toBe(0);
+  expect(coverPos, `resolved cover positions: ${JSON.stringify(coverPos)}`).not.toContain(
+    'relative',
+  );
 
   expect(home.badgeParentClass).toContain('image--link');
-  void coverPos;
 });
 
 test('runListingDimmerPass + injected CSS in real Chromium', async ({ page }) => {
@@ -384,4 +398,47 @@ test('setListingBadge uses surgical position on thumbnail only', () => {
   // BADGE_ANCHOR_SELECTORS no longer used for global CSS
   expect(BADGE_ANCHOR_SELECTORS[0]).toBe('.bili-cover-card__thumbnail');
   expect(LISTING_STYLE_ID).toBe('umm-bili-homepage-styles');
+});
+
+test('X9-B read/write phase split: precomputed anchor state skips getComputedStyle in the write phase', () => {
+  const dom = new JSDOM(
+    `<div class="bili-video-card" data-bsb-bvid="BV1">
+      <div class="bili-video-card__cover">
+        <a class="bili-cover-card" href="/video/BV1">
+          <div class="bili-cover-card__thumbnail"></div>
+        </a>
+      </div>
+    </div>`,
+  );
+  const doc = dom.window.document;
+  const original = dom.window.getComputedStyle.bind(dom.window);
+  let computedReads = 0;
+  dom.window.getComputedStyle = (el: Element) => {
+    computedReads += 1;
+    return original(el);
+  };
+
+  const card = doc.querySelector<HTMLElement>('.bili-video-card')!;
+  // Read phase: the ONLY layout-reading call happens here, before any mutation.
+  const state = readBadgeAnchorState(card);
+  expect(computedReads).toBe(1);
+  expect(state.anchorSel).toBe('.bili-cover-card__thumbnail');
+
+  // Write phase: badge injection consumes the cached read — zero new
+  // getComputedStyle calls, so chunked passes force layout once per chunk.
+  const badge = setListingBadge(card, 2, 8, undefined, undefined, state);
+  expect(computedReads).toBe(1);
+  const thumb = card.querySelector<HTMLElement>('.bili-cover-card__thumbnail')!;
+  expect(thumb.contains(badge)).toBe(true);
+  expect(thumb.style.position).toBe('relative'); // cached 'static' → surgical relative
+  expect(badge.textContent).toBe('已看 8');
+
+  // Fallback (single-card callers without precomputed state) still measures.
+  const loose = doc.createElement('div');
+  const looseThumb = doc.createElement('div');
+  looseThumb.className = 'bili-cover-card__thumbnail';
+  loose.appendChild(looseThumb);
+  doc.body.appendChild(loose);
+  setListingBadge(loose, 0);
+  expect(computedReads).toBe(2);
 });

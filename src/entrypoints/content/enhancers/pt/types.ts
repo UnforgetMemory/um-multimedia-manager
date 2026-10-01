@@ -4,7 +4,7 @@
 
 /** 列表页处理器上下文 */
 export interface HandlerContext {
-  debug: (...args: any[]) => void;
+  debug: (...args: unknown[]) => void;
   idCache: CachedIdSets | null;
   cacheTimestamp: number;
 }

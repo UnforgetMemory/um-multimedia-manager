@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for
+  src/scenario/douban/pages/review-detail/review-detail-data.ts.
+  NOT a real saved page: reviewer, ids, dates and text are fabricated.
+  Only the movie review detail DOM contract the extractor queries is
+  reproduced: header.main-hd (h1 span[property="v:summary"] /
+  a.avatar.author-avatar img / a span / div.main-meta span[content]),
+  [class*="allstar"], .review-content.clearfix > p, .main-author span,
+  .btn.useful_count / .btn.useless_count and the aside
+  (.subject-img img / .subject-title a / .subject-info .info-item
+  > .info-item-key + .info-item-val).
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>科幻的骨架，情感的血肉 —— 流浪地球2影评</title>
+  </head>
+  <body>
+    <div id="content">
+      <div class="grid-16-8 clearfix">
+        <div class="article">
+          <div id="maininfo">
+            <div id="link-report">
+              <div class="pre">
+                <header class="main-hd">
+                  <h1 class="main-title">
+                    <span class="itemtitle" property="v:summary">科幻的骨架，情感的血肉</span>
+                  </h1>
+                  <a href="https://movie.douban.com/people/unforgetmemory/" class="avatar author-avatar">
+                    <img src="https://img3.doubanio.com/icon/u150361821-2.jpg" class="icon-image" alt="UnforgetMemory" />
+                  </a>
+                  <a class="author-name" href="https://movie.douban.com/people/unforgetmemory/"
+                    ><span class="display-name">UnforgetMemory</span></a
+                  >
+                  <div class="main-meta">
+                    <span class="time" content="2023-02-11 18:24:03">2023-02-11 18:24:03</span>
+                    <span class="user-rating"
+                      ><span class="allstar40 rl" title="推荐"></span
+                    ></span>
+                    <span class="ip-location">(上海)</span>
+                  </div>
+                </header>
+              </div>
+
+              <div class="review-content clearfix" id="link-report-in-page">
+                <p>先说结论：第二部把第一部的设定债全部还上了。</p>
+                <p></p>
+                <p>数字生命那条线本来最容易失控，<a href="https://movie.douban.com/subject/35466880/">图恒宇</a>的处理却收得很紧。</p>
+                <div class="indent"><p>配乐在月球段落里几乎抢了台词。</p></div>
+              </div>
+
+              <div class="main-author">
+                <span class="pl">1847人阅读</span>
+                <span class="pl"> 来自 Android客户端</span>
+              </div>
+
+              <div class="action">
+                <a href="javascript:void(0)" class="btn useful_count"
+                  ><i class="ico22 upt"></i>有用<span class="count">86</span></a
+                >
+                <a href="javascript:void(0)" class="btn useless_count"
+                  ><i class="ico22 downt"></i>没用<span class="count">3</span></a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="aside">
+          <div class="subject-img">
+            <a href="https://movie.douban.com/subject/35466880/">
+              <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2887380238.jpg" alt="流浪地球2" width="84" />
+            </a>
+          </div>
+          <div class="subject-title">
+            <a href="https://movie.douban.com/subject/35466880/">&gt; 流浪地球2</a>
+          </div>
+          <div class="subject-info">
+            <div class="info-item"><span class="info-item-key">导演:</span><span class="info-item-val">郭帆</span></div>
+            <div class="info-item"><span class="info-item-key">编剧:</span><span class="info-item-val">郭帆 / 龚格尔</span></div>
+            <div class="info-item"><span class="info-item-key">主演:</span><span class="info-item-val">吴京 / 刘德华 / 李雪健</span></div>
+            <div class="info-item"><span class="info-item-key">类型:</span><span class="info-item-val">科幻 / 冒险 / 灾难</span></div>
+            <div class="info-item"><span class="info-item-key">地区:</span><span class="info-item-val">中国大陆</span></div>
+            <div class="info-item"><span class="info-item-key">上映:</span><span class="info-item-val">2023-01-22(中国大陆)</span></div>
+            <div class="info-item"><span class="info-item-key">片长:</span><span class="info-item-val">173分钟</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

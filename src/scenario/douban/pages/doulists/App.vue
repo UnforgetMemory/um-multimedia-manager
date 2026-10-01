@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import type { DoulistsPageData } from './types';
-import { CATEGORY_LABELS } from './types';
+import { CATEGORY_LABEL_KEYS } from './types';
 import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
 import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
 import { usePaginator } from '../../shared/composables/use-paginator';
@@ -51,7 +52,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
               data.activeTab === 'created' ? 'umm-doulist-tab--active' : '',
             ]"
           >
-            创建的
+            {{ t('douban.doulists.tab_created') }}
             <span class="umm-doulist-count">{{ data.createdCount }}</span>
           </a>
           <a
@@ -61,13 +62,13 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
               data.activeTab === 'collected' ? 'umm-doulist-tab--active' : '',
             ]"
           >
-            关注的
+            {{ t('douban.doulists.tab_collected') }}
             <span class="umm-doulist-count">{{ data.collectedCount }}</span>
           </a>
         </template>
         <template v-else>
           <span class="umm-doulist-tab umm-doulist-tab--active">
-            我创建的豆列
+            {{ t('douban.doulists.mine_created') }}
             <span class="umm-doulist-count">{{ data.createdCount }}</span>
           </span>
         </template>
@@ -96,16 +97,20 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
               v-if="item.category !== 'other'"
               class="umm-doulist-cat-badge"
               :class="`umm-doulist-cat--${item.category}`"
-              >{{ CATEGORY_LABELS[item.category] }}</span
+              >{{ t(CATEGORY_LABEL_KEYS[item.category]) }}</span
             >
           </div>
           <!-- Layer 3: Body -->
           <div class="umm-doulist-body">
             <!-- Stats: watched + total -->
             <div class="umm-doulist-stats">
-              <span class="umm-doulist-stat-item">已看 {{ item.watchedCount }}</span>
+              <span class="umm-doulist-stat-item">{{
+                t('douban.doulists.watched', { count: item.watchedCount })
+              }}</span>
               <span class="umm-doulist-stat-divider" />
-              <span class="umm-doulist-stat-item">{{ item.itemCount }} 项</span>
+              <span class="umm-doulist-stat-item">{{
+                t('douban.doulists.items_count', { count: item.itemCount })
+              }}</span>
             </div>
             <!-- Description -->
             <p v-if="item.intro" class="umm-doulist-intro">{{ item.intro }}</p>
@@ -113,14 +118,14 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
             <div class="umm-doulist-footer">
               <span v-if="item.updateTime" class="umm-doulist-time">{{ item.updateTime }}</span>
               <span class="umm-doulist-footer-space" />
-              <span v-if="item.followerCount > 0" class="umm-doulist-followers"
-                >{{ item.followerCount }} 关注</span
-              >
+              <span v-if="item.followerCount > 0" class="umm-doulist-followers">{{
+                t('douban.doulists.followers', { count: item.followerCount })
+              }}</span>
             </div>
           </div>
         </a>
       </div>
-      <div v-else class="umm-doulists-empty">暂无豆列</div>
+      <div v-else class="umm-doulists-empty">{{ t('douban.doulists.empty') }}</div>
 
       <!-- Paginator -->
       <UmmPaginator

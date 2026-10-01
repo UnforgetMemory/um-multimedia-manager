@@ -20,6 +20,10 @@
  * - containerClass / pageClass: per-page class prefixes (the former
  *   hand-written copies differed only in these + data field names)
  */
+
+// Pagination hrefs arrive from host page markup — validate at the sink.
+import { safeHrefOpt } from '@/libraries/utils/safe-url';
+
 defineProps<{
   pages: Array<{ label: string; url: string; current: boolean }>;
   prevUrl?: string;
@@ -31,14 +35,14 @@ defineProps<{
 
 <template vapor>
   <div :class="containerClass">
-    <a v-if="prevUrl" :href="prevUrl" :class="pageClass">‹</a>
+    <a v-if="prevUrl" :href="safeHrefOpt(prevUrl)" :class="pageClass">‹</a>
     <a
       v-for="p in pages"
       :key="p.label"
-      :href="p.url || undefined"
+      :href="safeHrefOpt(p.url)"
       :class="[pageClass, p.current ? `${pageClass}--active` : '']"
       >{{ p.label }}</a
     >
-    <a v-if="nextUrl" :href="nextUrl" :class="pageClass">›</a>
+    <a v-if="nextUrl" :href="safeHrefOpt(nextUrl)" :class="pageClass">›</a>
   </div>
 </template>

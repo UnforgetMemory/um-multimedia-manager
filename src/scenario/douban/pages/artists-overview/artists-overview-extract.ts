@@ -62,7 +62,10 @@ function extractVideos(): VideoItem[] {
     const artistEl = li.querySelector<HTMLElement>('.title .artist-name');
     const artistName = artistEl?.textContent?.trim() || '';
 
-    const titleEl = li.querySelector<HTMLAnchorElement>('.title .title a');
+    // Real Douban renders the video anchor directly inside `div.title`
+    // (sibling of `span.artist-name`); the previous `.title .title a`
+    // double-class selector never matched, leaving title always empty.
+    const titleEl = li.querySelector<HTMLAnchorElement>('.title a');
     const title = titleEl?.textContent?.trim() || '';
 
     if (href) items.push({ artistName, title, href, imageUrl });

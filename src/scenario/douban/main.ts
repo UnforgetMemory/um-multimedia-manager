@@ -3,7 +3,8 @@
  *
  * Routes to the correct page mount function based on URL via a
  * MountRegistry — replacing the hardcoded switch statement that
- * previously dispatched across 19 cases.
+ * previously dispatched across 19 cases. Page mounts are declared
+ * once in a single PAGE_MOUNTS map and registered in a loop.
  *
  * Page mount functions are created by `definePageMount()`, which
  * encapsulates the common bootstrap pattern:
@@ -19,6 +20,7 @@
 import { MountRegistry } from './page-registry';
 import { detectPageType } from './shared/url-detector';
 import { injectGlobalStyles } from '@/entrypoints/content/styles/global';
+import { initI18n, startLocaleSync, subscribeLocale } from '@/entrypoints/content/i18n';
 import { startThemeAttrSync } from './overlay/theme-sync';
 import { initEventBus } from '@/libraries/utils/event-bus';
 import { FloatingToast } from '@/entrypoints/content/utils/toast';
@@ -49,47 +51,53 @@ import { mountBookReviews } from './pages/book-reviews/config';
 import { mountReviewDetail } from './pages/review-detail/config';
 import { mountBookReviewDetail } from './pages/book-review-detail/config';
 import { mountBookCollect } from './pages/book-collect/config';
+import { mountBookAuthors } from './pages/book-authors/config';
 import { mountGameCollect } from './pages/game-collect/config';
 import { mountGameDetail } from './pages/game-detail/config';
 import { mountGameExplore } from './pages/game-explore/config';
 import { mountSeries } from './pages/series/config';
 import { mountMusicCollect } from './pages/music-collect/config';
 
+const PAGE_MOUNTS = {
+  'music-homepage': mountMusicHomepage,
+  genre: mountGenre,
+  'artists-overview': mountArtistsOverview,
+  homepage: mountHomepage,
+  search: mountSearch,
+  albums: mountAlbums,
+  'book-homepage': mountBookHomepage,
+  'book-profile': mountBookProfile,
+  detail: mountDetail,
+  photos: mountPhotos,
+  trailer: mountTrailer,
+  celebrities: mountCelebrities,
+  personage: mountPersonage,
+  'personage-creations': mountPersonageCreations,
+  'user-profile': mountUserProfile,
+  'movie-profile': mountMovieProfile,
+  'music-profile': mountMusicProfile,
+  doulists: mountDoulists,
+  'doulist-detail': mountDoulistDetail,
+  'user-media': mountUserMedia,
+  'user-celebrities': mountUserCelebrities,
+  'user-reviews': mountUserReviews,
+  'book-reviews': mountBookReviews,
+  'review-detail': mountReviewDetail,
+  'book-review-detail': mountBookReviewDetail,
+  'book-collect': mountBookCollect,
+  'game-collect': mountGameCollect,
+  'game-detail': mountGameDetail,
+  'game-explore': mountGameExplore,
+  series: mountSeries,
+  'music-collect': mountMusicCollect,
+  'book-authors': mountBookAuthors,
+} as const satisfies Record<string, () => Promise<void>>;
+
 const registry = new MountRegistry();
 
-registry.register('music-homepage', mountMusicHomepage);
-registry.register('genre', mountGenre);
-registry.register('artists-overview', mountArtistsOverview);
-registry.register('homepage', mountHomepage);
-registry.register('search', mountSearch);
-registry.register('albums', mountAlbums);
-registry.register('book-homepage', mountBookHomepage);
-registry.register('book-profile', mountBookProfile);
-registry.register('detail', mountDetail);
-registry.register('photos', mountPhotos);
-registry.register('trailer', mountTrailer);
-registry.register('celebrities', mountCelebrities);
-registry.register('personage', mountPersonage);
-registry.register('personage-creations', mountPersonageCreations);
-registry.register('user-profile', mountUserProfile);
-registry.register('movie-profile', mountMovieProfile);
-registry.register('music-profile', mountMusicProfile);
-registry.register('doulists', mountDoulists);
-registry.register('doulist-detail', mountDoulistDetail);
-registry.register('user-media', mountUserMedia);
-registry.register('user-celebrities', mountUserCelebrities);
-registry.register('user-reviews', mountUserReviews);
-registry.register('book-reviews', mountBookReviews);
-registry.register('review-detail', mountReviewDetail);
-registry.register('book-review-detail', mountBookReviewDetail);
-registry.register('book-collect', mountBookCollect);
-registry.register('game-collect', mountGameCollect);
-registry.register('game-detail', mountGameDetail);
-registry.register('game-explore', mountGameExplore);
-registry.register('series', mountSeries);
-registry.register('music-collect', mountMusicCollect);
-import { mountBookAuthors } from './pages/book-authors/config';
-registry.register('book-authors', mountBookAuthors);
+for (const [pageKey, mountFn] of Object.entries(PAGE_MOUNTS)) {
+  registry.register(pageKey, mountFn);
+}
 
 // ---- Public API ----
 
@@ -99,6 +107,16 @@ registry.register('book-authors', mountBookAuthors);
  */
 export async function mountDoubanMain(): Promise<void> {
   try {
+    // i18n: `t()` reads module-level `currentLocale` (default zh-CN) and stays
+    // Simplified forever without initI18n. The overlay consumes `t()` everywhere
+    // (via shared/legacy-bridge) but never initialized it — under an English
+    // setting the whole page kept rendering Chinese, and an Options language
+    // change never backfilled already-open tabs. Same call pair as the legacy
+    // pipeline (entrypoints/content.ts); the entry already awaits this function,
+    // so the extra async delays nothing (document_idle — douban-early painted
+    // the shell's first frame long ago).
+    await initI18n();
+    startLocaleSync();
     // Global infrastructure (was previously in content.ts)
     injectGlobalStyles();
     // Keep html[data-umm-theme] live for ALL light-DOM dark rules
@@ -124,7 +142,24 @@ export async function mountDoubanMain(): Promise<void> {
     // video shares the trailer mount function
     const pageKey = pageType.type === 'video' ? 'trailer' : pageType.type;
     const mountFn = registry.getMountFn(pageKey);
-    if (mountFn) await mountFn();
+    if (!mountFn) return;
+    await mountFn();
+    // Locale backfill. `t()` reads a module-level variable, not a reactive
+    // source, so a mounted Vue tree never re-renders when currentLocale changes
+    // — X106 measured in a real browser "storage language changed, island
+    // labels stayed stale". `startLocaleSync()` alone only swapped a variable
+    // nobody read. Backfill rides the existing safe channel: re-run this
+    // method's `mountFn()`; mountUmmOverlay first releaseLiveMount (unmount +
+    // detach container) then mounts the fresh tree — the same path as "retry
+    // after mount failure". Single-flight guard against double clicks.
+    let remounting = false;
+    subscribeLocale(() => {
+      if (remounting) return;
+      remounting = true;
+      Promise.resolve(mountFn()).finally(() => {
+        remounting = false;
+      });
+    });
   } catch (err: unknown) {
     console.warn('[UMM] mountDoubanMain error:', err);
   }

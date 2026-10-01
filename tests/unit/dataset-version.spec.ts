@@ -17,7 +17,7 @@ import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils';
  * 分层契约（2026-09-25，架构守卫规则 C 修复后）：
  * `utils/zip-utils` 是 libraries 层，**只负责打包与解析**，不再校验版本；
  * 版本兼容策略归调用方（WebDAV 导入链路显式调用 `validateDatasetVersion`）。
- * 常量唯一事实源 = `src/utils/dataset-version.ts`，
+ * 常量唯一事实源 = `src/libraries/utils/dataset-version.ts`，
  * `@/engine/migration/models` 再导出以保持既有导入路径。
  * 末节「版本校验职责分离」用例锁定该契约。
  */

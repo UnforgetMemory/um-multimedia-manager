@@ -21,6 +21,14 @@ function freshIndexedDB(): void {
   g.indexedDB = new IDBFactory();
 }
 
+// Playwright reuses one worker across spec files; the fake IndexedDB installed
+// by this file must not survive into whichever spec runs next.
+const ORIGINAL_INDEXEDDB = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+test.afterAll(() => {
+  if (ORIGINAL_INDEXEDDB) Object.defineProperty(globalThis, 'indexedDB', ORIGINAL_INDEXEDDB);
+  else delete (globalThis as Record<string, unknown>).indexedDB;
+});
+
 /** Seed a v12-shaped DB: legacy 'video::' keys in bilibili_records + sehuatang_avids entries. */
 function createV12Database(): Promise<void> {
   return new Promise<void>((resolve, reject) => {

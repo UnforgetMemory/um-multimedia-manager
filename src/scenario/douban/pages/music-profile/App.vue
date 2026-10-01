@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue';
 import type { MusicProfileData } from './types';
 
@@ -34,7 +35,7 @@ defineProps<{
         <div class="umm-mp-section-head">
           <span class="umm-mp-section-lbl">{{ data.albumSection.label }}</span>
           <a :href="data.albumSection.url" class="umm-mp-section-more" target="_blank">
-            全部 {{ data.albumSection.count.toLocaleString() }} →
+            {{ t('douban.mp.all_count', { count: data.albumSection.count.toLocaleString() }) }}
           </a>
         </div>
         <div v-if="data.albumSection.items.length > 0" class="umm-mp-grid">
@@ -54,7 +55,7 @@ defineProps<{
       <!-- Musicians -->
       <div v-if="data.musicians.length > 0" class="umm-mp-section">
         <div class="umm-mp-section-head">
-          <span class="umm-mp-section-lbl">我喜欢的艺术家</span>
+          <span class="umm-mp-section-lbl">{{ t('douban.mup.artists') }}</span>
         </div>
         <div class="umm-mp-musicians">
           <a
@@ -71,7 +72,7 @@ defineProps<{
       <!-- Doulists -->
       <div v-if="data.doulists.length > 0" class="umm-mp-section">
         <div class="umm-mp-section-head">
-          <span class="umm-mp-section-lbl">我的音乐豆列</span>
+          <span class="umm-mp-section-lbl">{{ t('douban.mup.doulists') }}</span>
         </div>
         <div class="umm-mp-doulist">
           <a
@@ -82,7 +83,9 @@ defineProps<{
             target="_blank"
           >
             <span class="umm-mp-doulist-title">{{ dl.title }}</span>
-            <span class="umm-mp-doulist-followers">{{ dl.followers }}人关注</span>
+            <span class="umm-mp-doulist-followers">{{
+              t('douban.mp.followers', { count: dl.followers })
+            }}</span>
           </a>
         </div>
       </div>

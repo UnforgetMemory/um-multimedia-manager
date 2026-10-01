@@ -3,6 +3,7 @@ import { UmmImageWrapper } from './umm-image-wrapper';
 import { UmmStatusBadgeWrapper } from './umm-status-badge-wrapper';
 import { UmmRating } from './umm-rating';
 import { ASPECT_RATIO } from '@/scenario/douban/shared/media-formats';
+import { openExternalUrl, safeHref } from '@/libraries/utils/safe-url';
 
 export const UmmMediaCard = defineComponent({
   name: 'UmmMediaCard',
@@ -22,7 +23,7 @@ export const UmmMediaCard = defineComponent({
   setup(props) {
     const handleClick = () => {
       if (props.mode === 'grid' && props.href) {
-        window.open(props.href, '_blank');
+        openExternalUrl(props.href);
       }
     };
 
@@ -66,7 +67,7 @@ export const UmmMediaCard = defineComponent({
       h(
         'a',
         {
-          href: props.href,
+          href: safeHref(props.href),
           class: 'umm-card',
           target: '_blank',
           rel: 'noopener noreferrer',

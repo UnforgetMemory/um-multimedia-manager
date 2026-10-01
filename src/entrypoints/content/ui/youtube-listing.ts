@@ -13,10 +13,18 @@
  * No extension APIs here — the entrypoint injects the dbGetBulk reader.
  */
 
+import { runChunked, type ChunkOptions } from '@/libraries/utils/dom-chunk';
 import { parseYoutubeVideoId, storeKey, STATUS_COLORS, STATUS_LABELS } from './video-overlay-pure';
 
 /** status >= DIMMER_THRESHOLD triggers the dimmer attribute */
 export const DIMMER_THRESHOLD = 2;
+
+/**
+ * Cards mutated per animation frame (X9-B): each write does setAttribute +
+ * createElement/appendChild directly into the host feed, so keep chunks small.
+ * The 250ms observer throttle gates pass triggers; this gates the write pass.
+ */
+const LISTING_CHUNK_SIZE = 10;
 
 /** Unified video card selectors — covers all YouTube layouts */
 export const VIDEO_CARD_SELECTOR = [
@@ -153,6 +161,51 @@ export function setListingBadge(card: HTMLElement, status: number, rating?: numb
   return badge;
 }
 
+/**
+ * The single writer of a card's verdict, in BOTH directions: a row whose record
+ * is gone (or whose status dropped below the dim threshold) must lose the dim
+ * attribute, which an add-only applier cannot express.
+ *
+ * Returns whether the card ended up dimmed, for the pass counters.
+ */
+export function applyListingVerdict(card: HTMLElement, record: ListingRecordLike | null): boolean {
+  const status = record?.status ?? 0;
+  const rating = record?.rating ?? 0;
+  const dim = shouldDimStatus(status);
+  if (dim) card.setAttribute(LISTING_VIEWED_ATTR, 'true');
+  else card.removeAttribute(LISTING_VIEWED_ATTR);
+  setListingBadge(card, status, rating);
+  return dim;
+}
+
+/**
+ * Drop the processed mark on the rows this record event can change, so the next
+ * pass re-reads them instead of waiting for the host DOM to move. A keyless or
+ * `'*'` broadcast is a bulk write (import / restore) and dirties every row; an
+ * unrelated key dirties none, so one foreign write never re-scans the whole feed.
+ *
+ * Returns how many rows were dirtied — callers skip the re-scan at zero.
+ */
+export function invalidateProcessedRows(root: ParentNode, eventKey?: string): number {
+  const bareId = eventKey && eventKey !== '*' ? eventKey.split('::').pop() : undefined;
+  const dirty = (card: HTMLElement): void => card.removeAttribute(LISTING_PROCESSED_ATTR);
+  let dirtied = 0;
+  for (const card of Array.from(
+    root.querySelectorAll<HTMLElement>(`[${LISTING_PROCESSED_ATTR}]`),
+  )) {
+    if (!eventKey || eventKey === '*') {
+      dirty(card);
+      dirtied++;
+      continue;
+    }
+    if (bareId && extractVideoIdFromCard(card) === bareId) {
+      dirty(card);
+      dirtied++;
+    }
+  }
+  return dirtied;
+}
+
 export interface YtListingPassResult {
   scanned: number;
   withId: number;
@@ -166,14 +219,22 @@ export interface YtListingPassResult {
  * resolve statuses with a SINGLE dbGetBulk call, then dim + re-badge.
  * A failed bulk read logs a console.warn diagnostic and leaves the
  * default badges in place (never a silent all-blackout).
+ *
+ * X9-B: both write phases (default badges, dim + re-badge) go through
+ * runChunked so a first paint of ~100 cards never mutates the host feed
+ * in a single frame. The observer throttle gates triggers, not this pass.
  */
 export async function runYoutubeListingPass(opts: {
   root: ParentNode;
   storeName: string;
   dbGetBulk: ListingBulkReader;
+  /** Cards mutated per animation frame (node-creating writes → small chunk). */
+  chunkSize?: number;
+  /** Injectable frame scheduler for tests; defaults to requestAnimationFrame. */
+  schedule?: ChunkOptions['schedule'];
 }): Promise<YtListingPassResult> {
-  const { root, storeName, dbGetBulk } = opts;
-  const cards = root.querySelectorAll<HTMLElement>(unprocessedCardSelector());
+  const { root, storeName, dbGetBulk, chunkSize = LISTING_CHUNK_SIZE, schedule } = opts;
+  const cards = Array.from(root.querySelectorAll<HTMLElement>(unprocessedCardSelector()));
   const result: YtListingPassResult = {
     scanned: cards.length,
     withId: 0,
@@ -184,13 +245,17 @@ export async function runYoutubeListingPass(opts: {
   if (cards.length === 0) return result;
 
   const batch: Array<{ el: HTMLElement; vid: string }> = [];
-  cards.forEach((card) => {
-    card.setAttribute(LISTING_PROCESSED_ATTR, 'true');
-    const vid = extractVideoIdFromCard(card);
-    if (!vid) return;
-    batch.push({ el: card, vid });
-    setListingBadge(card, 0); // show default "未看" badge immediately
-  });
+  await runChunked(
+    cards,
+    (card) => {
+      card.setAttribute(LISTING_PROCESSED_ATTR, 'true');
+      const vid = extractVideoIdFromCard(card);
+      if (!vid) return;
+      batch.push({ el: card, vid });
+      setListingBadge(card, 0); // show default "未看" badge immediately
+    },
+    { chunkSize, schedule },
+  ).promise;
   result.withId = batch.length;
   if (batch.length === 0) return result;
 
@@ -204,18 +269,23 @@ export async function runYoutubeListingPass(opts: {
       if (!entry?.key) continue;
       byKey.set(entry.key, entry.record || {});
     }
+    // Every row in the batch gets a verdict — a row with NO record is an answer
+    // ("not watched"), not an absence of one. Skipping it is what made the
+    // delete direction unrepresentable: the stale badge and dim survived every
+    // re-scan of a row whose record had been removed.
+    const updates: Array<{ el: HTMLElement; record: ListingRecordLike | null }> = [];
     for (const { el, vid } of batch) {
-      const record = byKey.get(storeKey(vid));
-      if (!record) continue;
-      const status = record.status || 0;
-      const rating = record.rating || 0;
-      if (shouldDimStatus(status)) {
-        el.setAttribute(LISTING_VIEWED_ATTR, 'true');
-        result.dimmed += 1;
-      }
-      setListingBadge(el, status, rating);
-      result.badgeHits += 1;
+      const record = byKey.get(storeKey(vid)) ?? null;
+      updates.push({ el, record });
+      if (record) result.badgeHits += 1;
     }
+    await runChunked(
+      updates,
+      ({ el, record }) => {
+        if (applyListingVerdict(el, record)) result.dimmed += 1;
+      },
+      { chunkSize, schedule },
+    ).promise;
   } catch (err) {
     // Background unreachable / semantic failure — one warn per batch keeps
     // the outage diagnosable instead of silently killing every badge.

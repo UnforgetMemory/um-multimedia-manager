@@ -1,0 +1,27 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/game-explore-data.spec.ts
+  (script-parse strategy). NOT a real saved page: reproduces the www.douban.com/
+  game/explore embedded `GlobalData['key'] = value;` inline-script shape consumed
+  by src/scenario/douban/pages/game-explore/game-explore-data.ts. All data fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>发现游戏 · 豆瓣</title>
+    <script type="text/javascript">
+      var GlobalData = {};
+      GlobalData['searcher'] = {"keyword": "王国之泪"};
+      GlobalData['sorter'] = {"value": "time"};
+      GlobalData['filters'] = [{"name": "genres", "text": "风格", "options": [{"text": "全部", "value": "", "unique": true}, {"text": "动作冒险", "value": "1"}, {"text": "角色扮演", "value": "7"}]}, {"name": "platforms", "text": "主机平台", "options": [{"text": "全部", "value": "", "unique": true}, {"text": "Switch", "value": "94"}, {"text": "PS5", "value": "96"}]}];
+      GlobalData['pagination'] = {"nextPage": 2, "hasMore": true};
+      GlobalData['results'] = [{"id": "35752877", "title": "塞尔达传说：王国之泪", "url": "https://www.douban.com/game/35752877/", "rating": "9.6", "star": "50", "cover": "https://img9.doubanio.com/view/game_photo/l_cover/public/p35752877.jpg", "genres": "游戏 / 动作冒险", "platforms": "Switch / PC", "n_ratings": 15670, "review": {"content": "教科书级的开放世界设计", "author": "机核"}}, {"id": 27011570, "title": "荒野大镖客：救赎2", "url": "https://www.douban.com/game/27011570/", "rating": "9.4", "star": "45", "cover": "https://img2.doubanio.com/view/game_photo/l_cover/public/p27011570.jpg", "genres": "游戏 / 动作冒险 / 沙盒", "platforms": "PS4 / XBOX / PC", "n_ratings": "8901", "review": null}];
+      GlobalData['uploader'] = initUploader();
+      GlobalData['token'] = undefined;
+    </script>
+  </head>
+  <body>
+    <div class="game-filters"></div>
+    <ul class="game-list"></ul>
+  </body>
+</html>

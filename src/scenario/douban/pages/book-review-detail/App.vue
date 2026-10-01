@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import type { BookReviewDetailData } from './types';
 
 defineProps<{
@@ -32,7 +33,9 @@ function starHtml(rating: number): string {
           <div class="umm-rd-subject-meta">
             <span v-if="data.author" class="umm-rd-subj-item">{{ data.author }}</span>
             <span v-if="data.publisher" class="umm-rd-subj-item">{{ data.publisher }}</span>
-            <span v-if="data.pages" class="umm-rd-subj-item">{{ data.pages }}页</span>
+            <span v-if="data.pages" class="umm-rd-subj-item">{{
+              t('douban.rev.pages', { count: data.pages })
+            }}</span>
           </div>
         </div>
       </div>
@@ -68,11 +71,13 @@ function starHtml(rating: number): string {
 
       <!-- Stats bar -->
       <div class="umm-rd-stats">
-        <span v-if="data.readCount > 0" class="umm-rd-stat">{{ data.readCount }} 阅读</span>
+        <span v-if="data.readCount > 0" class="umm-rd-stat">{{
+          t('douban.rev.read', { count: data.readCount })
+        }}</span>
         <span v-if="data.source" class="umm-rd-stat">{{ data.source }}</span>
         <span class="umm-rd-stat-sep" />
-        <span class="umm-rd-stat">{{ data.usefulCount }} 有用</span>
-        <span class="umm-rd-stat">{{ data.uselessCount }} 没用</span>
+        <span class="umm-rd-stat">{{ t('douban.useful', { count: data.usefulCount }) }}</span>
+        <span class="umm-rd-stat">{{ t('douban.rev.useless', { count: data.uselessCount }) }}</span>
       </div>
     </div>
   </UmmPageLayout>

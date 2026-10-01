@@ -34,19 +34,20 @@ export const MEDIA_FORMATS = new Set([
   'Digital',
 ]);
 
-/** Normalised display labels for media formats (shortens verbose Douban strings). */
-export const FORMAT_LABELS: Record<string, string> = {
-  '数字(Digital)': '数字',
-  Digital: '数字',
+/** i18n keys: collapse verbose host format strings into short display names (X108: data layer emits keys, render layer resolves via t()). */
+export const FORMAT_LABEL_KEYS: Record<string, string> = {
+  '数字(Digital)': 'douban.format.digital',
+  Digital: 'douban.format.digital',
 };
 
-/** Maps each media format to a CSS chip colour class for visual distinction. */
+/** Maps each HOST media format to a CSS chip colour class for visual distinction. */
 export const FORMAT_COLORS: Record<string, string> = {
   CD: 'umm-chip-cd',
   DVD: 'umm-chip-dvd',
   'CD/DVD': 'umm-chip-cd-dvd',
   磁带: 'umm-chip-cassette',
-  数字: 'umm-chip-digital',
+  '数字(Digital)': 'umm-chip-digital',
+  Digital: 'umm-chip-digital',
   黑胶: 'umm-chip-vinyl',
   LP: 'umm-chip-lp',
   SACD: 'umm-chip-sacd',

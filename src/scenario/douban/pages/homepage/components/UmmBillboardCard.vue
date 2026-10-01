@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeHref } from '@/libraries/utils/safe-url';
 import { computed } from 'vue';
 import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/umm-status-badge-wrapper';
 
@@ -25,7 +26,7 @@ const rankClass = computed(() => {
 
 <template vapor>
   <a
-    :href="href"
+    :href="safeHref(href)"
     target="_blank"
     rel="noopener noreferrer"
     class="umm-billboard-card"

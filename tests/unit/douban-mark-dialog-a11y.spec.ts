@@ -1,8 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { JSDOM } from 'jsdom';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { initI18nSync, t } from '@/entrypoints/content/i18n';
+import locales from '@/entrypoints/content/i18n/locales';
 
 /**
  * Douban 标记对话框 a11y（P-D 交互反馈波次）单元测试。
@@ -28,11 +33,6 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
   pretendToBeVisual: true,
 });
 
-// Node 24 起 `navigator` 等是只有 getter 的惰性全局，直接赋值会抛
-// "Cannot set property navigator ... which has only a getter"，需 defineProperty。
-function defineGlobal(key: string, value: unknown): void {
-  Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
-}
 defineGlobal('window', dom.window);
 defineGlobal('document', dom.window.document);
 defineGlobal('navigator', dom.window.navigator);
@@ -40,6 +40,9 @@ defineGlobal('Node', dom.window.Node);
 defineGlobal('Element', dom.window.Element);
 defineGlobal('HTMLElement', dom.window.HTMLElement);
 defineGlobal('SVGElement', dom.window.SVGElement);
+// i18n 的 initI18nSync() 读裸 `localStorage`（node 侧不存在）；挂在 dom.window 上
+// 的那份才是它能看到的那份，故显式提升为全局。
+defineGlobal('localStorage', dom.window.localStorage);
 
 type VueModule = typeof import('vue');
 type UmmInterestBarModule = typeof import('@/scenario/douban/components/umm-interest-bar');
@@ -131,7 +134,9 @@ test.describe('UmmInterestBar 标记对话框 — a11y 语义', () => {
 
     const closeBtn = q(panel, '.umm-dialog-close');
     expect(closeBtn.tagName).toBe('BUTTON');
-    expect(closeBtn.getAttribute('aria-label')).toBe('关闭');
+    // 期望值与产品同源：本 worker 的 locale 由「谁第一个 initI18n()」决定（i18n
+    // 模块级 currentLocale 跨文件共享），钉死中文会在文件分派变化时假红。
+    expect(closeBtn.getAttribute('aria-label')).toBe(t('Close'));
     expect(closeBtn.getAttribute('type')).toBe('button');
 
     expect(q(doc, '.umm-dialog-overlay').getAttribute('aria-hidden')).toBe('true');
@@ -252,11 +257,80 @@ test.describe('photos 页下载控件 — span@click → 原生 button', () => {
     expect(dlBlock).not.toBeNull();
     expect(dlBlock![0]).toContain('type="button"');
     expect(dlBlock![0]).toContain('@click.stop="downloadPhoto(photo)"');
-    expect(dlBlock![0]).toContain('title="下载"');
+    // X108：title 文案入词典（渲染时解析）——钉「绑定在、键正确」，不钉渲染产物。
+    expect(dlBlock![0]).toContain(':title="t(\'douban.photos.download\')"');
     expect(dlBlock![0]).toContain('<svg');
   });
 
   test('不再存在 span 形态的下载控件', () => {
     expect(PHOTOS_SRC).not.toMatch(/<span[^>]*class="umm-dl-btn"/);
   });
+});
+
+/**
+ * X105 — 条上/对话框文案在**渲染时**经 content i18n 解析。
+ *
+ * 状态文案表（`scenario/douban/shared/status-labels.ts`）曾是模块加载期就定死的中文字面量
+ * 表，语言设置永远到不了它（audit §18 的「测试绿 ≠ 生产接上」）。现在它是 getter → t()，
+ * 于是这一组断言同时证伪两种退化：
+ *  - 又退回字面量表、或退回「模块加载期取一次快照」：两条用例共用同一个已加载的模块实例
+ *    （loadVueAndBar 缓存，不重新 import），第二条换了语言仍必须拿到新文案；
+ *  - 键接错（wish 徽章去取 done_* 键）：期望值按 key 直接从对应 locale 词典取——既不复制
+ *    字面量，也不用 t() 自己当期望（那样恒真）。
+ */
+const LOCALE_KEY = 'umm:locale';
+const HAN = /[一-鿿]/;
+
+test.describe('UmmInterestBar 标记对话框 — 文案随语言在渲染时解析', () => {
+  test.afterEach(() => {
+    // currentLocale 是模块级单例：不还原就把语言泄漏给串行分片里后面的每个文件。
+    // 先落回模块默认（zh-CN）再清 key，storage 与状态都不留残迹。
+    dom.window.localStorage.setItem(LOCALE_KEY, 'zh-CN');
+    initI18nSync();
+    dom.window.localStorage.removeItem(LOCALE_KEY);
+  });
+
+  for (const locale of ['zh-CN', 'en-US'] as const) {
+    test(`${locale}：标题/按钮/选项/星级标签落该语言，且键↔位置配对正确`, async () => {
+      dom.window.localStorage.setItem(LOCALE_KEY, locale);
+      initI18nSync();
+      const expected = locales[locale];
+
+      const { vue: v } = await loadVueAndBar();
+      const { unmount } = await mountBar();
+      q(doc, '.umm-mark-btn').click();
+      await v.nextTick();
+
+      const text = (selector: string): string | undefined => q(doc, selector).textContent?.trim();
+      expect(text('.umm-dialog-title'), '对话框标题键').toBe(expected['douban.btn.mark']);
+      expect(text('.umm-dialog-save')).toBe(expected['douban.dialog.save']);
+      expect(text('.umm-dialog-cancel')).toBe(expected['douban.dialog.cancel']);
+      expect(text('.umm-tag-add-btn')).toBe(expected['douban.dialog.add']);
+
+      // 三个选项按 DOM 顺序即 wish/do/collect，各自落自己的状态键。
+      const picks = Array.from(doc.querySelectorAll<HTMLElement>('.umm-dialog-pick'));
+      expect(picks.map((p) => p.getAttribute('data-umm-pick'))).toEqual(['wish', 'do', 'collect']);
+      expect(picks.map((p) => p.textContent?.trim())).toEqual([
+        expected['douban.status.wish_movie'],
+        expected['douban.status.doing_movie'],
+        expected['douban.status.done_movie'],
+      ]);
+
+      // 星级行只在 collect/do 下存在；未选星落 none 键，点第 4 星落 rating.4 键。
+      picks[2]!.click();
+      await v.nextTick();
+      expect(text('.umm-star-label'), '未选星时的标签').toBe(expected['douban.rating.none']);
+      const stars = Array.from(doc.querySelectorAll<HTMLElement>('.umm-dialog-stars .umm-star'));
+      expect(stars).toHaveLength(5);
+      stars[3]!.click();
+      await v.nextTick();
+      expect(text('.umm-star-label')).toBe(expected['douban.rating.4']);
+
+      // 语言确实换了，而不是两份词典恰好同值：汉字存在性与语言同向。
+      expect(HAN.test(text('.umm-dialog-title') ?? '')).toBe(locale !== 'en-US');
+      expect(HAN.test(text('.umm-star-label') ?? '')).toBe(locale !== 'en-US');
+
+      unmount();
+    });
+  }
 });

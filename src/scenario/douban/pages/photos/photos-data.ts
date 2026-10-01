@@ -115,11 +115,11 @@ function extractPhotos(): PhotoItem[] {
     // Caption + optional comment count
     const commentA = nameEl?.querySelector('a');
     const commentCount = commentA?.textContent?.trim() || '';
-    // Remove the comment link before reading caption text
-    if (commentA) {
-      commentA.remove();
-    }
-    const caption = nameEl?.textContent?.trim() || '';
+    // Read caption from a detached clone — removing the comment link from the
+    // live node would rewrite the host gallery page (overlay is read-only here).
+    const nameClone = nameEl?.cloneNode(true) as HTMLElement | undefined;
+    nameClone?.querySelector('a')?.remove();
+    const caption = nameClone?.textContent?.trim() || '';
 
     if (id && src) {
       items.push({ id, src, link, caption, commentCount });

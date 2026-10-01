@@ -1,9 +1,9 @@
 /**
  * Detail page data extraction and record loading.
  *
- * Thin orchestrator: re-exports from submodules and provides the combined
- * {@link extractDetailData} function that performs both DOM extraction and
- * IndexedDB enrichment.
+ * Thin orchestrator: re-exports from submodules and provides {@link
+ * extractDetailData}, which is pure DOM extraction — record reads belong to
+ * `record-loader.ts` and the page config.
  */
 
 // Re-export all types
@@ -46,7 +46,7 @@ export {
 } from './extra-extract';
 
 // Re-export record loader
-export { loadRecord, enrichRecItems } from './record-loader';
+export { loadRecord } from './record-loader';
 
 import {
   extractCoreMetadata,
@@ -69,15 +69,14 @@ import {
   extractBlockquotes,
   extractEditions,
 } from './extra-extract';
-import { enrichRecItems } from './record-loader';
 import type { DetailData } from './types';
 
 /**
  * Parse the current Douban detail page DOM into DetailData.
  *
- * Reads identity (type/providerId) from URL, scrapes all sections, and
- * enriches recommendation items with personal status from IndexedDB.
- * All HTML from the page is DOMPurify-sanitised before returning.
+ * Reads identity (type/providerId) from URL and scrapes all sections; pure DOM
+ * — no record read happens here, so a page repaint cannot be blocked on
+ * IndexedDB. All HTML from the page is DOMPurify-sanitised before returning.
  * Returns null if no identity can be derived from the URL.
  */
 export async function extractDetailData(): Promise<DetailData | null> {
@@ -90,12 +89,12 @@ export async function extractDetailData(): Promise<DetailData | null> {
   const ratingBars = extractRatingBars(isBook);
   const betterThan = extractBetterThan();
   const metaRows = extractMetaRows();
-  const { synopsisHeading, synopsisHtml } = extractSynopsis(isMusic, isBook);
-  const { celebHeading, celebItems, celebCount } = extractCelebrities(isMusic, isBook);
+  const { synopsisHeadingKey, synopsisHtml } = extractSynopsis(isMusic, isBook);
+  const { celebHeadingKey, celebItems, celebCount } = extractCelebrities(isMusic, isBook);
   const awardItems = extractAwards();
   const { rankNo, rankText, rankHref } = extractRank();
   const { photoItems, photoCount, trailerCount } = extractPhotos();
-  const recItems = await enrichRecItems(extractRecItemsDom(), identity.type);
+  const recItems = extractRecItemsDom();
   const shortComments = extractShortComments();
   const authorBioHtml = extractAuthorBio();
   const tocItems = extractTOC();
@@ -117,9 +116,9 @@ export async function extractDetailData(): Promise<DetailData | null> {
     ratingBars,
     betterThan,
     metaRows,
-    synopsisHeading,
+    synopsisHeadingKey,
     synopsisHtml,
-    celebHeading,
+    celebHeadingKey,
     celebItems,
     celebCount,
     awardItems,

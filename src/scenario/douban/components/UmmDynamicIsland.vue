@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onUnmounted, useTemplateRef } from 'vue';
+import { openExternalUrl, safeHref } from '@/libraries/utils/safe-url';
+import { t } from '../shared/legacy-bridge';
 import {
   collapseInputSpaces,
   normalizeSearchQuery,
@@ -51,18 +53,27 @@ let pendingCursor = -1;
 let composing: boolean = false;
 
 const catMap: Record<string, string> = { movie: '1002', music: '1003', book: '1001', game: '3114' };
-const labelMap: Record<string, string> = {
-  movie: '电影',
-  music: '音乐',
-  book: '图书',
-  game: '游戏',
-};
+// Channel labels go through content i18n (the douban overlay's t(), reused via
+// legacy-bridge): these strings used to be bare Chinese in the component, so
+// non-Chinese users got a fully Chinese navigation island (aria-label included).
+const LABEL_KEYS = {
+  movie: 'douban.island.nav_movie',
+  music: 'douban.island.nav_music',
+  book: 'douban.island.nav_book',
+  game: 'douban.island.nav_game',
+} as const;
+const PH_KEYS = {
+  movie: 'douban.island.ph_movie',
+  music: 'douban.island.ph_music',
+  book: 'douban.island.ph_book',
+  game: 'douban.island.ph_game',
+} as const;
 
 function open(url: string): void {
   if (props.newTab) {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    openExternalUrl(url, '_blank', 'noopener,noreferrer');
   } else {
-    location.href = url;
+    location.href = safeHref(url);
   }
 }
 
@@ -181,12 +192,12 @@ onUnmounted(() => {
 
 <template vapor>
   <form class="umm-island" @submit.prevent="handleSearch">
-    <nav class="umm-island-nav" aria-label="豆瓣导航">
+    <nav class="umm-island-nav" :aria-label="t('douban.island.nav_aria')">
       <button
         type="button"
         class="umm-island-nav-link"
         :class="{ 'umm-island-nav-link--active': type === 'movie' }"
-        aria-label="电影"
+        :aria-label="t(LABEL_KEYS.movie)"
         @click="open('https://movie.douban.com/')"
       >
         <svg
@@ -202,13 +213,13 @@ onUnmounted(() => {
             d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
           ></path>
         </svg>
-        <span class="umm-island-nav-label">电影</span>
+        <span class="umm-island-nav-label">{{ t(LABEL_KEYS.movie) }}</span>
       </button>
       <button
         type="button"
         class="umm-island-nav-link"
         :class="{ 'umm-island-nav-link--active': type === 'music' }"
-        aria-label="音乐"
+        :aria-label="t(LABEL_KEYS.music)"
         @click="open('https://music.douban.com/')"
       >
         <svg
@@ -224,13 +235,13 @@ onUnmounted(() => {
             d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"
           ></path>
         </svg>
-        <span class="umm-island-nav-label">音乐</span>
+        <span class="umm-island-nav-label">{{ t(LABEL_KEYS.music) }}</span>
       </button>
       <button
         type="button"
         class="umm-island-nav-link"
         :class="{ 'umm-island-nav-link--active': type === 'book' }"
-        aria-label="图书"
+        :aria-label="t(LABEL_KEYS.book)"
         @click="open('https://book.douban.com/')"
       >
         <svg
@@ -246,13 +257,13 @@ onUnmounted(() => {
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
           <path d="M8 7h8M8 11h6"></path>
         </svg>
-        <span class="umm-island-nav-label">图书</span>
+        <span class="umm-island-nav-label">{{ t(LABEL_KEYS.book) }}</span>
       </button>
       <button
         type="button"
         class="umm-island-nav-link"
         :class="{ 'umm-island-nav-link--active': type === 'game' }"
-        aria-label="游戏"
+        :aria-label="t(LABEL_KEYS.game)"
         @click="open('https://www.douban.com/game/explore')"
       >
         <svg
@@ -267,13 +278,13 @@ onUnmounted(() => {
           <path d="M6 12h4m-2-2v4m4-2a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path>
           <rect x="2" y="6" width="20" height="12" rx="2"></rect>
         </svg>
-        <span class="umm-island-nav-label">游戏</span>
+        <span class="umm-island-nav-label">{{ t(LABEL_KEYS.game) }}</span>
       </button>
       <div class="umm-island-divider"></div>
       <button
         type="button"
         class="umm-island-nav-link"
-        aria-label="我的"
+        :aria-label="t('douban.island.nav_mine')"
         @click="open('https://www.douban.com/mine')"
       >
         <svg
@@ -287,7 +298,7 @@ onUnmounted(() => {
         >
           <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
         </svg>
-        <span class="umm-island-nav-label">我的</span>
+        <span class="umm-island-nav-label">{{ t('douban.island.nav_mine') }}</span>
       </button>
     </nav>
     <div class="umm-island-divider"></div>
@@ -298,17 +309,9 @@ onUnmounted(() => {
         name="search_text"
         type="search"
         class="umm-island-input"
-        :placeholder="
-          type === 'game'
-            ? '搜索游戏'
-            : type === 'music'
-              ? '搜索音乐、歌手、专辑'
-              : type === 'book'
-                ? '搜索图书、作者、出版社'
-                : '搜索电影、电视剧、影人'
-        "
+        :placeholder="t(PH_KEYS[type])"
         autocomplete="off"
-        :aria-label="'搜索豆瓣' + labelMap[type]"
+        :aria-label="t('douban.island.search_aria', { label: t(LABEL_KEYS[type]) })"
         @compositionstart="onCompositionStart()"
         @compositionend="onCompositionEnd()"
         @input="
@@ -320,7 +323,7 @@ onUnmounted(() => {
         type="submit"
         class="umm-island-submit"
         :class="{ 'umm-island-submit--loading': isSearching }"
-        aria-label="搜索"
+        :aria-label="t('douban.island.submit_aria')"
         :disabled="isSearching"
       >
         <svg

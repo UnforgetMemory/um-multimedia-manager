@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  Synthesized Douban「全部图片」汇总页 (movie.douban.com/subject/1292052/all_photos).
+
+  No crawl of this page type is tracked in the repo, and `photos-data.ts` reads it
+  through a dedicated branch (`pathname.endsWith('/all_photos')` → summary grid
+  `div.mod ul.pic-col5 li`, fixed single-page info, type R, no filter tabs, and —
+  uniquely to this branch — sidebar links). The markup below therefore mirrors that
+  contract exactly as it is pinned in tests/unit/photos-data.spec.ts (same
+  selectors, same `/photo/<id>/` link shape, same `.aside .links` + `.mb30`
+  targets), so the e2e exercises the real branch instead of a invented structure.
+  `li.more-pics` is the "更多图片" tail the extractor must skip.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>肖申克的救赎的全部图片 - 豆瓣</title>
+  </head>
+  <body>
+    <div id="content">
+      <h1>肖申克的救赎的图片(全部)</h1>
+      <div class="mod">
+        <ul class="pic-col5 clearfix">
+          <li>
+            <a href="https://movie.douban.com/photo/2924970668/"
+              ><img data-src="https://img1.doubanio.com/view/photo/normal/public/p2924970668.jpg" alt="海报"
+            /></a>
+          </li>
+          <li>
+            <a href="https://movie.douban.com/photo/1896369053/"
+              ><img data-src="https://img2.doubanio.com/view/photo/normal/s1896369053.jpg" alt="剧照"
+            /></a>
+          </li>
+          <li class="more-pics"><a href="https://movie.douban.com/subject/1292052/photos">更多图片…</a></li>
+        </ul>
+      </div>
+      <div class="aside">
+        <div class="links">
+          <ul>
+            <li><a href="https://movie.douban.com/subject/1292052/">&gt; 返回电影页面</a></li>
+            <li><a href="https://movie.douban.com/subject/1292052/trailer">&gt; 预告片 (13)</a></li>
+            <li><a href="https://movie.douban.com/movies">   </a></li>
+          </ul>
+        </div>
+        <div class="mb30"><a href="https://movie.douban.com/subject/1292052/celebrities">演职员表</a></div>
+      </div>
+    </div>
+  </body>
+</html>

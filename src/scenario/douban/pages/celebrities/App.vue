@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { openExternalUrl } from '@/libraries/utils/safe-url';
 import { computed } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import type { CelebritiesPageData } from './celebrities-data';
 
 const props = defineProps<{ data: CelebritiesPageData }>();
@@ -11,11 +13,11 @@ const totalCelebrities = computed(() => d.groups.reduce((sum, g) => sum + g.cele
 function openSubject(url: string, e: MouseEvent): void {
   e.preventDefault();
   e.stopPropagation();
-  window.open(url, '_blank');
+  openExternalUrl(url);
 }
 
 function openPersonage(url: string): void {
-  window.open(url, '_blank');
+  openExternalUrl(url);
 }
 </script>
 
@@ -25,11 +27,15 @@ function openPersonage(url: string): void {
       <!-- Header -->
       <div class="umm-celebrities-header">
         <h1 class="umm-celebrities-title">{{ d.title }}</h1>
-        <span class="umm-photos-count">共 {{ totalCelebrities }} 人</span>
+        <span class="umm-photos-count">{{
+          t('douban.celeb.count', { count: totalCelebrities })
+        }}</span>
       </div>
 
       <!-- Empty state -->
-      <div v-if="d.groups.length === 0" class="umm-celebrity-empty">暂无演职员信息</div>
+      <div v-if="d.groups.length === 0" class="umm-celebrity-empty">
+        {{ t('douban.celeb.empty') }}
+      </div>
 
       <!-- Celebrity groups -->
       <div v-for="group in d.groups" :key="group.heading" class="umm-celebrity-group">
@@ -41,7 +47,7 @@ function openPersonage(url: string): void {
             :key="celebrity.personageId"
             :href="celebrity.personageUrl"
             class="umm-celebrity-card"
-            :title="'查看' + celebrity.name + '影人主页'"
+            :title="t('douban.celeb.view', { name: celebrity.name })"
             @click.prevent="openPersonage(celebrity.personageUrl)"
           >
             <!-- Avatar -->

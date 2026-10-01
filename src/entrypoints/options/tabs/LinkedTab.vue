@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue';
+import { ref, watch } from 'vue';
 import { Store } from '@/engine/database';
-import type { Domain, Provider } from '@/libraries/config';
+import type { Domain } from '@/libraries/config';
+import type { StoreRecord } from '@/types';
 import { Badge } from '@/libraries/ui/badge';
 import { Separator } from '@/libraries/ui/separator';
-import { RefreshCw, Star } from 'lucide-vue-next';
-import { JAV_IDS_STORE_NAME, normalizeAvId } from '@/provider/adult-av/models';
+import { RefreshCw, Star } from '@/libraries/ui/icons';
+import { JAV_IDS_STORE_NAME } from '@/provider/adult-av/models';
 import { autoDetectPlatform } from '@/provider/adult-av/auto-detect';
 import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';
+import { useToast } from '@/feature/composables/use-toast';
+import { useDebouncedQuery } from '@/feature/composables/use-debounced-query';
+import { errorMessage } from '@/libraries/utils/error-message';
 
 import { PlatformSearchForm } from '@/libraries/ui/platform-search-form';
 import { PLATFORM_OPTIONS, JAV_SOURCE_OPTIONS } from '../constants';
+import { parseRecordInput, type RecordProvider } from '../record-input-parser';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const toast = useToast();
 
 const linkedInput = ref('');
 const linkedSelectedPlatform = ref<string>('douban');
@@ -46,200 +52,15 @@ interface LinkedQueryResult {
 const linkedQueryResult = ref<LinkedQueryResult | null>(null);
 const hasQueryed = ref(false);
 
-function parseLinkedInput() {
-  const input = linkedInput.value.trim();
-  if (!input) return null;
-  const provider = linkedSelectedPlatform.value as Provider | 'jav_ids';
-  const type = linkedSelectedDomain.value;
-
-  // URL-based parsing
-  const doubanMatch = input.match(/(?:movie|book|music)\.douban\.com\/subject\/(\d+)/);
-  if (doubanMatch) {
-    const isBook = input.includes('book');
-    const isMusic = input.includes('music');
-    const id = doubanMatch[1];
-    const subdomain = isBook ? 'book' : isMusic ? 'music' : 'movie';
-    return {
-      type: isBook ? 'book' : isMusic ? 'music' : 'movie',
-      provider: 'douban' as Provider,
-      providerId: id,
-      url: `https://${subdomain}.douban.com/subject/${id}/`,
-      valid: true,
-    };
-  }
-  const imdbMatch = input.match(/imdb\.com\/title\/(tt\d+)/i);
-  if (imdbMatch) {
-    const id = (imdbMatch[1] ?? '').toLowerCase();
-    return {
-      type: 'movie',
-      provider: 'imdb' as Provider,
-      providerId: id,
-      url: `https://www.imdb.com/title/${id}/`,
-      valid: true,
-    };
-  }
-  const neodbMatch = input.match(/neodb\.social\/(movie|tv|album)\/([\w-]+)/);
-  if (neodbMatch) {
-    const [, pathType, id] = neodbMatch;
-    return {
-      type: pathType === 'album' ? 'music' : pathType,
-      provider: 'neodb' as Provider,
-      providerId: id,
-      url: `https://neodb.social/${pathType}/${id}/`,
-      valid: true,
-    };
-  }
-  const tmdbMovieMatch = input.match(/themoviedb\.org\/movie\/(\d+)/);
-  if (tmdbMovieMatch) {
-    const id = tmdbMovieMatch[1];
-    return {
-      type: 'movie',
-      provider: 'tmdb' as Provider,
-      providerId: id,
-      url: `https://www.themoviedb.org/movie/${id}/`,
-      valid: true,
-    };
-  }
-  const tmdbTvMatch = input.match(/themoviedb\.org\/tv\/(\d+)/);
-  if (tmdbTvMatch) {
-    const id = tmdbTvMatch[1];
-    return {
-      type: 'tv',
-      provider: 'tmdb' as Provider,
-      providerId: id,
-      url: `https://www.themoviedb.org/tv/${id}/`,
-      valid: true,
-    };
-  }
-  const bilibiliMatch = input.match(/bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/i);
-  if (bilibiliMatch) {
-    const id = bilibiliMatch[1];
-    return {
-      type: 'video',
-      provider: 'bilibili' as Provider,
-      providerId: id,
-      url: `https://www.bilibili.com/video/${id}/`,
-      valid: true,
-    };
-  }
-  const youtubeMatch = input.match(/(?:youtube\.com|youtu\.be)\/watch\?v=([a-zA-Z0-9_-]{11})/i);
-  if (youtubeMatch) {
-    const id = youtubeMatch[1];
-    return {
-      type: 'video',
-      provider: 'youtube' as Provider,
-      providerId: id,
-      url: `https://www.youtube.com/watch?v=${id}/`,
-      valid: true,
-    };
-  }
-  const bangumiMatch = input.match(/(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)/i);
-  if (bangumiMatch) {
-    const id = bangumiMatch[1];
-    return {
-      type: 'tv',
-      provider: 'bangumi' as Provider,
-      providerId: id,
-      url: `https://bgm.tv/subject/${id}/`,
-      valid: true,
-    };
-  }
-
-  // Auto-detect jav_id format — only if platform is jav_ids
-  if (provider === 'jav_ids' && /^[A-Za-z0-9]+-[\w-]+(-[UCuc]{1,2})?$/i.test(input)) {
-    const key = `${linkedSelectedJavSource.value}::${normalizeAvId(input)}`;
-    return {
-      type: 'jav_ids',
-      provider: 'jav_ids' as Provider | 'jav_ids',
-      providerId: key,
-      url: '',
-      valid: true,
-    };
-  }
-
-  // ID-based parsing for jav_ids
-  if (provider === 'jav_ids') {
-    return {
-      type,
-      provider,
-      providerId: input,
-      url: '',
-      valid: false,
-      error: t('validation.javFormat'),
-    };
-  }
-
-  // Bangumi numeric subject ID — dispatch before the douban numeric branch below
-  if (provider === 'bangumi' && /^\d+$/.test(input))
-    return {
-      type: 'tv',
-      provider: 'bangumi' as Provider,
-      providerId: input,
-      url: `https://bgm.tv/subject/${input}/`,
-      valid: true,
-    };
-
-  if (/^tt\d+$/i.test(input))
-    return {
-      type: 'movie',
-      provider: 'imdb' as Provider,
-      providerId: input.toLowerCase(),
-      url: `https://www.imdb.com/title/${input.toLowerCase()}/`,
-      valid: true,
-    };
-  if (/^BV[a-zA-Z0-9]+$/.test(input))
-    return {
-      type: 'video',
-      provider: 'bilibili' as Provider,
-      providerId: input,
-      url: `https://www.bilibili.com/video/${input}/`,
-      valid: true,
-    };
-  if (/^[a-zA-Z0-9_-]{11}$/.test(input))
-    return {
-      type: 'video',
-      provider: 'youtube' as Provider,
-      providerId: input,
-      url: `https://www.youtube.com/watch?v=${input}/`,
-      valid: true,
-    };
-  if (/^\d+$/.test(input)) {
-    const subdomain =
-      linkedSelectedDomain.value === 'music'
-        ? 'music'
-        : linkedSelectedDomain.value === 'book'
-          ? 'book'
-          : linkedSelectedDomain.value === 'game'
-            ? 'www'
-            : 'movie';
-    const path = linkedSelectedDomain.value === 'game' ? `game` : 'subject';
-    return {
-      type: linkedSelectedDomain.value,
-      provider: 'douban' as Provider,
-      providerId: input,
-      url: `https://${subdomain}.douban.com/${path}/${input}/`,
-      valid: true,
-    };
-  }
-  return {
-    type,
-    provider,
-    providerId: input,
-    url: '',
-    valid: false,
-    error: t('validation.cannotParse'),
-  };
-}
-
 async function queryLinkedData() {
-  const parsed = parseLinkedInput();
-  if (!parsed || !parsed.valid) {
-    linkedQueryResult.value = null;
-    hasQueryed.value = false;
-    return;
-  }
-  // Narrow the union: every valid branch yields non-empty type/providerId at runtime
-  if (!parsed.type || !parsed.providerId) {
+  const parsed = parseRecordInput(
+    linkedInput.value,
+    linkedSelectedPlatform.value as RecordProvider,
+    linkedSelectedDomain.value,
+    linkedSelectedJavSource.value,
+  );
+  // A valid:false parse echoes the raw input as providerId — never key a read off it.
+  if (!parsed.valid || !parsed.type || !parsed.providerId) {
     linkedQueryResult.value = null;
     hasQueryed.value = false;
     return;
@@ -282,7 +103,10 @@ async function queryLinkedData() {
         rating: record.rating,
         updatedAt: record.updatedAt,
       };
-      const linked: LinkedQueryResult['linked'] = [];
+      // Bulk read replaces the previous N sequential dbGet round-trips:
+      // one dbGetBulk per distinct store; output order follows linkedIds
+      // insertion order regardless of batch completion order.
+      const targets: Array<{ provider: string; type: string; providerId: string }> = [];
       for (const [lp, lk] of Object.entries(record.linkedIds || {})) {
         if (!lk) continue;
         let lt: string, lpid: string;
@@ -295,35 +119,56 @@ async function queryLinkedData() {
           lt = parsed.type;
           lpid = lk;
         }
-        const lr = await Store.dbGet(`${lp}_records`, `${lt}::${lpid}`);
-        linked.push({
-          provider: lp,
-          type: lt,
-          providerId: lpid,
+        targets.push({ provider: lp, type: lt, providerId: lpid });
+      }
+      const keysByStore = new Map<string, string[]>();
+      for (const target of targets) {
+        const store = `${target.provider}_records`;
+        const keys = keysByStore.get(store) ?? [];
+        keys.push(`${target.type}::${target.providerId}`);
+        keysByStore.set(store, keys);
+      }
+      const stores = [...keysByStore.entries()];
+      const batches = await Promise.all(
+        stores.map(([store, keys]) => Store.dbGetBulk(store, keys)),
+      );
+      const found = new Map<string, StoreRecord>();
+      batches.forEach((entries, i) => {
+        const store = stores[i]![0];
+        for (const { key, record: entryRecord } of entries)
+          found.set(`${store}::${key}`, entryRecord);
+      });
+      const linked: LinkedQueryResult['linked'] = targets.map((target) => {
+        const lr = found.get(`${target.provider}_records::${target.type}::${target.providerId}`);
+        return {
+          provider: target.provider,
+          type: target.type,
+          providerId: target.providerId,
           url: lr?.url || '',
           status: lr?.status ?? -1,
           rating: lr?.rating || 0,
           updatedAt: lr?.updatedAt || '',
-          storeName: `${lp}_records`,
-        });
-      }
+          storeName: `${target.provider}_records`,
+        };
+      });
       linkedQueryResult.value = { source, linked };
     }
-  } catch {
-    linkedQueryResult.value = null;
   } finally {
     hasQueryed.value = true;
     isLinkedQuerying.value = false;
   }
 }
 
-let timer: ReturnType<typeof setTimeout> | null = null;
-
-function debouncedQuery() {
-  if (isLinkedQuerying.value) return;
-  if (timer) clearTimeout(timer);
-  timer = setTimeout(() => queryLinkedData(), 500);
-}
+const { run: debouncedQuery } = useDebouncedQuery(queryLinkedData, {
+  isRunning: () => isLinkedQuerying.value,
+  onError: (error: unknown) => {
+    // WHY: a failed read is not "no record in DB" — clear the empty state and
+    // report through the SPA toast (same channel as saveRating failures).
+    linkedQueryResult.value = null;
+    hasQueryed.value = false;
+    toast.error(t('common.loadFailed'), errorMessage(error));
+  },
+});
 
 watch(linkedInput, (v) => {
   const input = v.trim();
@@ -379,7 +224,7 @@ function getStatusText(s: number, type: string): string {
   const labels: Record<number, string> = {
     [-1]: t('common.noData'),
     0: isMusic ? t('common.unlistened') : t('common.unwatched'),
-    1: t('common.rating'),
+    1: t('common.wish'),
     2: isMusic ? t('common.listened') : t('common.watched'),
     3: t('common.doing'),
   };
@@ -395,10 +240,6 @@ function getStatusColor(s: number): string {
   };
   return map[s] ?? map[0] ?? '';
 }
-
-onUnmounted(() => {
-  if (timer) clearTimeout(timer);
-});
 </script>
 
 <template vapor>

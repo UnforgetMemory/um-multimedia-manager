@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+// Rendered copy comes from the content i18n dictionaries, whose locale is module-level
+// shared state per worker — expectations go through the same t() instead of pinning Chinese.
+import { t } from '@/entrypoints/content/i18n';
 import { JSDOM } from 'jsdom';
 import { runSehuatangSearchApp } from '@/scenario/sehuatang/app-search';
 import { runSehuatangIndexApp } from '@/scenario/sehuatang/app-home';
@@ -69,6 +72,32 @@ function mountPage(bodyHtml: string, url: string = BASE_URL): JSDOM {
   return dom;
 }
 
+// Workers are shared across spec files; nothing installGlobals puts on
+// globalThis may outlive this file. Each test re-installs via mountPage, so
+// restoring the import-time descriptors here is safe even across chunk ends.
+const INSTALLED_KEYS = [
+  'document',
+  'window',
+  'Element',
+  'MutationObserver',
+  'requestAnimationFrame',
+  'chrome',
+] as const;
+const ORIGINAL_DESCRIPTORS = new Map<string, PropertyDescriptor | undefined>(
+  INSTALLED_KEYS.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
+);
+test.afterAll(async () => {
+  // The rAF stub schedules via setTimeout(0), so a frame callback can still be
+  // in flight after the last test. Let it run while this file's globals are
+  // alive, then release — otherwise it fires against a deleted window.
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  for (const key of INSTALLED_KEYS) {
+    const original = ORIGINAL_DESCRIPTORS.get(key);
+    if (original) Object.defineProperty(globalThis, key, original);
+    else delete (globalThis as Record<string, unknown>)[key];
+  }
+});
+
 /** 取 overlay 内的内容根（shadow 边界：document 级查询不可达，须自 host 进入）。 */
 function shellOf(dom: JSDOM): HTMLElement {
   const shell = dom.window.document
@@ -126,7 +155,7 @@ test.describe('app-search 端到端渲染（灵动岛统一布局）', () => {
     expect(header.querySelector('a.umm-sht-home-btn')).not.toBeNull();
     const homeLink = header.querySelector('a.umm-sht-home-btn') as HTMLAnchorElement;
     expect(homeLink.getAttribute('href')).toBe('forum.php');
-    expect(homeLink.getAttribute('aria-label')).toBe('首页');
+    expect(homeLink.getAttribute('aria-label')).toBe(t('sht.home'));
 
     // 过滤注记激活（回归锚点：filteredCount 必须传入 buildHeader，否则注记永不渲染）
     // —— 计数 + 注记现在挂在左侧上下文载体 .umm-sht-context。
@@ -163,7 +192,7 @@ test.describe('app-search 端到端渲染（灵动岛统一布局）', () => {
       'hidden-up',
     );
     const switchBtn = pill.querySelector('.umm-sht-island-switch') as HTMLButtonElement;
-    expect(switchBtn.getAttribute('aria-label')).toBe('搜索 / 分页');
+    expect(switchBtn.getAttribute('aria-label')).toBe(t('sht.island_switch'));
     switchBtn.click();
     expect(pill.querySelector('.umm-sht-searchbox')!.getAttribute('data-umm-slot')).toBe('active');
     expect(pill.querySelector('.umm-sht-pager')!.getAttribute('data-umm-slot')).toBe('hidden-down');
@@ -191,7 +220,9 @@ test.describe('app-search 端到端渲染（灵动岛统一布局）', () => {
     await runSehuatangSearchApp();
 
     const shell = shellOf(dom);
-    expect(shell.querySelector('.umm-sht-empty-title')!.textContent).toBe('没有搜索结果');
+    expect(shell.querySelector('.umm-sht-empty-title')!.textContent).toBe(
+      t('sht.search_empty_title'),
+    );
     expect(shell.querySelector('.umm-sht-empty')!.className).toContain('umm-sht-empty');
 
     const pill = shell.querySelector('#umm-sht-floatbar') as HTMLElement;
@@ -211,7 +242,9 @@ test.describe('app-search 端到端渲染（灵动岛统一布局）', () => {
     await runSehuatangSearchApp();
 
     const shell = shellOf(dom);
-    expect(shell.querySelector('.umm-sht-empty-title')!.textContent).toBe('结果均来自无关分区');
+    expect(shell.querySelector('.umm-sht-empty-title')!.textContent).toBe(
+      t('sht.search_empty_filtered_title'),
+    );
 
     const pill = shell.querySelector('#umm-sht-floatbar') as HTMLElement;
     expect(pill.querySelector('.umm-sht-searchbox')).not.toBeNull();

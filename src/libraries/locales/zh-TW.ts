@@ -34,7 +34,7 @@ export default {
   'common.unlistened': '未聽',
   'common.importData': '導入資料',
   'common.exportData': '匯出資料',
-  'common.includeWebdavCredentials': '包含 / 還原 WebDAV 憑證',
+  'common.includeWebdavCredentials': '包含 / 還原憑據（WebDAV + NeoDB Token）',
   'common.includeWebdavCredentialsHint':
     '開啟後：匯出時寫入憑證；匯入時確認後還原憑證。預設關閉（防惡意備份注入）。',
   'common.importing': '導入中...',
@@ -58,6 +58,7 @@ export default {
   'common.savedToDb': '已儲存到資料庫',
   'common.ratingRequired': '請選擇有效的評分(1-10)',
   'common.saveRating': '儲存評分',
+  'common.refresh': '重新整理',
   'common.activity': '活躍度',
   'common.last90Days': '最近 90 天',
   'common.daysCount': '{n}天',
@@ -115,6 +116,8 @@ export default {
   'validation.doubanFormat': '豆瓣ID必須是純數字',
   'validation.neodbFormat': 'NeoDB ID格式無效',
   'validation.tmdbFormat': 'TMDB ID必須是純數字',
+  'validation.bilibiliFormat': 'B站ID必須是BV開頭',
+  'validation.youtubeFormat': 'YouTube影片ID必須是11位字元',
   'validation.bangumiFormat': 'Bangumi ID必須是純數字',
   'validation.javFormat': '成人影片ID格式無效 (例: FC2-PPV-1234567, ABP-123)',
   'validation.unknownPlatform': '未知平台',
@@ -193,6 +196,7 @@ export default {
   'weekday.saturday': '週六',
 
   // Toast messages
+  'toast.closeNotification': '關閉通知',
   'toast.saved': '已儲存',
   'toast.saveFailed': '儲存失敗',
   'toast.connectionSuccess': '連線成功',
@@ -214,9 +218,9 @@ export default {
   // Confirm dialog
   'confirm.importData': '導入資料',
   'confirm.importRecords': '即將導入 {count} 條記錄',
-  'confirm.exportWithCredentials': '匯出包含 WebDAV 憑證',
+  'confirm.exportWithCredentials': '匯出包含憑據（WebDAV + NeoDB Token）',
   'confirm.exportWithCredentialsDesc':
-    '匯出檔案將以明文包含 WebDAV URL、使用者名稱和密碼。請妥善保管此檔案，避免洩露。',
+    '匯出檔案將以明文包含 WebDAV URL、使用者名稱、密碼和 NeoDB Token。請妥善保管此檔案，避免洩露。',
   'confirm.importWithCredentialsDesc':
-    '此檔案包含 WebDAV 憑證。匯入將覆寫目前的 WebDAV 位址、使用者名稱和密碼。',
+    '此檔案包含憑據（WebDAV + NeoDB Token）。匯入將覆寫目前的 WebDAV 位址、使用者名稱、密碼和 NeoDB Token。',
 } as const;

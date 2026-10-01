@@ -3,6 +3,7 @@
  */
 
 import { Store } from '@/engine/database';
+import { memoRowIds } from './row-id-memo';
 import type { CachedIdSets } from '../types';
 import type { PtIdCacheEntry } from '@/types';
 
@@ -14,7 +15,7 @@ export const CACHE_TTL = 30_000; // 30 seconds
  * 使用 dbGetWatchedIds 批量查询，单次消息获取所有 store 的 watched IDs
  */
 export async function getCachedIdSets(
-  debug: (...args: any[]) => void,
+  debug: (...args: unknown[]) => void,
   idCache: CachedIdSets | null,
   cacheTimestamp: number,
 ): Promise<{ sets: CachedIdSets; updatedCache: CachedIdSets; updatedTimestamp: number }> {
@@ -85,7 +86,7 @@ export async function getCachedIdSets(
  * 获取电影类已看 ID 集合（Douban + IMDb）
  */
 export async function getMovieSets(
-  debug: (...args: any[]) => void,
+  debug: (...args: unknown[]) => void,
   idCache: CachedIdSets | null,
   cacheTimestamp: number,
 ): Promise<{ doubanIds: Set<string>; imdbIds: Set<string> }> {
@@ -97,7 +98,7 @@ export async function getMovieSets(
  * 获取 M-Team 专用 ID 集合（包含音乐）
  */
 export async function getMTeamSets(
-  debug: (...args: any[]) => void,
+  debug: (...args: unknown[]) => void,
   idCache: CachedIdSets | null,
   cacheTimestamp: number,
 ): Promise<CachedIdSets> {
@@ -130,7 +131,7 @@ export function resetPtBulkMemo(): void {
  * Uses bulk query to minimize DB calls.
  */
 export async function applyCacheFallback(
-  debug: (...args: any[]) => void,
+  debug: (...args: unknown[]) => void,
   rows: Element[],
   extractDetailUrl: (row: Element) => string | null,
   movieDoubanIds: Set<string>,
@@ -201,6 +202,9 @@ export async function applyCacheFallback(
     );
 
     for (const row of rowsForUrl) {
+      // The resolved marker below is keyed to THIS entry's ids (not the DOM) —
+      // memoize so a single-key record event can clear exactly these rows.
+      memoRowIds(row, { doubanId: cachedDouban, imdbId: cachedImdb });
       if (matched) {
         dimElement(row as HTMLElement);
         hitDimmed++;

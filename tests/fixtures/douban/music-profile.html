@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  Synthetic Douban music-profile fixture for
+  tests/unit/music-profile-data.spec.ts. NOT a real saved page: all user data
+  is fabricated; only the music.douban.com/people/<uid>/ DOM shape that
+  src/scenario/douban/pages/music-profile/music-profile-data.ts queries is
+  reproduced (.music-user-profile, .number-accumulated, #db-music-mine,
+  #musicians, .aside .mod.doulist).
+  NOTE: h2 innerHTML stays on one line — the label regex splits at the first
+  whitespace, and pretty-printed indentation would become leading whitespace.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>耳机发烧友的音乐主页 - 豆瓣音乐</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div class="aside">
+        <div class="music-user-profile">
+          <img class="avatar" src="https://img3.doubanio.com/icon/u88990011-3.jpg" alt="头像" width="96" />
+          <div class="username">耳机发烧友</div>
+        </div>
+        <div class="number-accumulated">
+          <div class="number-item"><span class="number-label">听过</span><span class="number">128</span></div>
+          <div class="number-item"><span class="number-label">在听</span><span class="number">6</span></div>
+          <div class="number-item"><span class="number-label">想听</span><span class="number">233</span></div>
+          <!-- label-less item is ignored by the extractor -->
+          <div class="number-item"><span class="number">9</span></div>
+        </div>
+        <div class="mod doulist">
+          <h3>我的音乐清单</h3>
+          <ul class="list-m">
+            <li>
+              <p><a class="dl-title" href="https://music.douban.com/doulist/151122334/">2024 华语精选</a></p>
+              <span class="rec">(88人关注)</span>
+            </li>
+            <li>
+              <p><a class="dl-title" href="https://music.douban.com/doulist/150000002/">深夜爵士</a></p>
+              <span class="rec">(12人关注)</span>
+            </li>
+            <!-- anchor lacks .dl-title → row skipped by the contract -->
+            <li>
+              <p><a href="https://music.douban.com/doulist/1/">无标题类名</a></p>
+              <span class="rec">(3人关注)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div id="content">
+        <div id="db-music-mine">
+          <h2>听过 · <span class="pl"><a href="/mine?status=progress">(56张)</a></span></h2>
+          <div class="mod">
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/subject/36447621/">
+                    <img src="https://img3.doubanio.com/view/subject/s/public/s36447621.jpg" alt="Faker (期间限定盘)" width="96" />
+                  </a>
+                  <p class="album-title"><a href="/subject/36447621/">Faker</a></p>
+                </li>
+                <!-- no .album-title → title falls back to img[alt] -->
+                <li>
+                  <a class="cover" href="/subject/35983271/">
+                    <img src="https://img1.doubanio.com/view/subject/s/public/s35983271.jpg" alt="THE ALBUM" width="96" />
+                  </a>
+                </li>
+                <!-- cover anchor without href → item dropped (url required) -->
+                <li>
+                  <a class="cover">
+                    <img src="https://img2.doubanio.com/view/subject/s/public/s00000001.jpg" alt="未命名占位" width="96" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div id="musicians">
+          <div class="mod">
+            <div class="musician-sub-list">
+              <ul class="list-s">
+                <li>
+                  <div class="mname"><a href="/musician/6553435/">美依礼芽</a></div>
+                </li>
+                <li>
+                  <div class="mname"><a href="https://music.douban.com/musician/11223/">周杰伦</a></div>
+                </li>
+                <!-- placeholder li without any anchor → skipped (link required) -->
+                <li class="empty"><span class="pl">查看更多艺术家</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

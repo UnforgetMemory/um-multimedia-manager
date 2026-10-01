@@ -8,12 +8,13 @@ export function parseCategory(cls: string): DoulistCategory {
   return 'other';
 }
 
-export const CATEGORY_LABELS: Record<DoulistCategory, string> = {
-  movie: '片单',
-  music: '音乐',
-  book: '书单',
-  thing_place: '地点',
-  other: '豆列',
+/** 分类徽标文案的 i18n 键（X108：数据层发键，渲染层解析）。 */
+export const CATEGORY_LABEL_KEYS: Record<DoulistCategory, string> = {
+  movie: 'douban.dl.cat_movie',
+  music: 'douban.dl.cat_music',
+  book: 'douban.dl.cat_book',
+  thing_place: 'douban.dl.cat_thing_place',
+  other: 'douban.dl.cat_other',
 };
 
 export interface DoulistItem {

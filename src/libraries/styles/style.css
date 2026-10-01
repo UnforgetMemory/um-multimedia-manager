@@ -14,7 +14,7 @@
    .dark class on <html> (stores/theme.ts), transitions gated by
    .theme-ready (double-RAF).
 
-   Shadow DOM counterpart: src/content/douban/styles/design-tokens.css
+   Shadow DOM counterpart: src/scenario/douban/styles/design-tokens.css
    JS-injection counterpart: src/entrypoints/content/styles/tokens.ts
    Consistency gate: npm run ds:check (scripts/check-design-tokens.cjs)
    ============================================================ */

@@ -245,7 +245,6 @@ export const FOCUS_VISIBLE_STYLES = `
 [class*="umm-"]:focus-visible {
   outline: 2px solid var(--umm-accent, var(--umm-link, #3a55ec));
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .umm-dl-trigger:focus-visible,

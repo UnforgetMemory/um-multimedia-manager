@@ -31,6 +31,24 @@ export function extractBaseId(id: string): string {
   return id.replace(/-(U|C|UC|CU)$/i, '');
 }
 
+/**
+ * Whether a stored record id belongs to a base id (handles UC/C suffix
+ * variants). Pure rule behind AdultAvStore.findByBaseId (transport.ts).
+ */
+export function matchesBaseId(id: string, baseId: string): boolean {
+  const normalized = baseId.toUpperCase().trim();
+  const itemBase = extractBaseId(id);
+  return itemBase === normalized || id === normalized;
+}
+
+/**
+ * Watched-id list from the batch-check response → canonical Set (uppercased).
+ * Pure rule behind AdultAvStore.batchCheckExists (transport.ts).
+ */
+export function normalizeWatchedIds(ids: string[]): Set<string> {
+  return new Set<string>(ids.map((id) => id.toUpperCase()));
+}
+
 /** 美/欧厂牌番号形态（normalizeAvId 后的大写形态）：字母段 + .YY.MM.DD 收尾。 */
 const US_AV_ID_RE = /^[A-Z0-9]+(?:\.[A-Z0-9]+)*\.\d{2}\.\d{2}\.\d{2}$/;
 

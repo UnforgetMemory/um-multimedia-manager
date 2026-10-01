@@ -28,6 +28,7 @@
  */
 
 import type { AppSettings, LogLevel } from '@/types';
+import type { ExtensionLocale } from '@/libraries/locale-sets';
 import { STORAGE_KEYS } from '@/libraries/config';
 
 /** Resolved settings shape — every field present (fallback applied). */
@@ -139,7 +140,16 @@ function defineSettingsItems() {
       fallback: 'auto',
       version: 1,
     }),
-    language: defineSettingsItem(STORAGE_KEYS.LANGUAGE, { fallback: 'zh-CN', version: 1 }),
+    // `language` deliberately has no domain validator: the items layer
+    // (ADR-017) only handles physical key + fallback + versioned migration;
+    // domain admission is gated at the two entries — external backups go
+    // through webdav-restore.ts's EXTENSION_LOCALES (fail-closed), the UI can
+    // only pick from LOCALE_OPTIONS. The type is narrowed to "holdable
+    // languages"; out-of-domain writes ('fr-FR') are caught by type-check.
+    language: defineSettingsItem<ExtensionLocale>(STORAGE_KEYS.LANGUAGE, {
+      fallback: 'zh-CN',
+      version: 1,
+    }),
     notificationEnabled: defineSettingsItem(STORAGE_KEYS.NOTIFICATION_ENABLED, {
       fallback: true,
       version: 1,

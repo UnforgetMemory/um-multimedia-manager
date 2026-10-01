@@ -1,20 +1,20 @@
 // ─── Mukaku 处理器类 ──────────────────────────────────
+// Orchestration only. Collaborators extracted for the ≤600-line gate with honest
+// seams: ./queue (RequestQueue construction + progress-toast wiring) and
+// ./detail (detail-page status-chip rendering, deps injected).
 
 import { RequestQueue } from '@/libraries/utils/request-queue';
+import type { ChunkedRun } from '@/libraries/utils/dom-chunk';
 import { initEventBus, onEvent } from '@/libraries/utils/event-bus';
 import { FloatingToast } from '../../utils/toast';
-import { createStatusChip, waitForElement } from '../../utils/dom';
+import { waitForElement } from '../../utils/dom';
 import { t } from '../../i18n';
 import { warnLog, infoLog, errorLog, debugLog } from '@/libraries/utils/logger';
 import { MUKAKU_CONFIG, NETWORK_CONFIG } from './config';
 import { MukakuToastController } from './toast';
-import {
-  extractMvId,
-  extractLinkedIdsFromDOM,
-  imageFileName,
-  collectVisibleCards,
-  PROCESSED_ATTR,
-} from './dom';
+import { createMukakuQueue } from './queue';
+import { renderMukakuDetailState } from './detail';
+import { extractMvId, imageFileName, collectVisibleCards, PROCESSED_ATTR } from './dom';
 import {
   getApiUrl,
   extractLinkedIdsFromPayload,
@@ -69,9 +69,14 @@ class MukakuHandler {
   } | null = null;
   /** Per-key (sb:page) list-API fail timestamps — one term's failure must not block another (O3). */
   private listMappingFailTs: Record<string, number> = {};
-  private toastScheduled = false;
   /** Serial runner: coalesces re-entrant scans (route change during in-flight scan is re-run, not dropped). */
   private runner = createSerialRunner();
+  /**
+   * In-flight chunked marker-clear pass. Cancelled before a newer pass starts so a
+   * record-event storm never runs N concurrent frame-chunked clears (same idiom as
+   * PTDimmer.clearResolvedMarkers / MTeamHandler.processMTeamRows).
+   */
+  private pendingClear: ChunkedRun | null = null;
   /** Lazy-load observer + debounce lifecycle (owns the Intersection/Mutation observers). */
   private observers = new MukakuListObserver(() =>
     this.runner.run(() => this.processVisibleCards()),
@@ -87,42 +92,12 @@ class MukakuHandler {
   private activated = false;
 
   /**
-   * 确保请求队列存在（始终复用同一个队列实例）
+   * 确保请求队列存在（始终复用同一个队列实例；构造见 ./queue）
    */
   private ensureQueue(): RequestQueue {
-    if (this.queue) {
-      return this.queue;
+    if (!this.queue) {
+      this.queue = createMukakuQueue();
     }
-
-    this.queue = new RequestQueue({
-      maxConcurrent: NETWORK_CONFIG.MAX_CONCURRENT,
-      minDelayMs: NETWORK_CONFIG.MIN_DELAY_MS,
-      maxDelayMs: NETWORK_CONFIG.MAX_DELAY_MS,
-      onStateChange: ({ queued, active, currentKey, total }) => {
-        if (!queued && !active) {
-          if (MukakuToastController.hasActive()) {
-            MukakuToastController.success(t('mukaku.queue_done', { total }));
-          }
-          return;
-        }
-
-        const completed = total - queued - active;
-        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-        const parts: string[] = [];
-        parts.push(t('mukaku.progress', { completed, total }));
-        if (active > 0) parts.push(`并发 ${active}`);
-        if (currentKey) parts.push(`当前 ${currentKey}`);
-
-        if (!this.toastScheduled) {
-          this.toastScheduled = true;
-          requestAnimationFrame(() => {
-            this.toastScheduled = false;
-            MukakuToastController.update(parts.join(' · '), progress);
-          });
-        }
-      },
-    });
 
     return this.queue;
   }
@@ -280,13 +255,13 @@ class MukakuHandler {
   }
 
   /**
-   * record event callback: clear processed markers first (otherwise handled cards are
-   * skipped forever and a re-run is a no-op), then invalidate watchedIdCache, and
-   * finally re-run the scan after a 300ms debounce.
+   * record event callback: the 300ms debounce coalesces storms (a bulk import emits
+   * one event per record), so the whole-document marker clear is NOT run here — it
+   * would pay one synchronous full-page pass per event. Only the cache invalidation
+   * (pure memory work) and the scheduled round happen on the event.
    */
   private onRecordChange(data: unknown): void {
     if (!shouldRefreshForEvent(data)) return;
-    clearProcessedMarkers(document);
     // Bump the epoch so any in-flight scan does not resurrect the cache we are about
     // to invalidate (R3); the field itself is also nulled for immediate reads.
     this.watchedCacheEpoch++;
@@ -297,9 +272,19 @@ class MukakuHandler {
     this.refreshScheduler.schedule(() => this.runRefresh());
   }
 
-  /** Event-triggered full rescan (serialized via the runner to avoid interleaving with page scans). */
+  /**
+   * Event-triggered rescan (serialized via the runner so it never interleaves with a
+   * page scan). Processed markers must go first — a card still marked processed is
+   * skipped by collectVisibleCards, making the round a no-op — and the frame-chunked
+   * clear pass is awaited (it always settles, even when a newer round cancels it).
+   */
   private runRefresh(): void {
-    this.runner.run(() => this.processVisibleCards());
+    this.runner.run(async () => {
+      this.pendingClear?.cancel();
+      this.pendingClear = clearProcessedMarkers(document);
+      await this.pendingClear.promise;
+      await this.processVisibleCards();
+    });
   }
 
   /**
@@ -318,7 +303,12 @@ class MukakuHandler {
       // detail node left the document → abandon silently; the new navigation's own
       // handleDetailPage will render.
       if (isDetailContextStale(mvId, location.href) || !infoRoot.isConnected) return;
-      await this.renderDetailState(infoRoot, mvId);
+      // Chip rendering lives in ./detail (read-only presentation); data fetching
+      // stays owned by the handler (probe cache + watched-id epoch semantics).
+      await renderMukakuDetailState(infoRoot, mvId, {
+        probe: (id) => this.probeLinkedIds(id),
+        watchedSets: () => this.refreshWatchedIdSets(),
+      });
     } catch (error: unknown) {
       console.error('[Mukaku] Detail page rendering failed:', error);
       if (MukakuToastController.hasActive()) {
@@ -331,7 +321,7 @@ class MukakuHandler {
 
   /**
    * Batch-fetch watched-id sets with epoch-guarded write-back (shared by
-   * renderDetailState + processVisibleCards — extracted 2026-08-07 D2 to
+   * ./detail render + processVisibleCards — extracted 2026-08-07 D2 to
    * eliminate the byte-identical duplicate).
    *
    * R2: a failed fetch must NOT be cached — the cache stays untouched so the
@@ -368,62 +358,6 @@ class MukakuHandler {
     return watchedSets;
   }
 
-  /**
-   * Render the detail-page status chip (realtime, read-only — never writes caches).
-   */
-  private async renderDetailState(infoRoot: HTMLElement, mvId: string): Promise<void> {
-    // Find or create the status slot
-    let slot = infoRoot.querySelector('.umm-mukaku-status');
-    if (!slot) {
-      slot = document.createElement('div');
-      slot.className = 'umm-mukaku-status';
-      infoRoot.prepend(slot);
-    }
-
-    // Extract linked ids from the DOM
-    let linkedIds = extractLinkedIdsFromDOM(document);
-
-    // Fall back to the API probe when the DOM carries no ids
-    if (!linkedIds.doubanId && !linkedIds.imdbId) {
-      try {
-        linkedIds = await this.probeLinkedIds(mvId);
-      } catch (error: unknown) {
-        console.error('[Mukaku] API probe failed:', error);
-        if (MukakuToastController.hasActive()) {
-          MukakuToastController.error(t('mukaku.api_failed', { error: String(error) }));
-        } else {
-          FloatingToast.error(t('mukaku.api_failed_title'), String(error));
-        }
-        return;
-      }
-    }
-
-    // Realtime watched-id sets (getWatchedIdSets owns the 30s TTL; ts refresh matches
-    // processVisibleCards). Epoch-guarded write-back (R3) + graceful failure (F1):
-    // a DB error degrades to empty sets without failing the detail render.
-    const { movieDoubanIds, imdbIds } = await this.refreshWatchedIdSets();
-
-    // Match against local records (read-only decision — this method writes no cache)
-    if (linkedIds.doubanId || linkedIds.imdbId) {
-      const matched =
-        (linkedIds.doubanId && movieDoubanIds.has(linkedIds.doubanId)) ||
-        (linkedIds.imdbId && imdbIds.has(linkedIds.imdbId));
-
-      slot.innerHTML = '';
-      if (matched) {
-        const chip = createStatusChip('movie', 2, 0, t('mukaku.match_found'));
-        slot.appendChild(chip);
-      } else {
-        const chip = createStatusChip('movie', 0, 0, t('mukaku.no_match'));
-        slot.appendChild(chip);
-      }
-    } else {
-      slot.innerHTML = '';
-      const chip = createStatusChip('movie', 0, 0, t('mukaku.no_id'));
-      slot.appendChild(chip);
-    }
-  }
-
   public async handleListPage(): Promise<void> {
     this.resetForPage();
     this.activate();
@@ -438,6 +372,9 @@ class MukakuHandler {
    */
   private resetForPage(): void {
     this.observers.disconnect();
+    // Stop a chunked marker-clear pass targeting the page we are leaving.
+    this.pendingClear?.cancel();
+    this.pendingClear = null;
     this.watchedIdCache = null;
     this.sessionNoAssociation.clear();
     this.probeFailCooldown.clear();
@@ -617,6 +554,8 @@ class MukakuHandler {
     this.eventBusUnsubscribers = [];
     this.activated = false;
     this.refreshScheduler.cancel();
+    this.pendingClear?.cancel();
+    this.pendingClear = null;
     this.queue = null;
     MukakuToastController.close();
     this.probeCache.clear();

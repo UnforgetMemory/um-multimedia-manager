@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/subject-id-extract.spec.ts.
+  NOT a real saved page; reproduces homepage item-card DOM shapes consumed by
+  src/scenario/douban/shared/subject-id-extract.ts: absolute /subject/, relative
+  /movie/, /tv/ links, data-trailer attribute, link-without-digits + attribute
+  fallback, and a card with no id source at all.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>豆瓣主页信息流</title>
+  </head>
+  <body>
+    <ul class="item-list">
+      <li class="item" id="c-subject">
+        <div class="cover"><a href="https://movie.douban.com/subject/1292052/"><img src="https://img9.doubanio.com/legacy/p1.jpg" alt="" /></a></div>
+        <div class="title"><a href="https://movie.douban.com/subject/1292052/">肖申克的救赎</a></div>
+      </li>
+      <li class="item" id="c-rel-movie">
+        <a href="/movie/1440129/">相对 movie 链接</a>
+      </li>
+      <li class="item" id="c-tv">
+        <a href="https://movie.douban.com/tv/25828561/">相对 tv 链接</a>
+      </li>
+      <li class="item" id="c-trailer-only" data-trailer="https://movie.douban.com/subject/35000551/trailer">
+        <span>无链接，仅 data-trailer</span>
+      </li>
+      <li class="item" id="c-priority" data-trailer="https://movie.douban.com/subject/99999999/trailer">
+        <a href="https://movie.douban.com/subject/1291544/">链接应优先于 data-trailer</a>
+      </li>
+      <li class="item" id="c-nonum" data-trailer="https://movie.douban.com/subject/36777777/trailer">
+        <a href="https://movie.douban.com/subject/">链接无数字，回落到 data-trailer</a>
+      </li>
+      <li class="item" id="c-none"><span>无任何 id 来源</span></li>
+    </ul>
+  </body>
+</html>

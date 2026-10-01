@@ -8,7 +8,7 @@ import zhTW from './zh-TW';
  *
  * 原先 646 行的单文件 `locales.ts` 已按 locale 拆为一文件一语言，本文件只做聚合
  * 与类型导出——新增/修改某一语言不再触碰 600+ 行单体，diff 也按语言隔离。
- * 结构与 SPA 侧 `src/shared/locales/` 保持一致（各自 index.ts 聚合）。
+ * 结构与 SPA 侧 `src/libraries/locales/` 保持一致（各自 index.ts 聚合）。
  *
  * 消费者不变：`import locales, { type Locale } from './locales'` 经目录 index 解析。
  * `scripts/check-i18n.js` 已同步为按目录逐文件读取（块标记切分逻辑退役）。

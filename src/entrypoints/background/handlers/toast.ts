@@ -7,6 +7,7 @@
 
 import { escapeHtml } from '@/libraries/utils/escape-html';
 import { TOAST_CORE_CSS } from '@/libraries/styles/toast-css';
+import { toastAria } from '@/libraries/toast-aria';
 import type { MessagePayloadMap, ToastType } from '@/types';
 import type { SendResponse } from '@/libraries/utils/error-message';
 
@@ -47,10 +48,20 @@ export async function handleShowToast(
     }
 
     // 2) Dynamically inject lightweight toast (works on any page)
+    // executeScript serializes the function, so the a11y pair is resolved in SW
+    // scope and passed as args (same pattern as CORE_CSS).
+    const aria = toastAria(toastType);
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: __showInlineToast,
-      args: [toastPayload.type, toastPayload.title, toastPayload.message || '', TOAST_CORE_CSS],
+      args: [
+        toastPayload.type,
+        toastPayload.title,
+        toastPayload.message || '',
+        TOAST_CORE_CSS,
+        aria.role,
+        aria.live,
+      ],
     });
     sendResponse({ success: true });
   } catch {
@@ -59,13 +70,20 @@ export async function handleShowToast(
 }
 
 /** Lightweight inline toast — injected into any page, matches FloatingToast styles */
-function __showInlineToast(type: string, title: string, message: string, CORE_CSS: string) {
+function __showInlineToast(
+  type: string,
+  title: string,
+  message: string,
+  CORE_CSS: string,
+  role: string,
+  ariaLive: string,
+) {
   const CONTAINER_ID = 'umm-toast-container';
   const STYLES_ID = 'umm-toast-styles';
   const MAX_TOASTS = 3;
   const AUTO_REMOVE_MS = 2800;
 
-  // Inject styles (shared canonical source: src/shared/styles/toast-css.ts)
+  // Inject styles (shared canonical source: src/libraries/styles/toast-css.ts)
   if (!document.getElementById(STYLES_ID)) {
     const style = document.createElement('style');
     style.id = STYLES_ID;
@@ -121,8 +139,8 @@ function __showInlineToast(type: string, title: string, message: string, CORE_CS
   toast.className = `umm-toast umm-toast--${type}`;
   toast.dataset.ummTitle = title;
   toast.dataset.ummTs = String(now);
-  toast.setAttribute('role', 'alert');
-  toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+  toast.setAttribute('role', role);
+  toast.setAttribute('aria-live', ariaLive);
   toast.setAttribute('aria-atomic', 'true');
 
   const content = document.createElement('div');

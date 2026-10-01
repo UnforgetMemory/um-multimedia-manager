@@ -50,8 +50,19 @@ function createDetachedOverlay(): SehuatangOverlayHandle {
   return handle;
 }
 
-/** 重建进入按钮：点击委托原 DOM 按钮（写 cookie + 重载），缺失退化 href 导航。 */
-function buildEnterButton(label: string, index: number, fallbackHref: string): HTMLButtonElement {
+/**
+ * 重建进入按钮：点击委托原 DOM 按钮（写 cookie + 重载），缺失退化 href 导航。
+ *
+ * Exported for direct testing (X54): the delegation-vs-fallback rule is the one
+ * thing on this screen that must not regress — replaying the site's cookie logic
+ * ourselves would break the moment it is obfuscated again, while falling back to
+ * navigation when the original button exists would silently fail the gate.
+ */
+export function buildEnterButton(
+  label: string,
+  index: number,
+  fallbackHref: string,
+): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = `umm-sht-risk-enter ${index === 0 ? 'umm-sht-risk-enter--primary' : 'umm-sht-risk-enter--secondary'}`;

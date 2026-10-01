@@ -2,7 +2,7 @@
  * Unit tests for the settings-snapshot integration with session-cache.
  *
  * These tests exercise the session-cache level (L1.5) of the settings snapshot
- * path used by SettingsCache (src/features/settings/cache.ts). The full
+ * path used by SettingsCache (src/engine/settings/cache.ts). The full
  * SettingsCache integration (init → session hit / miss, updateAll → sync) is
  * verified by type-check and existing integration tests.
  *
@@ -12,7 +12,11 @@
  *  2. Session area unavailable → read returns undefined, write is no-op.
  */
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
 import * as sessionCache from '@/engine/cache/session-cache';
+
+// Installs happen inside tests below; register this file's sandbox hooks at module scope.
+initFileSandbox();
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,11 +50,11 @@ function createSessionMock(): { storage: { session: Record<string, unknown> } } 
 }
 
 function setChrome(stub: object): void {
-  (globalThis as { chrome?: unknown }).chrome = stub;
+  defineGlobal('chrome', stub);
 }
 
 function clearChrome(): void {
-  (globalThis as { chrome?: unknown }).chrome = undefined;
+  defineGlobal('chrome', undefined);
 }
 
 // ---------------------------------------------------------------------------

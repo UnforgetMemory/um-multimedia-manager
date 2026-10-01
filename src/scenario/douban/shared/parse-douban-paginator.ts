@@ -2,11 +2,11 @@
  * 豆瓣 `.paginator` DOM 解析（TDD 抽取，见 audit §2.2 T4）。
  *
  * 从 5 处重复实现中提取的纯函数：
- * - src/content/douban/pages/book-authors/book-authors-data.ts
- * - src/content/douban/pages/book-reviews/book-reviews-data.ts
- * - src/content/douban/pages/doulists/doulists-data.ts
- * - src/content/douban/pages/user-celebrities/user-celebrities-data.ts
- * - src/content/douban/pages/user-reviews/user-reviews-data.ts
+ * - src/scenario/douban/pages/book-authors/book-authors-data.ts
+ * - src/scenario/douban/pages/book-reviews/book-reviews-data.ts
+ * - src/scenario/douban/pages/doulists/doulists-data.ts
+ * - src/scenario/douban/pages/user-celebrities/user-celebrities-data.ts
+ * - src/scenario/douban/pages/user-reviews/user-reviews-data.ts
  */
 
 export interface DoubanPaginatorResult {

@@ -2,7 +2,8 @@ import { definePageMount } from '../../mount-factory';
 import { createApp } from 'vue';
 import { hideNavForPage } from '../../shared/hide-nav';
 import { withRetry } from '../../shared/retry';
-import { loadRecordMap } from '../../shared/load-record-map';
+import { loadRecordMapForIds } from '../../shared/load-record-map';
+import { subjectIdFromUrl } from '../../shared/subject-keys';
 
 export const mountPersonage = definePageMount({
   cssPreset: 'personage',
@@ -22,31 +23,19 @@ export const mountPersonage = definePageMount({
     );
     if (!data) throw new Error('[UMM] Could not extract personage data');
 
-    // Enrich works with record status from IndexedDB
-    try {
-      const works = [...data.recentWorks, ...data.popularWorks];
-      const ids = works
-        .map((work) => work.url.match(/\/subject\/(\d+)/)?.[1])
-        .filter((id): id is string => Boolean(id));
-      // Douban film/TV records are always stored under `movie::` (no douban
-      // tv:: keys exist), so a targeted batch read with the 'movie' prefix
-      // preserves the old id-matching behavior without a full-store scan.
-      const recordMap = await loadRecordMap('movie', ids);
-      for (const work of works) {
-        const subjectId = work.url.match(/\/subject\/(\d+)/)?.[1];
-        if (!subjectId) continue;
-        const rec = recordMap.get(subjectId);
-        if (rec && rec.status > 0) {
-          work.recordStatus = rec.status;
-          work.recordRating = rec.rating;
-        }
-      }
-    } catch {
-      /* silent */
-    }
+    // Douban film/TV records are always stored under `movie::` (no douban
+    // tv:: keys exist), so a targeted batch read with the 'movie' prefix
+    // preserves the old id-matching behavior without a full-store scan.
+    // The map seeds the overlay's reactive record cache — badges stay live
+    // without mutating the extracted work objects.
+    const works = [...data.recentWorks, ...data.popularWorks];
+    const ids = works
+      .map((work) => subjectIdFromUrl(work.url))
+      .filter((id): id is string => Boolean(id));
+    const recordMap = await loadRecordMapForIds('movie', ids);
 
     hideNavForPage({ type: 'personage' });
-    return data;
+    return { data, recordMap };
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, data) => createApp(RootCmp, data),
 });

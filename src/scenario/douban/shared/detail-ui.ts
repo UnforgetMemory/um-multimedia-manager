@@ -13,6 +13,7 @@
 
 import { onCrossPlatformSave } from '@/scenario/douban/pages/detail/composables/use-cross-platform-sync';
 import type { UseInterest } from '@/scenario/douban/pages/detail/composables/use-interest';
+import { openExternalUrl } from '@/libraries/utils/safe-url';
 
 // ─── Pure helpers ────────────────────────────────────────────────────────────
 
@@ -114,10 +115,11 @@ export function starClass(bigstarNum: string): string {
 }
 
 /**
- * Open a URL in a new browser tab.
+ * Open a URL in a new browser tab (scheme-validated — host-authored
+ * javascript:/data: targets are refused).
  */
 export function openLink(url: string): void {
-  window.open(url, '_blank');
+  openExternalUrl(url);
 }
 
 // ─── Stateful helpers ────────────────────────────────────────────────────────
@@ -157,6 +159,11 @@ export async function handleInterestSave(
   const newStatus = interest === 'collect' ? 2 : interest === 'do' ? 3 : 1;
   const newRating = stars * 2;
   ctx.setRecord({ status: newStatus, rating: newRating });
+  // Reflect the submitted note/tags back into the interest state: the Douban
+  // interest payload is not re-fetched after a save, so without this the dialog
+  // re-opens empty and the user reads their own comment as lost.
+  ctx.interested.currentComment.value = comment;
+  ctx.interested.savedTags.value = tags ? tags.split(' ').filter(Boolean) : [];
 
   await onCrossPlatformSave({
     identity: ctx.identity,

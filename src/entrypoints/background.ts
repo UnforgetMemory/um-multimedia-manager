@@ -25,8 +25,8 @@ import {
   handleWebDAVTest,
   handleWebDAVUpload,
   handleWebDAVDownload,
-  handleWebDAVSync,
 } from './background/handlers/webdav';
+import { handleWebDAVSync } from './background/handlers/webdav-sync';
 import { handleNeoDBPushRating } from './background/handlers/neodb';
 import {
   handleGetSettings,

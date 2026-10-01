@@ -12,6 +12,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { defineGlobal } from './helpers/global-sandbox';
 import { zip } from 'fflate';
 import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils';
 import type { StoreRecordSnapshot } from '@/domain/record/store-record';
@@ -28,7 +29,7 @@ if (typeof (globalThis as { FileReader?: unknown }).FileReader === 'undefined') 
       );
     }
   }
-  (globalThis as { FileReader?: unknown }).FileReader = FileReaderShim;
+  defineGlobal('FileReader', FileReaderShim);
 }
 
 /** Minimal StoreRecordSnapshot factory. */

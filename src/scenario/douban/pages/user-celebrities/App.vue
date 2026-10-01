@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import type { UserCelebritiesData } from './types';
 import UmmPaginator from '@/scenario/douban/components/UmmPaginator.vue';
 import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
@@ -28,8 +29,10 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
 
       <!-- Title -->
       <div class="umm-titlebar">
-        <h1 class="umm-titlebar-label">收藏的影人</h1>
-        <span class="umm-titlebar-count">共 {{ data.total.toLocaleString() }} 位</span>
+        <h1 class="umm-titlebar-label">{{ t('douban.mp.celebrities') }}</h1>
+        <span class="umm-titlebar-count">{{
+          t('douban.count.people', { count: data.total.toLocaleString() })
+        }}</span>
       </div>
 
       <!-- Grid -->
@@ -56,7 +59,7 @@ const { currentPage, totalPages, onPageChange } = usePaginator(
           </div>
         </a>
       </div>
-      <div v-else class="umm-empty">暂无内容</div>
+      <div v-else class="umm-empty">{{ t('douban.empty.content') }}</div>
 
       <!-- Paginator -->
       <UmmPaginator

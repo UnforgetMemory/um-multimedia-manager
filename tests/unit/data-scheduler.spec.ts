@@ -36,7 +36,8 @@ test('M1: rate-limit acquire timeout does not drop the queued task', async () =>
 function instrumentTimeoutTimers(targetDelay: number): {
   created: Set<ReturnType<typeof setTimeout>>;
   cleared: Set<ReturnType<typeof setTimeout>>;
-  restore: () => void;
+  origSetTimeout: typeof setTimeout;
+  origClearTimeout: typeof clearTimeout;
 } {
   const created = new Set<ReturnType<typeof setTimeout>>();
   const cleared = new Set<ReturnType<typeof setTimeout>>();
@@ -58,19 +59,13 @@ function instrumentTimeoutTimers(targetDelay: number): {
     return origClearTimeout(handle);
   }) as typeof clearTimeout;
 
-  return {
-    created,
-    cleared,
-    restore: () => {
-      globalThis.setTimeout = origSetTimeout;
-      globalThis.clearTimeout = origClearTimeout;
-    },
-  };
+  return { created, cleared, origSetTimeout, origClearTimeout };
 }
 
 test('L1: executeTask clears its timeout timer when the task completes', async () => {
   const TASK_TIMEOUT = 200;
-  const { created, cleared, restore } = instrumentTimeoutTimers(TASK_TIMEOUT);
+  const { created, cleared, origSetTimeout, origClearTimeout } =
+    instrumentTimeoutTimers(TASK_TIMEOUT);
   try {
     const scheduler = new DataScheduler();
     const result = await scheduler.schedule(async () => 'done', { timeout: TASK_TIMEOUT });
@@ -80,13 +75,16 @@ test('L1: executeTask clears its timeout timer when the task completes', async (
     expect(created.size).toBeGreaterThan(0);
     expect(cleared.size).toBe(created.size);
   } finally {
-    restore();
+    // Workers are shared across spec files: the instrumented timers must not leak.
+    globalThis.setTimeout = origSetTimeout;
+    globalThis.clearTimeout = origClearTimeout;
   }
 });
 
 test('L1: executeTask clears its timeout timer when the task times out', async () => {
   const TASK_TIMEOUT = 50;
-  const { created, cleared, restore } = instrumentTimeoutTimers(TASK_TIMEOUT);
+  const { created, cleared, origSetTimeout, origClearTimeout } =
+    instrumentTimeoutTimers(TASK_TIMEOUT);
   try {
     const scheduler = new DataScheduler();
     // Operation never settles — the per-task timeout must reject it
@@ -97,6 +95,8 @@ test('L1: executeTask clears its timeout timer when the task times out', async (
     expect(created.size).toBeGreaterThan(0);
     expect(cleared.size).toBe(created.size);
   } finally {
-    restore();
+    // Workers are shared across spec files: the instrumented timers must not leak.
+    globalThis.setTimeout = origSetTimeout;
+    globalThis.clearTimeout = origClearTimeout;
   }
 });

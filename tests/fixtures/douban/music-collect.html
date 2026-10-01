@@ -1,0 +1,118 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for
+  src/scenario/douban/pages/music-collect/music-collect-data.ts.
+  NOT a real saved page: user, ids, album names and intros are fabricated.
+  Only the music interest-list DOM contract the extractor queries is
+  reproduced: #user-id, #db-usr-profile, .opt-bar .sort, .subject-num,
+  .grid-view > .item.comment-item (.pic .nbg img / .info .title a > em /
+  .intro / .date / .ratingN-t) and .paginator.
+  Page 1 of a 212-album shelf; 5 <div class="item"> rendered, of which one
+  is a deregistered entry (no subject link) and one is an ad slot without
+  the comment-item class.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>UnforgetMemory听过的音乐(212)</title>
+  </head>
+  <body>
+    <!-- music.douban.com/mine renders the signed-in uid in a hidden input -->
+    <input type="hidden" id="user-id" value="150361821" />
+
+    <div id="db-usr-profile">
+      <div class="pic">
+        <a href="https://music.douban.com/people/unforgetmemory/">
+          <img src="https://img3.doubanio.com/icon/u150361821-2.jpg" alt="UnforgetMemory" width="64" />
+        </a>
+      </div>
+      <div class="info">
+        <h1>UnforgetMemory</h1>
+        <ul class="info-nav">
+          <li><a href="https://music.douban.com/people/unforgetmemory/collect">听过的 212</a></li>
+          <li><a href="https://music.douban.com/people/unforgetmemory/wish">想听的 88</a></li>
+          <li><a href="https://music.douban.com/people/unforgetmemory/do">在听的 6</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="article">
+        <div class="opt-bar clearfix">
+          <div class="sort">按时间排序<span class="separator">·</span
+          ><a href="?status=collect&amp;sort=rating">按评分排序</a></div>
+          <div class="view-toggle">
+            <span class="grid-on cur">网格模式</span>
+            <a class="list-toggle" href="?mode=l">列表模式</a>
+          </div>
+        </div>
+        <span class="subject-num">1-30 / 212</span>
+
+        <div class="grid-view">
+          <div class="item comment-item">
+            <div class="pic">
+              <a class="nbg" href="https://music.douban.com/subject/26986462/">
+                <img src="https://img2.doubanio.com/view/subject/s/public/s27145671.jpg" alt="Insight" width="96" />
+              </a>
+            </div>
+            <div class="info">
+              <div class="title"><a href="https://music.douban.com/subject/26986462/"><em>Insight</em> / 日本首版</a></div>
+              <div class="rating3-t" title="还行">还行</div>
+              <div class="intro">编曲层次铺得很满，第二遍才听得出贝斯线。</div>
+              <div class="date">2024-03-02 听过</div>
+            </div>
+          </div>
+
+          <div class="item comment-item">
+            <div class="pic">
+              <a class="nbg" href="https://music.douban.com/subject/35523944/">
+                <img src="https://img9.doubanio.com/view/subject/s/public/s33948504.jpg" alt="Renaissance" width="96" />
+              </a>
+            </div>
+            <div class="info">
+              <div class="title"><a href="https://music.douban.com/subject/35523944/"><em>Renaissance</em> / 数字单曲</a></div>
+              <div class="rating1-t" title="较差">较差</div>
+              <div class="date">2023-12-19 听过</div>
+            </div>
+          </div>
+
+          <!-- 只做了标记：无副标题、无评分、无短评、无日期 -->
+          <div class="item comment-item">
+            <div class="pic">
+              <a class="nbg" href="https://music.douban.com/subject/1440508/">
+                <img src="https://img1.doubanio.com/view/subject/s/public/s1437828.jpg" alt="Wish You Were Here" width="96" />
+              </a>
+            </div>
+            <div class="info">
+              <div class="title"><a href="https://music.douban.com/subject/1440508/">Wish You Were Here</a></div>
+            </div>
+          </div>
+
+          <!-- 已注销条目：没有指向 subject 的链接，提取器必须跳过 -->
+          <div class="item comment-item">
+            <div class="pic"></div>
+            <div class="info">
+              <div class="title"><span class="destroyed">该条目已注销</span></div>
+            </div>
+          </div>
+
+          <!-- 广告位：.item 但没有 comment-item 类，不在提取契约内 -->
+          <div class="item ad-item">
+            <div class="info">
+              <div class="title"><a href="https://music.douban.com/subject/8888888/">推广位</a></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paginator">
+          <span class="prev"><a href="?status=collect&amp;start=0">前页</a></span>
+          <span class="thispage" data-total-page="8">1</span>
+          <a href="?status=collect&amp;start=30">2</a>
+          <a href="?status=collect&amp;start=60">3</a>
+          <span class="next"><a href="?status=collect&amp;start=30">后页</a></span>
+          <span class="last"><a href="?status=collect&amp;start=210">最后一页</a></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

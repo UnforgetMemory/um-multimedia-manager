@@ -18,7 +18,7 @@ import {
   ShieldAlert,
   ArrowUpRight,
   Play,
-} from 'lucide-vue-next';
+} from '@/libraries/ui/icons';
 
 const { t } = useI18n();
 const appStore = useAppStore();

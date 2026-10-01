@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { safeHref } from '@/libraries/utils/safe-url';
 import type { GameExploreData, GameExploreItem } from './types';
 import type { StoreRecord } from '@/types';
 import { computed, ref, onMounted } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { t } from '../../shared/legacy-bridge';
 import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/umm-status-badge-wrapper';
 import { fetchWithTimeout } from '@/libraries/utils/fetch-timeout';
 
@@ -31,12 +34,20 @@ onMounted(() => {
 const keyword = computed(() => data.value?.searcher?.keyword ?? '');
 const filters = computed(() => data.value?.filters ?? []);
 
+// ids track `allItems`, which grows when more pages are fetched — the cache
+// reloads on growth and on `record:updated`, never on a fixed mount snapshot.
+const { records } = useRecordCache(
+  'game',
+  () => allItems.value.filter((i) => i.id).map((i) => String(i.id)),
+  props.recordMap,
+);
+
 function getRecordStatus(id: number): number {
-  return props.recordMap?.get(String(id))?.status ?? 0;
+  return records.value.get(String(id))?.status ?? 0;
 }
 
 function getRecordRating(id: number): number {
-  return props.recordMap?.get(String(id))?.rating ?? 0;
+  return records.value.get(String(id))?.rating ?? 0;
 }
 
 async function fetchMoreGames(): Promise<void> {
@@ -111,7 +122,7 @@ function buildFilterUrl(groupName: string, optionValue: string, isUnique: boolea
 }
 
 function navigate(url: string): void {
-  location.href = url;
+  location.href = safeHref(url);
 }
 
 function buildSortUrl(sortValue: string): string {
@@ -136,9 +147,9 @@ const initialQuery = computed(() => {
   <UmmPageLayout type="game" :new-tab="false" :initial-query="initialQuery">
     <div class="umm-game-explore-page">
       <div class="umm-game-explore-hd">
-        <h1 class="umm-game-explore-title">发现感兴趣的游戏</h1>
+        <h1 class="umm-game-explore-title">{{ t('douban.ge.title') }}</h1>
         <span v-if="keyword" class="umm-game-explore-meta">
-          "{{ keyword }}" · {{ totalCount }} 个结果
+          {{ t('douban.search.results', { text: keyword, count: totalCount }) }}
         </span>
       </div>
 
@@ -162,20 +173,20 @@ const initialQuery = computed(() => {
 
       <!-- Sort bar -->
       <div class="umm-game-sort-bar">
-        <span class="umm-game-sort-label">排序：</span>
+        <span class="umm-game-sort-label">{{ t('douban.series.sort') }}</span>
         <button
           class="umm-game-sort-btn"
           :class="{ 'umm-game-sort-btn--active': currentSort === 'rating' }"
           @click="navigate(buildSortUrl('rating'))"
         >
-          评分
+          {{ t('douban.ge.rating_sort') }}
         </button>
         <button
           class="umm-game-sort-btn"
           :class="{ 'umm-game-sort-btn--active': currentSort === 'original_release_date' }"
           @click="navigate(buildSortUrl('original_release_date'))"
         >
-          按时间排序
+          {{ t('Sort By Time') }}
         </button>
       </div>
 
@@ -208,9 +219,9 @@ const initialQuery = computed(() => {
             </div>
             <div class="umm-game-item-rating">
               <span v-if="item.rating" class="umm-game-item-rating-num">{{ item.rating }}</span>
-              <span v-if="item.nRatings > 0" class="umm-game-item-rating-people"
-                >{{ item.nRatings }}人评价</span
-              >
+              <span v-if="item.nRatings > 0" class="umm-game-item-rating-people">{{
+                t('douban.rating_people', { count: item.nRatings })
+              }}</span>
             </div>
             <div v-if="item.review" class="umm-game-item-review">
               “{{ item.review.content }}”
@@ -231,14 +242,16 @@ const initialQuery = computed(() => {
           :disabled="loading"
           @click="fetchMoreGames"
         >
-          <span v-if="loading">加载中…</span>
-          <span v-else>加载更多（共 {{ totalCount }} 个结果）</span>
+          <span v-if="loading">{{ t('douban.ge.loading') }}</span>
+          <span v-else>{{ t('douban.ge.load_more', { count: totalCount }) }}</span>
         </button>
-        <span v-else class="umm-game-load-end">已加载全部 {{ totalCount }} 个结果</span>
+        <span v-else class="umm-game-load-end">{{
+          t('douban.ge.load_end', { count: totalCount })
+        }}</span>
       </div>
 
       <div v-else class="umm-game-explore-empty">
-        <p>无法获取游戏列表数据。</p>
+        <p>{{ t('douban.ge.unavailable') }}</p>
       </div>
     </div>
   </UmmPageLayout>

@@ -121,6 +121,14 @@ test.describe('initSearchClickDimmer — 点击 dim（不落库）', () => {
     return { dom, grid };
   }
 
+  // Workers are shared across spec files; the realm-aligned Element stub must
+  // not outlive this file (each dimmer test re-installs via mountGrid).
+  const ORIGINAL_ELEMENT = Object.getOwnPropertyDescriptor(globalThis, 'Element');
+  test.afterAll(() => {
+    if (ORIGINAL_ELEMENT) Object.defineProperty(globalThis, 'Element', ORIGINAL_ELEMENT);
+    else delete (globalThis as Record<string, unknown>).Element;
+  });
+
   test('点击标题链接 → 卡片立即落 .umm-viewed（同 tick，跳转前生效）', () => {
     const { dom, grid } = mountGrid();
     initSearchClickDimmer(grid);

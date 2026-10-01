@@ -5,6 +5,7 @@
 
 import type { UrlIdentity } from '@/types';
 import { Utils, throttle } from '@/libraries/utils';
+import { warnLog } from '@/libraries/utils/logger';
 import { createStatusChip } from '../utils/dom';
 import { createDetailPageHandler } from './create-detail-handler';
 
@@ -122,10 +123,18 @@ const STATE_MARKERS = [
   '[data-testid="hero-rating-bar__user-rating"]',
 ];
 
+/**
+ * Attributes the carriers flip in place. The attribute/characterData channels
+ * are attached to the resolved carriers only — watching every attribute of the
+ * whole body subtree fires the callback on IMDb's unrelated re-renders.
+ */
+const STATE_ATTRS = ['aria-pressed', 'aria-label', 'class', 'data-testid', 'title'];
+
 let stateObserver: MutationObserver | null = null;
 let rescanThrottled: (() => void) | null = null;
 let activeIdentity: UrlIdentity | null = null;
 let unloadListenerBound = false;
+let boundMarkers: readonly Element[] = [];
 
 function nodeTouchesState(node: Node): boolean {
   // 文本节点（文案替换产生的 added/removed Text）经父元素判定归属；
@@ -137,19 +146,13 @@ function nodeTouchesState(node: Node): boolean {
   );
 }
 
-/** 仅当变更确实触及状态载体节点时才触发重扫（防止全页面噪音）。 */
-function mutationsTouchState(mutations: MutationRecord[]): boolean {
+/**
+ * Structural channel relevance: a carrier (or something inside one) was added
+ * or removed, so the carrier set must be re-resolved before rescanning.
+ */
+function childListTouchesState(mutations: MutationRecord[]): boolean {
   return mutations.some((mutation) => {
-    if (mutation.type === 'characterData') {
-      // 文案变化（"Mark as watched" ↔ "Watched"）的 target 是文本节点，
-      // 需经父元素判定归属。
-      return (
-        mutation.target.parentElement !== null && nodeTouchesState(mutation.target.parentElement)
-      );
-    }
-    if (mutation.type === 'attributes') {
-      return nodeTouchesState(mutation.target);
-    }
+    if (mutation.type !== 'childList') return false;
     for (const node of mutation.addedNodes) {
       if (nodeTouchesState(node)) return true;
     }
@@ -160,12 +163,62 @@ function mutationsTouchState(mutations: MutationRecord[]): boolean {
   });
 }
 
+function resolveStateMarkers(): Element[] {
+  const found: Element[] = [];
+  for (const sel of STATE_MARKERS) {
+    for (const el of document.querySelectorAll(sel)) {
+      if (!found.includes(el)) found.push(el);
+    }
+  }
+  return found;
+}
+
+function sameNodeSet(a: readonly Element[], b: readonly Element[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((el, i) => el === b[i]);
+}
+
+function observeChannels(obs: MutationObserver): void {
+  obs.observe(document.body, { childList: true, subtree: true });
+  for (const marker of boundMarkers) {
+    obs.observe(marker, {
+      attributes: true,
+      attributeFilter: STATE_ATTRS,
+      characterData: true,
+      subtree: true,
+    });
+  }
+}
+
+/**
+ * MutationObserver has no per-target unobserve, so a changed carrier set means
+ * disconnect + re-observe. Dropping the queued records is safe: the structural
+ * change that triggered the re-bind already scheduled a rescan, which reads the
+ * live DOM rather than the records.
+ */
+function rebindStateMarkers(): void {
+  if (!stateObserver) return;
+  const markers = resolveStateMarkers();
+  if (sameNodeSet(markers, boundMarkers)) return;
+  boundMarkers = markers;
+  stateObserver.disconnect();
+  observeChannels(stateObserver);
+}
+
+/**
+ * Carrier signal: attribute / text flips, which the body-level channel cannot
+ * produce (it observes childList only), so one can only come from a bound carrier.
+ */
+function hasCarrierSignal(mutations: MutationRecord[]): boolean {
+  return mutations.some((mutation) => mutation.type !== 'childList');
+}
+
 async function rescanIMDbState(): Promise<void> {
   if (!activeIdentity) return;
   try {
     await baseIMDbDetailHandler(activeIdentity);
   } catch (error: unknown) {
-    console.warn('[UMM] IMDb state rescan failed:', error);
+    warnLog('IMDb state rescan failed:', error);
   }
 }
 
@@ -177,15 +230,13 @@ export function startIMDbStateObserver(identity: UrlIdentity): void {
     void rescanIMDbState();
   }, 400);
 
+  boundMarkers = resolveStateMarkers();
   stateObserver = new MutationObserver((mutations) => {
-    if (mutationsTouchState(mutations)) rescanThrottled?.();
+    const structural = childListTouchesState(mutations);
+    if (structural) rebindStateMarkers();
+    if (structural || hasCarrierSignal(mutations)) rescanThrottled?.();
   });
-  stateObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    characterData: true,
-  });
+  observeChannels(stateObserver);
   // SPA 导航会反复 start→stop，beforeunload 只绑一次，避免监听器累积
   if (!unloadListenerBound) {
     unloadListenerBound = true;
@@ -196,15 +247,23 @@ export function startIMDbStateObserver(identity: UrlIdentity): void {
 export function stopIMDbStateObserver(): void {
   stateObserver?.disconnect();
   stateObserver = null;
+  boundMarkers = [];
   rescanThrottled = null;
   activeIdentity = null;
 }
 
 /**
  * IMDb 详情页入口：首轮全量处理 + 动态状态观察（水合补扫 / 用户操作同步）。
+ * Returns the observer teardown so the router can run it when this route
+ * stops matching (`beforeunload` alone never fires on SPA navigation).
  */
-export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<void> {
-  if (!identity) return;
-  await baseIMDbDetailHandler(identity);
+export async function handleIMDbDetailPage(identity: UrlIdentity): Promise<() => void> {
+  if (!identity) return stopIMDbStateObserver;
+  const releaseRecordWatch = await baseIMDbDetailHandler(identity);
   startIMDbStateObserver(identity);
+  // Both teardowns belong to this route: the observer AND the record watch.
+  return () => {
+    stopIMDbStateObserver();
+    releaseRecordWatch?.();
+  };
 }

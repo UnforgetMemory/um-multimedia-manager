@@ -5,7 +5,9 @@
  * short comments, and book/music-specific sections.
  */
 import DOMPurify from 'dompurify';
+import { safeHref } from '@/libraries/utils/safe-url';
 import { upgradeDoubanImageSrc } from '@/scenario/douban/shared/image-size';
+import { parseRating } from '@/scenario/douban/shared/douban-extract';
 import type {
   CelebItem,
   PhotoItem,
@@ -22,12 +24,17 @@ export function extractCelebrities(
   isMusic: boolean,
   isBook: boolean,
 ): {
-  celebHeading: string;
+  celebHeadingKey: string;
   celebItems: CelebItem[];
   celebCount: string;
 } {
   const celebEl = document.querySelector('#celebrities');
-  const celebHeading = isMusic ? '表演者' : isBook ? '创作者' : '演职员';
+  // Display title now carries an i18n key (X108: data layer emits keys, render layer resolves via t()).
+  const celebHeadingKey = isMusic
+    ? 'douban.detail.celeb_performer'
+    : isBook
+      ? 'douban.detail.celeb_creator'
+      : 'douban.detail.celeb_cast';
   const celebItems: CelebItem[] = [];
   if (celebEl) {
     celebEl.querySelectorAll('.celebrity').forEach((li) => {
@@ -40,7 +47,7 @@ export function extractCelebrities(
         name: nameEl?.textContent?.trim() || '',
         role: roleEl?.textContent?.trim() || '',
         avatar: avatarUrl,
-        link: (nameEl as HTMLAnchorElement)?.href || '',
+        link: safeHref((nameEl as HTMLAnchorElement)?.href || ''),
       });
     });
   } else if (isBook) {
@@ -48,7 +55,7 @@ export function extractCelebrities(
       const imgEl = li.querySelector('.avatar') as HTMLImageElement | null;
       const nameEl = li.querySelector('.name');
       const roleEl = li.querySelector('.role');
-      const href = li.querySelector('.name')?.getAttribute('href') || '';
+      const href = safeHref(li.querySelector('.name')?.getAttribute('href') || '');
       celebItems.push({
         name: nameEl?.textContent?.trim() || '',
         role: roleEl?.textContent?.trim() || '',
@@ -60,7 +67,7 @@ export function extractCelebrities(
 
   const celebPl = celebEl?.querySelector('.pl');
   const celebCount = celebPl?.textContent?.trim().replace(/[()]/g, '') || '';
-  return { celebHeading, celebItems, celebCount };
+  return { celebHeadingKey, celebItems, celebCount };
 }
 
 /**
@@ -80,11 +87,11 @@ export function extractPhotos(): {
     if (videoEl) {
       const bgImg = videoEl.style.backgroundImage || '';
       const src = upgradeDoubanImageSrc(bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, ''));
-      photoItems.push({ src, link: linkEl?.href || '', isVideo: true });
+      photoItems.push({ src, link: safeHref(linkEl?.href || ''), isVideo: true });
     } else if (imgEl) {
       photoItems.push({
         src: upgradeDoubanImageSrc(imgEl.src),
-        link: linkEl?.href || '',
+        link: safeHref(linkEl?.href || ''),
         isVideo: false,
       });
     }
@@ -111,7 +118,7 @@ export function extractRecItemsDom(): RecItem[] {
     const img = dl.querySelector('dt img') as HTMLImageElement | null;
     const linkEl = dl.querySelector('dd a') as HTMLAnchorElement | null;
     const rate = dl.querySelector('.subject-rate')?.textContent?.trim() || '';
-    const href = linkEl?.href || '';
+    const href = safeHref(linkEl?.href || '');
     const idMatch = href.match(/\/subject\/(\d+)/);
     if (!idMatch) return;
     recItems.push({
@@ -120,7 +127,6 @@ export function extractRecItemsDom(): RecItem[] {
       rating: rate,
       link: href,
       subjectId: idMatch[1] ?? '',
-      recStatus: 0,
     });
   });
   return recItems;
@@ -137,16 +143,16 @@ export function extractShortComments(): ShortComment[] {
     const userEl = info?.querySelector('a') as HTMLAnchorElement | null;
     const ratingEl = info?.querySelector('[class*="allstar"]');
     const cls = ratingEl?.className || '';
-    const ratingMatch = cls.match(/allstar(\d)0/);
     const contentEl = item.querySelector('.short');
     const timeEl = info?.querySelector('.comment-time');
     const voteEl = item.querySelector('.votes');
     const avatarEl = item.querySelector('.avator img') as HTMLImageElement | null;
-    const rating = ratingMatch ? parseInt(ratingMatch[1] ?? '', 10) : 0;
+    // Rating uses the page-family parseRating (/allstar(\d+)/ ÷ 10), keeping allstar45 → 4.5 half stars.
+    const rating = parseRating(cls);
     if (!userEl || !contentEl) return;
     shortComments.push({
       user: userEl.textContent?.trim() || '',
-      userLink: userEl.href || '',
+      userLink: safeHref(userEl.href || ''),
       avatar: avatarEl?.src || '',
       rating,
       content: contentEl.textContent?.trim() || '',
@@ -270,7 +276,7 @@ export function extractEditions(): EditionItem[] {
           if (link)
             editionItems.push({
               title: link.textContent?.trim() || '',
-              link: link.href,
+              link: safeHref(link.href),
               rating,
               count,
             });

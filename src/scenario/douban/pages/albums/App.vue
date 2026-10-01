@@ -3,13 +3,15 @@ import type { AlbumsPageData, AlbumVersionItem } from './types';
 import type { StoreRecord } from '@/types';
 import { computed } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { t } from '../../shared/legacy-bridge';
 import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
 import { UmmStatusBadgeWrapper } from '@/scenario/douban/components/umm-status-badge-wrapper';
 import { UmmRating } from '@/scenario/douban/components/umm-rating';
 import {
   ASPECT_RATIO,
   MEDIA_FORMATS,
-  FORMAT_LABELS,
+  FORMAT_LABEL_KEYS,
   FORMAT_COLORS,
 } from '@/scenario/douban/shared/media-formats';
 
@@ -18,8 +20,16 @@ const props = defineProps<{
   recordMap: Map<string, StoreRecord>;
 }>();
 
+// Seeded from the mount-time batch read; re-reads when a visible album is
+// written elsewhere so badges stop being a reload-away stale state.
+const { records } = useRecordCache(
+  'music',
+  () => props.data.versions.filter((v) => v.id).map((v) => String(v.id)),
+  props.recordMap,
+);
+
 function getRecordStatus(item: AlbumVersionItem): { status: number; rating: number } {
-  const rec = props.recordMap.get(String(item.id));
+  const rec = records.value.get(String(item.id));
   if (!rec) return { status: 0, rating: 0 };
   return { status: rec.status ?? 0, rating: rec.rating ?? 0 };
 }
@@ -30,8 +40,9 @@ function extractMediaFormat(abstract: string): { label: string; colorClass: stri
   for (const seg of segments) {
     const trimmed = seg.trim();
     if (MEDIA_FORMATS.has(trimmed)) {
-      const label = FORMAT_LABELS[trimmed] || trimmed;
-      return { label, colorClass: FORMAT_COLORS[label] || '' };
+      const labelKey = FORMAT_LABEL_KEYS[trimmed];
+      const label = labelKey ? t(labelKey) : trimmed;
+      return { label, colorClass: FORMAT_COLORS[trimmed] || '' };
     }
   }
   return null;
@@ -47,7 +58,9 @@ const chipData = computed(() => {
     <div class="umm-albums-root">
       <div class="umm-albums-header">
         <h1 class="umm-albums-title">{{ data.albumTitle }}</h1>
-        <span class="umm-albums-count">{{ data.versions.length }} 个版本</span>
+        <span class="umm-albums-count">{{
+          t('douban.albums.count', { count: data.versions.length })
+        }}</span>
       </div>
 
       <div class="umm-albums-list">

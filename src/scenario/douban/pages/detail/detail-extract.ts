@@ -8,6 +8,7 @@ import DOMPurify from 'dompurify';
 import { UrlResolverBuilder } from '@/libraries/identity';
 import type { UrlIdentity } from '@/types';
 import { upgradeDoubanImageSrc } from '@/scenario/douban/shared/image-size';
+import { inferMediaTypeFromUrl } from '@/scenario/douban/shared/url-detector';
 import type { RatingBar, MetaRow, AwardItem } from './types';
 
 /**
@@ -15,7 +16,7 @@ import type { RatingBar, MetaRow, AwardItem } from './types';
  * subtitle, original title) from the current Douban detail page.
  */
 export function extractCoreMetadata(): {
-  identity: UrlIdentity;
+  identity: UrlIdentity | null;
   isMusic: boolean;
   isBook: boolean;
   title: string;
@@ -23,10 +24,11 @@ export function extractCoreMetadata(): {
   year: string;
   subtitle: string;
 } {
-  const identity = UrlResolverBuilder.fromUrl(location.href)!;
+  const identity = UrlResolverBuilder.fromUrl(location.href);
 
-  const isMusic = location.href.includes('music.douban.com');
-  const isBook = location.href.includes('book.douban.com');
+  const mediaScope = inferMediaTypeFromUrl(location.href);
+  const isMusic = mediaScope === 'music';
+  const isBook = mediaScope === 'book';
 
   const h1 = document.querySelector('#content h1, #wrapper > h1, h1.title') as HTMLElement | null;
   const titleSpan = h1?.querySelector('[property="v:itemreviewed"]');
@@ -46,16 +48,11 @@ export function extractCoreMetadata(): {
       temp.innerHTML = part.trim();
       const pl = temp.querySelector('.pl');
       if (pl?.textContent?.includes('原名') || pl?.textContent?.includes('原作名')) {
+        // Remove the label together with its inner colon; after pl.remove()
+        // pl.parentElement is always null — the old stray-colon cleanup loop was
+        // dead code and has been deleted (the real douban original-title colon
+        // lives inside .pl).
         pl.remove();
-        const parent = pl.parentElement;
-        if (parent) {
-          for (let i = parent.childNodes.length - 1; i >= 0; i--) {
-            const node = parent.childNodes[i];
-            if (node && node.nodeType === Node.TEXT_NODE && /^:\s*$/.test(node.textContent || '')) {
-              node.remove();
-            }
-          }
-        }
         originalTitle = temp.textContent?.trim() || '';
         break;
       }
@@ -186,13 +183,18 @@ export function extractSynopsis(
   isMusic: boolean,
   isBook: boolean,
 ): {
-  synopsisHeading: string;
+  synopsisHeadingKey: string;
   synopsisHtml: string;
 } {
   const relatedInfo =
     document.querySelector('#content > .grid-16-8.clearfix > .article > .related-info') ||
     (isBook ? document.querySelector('.related_info') : null);
-  const synopsisHeading = isMusic ? '简介' : isBook ? '内容简介' : '剧情简介';
+  // Display title now carries an i18n key (X108: data layer emits keys, render layer resolves via t()).
+  const synopsisHeadingKey = isMusic
+    ? 'douban.synopsis.short'
+    : isBook
+      ? 'douban.synopsis.book'
+      : 'douban.synopsis.movie';
   let synopsisHtml = '';
   if (isBook) {
     const intros = document.querySelectorAll('#link-report .intro');
@@ -207,7 +209,7 @@ export function extractSynopsis(
       relatedInfo?.querySelector('span.all.hidden, span:not(.all.hidden)');
     synopsisHtml = DOMPurify.sanitize(synopsisEl?.innerHTML || '');
   }
-  return { synopsisHeading, synopsisHtml };
+  return { synopsisHeadingKey, synopsisHtml };
 }
 
 /**

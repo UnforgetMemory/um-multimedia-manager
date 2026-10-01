@@ -39,8 +39,6 @@ export interface RecItem {
   rating: string;
   link: string;
   subjectId: string;
-  recStatus: number; // 0=none 1=wish 2=done 3=doing
-  personalRating?: number;
 }
 
 export interface ShortComment {
@@ -81,9 +79,9 @@ export interface DetailData {
   ratingBars: RatingBar[];
   betterThan: string[];
   metaRows: MetaRow[];
-  synopsisHeading: string;
+  synopsisHeadingKey: string;
   synopsisHtml: string;
-  celebHeading: string;
+  celebHeadingKey: string;
   celebItems: CelebItem[];
   celebCount: string;
   awardItems: AwardItem[];

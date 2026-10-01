@@ -11,7 +11,7 @@
  *
  * 无障碍：prefers-reduced-motion 时禁用全部动画与揭示过渡。
  *
- * 样式单一事实源 = src/content/sehuatang/styles.ts 的 EFFECTS_CSS
+ * 样式单一事实源 = src/scenario/sehuatang/styles.ts 的 EFFECTS_CSS
  * （Shadow DOM 编译期注入），本模块只管行为、不再注入样式。
  */
 

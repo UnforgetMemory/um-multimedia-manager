@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { IDBFactory } from 'fake-indexeddb';
 import { handleAdultAvBatchAdd } from '@/entrypoints/background/handlers/adult-av';
 import {
@@ -53,7 +56,7 @@ function createStubDb(seed: Map<string, StoreRecord>) {
 }
 
 /** Fresh in-memory IndexedDB so the pre-fix handler (real mediaDB) can run. */
-(globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
+defineGlobal('indexedDB', new IDBFactory());
 
 const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
 

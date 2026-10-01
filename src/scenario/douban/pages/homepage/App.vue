@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRecordCache } from '../../shared/composables/use-record-cache';
 import { candidateRecordKeys } from '../../shared/subject-keys';
 import { useDoubanSection } from './composables/use-douban-section';
@@ -15,11 +15,12 @@ import {
   parseHotSection,
   parseReviewItems,
 } from './homepage-extract';
+import { t } from '../../shared/legacy-bridge';
 
 // Only keys for currently-visible subjects are fetched (dbGetBulk), never a
 // full-store scan. Grows as late-parsed items appear; see collectKeys().
 const visibleKeys = ref<string[]>([]);
-const { records, load, unsubscribe } = useRecordCache(undefined, visibleKeys);
+const { records, load } = useRecordCache(undefined, visibleKeys);
 
 const { items: screeningItems, refresh: refreshScreening } = useDoubanSection(
   parseScreeningItems,
@@ -78,19 +79,22 @@ onMounted(async () => {
   setTimeout(refreshFromDom, 2500);
   setTimeout(refreshFromDom, 6000);
 });
-
-onUnmounted(unsubscribe);
 </script>
 
 <template vapor>
   <UmmPageLayout>
     <div class="umm-top-panel">
-      <UmmMediaRow title="正在热映" :items="screeningItems" :records="records" grid />
+      <UmmMediaRow
+        :title="t('douban.home.screening')"
+        :items="screeningItems"
+        :records="records"
+        grid
+      />
 
-      <UmmScrollRow v-if="billboardItems.length > 0" title="一周口碑榜">
+      <UmmScrollRow v-if="billboardItems.length > 0" :title="t('douban.home.billboard')">
         <UmmBillboardCard
           v-for="item in billboardItems"
-          :key="`${item.subjectId}-${records.get(item.subjectId)?.status ?? 0}-${records.get(item.subjectId)?.rating ?? 0}`"
+          :key="item.subjectId || item.href"
           :order="item.order"
           :title="item.title"
           :href="item.href"
@@ -99,9 +103,9 @@ onUnmounted(unsubscribe);
         />
       </UmmScrollRow>
 
-      <UmmMediaRow title="最近热门电影" :items="hotMovies" :records="records" grid />
+      <UmmMediaRow :title="t('douban.home.hot_movie')" :items="hotMovies" :records="records" grid />
       <UmmMediaRow
-        title="最近热门电视剧"
+        :title="t('douban.home.hot_tv')"
         :items="hotTv"
         :records="records"
         :show-episodes="true"

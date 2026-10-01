@@ -1,0 +1,171 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for
+  src/scenario/douban/pages/search/search-data.ts.
+  NOT a real saved page: ids, covers and evaluation counts are fabricated.
+  Both extraction contracts are reproduced, because search-data reads the
+  page payload first (window.__DATA__, inline
+  <script type="text/javascript">) and only falls back to the rendered cards:
+    1. window.__DATA__ = {...}; window.__USER__ = {...}   (script-tag branch)
+    2. .item-root > .title-text / img.cover | .cover-link img | .cover img /
+       .rating_nums / .rating-stars.allstarNN / .meta ×N / .paginator a.next
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>流浪地球的影视搜索结果 - 豆瓣</title>
+  </head>
+  <body>
+    <div id="content">
+      <script type="text/javascript">
+window.__DATA__ = {
+  "cat": "1002",
+  "text": "流浪地球",
+  "total": 24,
+  "start": 0,
+  "count": 20,
+  "items": [
+    {
+      "id": 35466880,
+      "title": "流浪地球2",
+      "cover_url": "https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2887380238.jpg",
+      "rating": { "count": 654321, "star_count": 45, "value": 8.3 },
+      "abstract": "中国大陆 / 科幻 / 冒险 / 郭帆",
+      "abstract_2": "吴京 / 刘德华 / 李雪健",
+      "url": "https://movie.douban.com/subject/35466880/",
+      "labels": [],
+      "interest": { "actions": ["do", "collect", "wish"], "status_text": "" },
+      "tpl_name": "search_subject",
+      "topics": [],
+      "imdb": "https://www.imdb.com/title/tt1517451/"
+    },
+    {
+      "id": 26384780,
+      "title": "流浪地球",
+      "cover_url": "https://img9.doubanio.com/view/photo/s_ratio_poster/public/p2530900336.jpg",
+      "rating": { "count": 1234567, "star_count": 40, "value": 7.9 },
+      "abstract": "中国大陆 / 科幻 / 灾难 / 郭帆",
+      "abstract_2": "IMDb: tt2753478",
+      "url": "https://movie.douban.com/subject/26384780/",
+      "labels": [],
+      "interest": { "actions": [], "status_text": "" },
+      "tpl_name": "search_subject",
+      "topics": []
+    },
+    {
+      "id": 0,
+      "title": "缺少封面的词条",
+      "cover_url": "",
+      "rating": { "count": 0, "star_count": 0, "value": 0 },
+      "abstract": "",
+      "abstract_2": "",
+      "url": "https://movie.douban.com/subject/37000000/",
+      "labels": [],
+      "interest": { "actions": [], "status_text": "" },
+      "tpl_name": "search_subject",
+      "topics": []
+    },
+    {
+      "id": 35729829,
+      "title": "郭帆 Fan Hua",
+      "cover_url": "https://img2.doubanio.com/view/artist/s/public/p2772570521.jpg",
+      "rating": { "count": 0, "star_count": 0, "value": 0 },
+      "abstract": "导演 / 编剧",
+      "abstract_2": "",
+      "url": "https://movie.douban.com/celebrity/1343103/",
+      "labels": [],
+      "interest": { "actions": [], "status_text": "" },
+      "tpl_name": "search_person",
+      "topics": []
+    }
+  ]
+};
+window.__USER__ = { "is_login": false, "code": "", "ck": "eXa1b2c3" };
+      </script>
+
+      <div id="result">
+        <div class="item-root">
+          <div class="item">
+            <div class="pic">
+              <a class="cover-link" href="https://movie.douban.com/subject/35466880/"
+                ><img
+                  class="cover"
+                  src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2887380238.jpg"
+                  alt="流浪地球2"
+              /></a>
+            </div>
+            <div class="detail">
+              <div class="title">
+                <a class="title-text" href="https://movie.douban.com/subject/35466880/">流浪地球2</a>
+              </div>
+              <div class="meta">中国大陆 / 科幻 / 冒险 / 郭帆</div>
+              <div class="meta">吴京 / 刘德华 / 李雪健</div>
+              <div class="rating">
+                <span class="rating-stars allstar45"></span>
+                <span class="rating_nums">8.3</span>
+                <span class="collect">654321人评价</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 懒加载封面（仅 data-original）+ 短评行里带 IMDb 编号 + 无评分数字 -->
+        <div class="item-root">
+          <div class="item">
+            <div class="pic">
+              <a class="cover-link" href="https://movie.douban.com/subject/26384780/"
+                ><img
+                  class="cover"
+                  data-original="https://img9.doubanio.com/view/photo/s_ratio_poster/public/p2530900336.jpg"
+                  alt="流浪地球"
+              /></a>
+            </div>
+            <div class="detail">
+              <div class="title">
+                <a class="title-text" href="https://movie.douban.com/subject/26384780/">流浪地球</a>
+              </div>
+              <div class="meta">中国大陆 / 科幻 / 灾难 / IMDb: tt2753478</div>
+              <div class="meta">吴京 / 屈楚萧 / 李光洁</div>
+              <div class="rating"><span class="collect">1234567人评价</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 影人结果卡：链接不是 subject，提取器必须跳过 -->
+        <div class="item-root">
+          <div class="item">
+            <div class="detail">
+              <div class="title">
+                <a class="title-text" href="https://movie.douban.com/celebrity/1343103/">郭帆 Fan Hua</a>
+              </div>
+              <div class="meta">导演 / 编剧</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未上映条目：.cover img 形态的封面 + 非数字评分文案 -->
+        <div class="item-root">
+          <div class="item">
+            <div class="pic">
+              <div class="cover">
+                <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200101.jpg" alt="回魂计" />
+              </div>
+            </div>
+            <div class="detail">
+              <div class="title">
+                <a class="title-text" href="https://movie.douban.com/subject/36750002/">回魂计</a>
+              </div>
+              <div class="meta">中国大陆 / 悬疑 / 短片</div>
+              <div class="rating"><span class="rating_nums">待上映</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="paginator">
+        <span class="thispage" data-total-page="2">1</span>
+        <a class="next" href="?search_text=%E6%B5%81%E6%9C%97%E5%9C%B0%E7%90%83&amp;cat=1002&amp;start=24">后页</a>
+      </div>
+    </div>
+  </body>
+</html>

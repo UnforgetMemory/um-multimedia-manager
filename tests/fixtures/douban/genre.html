@@ -1,0 +1,102 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/genre-extract.spec.ts.
+  NOT a real saved page: reproduces the public music.douban.com/artists/genre_page
+  DOM shape (.link_list nav, .photoin artist grid, .paginator) to match the
+  extractor contract in src/scenario/douban/pages/genre/genre-extract.ts.
+  All artist data is fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>摇滚音乐人 · 豆瓣音乐</title>
+  </head>
+  <body>
+    <div id="db-nav-music"></div>
+
+    <!-- 流派导航：当前流派为 span，其余为 a -->
+    <div class="link_list">
+      <a href="https://music.douban.com/artists/genre_page/1">流行</a>
+      <a href="https://music.douban.com/artists/genre_page/7">电子</a>
+      <span>摇滚</span>
+      <a href="https://music.douban.com/artists/genre_page/3">民谣</a>
+      <a href="https://music.douban.com/artists/genre_page/12">爵士</a>
+    </div>
+
+    <!-- 音乐人网格 -->
+    <div class="mod">
+      <ul class="photo-root">
+        <li>
+          <div class="photoin">
+            <div class="ll">
+              <a class="artist_photo" href="https://site.douban.com/wanqinglv">
+                <img
+                  class="artist_s"
+                  src="https://img3.doubanio.com/img/artist/s_wanqinglv.jpg"
+                  alt="万能青年旅店"
+                />
+              </a>
+            </div>
+            <p class="pl">13725人喜欢</p>
+          </div>
+        </li>
+        <li>
+          <div class="photoin">
+            <div class="ll">
+              <a class="artist_photo" href="https://site.douban.com/chijingzi">
+                <img
+                  class="artist_s"
+                  src="https://img2.doubanio.com/img/artist/s_chijingzi.jpg"
+                  alt="刺痛伤口乐队"
+                />
+              </a>
+            </div>
+            <p class="pl">2048 人喜欢</p>
+          </div>
+        </li>
+        <li>
+          <div class="photoin">
+            <div class="ll">
+              <a href="https://site.douban.com/fuya">
+                <img
+                  class="artist_s"
+                  src="https://img1.doubanio.com/img/artist/s_fuya.jpg"
+                  alt="fu ya"
+                />
+              </a>
+            </div>
+            <p class="pl">喜欢的音乐人</p>
+          </div>
+        </li>
+        <!-- img without alt → skipped -->
+        <li>
+          <div class="photoin">
+            <div class="ll">
+              <a class="artist_photo" href="https://site.douban.com/noalt">
+                <img class="artist_s" src="https://img9.doubanio.com/img/artist/s_noalt.jpg" />
+              </a>
+            </div>
+            <p class="pl">12人喜欢</p>
+          </div>
+        </li>
+        <!-- no link → skipped -->
+        <li>
+          <div class="photoin">
+            <img class="artist_s" src="https://img9.doubanio.com/img/artist/s_nolink.jpg" alt="没有链接" />
+            <p class="pl">3人喜欢</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 分页：路径式翻页链接（末段为页码） -->
+    <div class="paginator">
+      <span class="total">347</span>
+      <span class="prev"><a href="https://music.douban.com/artists/genre_page/10/1">← 前页</a></span>
+      <span class="thispage" data-total-page="6">2</span>
+      <a href="https://music.douban.com/artists/genre_page/10/3">3</a>
+      <span class="next"><a href="https://music.douban.com/artists/genre_page/10/3">后页 →</a></span>
+      <a href="https://music.douban.com/artists/genre_page/10/6">6</a>
+    </div>
+  </body>
+</html>

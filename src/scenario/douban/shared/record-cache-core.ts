@@ -75,8 +75,10 @@ export async function loadRecordEntries(
         }
       }
     }
-  } catch {
-    // DB errors are non-critical for record loading
+  } catch (error: unknown) {
+    // Non-critical for page rendering, but a silent empty map is otherwise
+    // indistinguishable from "user has no records" — keep it observable.
+    console.warn('[UMM] loadRecordEntries failed:', error);
   }
   return map;
 }

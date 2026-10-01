@@ -91,9 +91,12 @@ export interface MessagePayloadMap {
   PT_ID_CACHE_GET_BULK: { ptUrls: string[] };
   GET_SETTINGS: void;
   UPDATE_SETTINGS: Partial<AppSettings>;
-  EXPORT_DATA: { includeWebDAVCredentials?: boolean } | undefined;
+  EXPORT_DATA: { includeWebDAVCredentials?: boolean; includeNeoDbToken?: boolean } | undefined;
   /** Opt-in credential restore; default false keeps the malicious-backup gate. */
-  IMPORT_DATA: ExportData & { includeWebDAVCredentials?: boolean };
+  IMPORT_DATA: ExportData & {
+    includeWebDAVCredentials?: boolean;
+    includeNeoDbToken?: boolean;
+  };
   GET_ALL_RECORDS: void;
   GET_STATISTICS: void;
   HEALTH_CHECK: void;

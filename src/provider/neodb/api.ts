@@ -1,15 +1,32 @@
 /**
- * NeoDB API 客户端
+ * NeoDB API 客户端 — transport 层
  *
  * 负责与 NeoDB 平台交互，获取元数据和封面图片
  * - 搜索作品
  * - 获取详细信息
  * - 获取封面图片
  * - 用户认证
+ *
+ * 内部分层（ADR-026 需求 9）：本文件只做网络/协议（URL、请求头、fetch/重试、
+ * status→error）；纯 payload↔domain 转换与策略在 `./mapping.ts`，
+ * 稳定公共面在 `./index.ts`。
  */
 
 import { debugLog, infoLog, warnLog } from '@/libraries/utils/logger';
 import { sleep } from '@/libraries/utils';
+import {
+  buildShelfMarkPayload,
+  extractBusinessMessage,
+  isShelfCacheEntryStale,
+  sanitizeBearerToken,
+  toCatalogFetchResult,
+  toShelfItemResponse,
+  type CatalogFetchResult,
+  type ShelfItemResponse,
+} from './mapping';
+
+// 冻结路径兼容：ShelfItemResponse 经本模块被 @/types/messages 引用。
+export type { ShelfItemResponse } from './mapping';
 
 // ==================== 错误类型 ====================
 
@@ -29,19 +46,6 @@ export class NeoDBError extends Error {
     this.statusText = statusText;
     this.businessMsg = businessMsg;
   }
-}
-
-// ==================== 类型定义 ====================
-
-// ✅ 新增：书架项响应接口
-export interface ShelfItemResponse {
-  uuid: string; // shelf_item 的唯一 ID
-  item: string; // 作品 UUID
-  shelf_type: string; // complete/progress/wishlist
-  rating: number; // 评分
-  comment_text?: string; // 短评文字
-  created_time: string; // 创建时间
-  updated_time: string; // 更新时间
 }
 
 // ==================== 常量定义 ====================
@@ -103,9 +107,8 @@ function buildHeaders(token?: string): HeadersInit {
   };
 
   if (token) {
-    // ✅ 修复：仅移除首尾空白和不可见控制字符，保留所有可打印字符
-    // \x00-\x1F: 控制字符, \x7F: DEL 字符
-    const cleanToken = token.trim().replace(/[\x00-\x1F\x7F]/g, '');
+    // ✅ 修复：仅移除首尾空白和不可见控制字符，保留所有可打印字符（纯规则在 mapping.ts）
+    const cleanToken = sanitizeBearerToken(token);
 
     infoLog('Token length:', token.length, 'Cleaned length:', cleanToken.length);
     infoLog('Token preview:', cleanToken.substring(0, 10) + '...');
@@ -122,6 +125,19 @@ function buildHeaders(token?: string): HeadersInit {
   return headers;
 }
 
+/** Read the failure body (if JSON) and map it to a NeoDBError. */
+async function toNeoDbError(response: Response): Promise<NeoDBError> {
+  let businessMsg = '';
+  try {
+    const body = await response.json();
+    // NeoDB returns { detail: "..." } or { error: "..." } on failure
+    businessMsg = extractBusinessMessage(body);
+  } catch {
+    /* non-JSON error body */
+  }
+  return new NeoDBError(response.status, response.statusText, businessMsg);
+}
+
 // ==================== 核心功能 ====================
 
 /**
@@ -130,10 +146,7 @@ function buildHeaders(token?: string): HeadersInit {
  * @param token - NeoDB Token
  * @returns 作品 UUID 和详细信息
  */
-export async function fetchCatalogByUrl(
-  url: string,
-  token?: string,
-): Promise<{ uuid: string; [key: string]: any }> {
+export async function fetchCatalogByUrl(url: string, token?: string): Promise<CatalogFetchResult> {
   const params = new URLSearchParams({ url });
   const apiUrl = `${NEOBASE_URL}/catalog/fetch?${params.toString()}`;
 
@@ -147,24 +160,14 @@ export async function fetchCatalogByUrl(
   infoLog('Catalog fetch response status:', response.status);
 
   if (!response.ok) {
-    let businessMsg = '';
-    try {
-      const body = await response.json();
-      // NeoDB returns { detail: "..." } or { error: "..." } on failure
-      businessMsg = body.detail || body.error || body.message || '';
-    } catch {
-      /* non-JSON error body */
-    }
-    throw new NeoDBError(response.status, response.statusText, businessMsg);
+    throw await toNeoDbError(response);
   }
 
   const data = await response.json();
   infoLog('Catalog fetch success, UUID:', data.uuid);
 
-  return {
-    uuid: data.uuid || '',
-    ...data,
-  };
+  // payload → domain 归一化在纯层（mapping.ts）。
+  return toCatalogFetchResult(data);
 }
 
 /**
@@ -184,18 +187,8 @@ export async function markItem(
 ): Promise<ShelfItemResponse> {
   const url = `${NEOBASE_URL}/me/shelf/item/${itemUuid}`;
 
-  const payload: any = {
-    shelf_type: shelfType,
-    visibility: 0,
-  };
-
-  if (rating && rating > 0) {
-    payload.rating_grade = rating;
-  }
-
-  if (comment_text) {
-    payload.comment_text = comment_text;
-  }
+  // 请求体构建策略（rating/comment 门控）在纯层（mapping.ts）。
+  const payload = buildShelfMarkPayload(shelfType, rating, comment_text);
 
   const response = await fetchWithRetry(url, {
     method: 'POST',
@@ -204,25 +197,11 @@ export async function markItem(
   });
 
   if (!response.ok) {
-    let businessMsg = '';
-    try {
-      const body = await response.json();
-      businessMsg = body.detail || body.error || body.message || '';
-    } catch {
-      /* non-JSON error body */
-    }
-    throw new NeoDBError(response.status, response.statusText, businessMsg);
+    throw await toNeoDbError(response);
   }
 
   const data = await response.json();
-  return {
-    uuid: data.uuid,
-    item: data.item,
-    shelf_type: data.shelf_type,
-    rating: data.rating,
-    created_time: data.created_time,
-    updated_time: data.updated_time,
-  };
+  return toShelfItemResponse(data);
 }
 
 /**
@@ -235,15 +214,14 @@ export async function markItem(
 
 // ✅ P0: 书架项 UUID 缓存（优化性能）
 const shelfCache = new Map<string, { uuid: string; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
 
 /**
- * 清理过期缓存
+ * 清理过期缓存（TTL 判定为纯策略，在 mapping.ts）。
  */
 export function cleanupShelfCache() {
   const now = Date.now();
   for (const [key, value] of shelfCache.entries()) {
-    if (now - value.timestamp > CACHE_TTL) {
+    if (isShelfCacheEntryStale(value.timestamp, now)) {
       shelfCache.delete(key);
     }
   }

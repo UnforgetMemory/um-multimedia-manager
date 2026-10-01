@@ -13,9 +13,11 @@
  * StatBarItem:
  * - label: string — displayed below the value
  * - value: number | string — displayed large (numbers are toLocaleString'd)
- * - url?: string — optional link target (opens via window.open on click)
+ * - url?: string — optional link target (opens via sanitized window.open on click)
  * - active?: boolean — optional active/highlight state
  */
+
+import { openExternalUrl } from '@/libraries/utils/safe-url';
 
 export interface StatBarItem {
   label: string;
@@ -31,7 +33,7 @@ const props = defineProps<{
 
 function handleClick(item: StatBarItem): void {
   if (item.url) {
-    window.open(item.url, '_blank');
+    openExternalUrl(item.url);
   }
 }
 </script>

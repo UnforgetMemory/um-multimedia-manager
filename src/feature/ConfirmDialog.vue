@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/libraries/ui/dialog';
 import { Button } from '@/libraries/ui/button';
-import { Loader2 } from 'lucide-vue-next';
+import { Loader2 } from '@/libraries/ui/icons';
 
 const confirmStore = useConfirmStore();
 const { state } = confirmStore;

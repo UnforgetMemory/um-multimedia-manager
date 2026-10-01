@@ -1,29 +1,21 @@
 import { definePageMount } from '../../mount-factory';
 import { createApp } from 'vue';
 import { hideNavForPage } from '../../shared/hide-nav';
+import { silenceNativePlayers } from './video-silence';
 
 export const mountTrailer = definePageMount({
   cssPreset: 'trailer',
   overlayId: 'umm-trailer-overlay',
   importApp: () => import('./App.vue'),
-  async beforeMount() {
+  async beforeMount(_shadow, registerRollback) {
     const { extractTrailerData } = await import('./trailer-data');
     const data = extractTrailerData();
     if (!data) throw new Error('[UMM] Could not extract trailer data');
     hideNavForPage({ type: 'trailer' });
 
-    // Disable native video player to prevent auto-play / audio bleed
-    document.querySelectorAll<HTMLVideoElement>('video').forEach((v) => {
-      v.pause();
-      v.removeAttribute('src');
-      v.load();
-    });
-    // Remove native player containers entirely
-    document
-      .querySelectorAll<HTMLElement>('#player, #movie_player, .html5-video-container, .stage-cont')
-      .forEach((el) => {
-        el.remove();
-      });
+    // Disable native video player to prevent auto-play / audio bleed.
+    // Reversible: if the mount fails afterwards, the host player is restored.
+    registerRollback(silenceNativePlayers());
 
     return data;
   },

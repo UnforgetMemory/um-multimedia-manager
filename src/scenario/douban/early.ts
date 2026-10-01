@@ -12,46 +12,55 @@
 import { createOverlay } from './overlay';
 import type { OverlayOptions } from './overlay';
 import { detectPageType } from './shared/url-detector';
+import { initI18n, initI18nSync, t } from '@/entrypoints/content/i18n';
 
-const SUBTITLE: Record<string, string> = {
-  photos: '加载照片...',
-  trailer: '加载预告片...',
-  video: '加载预告片...',
-  celebrities: '加载演职员...',
-  albums: '专辑版本 · 加载中',
-  detail: '加载中...',
-  'book-homepage': '读书首页 · 加载中',
-  'book-profile': '读书主页 · 加载中',
-  search: '加载搜索结果...',
-  personage: '加载影人资料...',
-  'personage-creations': '加载作品列表...',
-  'user-profile': '用户主页 · 加载中',
-  'movie-profile': '电影主页 · 加载中',
-  'music-profile': '音乐主页 · 加载中',
-  'user-celebrities': '收藏的影人 · 加载中',
-  'user-reviews': '我的影评 · 加载中',
-  'review-detail': '影评详情 · 加载中',
-  'book-review-detail': '书评详情 · 加载中',
-  'book-collect': '我的藏书 · 加载中',
-  'book-authors': '收藏的作者 · 加载中',
-  doulists: '豆列 · 加载中',
-  'doulist-detail': '片单 · 加载中',
-  'user-media': '影音收藏 · 加载中',
-  'music-homepage': '音乐首页 · 加载中',
-  genre: '音乐人分类 · 加载中',
-  'artists-overview': '音乐人概览 · 加载中',
-  'game-collect': '游戏收藏 · 加载中',
-  'game-detail': '游戏详情 · 加载中',
-  'game-explore': '游戏探索 · 加载中',
-  series: '丛书 · 加载中',
-  'music-collect': '音乐收藏 · 加载中',
+/**
+ * Early-shell subtitles → i18n keys (not hardcoded copy).
+ *
+ * X60/X62 converted the whole overlay body to `t()` but missed this spot: 31
+ * hardcoded zh-CN lines kept the loading shell Chinese for English users,
+ * asymmetric with the body. `trailer`/`video` share one key.
+ */
+const SUBTITLE_KEY: Record<string, string> = {
+  photos: 'douban.loading.photos',
+  trailer: 'douban.loading.trailer',
+  video: 'douban.loading.trailer',
+  celebrities: 'douban.loading.celebrities',
+  albums: 'douban.loading.albums',
+  detail: 'douban.loading.detail',
+  'book-homepage': 'douban.loading.book-homepage',
+  'book-profile': 'douban.loading.book-profile',
+  search: 'douban.loading.search',
+  personage: 'douban.loading.personage',
+  'personage-creations': 'douban.loading.personage-creations',
+  'user-profile': 'douban.loading.user-profile',
+  'movie-profile': 'douban.loading.movie-profile',
+  'music-profile': 'douban.loading.music-profile',
+  'user-celebrities': 'douban.loading.user-celebrities',
+  'user-reviews': 'douban.loading.user-reviews',
+  'review-detail': 'douban.loading.review-detail',
+  'book-review-detail': 'douban.loading.book-review-detail',
+  'book-collect': 'douban.loading.book-collect',
+  'book-authors': 'douban.loading.book-authors',
+  doulists: 'douban.loading.doulists',
+  'doulist-detail': 'douban.loading.doulist-detail',
+  'user-media': 'douban.loading.user-media',
+  'music-homepage': 'douban.loading.music-homepage',
+  genre: 'douban.loading.genre',
+  'artists-overview': 'douban.loading.artists-overview',
+  'game-collect': 'douban.loading.game-collect',
+  'game-detail': 'douban.loading.game-detail',
+  'game-explore': 'douban.loading.game-explore',
+  series: 'douban.loading.series',
+  'music-collect': 'douban.loading.music-collect',
 };
 
-function getOverlayConfig(): OverlayOptions | null {
+const DEFAULT_SUBTITLE_KEY = 'douban.loading.default';
+
+function getOverlayConfig(): { options: OverlayOptions; subtitleKey: string } | null {
   const pageType = detectPageType();
   if (!pageType) return null;
 
-  const exposeTypes = new Set(['photos', 'detail']);
   const trailerTypes = new Set(['trailer', 'video']);
   const overlayId =
     pageType.type === 'photos'
@@ -72,11 +81,28 @@ function getOverlayConfig(): OverlayOptions | null {
                     ? 'umm-douban-overlay'
                     : 'umm-douban-overlay';
 
+  const subtitleKey = SUBTITLE_KEY[pageType.type] ?? DEFAULT_SUBTITLE_KEY;
   return {
-    overlayId,
-    subtitle: SUBTITLE[pageType.type] || '多媒体管理器 · 加载中',
-    exposeDismiss: exposeTypes.has(pageType.type) || undefined,
+    options: { overlayId, subtitle: t(subtitleKey) },
+    subtitleKey,
   };
+}
+
+/**
+ * Async-upgrade the shell subtitle to the authoritative stored language (the
+ * Options-saved language wins over the browser language). Touches a single
+ * text node: if the shell was already taken over or removed by the
+ * document_idle Vue app, the node is gone — bail out silently. The upgrade is
+ * a correction and must never drag down the already-painted first frame.
+ */
+async function upgradeShellSubtitle(overlay: HTMLElement, subtitleKey: string): Promise<void> {
+  try {
+    await initI18n();
+    const node = overlay.shadowRoot?.querySelector('.ov-subtitle');
+    if (node && overlay.isConnected) node.textContent = t(subtitleKey);
+  } catch {
+    // Storage unavailable → keep the synchronously resolved copy
+  }
 }
 
 /**
@@ -85,7 +111,15 @@ function getOverlayConfig(): OverlayOptions | null {
  * Returns null if the page type does not need an overlay.
  */
 export function createDoubanEarlyOverlay(): HTMLElement | null {
+  // Synchronous locale: `t()` reads module-level currentLocale (default
+  // zh-CN). The early shell must not defer mounting the mask waiting on
+  // chrome.storage (async IPC), so it only trusts synchronously available
+  // localStorage → navigator.language — same first-frame cost as before
+  // (zero await).
+  initI18nSync();
   const config = getOverlayConfig();
   if (!config) return null;
-  return createOverlay(config);
+  const overlay = createOverlay(config.options);
+  void upgradeShellSubtitle(overlay, config.subtitleKey);
+  return overlay;
 }

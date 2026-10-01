@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
-import { UmmMediaCard } from '@/scenario/douban/components/umm-media-card';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmRecSection } from '@/scenario/douban/components/umm-rec-section';
 import { UmmInterestBar } from '@/scenario/douban/components/umm-interest-bar';
 import { ASPECT_RATIO } from '@/scenario/douban/shared/media-formats';
 import {
@@ -14,7 +14,8 @@ import {
 } from '@/scenario/douban/shared/detail-ui';
 import { useInterest } from '@/scenario/douban/pages/detail/composables/use-interest';
 import { syncNeoDBOnLoad } from '@/scenario/douban/pages/detail/composables/use-cross-platform-sync';
-import { extractCrossPlatformLinks } from '@/scenario/douban/shared/legacy-bridge';
+import { useRecordRefresh } from '@/scenario/douban/shared/composables/use-record-refresh';
+import { extractCrossPlatformLinks, t } from '@/scenario/douban/shared/legacy-bridge';
 import { UrlResolverBuilder } from '@/libraries/identity';
 import {
   rating10ToDoubanStars,
@@ -25,7 +26,10 @@ import { Store } from '@/engine/database';
 import type { StoreRecord } from '@/types';
 import type { DetailData } from './detail-data';
 
-const props = defineProps<{ detailData: DetailData }>();
+const props = defineProps<{
+  detailData: DetailData;
+  recRecordMap?: Map<string, StoreRecord>;
+}>();
 const d = props.detailData;
 
 const sortedAwards = computed(() => {
@@ -46,6 +50,15 @@ const artistName = computed(() => {
 
 const record = ref<{ status: number; rating: number } | null>(
   d.record ? { status: d.record.status, rating: d.record.rating } : null,
+);
+
+// Live refresh: reload this page's record when background broadcasts
+// `record:updated` for it (ADR-015, unified via useRecordRefresh).
+useRecordRefresh(
+  () => props.detailData.identity,
+  (r) => {
+    record.value = r;
+  },
 );
 
 const mediaType = computed(() => (d.isBook ? 'book' : d.isMusic ? 'music' : 'movie'));
@@ -229,10 +242,6 @@ watch(interested.currentRating, (val) => {
   }
 });
 
-function updateRecord(newRecord: { status: number; rating: number } | null) {
-  record.value = newRecord;
-}
-
 async function onInterestSave(
   interest: 'wish' | 'do' | 'collect',
   stars: number,
@@ -264,8 +273,6 @@ const starClass = computed(() => starClassFn(d.bigstarNum));
 function formatRatingBarPct(pct: string): string {
   return pct;
 }
-
-defineExpose({ updateRecord });
 </script>
 
 <template vapor>
@@ -304,7 +311,7 @@ defineExpose({ updateRecord });
               @save="onInterestSave"
             />
             <div v-if="interested.currentComment.value" class="umm-my-comment">
-              <span class="umm-my-comment-label">我的短评：</span>
+              <span class="umm-my-comment-label">{{ t('douban.my_comment') }}</span>
               <span class="umm-my-comment-text">{{ interested.currentComment.value }}</span>
             </div>
           </div>
@@ -348,18 +355,20 @@ defineExpose({ updateRecord });
                 <span class="umm-rating-stars">
                   <span v-if="starClass" :class="starClass"></span>
                 </span>
-                <span v-if="d.ratingPeople" class="umm-rating-people"
-                  >{{ d.ratingPeople }}人评价</span
-                >
+                <span v-if="d.ratingPeople" class="umm-rating-people">{{
+                  t('douban.rating_people', { count: d.ratingPeople })
+                }}</span>
               </div>
             </div>
             <div v-if="d.betterThan.length" class="umm-rating-better">
-              <span class="umm-better-label">好于</span>
+              <span class="umm-better-label">{{ t('douban.better_than') }}</span>
               <span v-for="t in d.betterThan" :key="t" class="umm-better-chip">{{ t }}</span>
             </div>
             <div v-if="d.ratingBars.length" class="umm-rating-bars">
               <div v-for="(bar, i) in d.ratingBars" :key="i" class="umm-bar-row">
-                <span class="umm-bar-label">{{ bar.label.replace(/星/g, '') }}星</span>
+                <span class="umm-bar-label"
+                  >{{ bar.label.replace(/星/g, '') }}{{ t('douban.star_suffix') }}</span
+                >
                 <div class="umm-bar-track">
                   <div class="umm-bar-fill" :style="{ width: ratingBarWidth(bar.pct) }"></div>
                 </div>
@@ -379,7 +388,7 @@ defineExpose({ updateRecord });
 
           <div v-if="d.rankNo || d.rankText" class="umm-meta-card">
             <div class="umm-meta-row">
-              <span class="umm-meta-label">排行榜</span>
+              <span class="umm-meta-label">{{ t('douban.ranking') }}</span>
               <span class="umm-meta-value">
                 <span
                   v-if="d.rankHref"
@@ -394,32 +403,32 @@ defineExpose({ updateRecord });
           </div>
 
           <div v-if="d.synopsisHtml" class="umm-synopsis-card">
-            <h3 class="umm-synopsis-heading">{{ d.synopsisHeading }}</h3>
+            <h3 class="umm-synopsis-heading">{{ t(d.synopsisHeadingKey) }}</h3>
             <div class="umm-synopsis-text" v-html="d.synopsisHtml"></div>
           </div>
 
           <div class="umm-actions">
             <div id="umm-neodb-actions"></div>
             <button class="umm-dl-trigger">
-              {{ mediaType === 'book' ? '+ 添加到书单' : '+ 添加到片单' }}
+              {{ mediaType === 'book' ? t('douban.add_booklist') : t('douban.add_movielist') }}
             </button>
           </div>
         </div>
       </div>
 
       <div v-if="d.trackItems.length > 0" class="umm-track-card">
-        <h3 class="umm-track-heading">曲目</h3>
+        <h3 class="umm-track-heading">{{ t('douban.detail.tracks') }}</h3>
         <ol class="umm-track-list">
           <li v-for="(track, i) in d.trackItems" :key="i" class="umm-track-item">{{ track }}</li>
         </ol>
       </div>
 
       <div v-if="sortedAwards.length" class="umm-award-card">
-        <h3 class="umm-award-heading">获奖情况</h3>
+        <h3 class="umm-award-heading">{{ t('douban.detail.awards') }}</h3>
         <div class="umm-award-list">
           <div v-for="(a, i) in sortedAwards" :key="i" class="umm-award-item">
             <div class="umm-award-badge" :class="{ 'umm-award-badge--nom': a.isNomination }">
-              {{ a.isNomination ? '提名' : '获奖' }}
+              {{ a.isNomination ? t('douban.detail.nomination') : t('douban.detail.winner') }}
             </div>
             <div class="umm-award-info">
               <span class="umm-award-festival">{{ a.festival }}</span>
@@ -441,7 +450,7 @@ defineExpose({ updateRecord });
 
       <div v-if="d.celebItems.length" class="umm-celeb-card">
         <h3 class="umm-celeb-heading">
-          {{ d.celebHeading }}
+          {{ t(d.celebHeadingKey) }}
           <span v-if="d.celebCount" class="umm-section-link"
             >(<span
               style="cursor: pointer"
@@ -468,33 +477,37 @@ defineExpose({ updateRecord });
 
       <!-- Books: author bio, TOC, blockquotes, editions -->
       <div v-if="d.authorBioHtml" class="umm-author-bio-card">
-        <h3 class="umm-synopsis-heading">作者简介</h3>
+        <h3 class="umm-synopsis-heading">{{ t('douban.detail.about_author') }}</h3>
         <div class="umm-synopsis-text" v-html="d.authorBioHtml"></div>
       </div>
 
       <div v-if="d.tocItems.length" class="umm-toc-card">
-        <h3 class="umm-toc-heading">目录</h3>
+        <h3 class="umm-toc-heading">{{ t('douban.detail.toc') }}</h3>
         <div class="umm-toc-list">
           <div v-for="(item, i) in d.tocItems" :key="i" class="umm-toc-item">{{ item }}</div>
         </div>
       </div>
 
       <div v-if="d.blockquoteItems.length" class="umm-blockquote-card">
-        <h3 class="umm-blockquote-heading">原文摘录</h3>
+        <h3 class="umm-blockquote-heading">{{ t('douban.detail.excerpts') }}</h3>
         <div class="umm-blockquote-list">
           <div v-for="(bq, i) in d.blockquoteItems" :key="i" class="umm-blockquote-item">
             <div class="umm-blockquote-text">{{ bq.text }}</div>
             <div v-if="bq.source || bq.user" class="umm-blockquote-meta">
-              <span v-if="bq.source" class="umm-blockquote-source">—— 引自 {{ bq.source }}</span>
+              <span v-if="bq.source" class="umm-blockquote-source">{{
+                t('douban.detail.excerpt_source', { source: bq.source })
+              }}</span>
               <span v-if="bq.user" class="umm-blockquote-user">— {{ bq.user }}</span>
-              <span v-if="bq.votes" class="umm-blockquote-votes">{{ bq.votes }}赞</span>
+              <span v-if="bq.votes" class="umm-blockquote-votes">{{
+                t('douban.detail.likes', { count: bq.votes })
+              }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <div v-if="d.editionItems.length" class="umm-edition-card">
-        <h3 class="umm-edition-heading">其他版本</h3>
+        <h3 class="umm-edition-heading">{{ t('douban.detail.editions') }}</h3>
         <div class="umm-edition-list">
           <div v-for="(ed, i) in d.editionItems" :key="i" class="umm-edition-item">
             <a :href="ed.link" target="_blank" class="umm-edition-link">{{ ed.title }}</a>
@@ -505,21 +518,21 @@ defineExpose({ updateRecord });
 
       <div v-if="d.photoItems.length" class="umm-photo-card">
         <h3 class="umm-photo-heading">
-          剧照
+          {{ t('douban.stills_word') }}
           <span class="umm-section-link"
             >(
             <span
               v-if="d.trailerCount"
               style="cursor: pointer"
               @click="openLink(`/subject/${d.identity.providerId}/trailer#trailer`)"
-              >预告片{{ d.trailerCount }}</span
+              >{{ t('douban.trailers_count', { count: d.trailerCount }) }}</span
             >
             <template v-if="d.trailerCount && d.photoCount">&nbsp;|&nbsp;</template>
             <span
               v-if="d.photoCount"
               style="cursor: pointer"
               @click="openLink(`/subject/${d.identity.providerId}/all_photos`)"
-              >图片{{ d.photoCount }}</span
+              >{{ t('douban.photos_count', { count: d.photoCount }) }}</span
             >
             )</span
           >
@@ -533,34 +546,24 @@ defineExpose({ updateRecord });
           >
             <UmmImageWrapper
               :src="p.src"
-              :alt="p.isVideo ? '预告片' : '剧照'"
+              :alt="p.isVideo ? t('douban.trailer_word') : t('douban.stills_word')"
               :aspect-ratio="ASPECT_RATIO.WIDE"
             />
-            <span v-if="p.isVideo" class="umm-photo-badge">预告片</span>
+            <span v-if="p.isVideo" class="umm-photo-badge">{{ t('douban.trailer_word') }}</span>
           </div>
         </div>
       </div>
 
-      <div v-if="d.recItems.length" class="umm-rec-card">
-        <h3 class="umm-rec-heading">推荐</h3>
-        <div class="umm-rec-grid">
-          <UmmMediaCard
-            v-for="r in d.recItems"
-            :key="`${r.subjectId}-${r.recStatus}-${r.personalRating ?? Number(r.rating) ?? 0}`"
-            mode="grid"
-            :poster-url="r.poster"
-            :title="r.title"
-            :href="r.link"
-            :badge-status="r.recStatus"
-            :badge-rating="r.personalRating ?? Number(r.rating)"
-            :rating="r.rating || ''"
-            :type="mediaType"
-          />
-        </div>
-      </div>
+      <UmmRecSection
+        :items="d.recItems"
+        :media-type="mediaType"
+        :record-prefix="d.identity.type"
+        :heading="t('douban.rec.heading')"
+        :record-map="recRecordMap"
+      />
 
       <div v-if="d.shortComments.length" class="umm-comment-card">
-        <h3 class="umm-comment-heading">热门短评</h3>
+        <h3 class="umm-comment-heading">{{ t('douban.top_comments') }}</h3>
         <div class="umm-comment-list">
           <div v-for="(c, i) in d.shortComments" :key="i" class="umm-comment-item">
             <div class="umm-comment-meta">
@@ -579,7 +582,9 @@ defineExpose({ updateRecord });
                   >★</span
                 ></span
               >
-              <span class="umm-comment-up">{{ c.votes > 0 ? c.votes + ' 有用' : '' }}</span>
+              <span class="umm-comment-up">{{
+                c.votes > 0 ? t('douban.useful', { count: c.votes }) : ''
+              }}</span>
             </div>
             <p class="umm-comment-text">{{ c.content }}</p>
             <span class="umm-comment-time">{{ c.time }}</span>

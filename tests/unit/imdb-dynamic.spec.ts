@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { JSDOM } from 'jsdom';
 import { handleIMDbDetailPage, stopIMDbStateObserver } from '@/entrypoints/content/handlers/imdb';
+import { t } from '@/entrypoints/content/i18n';
 import type { UrlIdentity } from '@/types';
 
 /**
@@ -18,17 +22,15 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'https://www.imdb.com/title/tt26687035/',
   pretendToBeVisual: true,
 });
-(globalThis as { document?: unknown }).document = dom.window.document;
-(globalThis as { window?: unknown }).window = dom.window;
-(globalThis as { Element?: unknown }).Element = dom.window.Element;
-(globalThis as { MutationObserver?: unknown }).MutationObserver = dom.window.MutationObserver;
+defineGlobal('document', dom.window.document);
+defineGlobal('window', dom.window);
+defineGlobal('Element', dom.window.Element);
+defineGlobal('MutationObserver', dom.window.MutationObserver);
 if (
   typeof (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame === 'undefined'
 ) {
-  (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame =
-    dom.window.requestAnimationFrame.bind(dom.window);
-  (globalThis as { cancelAnimationFrame?: unknown }).cancelAnimationFrame =
-    dom.window.cancelAnimationFrame.bind(dom.window);
+  defineGlobal('requestAnimationFrame', dom.window.requestAnimationFrame.bind(dom.window));
+  defineGlobal('cancelAnimationFrame', dom.window.cancelAnimationFrame.bind(dom.window));
 }
 
 const identity: UrlIdentity = {
@@ -65,12 +67,12 @@ function installChromeStub(opts: StubOptions = {}): { sent: SentMessage[] } {
       onMessage: { addListener: () => {} },
     },
   };
-  (globalThis as { chrome?: unknown }).chrome = chromeStub;
+  defineGlobal('chrome', chromeStub);
   return { sent };
 }
 
 function clearChromeStub(): void {
-  (globalThis as { chrome?: unknown }).chrome = undefined;
+  defineGlobal('chrome', undefined);
 }
 
 /** 标题 + 元信息行（chip 锚点）。 */
@@ -151,7 +153,9 @@ test.describe('handleIMDbDetailPage — 动态状态观察', () => {
     const labelBefore =
       dom.window.document.querySelector('.umm-status-chip .umm-label')?.textContent ?? '';
     expect(chipStatus()).toBe('done');
-    expect(labelBefore).toContain('本地');
+    // 文案与产品同源（t()）：断言「选了哪个键」而不是「中文里有没有 (本地)」，
+    // 否则换一种 locale（en/zh-TW/zh-HK）就只是测试自己红。
+    expect(labelBefore).toBe(t('status.done_local'));
 
     dom.window.document.body.insertAdjacentHTML('beforeend', WATCHED_BUTTON);
     await sleep(100);
@@ -159,7 +163,7 @@ test.describe('handleIMDbDetailPage — 动态状态观察', () => {
     expect(chipStatus()).toBe('done');
     const label =
       dom.window.document.querySelector('.umm-status-chip .umm-label')?.textContent ?? '';
-    expect(label).not.toContain('本地');
+    expect(label).toBe(t('status.done'));
   });
 
   test('属性原位变化（aria-pressed 置 true，不替换节点）→ 重扫为 done', async () => {

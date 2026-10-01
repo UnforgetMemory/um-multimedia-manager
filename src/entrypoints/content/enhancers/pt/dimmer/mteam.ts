@@ -1,8 +1,13 @@
 import { throttle } from '@/libraries/utils';
+import { runChunked, type ChunkOptions, type ChunkedRun } from '@/libraries/utils/dom-chunk';
 import { getMTeamSets, applyCacheFallback } from './cache';
 import { getMTeamRowOutcome } from './mteam-match';
+import { memoRowIds } from './row-id-memo';
 import type { CachedIdSets, HandlerContext, ListPageHandler } from '../types';
-import { dimElement } from '../utils';
+import { dimElement, undimElement } from '../utils';
+
+/** Rows written per animation frame on the browse list (~100 rows typical). */
+const MTEAM_CHUNK_SIZE = 20;
 
 export class MTeamHandler implements ListPageHandler {
   readonly id = 'mteam';
@@ -20,7 +25,7 @@ export class MTeamHandler implements ListPageHandler {
     return el.childElementCount > 0 && el.querySelector('a[href]') !== null;
   }
 
-  private debug: (...args: any[]) => void = () => {};
+  private debug: (...args: unknown[]) => void = () => {};
   private observer: MutationObserver | null = null;
 
   /** Watched IDs cache (avoids repeated DB fetches on pollTimer cycles) */
@@ -186,58 +191,92 @@ export class MTeamHandler implements ListPageHandler {
     ].join('::');
   }
 
+  /** In-flight chunked row pass — a new pass cancels it so passes never interleave writes. */
+  private rowRun: ChunkedRun | null = null;
+
+  /**
+   * Chunked per-row pass (X9-B): ~100 browse rows × 3-4 attribute writes would be
+   * a synchronous long task right after the DB fetch. runChunked spreads writes over
+   * animation frames; the returned promise resolves once the whole pass has run, so
+   * callers (process → unresolved filter → cache fallback) still see final markers.
+   * Dedup on re-runs: the previous in-flight pass is cancelled first — rows it
+   * already stamped are skipped by the signature check, rows it never reached are
+   * simply written by the new pass.
+   */
   processMTeamRows(
     rows: Element[],
     movieDoubanIds: Set<string>,
     musicDoubanIds: Set<string>,
     imdbIds: Set<string>,
-  ): void {
+    options: ChunkOptions = {},
+  ): Promise<void> {
+    this.rowRun?.cancel();
     let skipped = 0,
       dimmed = 0,
       notMatched = 0;
-    rows.forEach((row) => {
-      const ids = this.extractMTeamIds(row);
-      const signature = this.getMTeamRowSignature(row, ids);
-      if (
-        row.getAttribute('data-umm-mteam-signature') === signature &&
-        row.getAttribute('data-umm-mteam-resolved') === 'true'
-      ) {
-        skipped++;
-        return;
-      }
+    const run = runChunked(
+      rows,
+      (row) => {
+        const ids = this.extractMTeamIds(row);
+        const signature = this.getMTeamRowSignature(row, ids);
+        if (
+          row.getAttribute('data-umm-mteam-signature') === signature &&
+          row.getAttribute('data-umm-mteam-resolved') === 'true'
+        ) {
+          skipped++;
+          return;
+        }
 
-      row.setAttribute('data-umm-mteam-signature', signature);
+        row.setAttribute('data-umm-mteam-signature', signature);
 
-      const outcome = getMTeamRowOutcome(ids, movieDoubanIds, musicDoubanIds, imdbIds);
+        const outcome = getMTeamRowOutcome(ids, movieDoubanIds, musicDoubanIds, imdbIds);
 
-      if (outcome.matched) {
-        this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify(ids));
-      }
+        if (outcome.matched) {
+          this.debug('[M-Team] DIMMED ✓ row:', JSON.stringify(ids));
+        }
 
-      // 修复（audit M3）：仅 matched 行标记 resolved。未匹配行保持 unresolved，
-      // 使 process() 的 unresolved 过滤非空 → applyCacheFallback 得以执行并消费 pt_id_cache。
-      if (outcome.resolved) {
-        row.setAttribute('data-umm-mteam-resolved', 'true');
-      }
-      row.setAttribute('data-umm-mteam-matched', outcome.matched ? 'true' : 'false');
+        // 修复（audit M3）：仅 matched 行标记 resolved。未匹配行保持 unresolved，
+        // 使 process() 的 unresolved 过滤非空 → applyCacheFallback 得以执行并消费 pt_id_cache。
+        if (outcome.resolved) {
+          // Extracted (not DOM-guessed) ids: keep the memo aligned with the
+          // resolved marker this write creates.
+          memoRowIds(row, {
+            doubanId: ids.movieDoubanId ?? ids.musicDoubanId ?? undefined,
+            imdbId: ids.imdbId ?? undefined,
+          });
+          row.setAttribute('data-umm-mteam-resolved', 'true');
+        }
+        row.setAttribute('data-umm-mteam-matched', outcome.matched ? 'true' : 'false');
 
-      if (outcome.matched) {
-        dimElement(row as HTMLElement);
-        dimmed++;
-      } else {
-        notMatched++;
-      }
-    });
-    this.debug(
-      '[M-Team] processMTeamRows done — total:',
-      rows.length,
-      '| dimmed:',
-      dimmed,
-      '| no match:',
-      notMatched,
-      '| dedup skipped:',
-      skipped,
+        if (outcome.matched) {
+          dimElement(row as HTMLElement);
+          dimmed++;
+        } else {
+          // Rows carrying at least one direct ID got a fresh "not watched"
+          // verdict here — un-dim (D1). ID-less rows are only "unknown" at
+          // this pass (verdict belongs to applyCacheFallback), so their class
+          // stays untouched to avoid flickering cache-resolved rows.
+          const hasDirectId = !!(ids.movieDoubanId || ids.musicDoubanId || ids.imdbId);
+          if (hasDirectId) undimElement(row as HTMLElement);
+          notMatched++;
+        }
+      },
+      { chunkSize: MTEAM_CHUNK_SIZE, ...options },
     );
+    this.rowRun = run;
+    return run.promise.finally(() => {
+      if (this.rowRun === run) this.rowRun = null;
+      this.debug(
+        '[M-Team] processMTeamRows done — total:',
+        rows.length,
+        '| dimmed:',
+        dimmed,
+        '| no match:',
+        notMatched,
+        '| dedup skipped:',
+        skipped,
+      );
+    });
   }
 
   private active = false;
@@ -315,6 +354,9 @@ export class MTeamHandler implements ListPageHandler {
     this.active = false;
     this.processing = false;
     this.processQueued = false;
+    // Stop any in-flight chunked pass — its remaining writes target a dead page.
+    this.rowRun?.cancel();
+    this.rowRun = null;
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
@@ -325,7 +367,7 @@ export class MTeamHandler implements ListPageHandler {
     }
   }
 
-  private throttle<T extends (...args: any[]) => any>(
+  private throttle<T extends (...args: unknown[]) => void>(
     fn: T,
     delay: number,
   ): (...args: Parameters<T>) => void {
@@ -352,7 +394,8 @@ export class MTeamHandler implements ListPageHandler {
     }
     const rows = this.getMTeamRows(document);
     this.debug('[M-Team] Found', rows.length, 'rows');
-    this.processMTeamRows(rows, sets.movieDoubanIds, sets.musicDoubanIds, sets.imdbIds);
+    // Await the frame-spread pass: the unresolved filter below must see final markers.
+    await this.processMTeamRows(rows, sets.movieDoubanIds, sets.musicDoubanIds, sets.imdbIds);
 
     // Cache fallback: for unresolved rows, check pt_id_cache by detail URL
     const unresolved = rows.filter((r) => r.getAttribute('data-umm-mteam-resolved') !== 'true');

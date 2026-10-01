@@ -31,7 +31,15 @@ import { broadcast } from '@/libraries/utils/event-bus';
 import type { SendResponse } from '@/libraries/utils/error-message';
 import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation';
 
-/** Settings fields to include in export (all AppSettings keys except sensitive credentials) */
+/**
+ * Settings fields to include in export (all AppSettings keys except sensitive credentials).
+ *
+ * `neodbToken` is deliberately absent (2026-09-30 user decision): it is a bearer
+ * credential for the user's NeoDB account. Like the WebDAV trio it is exportable
+ * only via an explicit opt-in (`includeNeoDbToken`) and importable only the same
+ * way — a backup file shared with someone else must not silently hand them a
+ * token that pushes ratings to an attacker-controlled NeoDB account.
+ */
 export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
   'autoSync',
   'autoSyncNeoDB',
@@ -44,7 +52,6 @@ export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
   'grayColor',
   'debugEnabled',
   'logLevel',
-  'neodbToken',
   'sehuatangHideViewed',
 ];
 
@@ -52,18 +59,22 @@ export const EXPORT_SETTINGS_KEYS: Array<keyof AppSettings> = [
  * Settings keys allowed on IMPORT by default.
  *
  * Security: this MUST mirror EXPORT_SETTINGS_KEYS and must NOT include
- * credential keys (webdavUrl/webdavUsername/webdavPassword). Previously the
+ * credential keys (webdavUrl/webdavUsername/webdavPassword/neodbToken). Previously the
  * import whitelist used every STORAGE_KEYS value, so a malicious backup could
  * rewrite the WebDAV target to an attacker-controlled server; the next sync
- * would then push the user's full library + real WebDAV password there.
+ * would then push the user's full library + real WebDAV password there. The same
+ * gate now covers `neodbToken`.
  *
- * Opt-in restore of credentials is a separate path (includeWebDAVCredentials)
- * after explicit user confirmation — own backup → own machine.
+ * Opt-in restore of credentials is a separate path (includeWebDAVCredentials /
+ * includeNeoDbToken) after explicit user confirmation — own backup → own machine.
  */
 export const IMPORT_SETTINGS_KEYS: ReadonlySet<string> = new Set(EXPORT_SETTINGS_KEYS);
 
 /** WebDAV credential fields — only applied when the user opts in on import. */
 export const WEBDAV_CREDENTIAL_KEYS = ['webdavUrl', 'webdavUsername', 'webdavPassword'] as const;
+
+/** NeoDB bearer token — only applied when the user opts in on import. */
+export const NEO_DB_CREDENTIAL_KEYS = ['neodbToken'] as const;
 
 /** Map store names to platform identifiers for stats/records aggregation */
 const storePlatformMap: Record<string, string> = {
@@ -92,9 +103,9 @@ export async function handleUpdateSettings(
   sendResponse({ success: true, settings });
 }
 
-/** EXPORT_DATA — dump all stores + settings (excludes WebDAV credentials unless requested) */
+/** EXPORT_DATA — dump all stores + settings (credentials only when explicitly opted in) */
 export async function handleExportData(
-  payload: { includeWebDAVCredentials?: boolean } | undefined,
+  payload: { includeWebDAVCredentials?: boolean; includeNeoDbToken?: boolean } | undefined,
   sendResponse: SendResponse,
 ) {
   const stores = await mediaDB.getAllStores();
@@ -108,12 +119,14 @@ export async function handleExportData(
   // ADR-016 decision 3: optionally include WebDAV credentials when the caller
   // explicitly opts in. This is a user-initiated export (own data → own file),
   // so plaintext credentials are acceptable when the user acknowledges the
-  // warning. Import still rejects these keys (IMPORT_SETTINGS_KEYS), keeping
-  // the security gate one-directional: exportable but not importable.
+  // warning. `neodbToken` follows the same opt-in (2026-09-30).
   if (payload?.includeWebDAVCredentials) {
     settings.webdavUrl = appSettings.webdavUrl;
     settings.webdavUsername = appSettings.webdavUsername;
     settings.webdavPassword = appSettings.webdavPassword;
+  }
+  if (payload?.includeNeoDbToken && typeof appSettings.neodbToken === 'string') {
+    settings.neodbToken = appSettings.neodbToken;
   }
 
   const data: ExportData = {
@@ -128,7 +141,7 @@ export async function handleExportData(
 
 /** IMPORT_DATA — validate + replace all stores */
 export async function handleImportData(
-  payload: ExportData & { includeWebDAVCredentials?: boolean },
+  payload: ExportData & { includeWebDAVCredentials?: boolean; includeNeoDbToken?: boolean },
   sendResponse: SendResponse,
 ) {
   if (!payload?.stores) {
@@ -210,6 +223,14 @@ export async function handleImportData(
     // Opt-in credential restore (ADR-016 one-way gate + explicit user consent).
     if (payload.includeWebDAVCredentials) {
       for (const key of WEBDAV_CREDENTIAL_KEYS) {
+        const value = payload.settings[key];
+        if (typeof value === 'string') {
+          (filtered as Record<string, unknown>)[key] = value;
+        }
+      }
+    }
+    if (payload.includeNeoDbToken) {
+      for (const key of NEO_DB_CREDENTIAL_KEYS) {
         const value = payload.settings[key];
         if (typeof value === 'string') {
           (filtered as Record<string, unknown>)[key] = value;

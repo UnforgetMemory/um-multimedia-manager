@@ -1,0 +1,126 @@
+<!doctype html>
+<!--
+  Synthetic Douban movie-profile fixture for
+  tests/unit/movie-profile-data.spec.ts. NOT a real saved page: all user data
+  is fabricated; only the movie.douban.com/people/<uid>/ DOM shape that
+  src/scenario/douban/pages/movie-profile/movie-profile-data.ts queries is
+  reproduced (#db-movie-mine h2 + div.mod grids, .side-info-avatar,
+  .aside .mod ul.list-m doulists).
+  NOTE: h2 innerHTML stays on one line — the label regex splits at the first
+  whitespace, and pretty-printed indentation would become leading whitespace.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>贾探花的电影主页 - 豆瓣电影</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div class="aside">
+        <div class="side-info">
+          <div class="side-info-avatar">
+            <img src="https://img1.doubanio.com/icon/u27235071-8.jpg" alt="头像" width="96" />
+          </div>
+          <div class="side-info-txt">
+            <h3>贾探花</h3>
+            <p>北京</p>
+          </div>
+        </div>
+        <div class="mod">
+          <h3>我的书影音片单</h3>
+          <ul class="list-m">
+            <li>
+              <p><a href="https://movie.douban.com/doulist/143184672/">华语悬疑片单</a></p>
+              <span class="rec">(34人关注)</span>
+            </li>
+            <li>
+              <p><a href="https://movie.douban.com/doulist/150000001/">2024 待看清单</a></p>
+              <span class="rec">(7人关注)</span>
+            </li>
+            <!-- placeholder row without a title link → must be skipped -->
+            <li><span class="rec">(0人关注)</span></li>
+          </ul>
+        </div>
+      </div>
+      <div id="content">
+        <div id="db-movie-mine">
+          <h2 class="title-text">看过 · <span class="pl"><a href="/people/27235071/movies?status=P">(128部)</a></span></h2>
+          <div class="mod">
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/subject/1292052/">
+                    <img src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p480747492.webp" alt="肖申克的救赎" width="96" />
+                  </a>
+                </li>
+                <!-- title falls back to img[title] when alt is absent -->
+                <li>
+                  <a class="cover" href="/subject/1291546/">
+                    <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p663036132.webp" title="霸王别姬" width="96" />
+                  </a>
+                </li>
+                <!-- placeholder cell without a.cover/img → dropped -->
+                <li class="empty"><span class="pl">查看更多</span></li>
+              </ul>
+            </div>
+          </div>
+          <h2 class="title-text">想看 · <span class="pl"><a href="/people/27235071/movies?status=R">(56部)</a></span></h2>
+          <div class="mod">
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/subject/36067525/">
+                    <img src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2920373525.webp" alt="沙丘2" width="96" />
+                  </a>
+                </li>
+                <li>
+                  <a class="cover" href="/subject/25980843/">
+                    <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2913297200.webp" alt="奥本海默" width="96" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <h2 class="title-text">在看 · <span class="pl"><a href="https://movie.douban.com/people/27235071/movies?status=L">(3部)</a></span></h2>
+          <div class="mod">
+            <div class="sub-list">
+              <ul class="list-s">
+                <!-- img without alt/title → empty title, item dropped -->
+                <li>
+                  <a class="cover" href="/subject/1000000/">
+                    <img src="https://img3.doubanio.com/view/photo/s_ratio_poster/nc.jpg" />
+                  </a>
+                </li>
+                <li>
+                  <a class="cover" href="/subject/1292365/">
+                    <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2173713658.webp" alt="活着" width="96" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <!-- zero-mark section: douban omits the .pl count link entirely -->
+          <h2 class="title-text">二刷 · 反复观看</h2>
+          <h2 class="title-text">收藏的影人 · <span class="pl"><a href="/people/27235071/celebrities">(12位)</a></span></h2>
+          <div class="mod">
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/celebrity/1000537/">
+                    <img src="https://img3.doubanio.com/view/celebrity/s_ratio/celeb/jw.jpg" alt="姜文 Wen Jiang" width="96" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <h2 class="title-text">我的影评 · <span class="pl"><a href="/people/27235071/reviews">(5篇)</a></span></h2>
+          <div class="mod">
+            <div class="sub-list">
+              <ul class="list-s"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

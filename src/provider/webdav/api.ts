@@ -1,5 +1,5 @@
 /**
- * WebDAV client — pure HTTP + ZIP operations
+ * WebDAV transport — HTTP protocol layer.
  *
  * ==================== UTF-8 encoding policy ====================
  * 1. Basic Auth: username:password encoded as UTF-8 bytes before btoa()
@@ -8,12 +8,22 @@
  * 4. ZIP blobs: binary transfer, charset not applicable
  * ==============================================================
  *
+ * Internal seam (ADR-026 req-9): this file is transport-only — URLs, headers,
+ * fetch, status→error mapping. Pure rules (URL normalization, credential
+ * stripping, key→filename hash, meta payload normalization) live in
+ * `./mapping.ts`; the stable public surface is `./index.ts`.
  * No Store/IndexedDB dependency — receives data, returns data.
  * Orchestration happens in background.ts handlers.
  */
 
 import type { RemoteMeta } from '@/types';
 import { errorMessage } from '@/libraries/utils/error-message';
+import {
+  hashKeyToFilename,
+  normalizeRemoteMetaPayload,
+  normalizeUrl,
+  stripUrlCredentials,
+} from './mapping';
 
 const WEBDAV_TIMEOUT = 30_000;
 
@@ -57,40 +67,9 @@ async function fetchWithTimeout(
   }
 }
 
-/** Remove embedded `user:pass@` credentials from a URL for safe logging. */
-function stripUrlCredentials(rawUrl: string): string {
-  try {
-    const u = new URL(rawUrl);
-    u.username = '';
-    u.password = '';
-    return u.toString();
-  } catch {
-    // Unparseable URL — strip the common `scheme://user:pass@` prefix defensively.
-    return rawUrl.replace(/^(\w+:\/\/)[^@/]+@/, '$1');
-  }
-}
-
-// ==================== URL helpers ====================
-
-export function normalizeUrl(url: string): string {
-  return url.trim().replace(/\/+$/, '');
-}
+// ==================== URL composition ====================
 
 const BASE_PATH = 'umm-data';
-
-/**
- * Convert a store key to a safe filename via SHA-256 hash.
- * Keys like "movie:douban" contain :: which is illegal in URL paths.
- * Hashing produces ASCII-only filenames with no special characters.
- */
-async function keyToFilename(key: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(key);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.slice(0, 16); // 16 hex chars = 64-bit collision space
-}
 
 function metaUrl(baseUrl: string): string {
   return `${normalizeUrl(baseUrl)}/${BASE_PATH}/meta.json`;
@@ -150,22 +129,8 @@ export async function fetchRemoteMeta(
 
   // Read as text then parse for full UTF-8 control (bypass auto-charset detection)
   const text = await res.text();
-  const raw = JSON.parse(text);
-
-  // Normalize old format → new format
-  // Old: { version, timestamp, schema: 'umm-webdav-meta' }
-  // New: { dataVersion, updatedAt, schema: 'umm-meta' }
-  if (raw.datasets && Array.isArray(raw.datasets)) {
-    raw.datasets = raw.datasets.map((ds: any) => ({
-      key: ds.key,
-      hash: ds.hash || 'unknown',
-      updatedAt: ds.updatedAt || ds.timestamp || '',
-      recordCount: ds.recordCount || 0,
-      dataVersion: ds.dataVersion ?? ds.version ?? 1,
-    }));
-  }
-
-  return raw as RemoteMeta;
+  // Old→new format normalization policy lives in the pure seam (mapping.ts).
+  return normalizeRemoteMetaPayload(JSON.parse(text));
 }
 
 /** Upload meta.json to WebDAV — UTF-8 encoded JSON */
@@ -213,7 +178,7 @@ export async function uploadDataset(
   key: string,
   blob: Blob,
 ): Promise<void> {
-  const filename = await keyToFilename(key);
+  const filename = await hashKeyToFilename(key);
   const url = datasetUrl(baseUrl, filename);
   const headers = { ...authHeaders(username, password), 'Content-Type': 'application/zip' };
 
@@ -235,7 +200,7 @@ export async function downloadDataset(
   password: string,
   key: string,
 ): Promise<Blob> {
-  const filename = await keyToFilename(key);
+  const filename = await hashKeyToFilename(key);
   const url = datasetUrl(baseUrl, filename);
   const res = await fetchWithTimeout(url, {
     method: 'GET',

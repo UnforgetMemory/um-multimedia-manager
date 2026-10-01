@@ -1,4 +1,5 @@
 import { defineComponent, h } from 'vue';
+import { t } from '../shared/legacy-bridge';
 
 /**
  * UmmRating — unified compact rating display for Douban cards.
@@ -48,7 +49,7 @@ export const UmmRating = defineComponent({
       }
 
       if (props.score === undefined) {
-        children.push(h('span', { class: 'umm-rating-na' }, '暂无评分'));
+        children.push(h('span', { class: 'umm-rating-na' }, t('common.rating_unknown')));
       }
 
       return h('span', { class: 'umm-rating' }, children);

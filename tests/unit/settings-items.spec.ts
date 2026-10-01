@@ -77,9 +77,18 @@ test.beforeAll(async () => {
   cacheMod = await import('@/engine/settings/cache');
 });
 
+test.beforeEach(() => {
+  // Re-assert rather than bind once: `testAreaOverride` is module state that
+  // outlives this file's chunks, and another file may have rebound it.
+  items.__bindSettingsAreaForTests(area);
+});
+
 const ORIGINAL_CHROME = (globalThis as { chrome?: unknown }).chrome;
 
 test.afterAll(() => {
+  // Release the module-level override, else the next spec in this worker writes
+  // settings through this file's area instead of through its own chrome stub.
+  items.__bindSettingsAreaForTests(undefined);
   // 恢复原值而非抹除：同 worker 内其他 spec 可能先设过 chrome。
   (globalThis as { chrome?: unknown }).chrome = ORIGINAL_CHROME;
 });

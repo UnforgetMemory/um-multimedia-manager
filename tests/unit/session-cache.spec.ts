@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/features/cache/session-cache.ts (L1.5 session cache).
+ * Unit tests for src/engine/cache/session-cache.ts (L1.5 session cache).
  *
  * chrome.storage.session is mocked as an in-memory Map to verify:
  *  - get/set/remove/removeByPrefix/clear round-trips
@@ -8,7 +8,11 @@
  *  - exception swallowing (soft miss, never throw)
  */
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
 import * as sessionCache from '@/engine/cache/session-cache';
+
+// Installs happen inside tests below; register this file's sandbox hooks at module scope.
+initFileSandbox();
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,11 +49,11 @@ function createSessionMock(): {
 }
 
 function setChrome(stub: object): void {
-  (globalThis as { chrome?: unknown }).chrome = stub;
+  defineGlobal('chrome', stub);
 }
 
 function clearChrome(): void {
-  (globalThis as { chrome?: unknown }).chrome = undefined;
+  defineGlobal('chrome', undefined);
 }
 
 // ---------------------------------------------------------------------------

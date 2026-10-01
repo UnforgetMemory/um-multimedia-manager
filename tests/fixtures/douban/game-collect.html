@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for
+  src/scenario/douban/pages/game-collect/game-collect-data.ts.
+  NOT a real saved page: user, ids and comments are fabricated.
+  Only the game interest-list DOM contract the extractor queries is
+  reproduced: #db-usr-profile (.pic img alt / h1), .tabs a.on,
+  .paginator (.count / .thispage / next-prev spans) and
+  .game-list .common-item (.title a[href*="/game/"] / .pic img / .desc /
+  .rating-info .rating-star + .date / .content > .desc … .user-operation).
+  Page 1 of a 23-game shelf; 3 items rendered — one still on the site
+  placeholder cover, one without any rating/comment.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>UnforgetMemory的游戏记录(23)</title>
+  </head>
+  <body>
+    <div id="db-usr-profile">
+      <div class="pic">
+        <a href="https://www.douban.com/people/unforgetmemory/">
+          <img src="https://img3.doubanio.com/icon/u150361821-2.jpg" alt="UnforgetMemory" width="64" />
+        </a>
+      </div>
+      <div class="info">
+        <h1>UnforgetMemory的游戏记录(23)</h1>
+        <ul class="info-nav">
+          <li><a href="https://www.douban.com/people/unforgetmemory/games?action=collect">玩过 23</a></li>
+          <li><a href="https://www.douban.com/people/unforgetmemory/games?action=wish">想玩 11</a></li>
+          <li><a href="https://www.douban.com/people/unforgetmemory/games?action=do">在玩 2</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="article">
+        <ul class="tabs">
+          <li><a class="on" href="?action=collect">玩过</a></li>
+          <li><a href="?action=wish">想玩</a></li>
+          <li><a href="?action=do">在玩</a></li>
+        </ul>
+
+        <div class="game-list">
+          <div class="common-item">
+            <div class="pic">
+              <a href="https://www.douban.com/game/35762065/">
+                <img src="https://img1.doubanio.com/view/game/s/public/p35762065.jpg" alt="塞尔达传说：王国之泪" width="96" />
+              </a>
+            </div>
+            <div class="title"><a href="https://www.douban.com/game/35762065/">塞尔达传说：王国之泪</a></div>
+            <div class="desc">Nintendo Switch / 2023-05-12 发行</div>
+            <div class="rating-info">
+              <span class="rating-star allstar50" title="力荐"></span>
+              <span class="date">2024-02-18</span>
+            </div>
+            <div class="content">
+              <div class="desc">我的短评</div>
+              <p class="user-comment">120 小时通关，究极手依然玩不转。</p>
+              <span class="user-operation"><a href="?action=collect">玩过</a></span>
+            </div>
+          </div>
+
+          <div class="common-item">
+            <div class="pic">
+              <a href="https://www.douban.com/game/30393103/">
+                <!-- 站点占位图：提取器按约定把 posterUrl 归零 -->
+                <img src="https://img1.doubanio.com/spic/loading/l/movie_game_normal.png" alt="" width="96" />
+              </a>
+            </div>
+            <div class="title"><a href="https://www.douban.com/game/30393103/">博德之门3</a></div>
+            <!-- .desc 前带标签节点：平台取第一个非空文本节点 -->
+            <div class="desc"><span class="pl">平台：</span>PS5</div>
+            <div class="rating-info">
+              <span class="rating-star allstar40" title="推荐"></span>
+              <span class="date">2023-09-30</span>
+            </div>
+            <div class="content">
+              <div class="desc">我的短评</div>
+              <span class="user-operation"><a href="?action=collect">玩过</a></span>
+            </div>
+          </div>
+
+          <!-- 只标记了玩过：无评分、无日期、无短评 -->
+          <div class="common-item">
+            <div class="pic">
+              <a href="https://www.douban.com/game/27195640/">
+                <img src="https://img9.doubanio.com/view/game/s/public/p27199846.jpg" alt="十三机兵防卫圈" width="96" />
+              </a>
+            </div>
+            <div class="title"><a href="https://www.douban.com/game/27195640/">十三机兵防卫圈</a></div>
+          </div>
+
+        </div>
+
+        <div class="paginator">
+          <span class="count">共23个</span>
+          <span class="prev"><a href="?action=collect&amp;start=0">前页</a></span>
+          <span class="thispage" data-total-page="1">1</span>
+          <span class="next"><a href="?action=collect&amp;start=30">后页</a></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 侧栏热门位：.common-item 但不在 .game-list 下，提取器必须跳过 -->
+    <div class="aside">
+      <div class="common-item">
+        <div class="title"><a href="https://www.douban.com/game/10000000/">侧栏推荐游戏</a></div>
+        <div class="desc">PS5</div>
+      </div>
+    </div>
+  </body>
+</html>

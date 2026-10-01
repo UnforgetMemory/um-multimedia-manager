@@ -28,11 +28,18 @@ import {
  * Also installs IDBKeyRange — a native browser global the dual-cursor
  * implementation relies on, but absent in the Node test env (fake-indexeddb
  * ships it as an export). Mirrors the Chrome runtime the extension targets.
+ * characterize()'s finally releases both again (shared-worker hygiene).
  */
+const globalScope = globalThis as unknown as {
+  indexedDB?: IDBFactory;
+  IDBKeyRange?: typeof IDBKeyRange;
+};
+const ORIGINAL_INDEXEDDB = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+const ORIGINAL_IDB_KEY_RANGE = Object.getOwnPropertyDescriptor(globalThis, 'IDBKeyRange');
+
 function freshIndexedDB(): void {
-  const g = globalThis as unknown as { indexedDB: IDBFactory; IDBKeyRange: typeof IDBKeyRange };
-  g.indexedDB = new IDBFactory();
-  g.IDBKeyRange = IDBKeyRange;
+  globalScope.indexedDB = new IDBFactory();
+  globalScope.IDBKeyRange = IDBKeyRange;
 }
 
 /** Open a raw connection to the (already-created) DB. No upgrade runs. */
@@ -122,6 +129,13 @@ async function characterize(
   } finally {
     mdb.close();
     rawDb.close();
+    // Playwright reuses one worker across spec files: drop the fake-indexeddb
+    // globals this run installed instead of leaking them to the next spec.
+    if (ORIGINAL_INDEXEDDB) Object.defineProperty(globalThis, 'indexedDB', ORIGINAL_INDEXEDDB);
+    else delete globalScope.indexedDB;
+    if (ORIGINAL_IDB_KEY_RANGE)
+      Object.defineProperty(globalThis, 'IDBKeyRange', ORIGINAL_IDB_KEY_RANGE);
+    else delete globalScope.IDBKeyRange;
   }
 }
 

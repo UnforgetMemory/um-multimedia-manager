@@ -93,20 +93,28 @@ test('queue full → schedule rejects with clear error', async () => {
 
   // Occupy the queue with MAX_QUEUE_SIZE pending tasks whose operations block
   // forever, so every subsequent enqueue hits the size cap.
+  const releases: Array<() => void> = [];
   const blockers: Promise<unknown>[] = [];
   for (let i = 0; i < MAX_QUEUE_SIZE; i++) {
-    blockers.push(
-      scheduler.schedule(
-        () =>
-          new Promise(() => {
-            /* never resolves */
-          }),
-        { priority: 'LOW', timeout: 60_000 },
-      ),
-    );
+    let release!: () => void;
+    const blocked = new Promise<string>((resolve) => {
+      release = () => resolve('blocked');
+    });
+    releases.push(release);
+    blockers.push(scheduler.schedule(() => blocked, { priority: 'LOW', timeout: 60_000 }));
   }
 
-  await expect(scheduler.schedule(async () => 'overflow', { priority: 'LOW' })).rejects.toThrow(
-    /Queue full/,
-  );
+  try {
+    await expect(scheduler.schedule(async () => 'overflow', { priority: 'LOW' })).rejects.toThrow(
+      /Queue full/,
+    );
+  } finally {
+    // Only the head task ever ran (the loop stalls on it), so teardown is:
+    // reject the 999 still-queued tasks through the documented clear(), and
+    // settle the head task so its 60s timer is cleared. Leaving them armed
+    // makes the timeout fire mid-run as an error attached to no test.
+    scheduler.clear();
+    for (const release of releases) release();
+    await Promise.all(blockers.map((b) => b.catch(() => undefined)));
+  }
 });

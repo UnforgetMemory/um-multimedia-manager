@@ -3,7 +3,13 @@
  *
  * 从 sehuatang-controls.ts 拆出（上帝模块瘦身）：菜单接口/样式/编排全部
  * 归本模块，header 操作按钮的接线方（sehuatang.ts）直接 import。
+ *
+ * 焦点陷阱与 dialog ARIA 走 `libraries` 共享契约（与 umm-interest-bar /
+ * doulist-dialog 同一实现）——overlay 组件库合并波的 DOM 契约层统一。
  */
+
+import { applyDialogAria } from '@/libraries/ui-contracts/dialog-aria';
+import { handleTrapTabKey, returnFocusIfLost } from '@/libraries/utils/focus-trap';
 
 export interface SehuatangMenuAction {
   label: string;
@@ -67,13 +73,14 @@ export function openSehuatangMenu(
 
   const panel = doc.createElement('div');
   panel.className = 'umm-panel umm-sht-menu-panel';
-  panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-modal', 'true');
+  applyDialogAria(panel, { labelledBy: 'umm-sht-menu-title' });
   panel.style.cssText =
     'padding:16px;width:min(320px,90vw);display:flex;flex-direction:column;gap:12px';
 
   const headerRow = el(doc, 'div', 'umm-sht-menu-header');
-  headerRow.appendChild(el(doc, 'h3', 'umm-sht-menu-title', title));
+  const titleEl = el(doc, 'h3', 'umm-sht-menu-title', title);
+  titleEl.id = 'umm-sht-menu-title';
+  headerRow.appendChild(titleEl);
   const closeBtn = doc.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'umm-sht-menu-close';
@@ -111,7 +118,7 @@ export function openSehuatangMenu(
     doc.removeEventListener('pointerdown', onPointerDown, true);
     overlay.remove();
     if (activeMenuCleanup === cleanup) activeMenuCleanup = null;
-    anchor.focus();
+    returnFocusIfLost(anchor, doc);
   };
   const onKeydown = (e: Event) => {
     const key = (e as KeyboardEvent).key;
@@ -120,25 +127,7 @@ export function openSehuatangMenu(
       cleanup();
       return;
     }
-    // 焦点陷阱：Tab/Shift+Tab 在面板可聚焦元素间循环，不逃逸到背景页面。
-    if (key === 'Tab') {
-      const focusables = Array.from(
-        panel.querySelectorAll<HTMLElement>('button, [href], input, select, textarea'),
-      );
-      if (focusables.length === 0) return;
-      const first = focusables[0]!;
-      const last = focusables[focusables.length - 1]!;
-      const active = doc.activeElement as HTMLElement | null;
-      if ((e as KeyboardEvent).shiftKey) {
-        if (active === first || !panel.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else if (active === last || !panel.contains(active)) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
+    handleTrapTabKey(e as KeyboardEvent, panel);
   };
   const onPointerDown = (e: Event) => {
     if (!panel.contains(e.target as Node)) cleanup();

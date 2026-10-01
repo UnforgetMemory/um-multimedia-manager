@@ -101,13 +101,14 @@ function parseSubForum(td: Element): SehuatangSubForum | null {
     }
   }
 
-  // 最后发表：第二个 dd（可能含 a，文本是整段混合）。
+  // 最后发表：第二个 dd（可能含 a，文本是整段混合）。取 ddList[1] 而非末位——
+  // 有子版块的真实版块会在末位追加 .clp「子分类」dd，末位读取会误当最后发表。
   // 外链版块（如「鲍鱼直播盒子」）只有单个 dd，Discuz 文本为「链接到外部
   // 地址」——透传原文（与原页一致），避免误显示「从未」。
   const ddList = td.querySelectorAll('dd');
   let lastPostLabel: string | null = null;
   if (ddList.length >= 2) {
-    const text = (ddList[ddList.length - 1]?.textContent ?? '').trim();
+    const text = (ddList[1]?.textContent ?? '').trim();
     if (text) lastPostLabel = text.replace(/\s+/g, ' ');
   } else if (ddList.length === 1) {
     const text = (ddList[0]?.textContent ?? '').replace(/\s+/g, ' ').trim();

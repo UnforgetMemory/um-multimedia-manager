@@ -1,0 +1,63 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/trailer-data.spec.ts.
+  NOT a real saved page; reproduces the movie.douban.com /subject/{id}/trailer
+  listing DOM shape consumed by src/scenario/douban/pages/trailer/trailer-data.ts
+  (预告片 .mod + 视频评论 .mod with ul.video-col3).
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>《肖申克的救赎》预告片</title>
+  </head>
+  <body>
+    <div id="content">
+      <h1><a href="https://movie.douban.com/subject/1292052/">肖申克的救赎</a> 预告片</h1>
+      <div class="mod">
+        <div class="hd"><h2 id="trailer">预告片</h2><a class="more" href="#">更多预告片 »</a></div>
+        <ul class="video-list">
+          <li>
+            <a class="pr-video" href="/trailer/130123/">
+              <img data-src="https://img1.doubanio.com/f/movie/img/trailer/small/p130123.jpg" alt="" />
+              <strong class="pv-play"><em>02:30</em></strong>
+            </a>
+            <p><a href="/trailer/130123/">《肖申克的救赎》先行预告片</a></p>
+            <p class="trail-meta"><span>2013-12-15</span> (<a href="/trailer/130123/#comments">12</a>回应)</p>
+          </li>
+          <li>
+            <a class="pr-video" href="https://movie.douban.com/trailer/130124/">
+              <img src="https://img1.doubanio.com/f/movie/img/trailer/small/p130124.jpg" alt="" />
+            </a>
+            <strong class="pv-play"><em>01:12</em></strong>
+            <p><a href="/trailer/130124/"> 删减片段合集 </a></p>
+            <p class="trail-meta"><span>2014-01-02</span></p>
+          </li>
+          <li><p><a href="/trailer/999999/">无封面链接项，应被跳过</a></p></li>
+          <li>
+            <a class="pr-video" href="/trailer/130125/"><img data-src="https://img1.doubanio.com/f/movie/img/trailer/small/p130125.jpg" alt="" /></a>
+            <strong class="pv-play"><em>00:45</em></strong>
+          </li>
+        </ul>
+      </div>
+      <div class="mod">
+        <div class="hd"><h2 id="short_video">视频评论</h2></div>
+        <div class="video-list">
+          <ul class="video-col3">
+            <li>
+              <a class="pr-video" href="/video/200567/">
+                <img data-src="https://img1.doubanio.com/f/movie/img/video/small/v200567.jpg" alt="" />
+                <strong class="pv-play"><em>12:05</em></strong>
+              </a>
+              <p><a href="/video/200567/">深度解读《肖申克的救赎》</a> · <a href="https://movie.douban.com/people/critic007/">迷影笔记</a></p>
+              <p class="trail-meta"><span>2021-05-03</span> (<a href="/video/200567/#comments">8</a>回应)</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div id="aside">
+      <!-- #content 之外的推荐位干扰项 -->
+      <a href="https://movie.douban.com/subject/1291544/">推荐电影</a>
+    </div>
+  </body>
+</html>

@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { openExternalUrl } from '@/libraries/utils/safe-url';
+import type { StoreRecord } from '@/types';
 import { computed } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { subjectIdFromUrl } from '../../shared/subject-keys';
 import {
   recordStatusBadge,
   type PersonageCreationsPageData,
@@ -8,31 +13,49 @@ import {
   type RecordStatusBadge,
 } from './personage-creations-data';
 
-const props = defineProps<{ data: PersonageCreationsPageData }>();
+const props = defineProps<{
+  data: PersonageCreationsPageData;
+  recordMap?: Map<string, StoreRecord>;
+}>();
 const d = props.data;
+
+// Seeded from the mount-time batch read, then live-refreshed by record events.
+const { records } = useRecordCache(
+  'movie',
+  () =>
+    d.creations
+      .map((creation) => subjectIdFromUrl(creation.url))
+      .filter((id): id is string => Boolean(id)),
+  props.recordMap ?? new Map<string, StoreRecord>(),
+);
 
 interface CreationWithBadge extends CreationItem {
   badge: RecordStatusBadge | null;
+  recordRating: number;
 }
 
-/** Decorate creations with their record-status badge (pure mapping). */
+/** Badge is derived from the live record map on every render, never stored back. */
 const creations = computed<CreationWithBadge[]>(() =>
-  d.creations.map((c) => ({
-    ...c,
-    badge: c.recordStatus ? recordStatusBadge(c.recordStatus) : null,
-  })),
+  d.creations.map((creation) => {
+    const rec = records.value.get(subjectIdFromUrl(creation.url) ?? '');
+    return {
+      ...creation,
+      badge: recordStatusBadge(rec?.status ?? 0),
+      recordRating: rec?.rating ?? 0,
+    };
+  }),
 );
 
 const sortOptions = [
-  { key: 'time', label: '按时间排序' },
-  { key: 'collection', label: '按标记排序' },
-  { key: 'vote', label: '按评价排序' },
+  { key: 'time', label: t('Sort By Time') },
+  { key: 'collection', label: t('Sort By Collection') },
+  { key: 'vote', label: t('Sort By Rating') },
 ] as const;
 
 const typeTabs = [
-  { key: 'filmmaker', label: '影视' },
-  { key: 'writer', label: '图书' },
-  { key: 'musician', label: '音乐' },
+  { key: 'filmmaker', labelKey: 'douban.pc.tab_filmmaker' },
+  { key: 'writer', labelKey: 'douban.pc.tab_writer' },
+  { key: 'musician', labelKey: 'douban.pc.tab_musician' },
 ] as const;
 
 /** Base URL for filter links, preserving current sort/type/role state */
@@ -47,15 +70,16 @@ function filterUrl(params: Record<string, string>): string {
 }
 
 function openUrl(url: string): void {
-  if (url) window.open(url, '_blank');
-}
-
-function getCreationKey(creation: CreationItem, index: number): string {
-  return `${index}-${creation.recordStatus ?? 0}-${creation.recordRating ?? 0}`;
+  if (url) openExternalUrl(url);
 }
 
 const roleOptions = computed(() => [
-  { label: '全部', role: '', url: filterUrl({ role: '' }), active: !d.currentRole },
+  {
+    labelKey: 'douban.pc.role_all',
+    role: '',
+    url: filterUrl({ role: '' }),
+    active: !d.currentRole,
+  },
   ...d.roleOptions,
 ]);
 
@@ -71,7 +95,7 @@ function formatRole(role: string): string {
       <!-- Empty state -->
       <div v-if="!d.creations.length" class="umm-personage-empty">
         <div class="umm-empty-icon">📭</div>
-        <div class="umm-empty-text">暂无作品信息</div>
+        <div class="umm-empty-text">{{ t('douban.pc.empty') }}</div>
       </div>
 
       <template v-else>
@@ -79,7 +103,9 @@ function formatRole(role: string): string {
         <div class="umm-creations-header">
           <div class="umm-creations-title-row">
             <h1 class="umm-creations-title">{{ d.personName }}</h1>
-            <span class="umm-creations-count">共 {{ d.totalWorks }} 部作品</span>
+            <span class="umm-creations-count">{{
+              t('douban.pc.count', { count: d.totalWorks })
+            }}</span>
           </div>
 
           <!-- Type tabs -->
@@ -91,7 +117,7 @@ function formatRole(role: string): string {
               :class="{ 'umm-creations-tab--active': d.currentType === tab.key }"
               @click="openUrl(filterUrl({ type: tab.key }))"
             >
-              {{ tab.label }}
+              {{ t(tab.labelKey) }}
             </button>
           </div>
 
@@ -110,7 +136,7 @@ function formatRole(role: string): string {
 
           <!-- Role filter -->
           <div class="umm-creations-rolebar">
-            <span class="umm-creations-rolebar-label">按角色查看：</span>
+            <span class="umm-creations-rolebar-label">{{ t('douban.pc.role_hint') }}</span>
             <div class="umm-creations-rolebar-options">
               <a
                 v-for="opt in roleOptions"
@@ -119,7 +145,7 @@ function formatRole(role: string): string {
                 class="umm-creations-role-chip"
                 :class="{ 'umm-creations-role-chip--active': opt.active }"
                 @click.prevent="openUrl(opt.url)"
-                >{{ opt.label }}</a
+                >{{ t(opt.labelKey) }}</a
               >
             </div>
           </div>
@@ -127,11 +153,7 @@ function formatRole(role: string): string {
 
         <!-- Creations list -->
         <div class="umm-creations-list">
-          <div
-            v-for="(creation, i) in creations"
-            :key="getCreationKey(creation, i)"
-            class="umm-creation-card"
-          >
+          <div v-for="(creation, i) in creations" :key="i" class="umm-creation-card">
             <!-- Poster -->
             <div
               class="umm-creation-poster"
@@ -158,18 +180,18 @@ function formatRole(role: string): string {
 
               <!-- Director & Cast -->
               <div v-if="creation.director" class="umm-creation-meta">
-                <span class="umm-creation-meta-label">导演：</span>
+                <span class="umm-creation-meta-label">{{ t('douban.pc.director') }}</span>
                 {{ creation.director.replace(/^导演：/, '') }}
               </div>
               <div v-if="creation.cast" class="umm-creation-meta">
-                <span class="umm-creation-meta-label">主演：</span>
+                <span class="umm-creation-meta-label">{{ t('douban.pc.cast') }}</span>
                 {{ creation.cast.replace(/^主演：/, '') }}
               </div>
 
               <!-- Rating -->
               <div v-if="creation.rating" class="umm-creation-rating">
                 <span class="umm-creation-rating-star">{{ creation.rating }}</span>
-                <span class="umm-creation-rating-label">分</span>
+                <span class="umm-creation-rating-label">{{ t('douban.pc.score_suffix') }}</span>
               </div>
             </div>
 
@@ -179,7 +201,7 @@ function formatRole(role: string): string {
               class="umm-creation-badge"
               :class="'umm-creation-badge--' + creation.badge.variant"
             >
-              <span>{{ creation.badge.label }}</span>
+              <span>{{ t(creation.badge.labelKey) }}</span>
               <span v-if="creation.recordRating" class="umm-creation-badge-rating">{{
                 creation.recordRating
               }}</span>
@@ -190,11 +212,13 @@ function formatRole(role: string): string {
         <!-- Pagination -->
         <div v-if="d.totalPages > 1" class="umm-creations-paginator">
           <button v-if="d.hasPrev" class="umm-paginator-btn" @click="openUrl(d.prevUrl)">
-            &lt; 前页
+            {{ t('douban.pc.prev') }}
           </button>
-          <span class="umm-paginator-info"> 第 {{ d.currentPage }} / {{ d.totalPages }} 页 </span>
+          <span class="umm-paginator-info">
+            {{ t('douban.pc.page_info', { current: d.currentPage, total: d.totalPages }) }}
+          </span>
           <button v-if="d.hasNext" class="umm-paginator-btn" @click="openUrl(d.nextUrl)">
-            后页 &gt;
+            {{ t('douban.pc.next') }}
           </button>
         </div>
       </template>

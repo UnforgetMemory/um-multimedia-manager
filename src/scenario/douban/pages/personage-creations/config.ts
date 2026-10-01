@@ -2,7 +2,8 @@ import { definePageMount } from '../../mount-factory';
 import { createApp } from 'vue';
 import { hideNavForPage } from '../../shared/hide-nav';
 import { withRetry } from '../../shared/retry';
-import { loadRecordMap } from '../../shared/load-record-map';
+import { loadRecordMapForIds } from '../../shared/load-record-map';
+import { subjectIdFromUrl } from '../../shared/subject-keys';
 
 export const mountPersonageCreations = definePageMount({
   cssPreset: 'personage-creations',
@@ -22,27 +23,15 @@ export const mountPersonageCreations = definePageMount({
       });
     if (!data) throw new Error('[UMM] Could not extract personage creations data');
 
-    // Enrich creations with record status from IndexedDB
-    try {
-      const ids = data.creations
-        .map((c) => c.url.match(/\/subject\/(\d+)/)?.[1])
-        .filter((id): id is string => Boolean(id));
-      const recordMap = await loadRecordMap('movie', ids);
-      for (const creation of data.creations) {
-        const subjectId = creation.url.match(/\/subject\/(\d+)/)?.[1];
-        if (!subjectId) continue;
-        const rec = recordMap.get(subjectId);
-        if (rec && rec.status > 0) {
-          creation.recordStatus = rec.status;
-          creation.recordRating = rec.rating;
-        }
-      }
-    } catch {
-      /* silent */
-    }
+    // Targeted batch read (`movie::` — douban TV shares the movie prefix),
+    // threaded to the overlay as the seed for its live record cache.
+    const ids = data.creations
+      .map((creation) => subjectIdFromUrl(creation.url))
+      .filter((id): id is string => Boolean(id));
+    const recordMap = await loadRecordMapForIds('movie', ids);
 
     hideNavForPage({ type: 'personage-creations' });
-    return data;
+    return { data, recordMap };
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
+  createApp: (RootCmp, data) => createApp(RootCmp, data),
 });

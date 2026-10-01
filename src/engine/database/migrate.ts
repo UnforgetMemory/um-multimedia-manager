@@ -12,6 +12,7 @@
  * models.ts — no import cycle.
  */
 
+import { debugLog } from '@/libraries/utils/logger';
 export interface MigrationStoreNames {
   DOUBAN: string;
   IMDB: string;
@@ -56,7 +57,7 @@ export function migrateSchema(
     adultAvIdFromKey,
   } = deps;
 
-  console.log(`[DB] Upgrading from v${oldVersion} to v${DB_VERSION}`);
+  debugLog(`[DB] Upgrading from v${oldVersion} to v${DB_VERSION}`);
 
   if (oldVersion < 6) {
     // Fresh install or pre-v6: drop everything and create all stores
@@ -79,7 +80,7 @@ export function migrateSchema(
     // harmless empty sync_logs store — deliberately NO version bump to
     // avoid forcing a migration on every existing user.
 
-    console.log(`[DB] Created v6 schema from scratch`);
+    debugLog(`[DB] Created v6 schema from scratch`);
   }
 
   // v6→v7: add pt_id_cache store, preserve existing data
@@ -87,7 +88,7 @@ export function migrateSchema(
     if (!db.objectStoreNames.contains(STORE_NAMES.PT_ID_CACHE)) {
       const ptCache = db.createObjectStore(STORE_NAMES.PT_ID_CACHE);
       ptCache.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added pt_id_cache store');
+      debugLog('[DB] Added pt_id_cache store');
     }
   }
 
@@ -99,7 +100,7 @@ export function migrateSchema(
     if (!db.objectStoreNames.contains('sehuatang_avids')) {
       const avStore = db.createObjectStore('sehuatang_avids');
       avStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added sehuatang_avids store');
+      debugLog('[DB] Added sehuatang_avids store');
     }
   }
 
@@ -108,7 +109,7 @@ export function migrateSchema(
     if (!db.objectStoreNames.contains(STORE_NAMES.JAV_IDS)) {
       const avStore = db.createObjectStore(STORE_NAMES.JAV_IDS);
       avStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Created jav_ids store');
+      debugLog('[DB] Created jav_ids store');
     }
   }
 
@@ -118,7 +119,7 @@ export function migrateSchema(
       const biliStore = db.createObjectStore(STORE_NAMES.BILIBILI);
       biliStore.createIndex('status', 'status', { unique: false });
       biliStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added bilibili_records store');
+      debugLog('[DB] Added bilibili_records store');
     }
   }
 
@@ -128,7 +129,7 @@ export function migrateSchema(
       const ytStore = db.createObjectStore(STORE_NAMES.YOUTUBE);
       ytStore.createIndex('status', 'status', { unique: false });
       ytStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added youtube_records store');
+      debugLog('[DB] Added youtube_records store');
     }
   }
 
@@ -138,7 +139,7 @@ export function migrateSchema(
       const bangumiStore = db.createObjectStore(STORE_NAMES.BANGUMI);
       bangumiStore.createIndex('status', 'status', { unique: false });
       bangumiStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added bangumi_records store');
+      debugLog('[DB] Added bangumi_records store');
     }
   }
 
@@ -176,7 +177,7 @@ export function migrateSchema(
           cursorReq.onsuccess = () => {
             const cursor = cursorReq.result;
             if (!cursor) {
-              console.log(`[DB] v13: copied ${copied} entries from sehuatang_avids to jav_ids`);
+              debugLog(`[DB] v13: copied ${copied} entries from sehuatang_avids to jav_ids`);
               return;
             }
             const existingReq = dstStore.get(cursor.key);
@@ -235,7 +236,7 @@ export function migrateSchema(
           cursorReq.onsuccess = () => {
             const cursor = cursorReq.result;
             if (!cursor) {
-              console.log(`[DB] v13: normalized ${moved} keys in ${storeName}`);
+              debugLog(`[DB] v13: normalized ${moved} keys in ${storeName}`);
               return;
             }
             const oldKey = cursor.key;
@@ -249,7 +250,7 @@ export function migrateSchema(
               // ('tv::…', 'music::…', …) is untouched — report it so the
               // unexpected-format key is visible in the logs.
               if (!oldKey.startsWith('movie::')) {
-                console.log(
+                debugLog(
                   `[DB] v13: key with unrecognized prefix left as-is in ${storeName}: ${oldKey}`,
                 );
               }
@@ -335,12 +336,12 @@ export function migrateSchema(
     if (!db.objectStoreNames.contains(STORE_NAMES.USAV_IDS)) {
       const usavStore = db.createObjectStore(STORE_NAMES.USAV_IDS);
       usavStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added usav_ids store');
+      debugLog('[DB] Added usav_ids store');
     }
     if (!db.objectStoreNames.contains(STORE_NAMES.SEHUATANG_IDS)) {
       const shtStore = db.createObjectStore(STORE_NAMES.SEHUATANG_IDS);
       shtStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      console.log('[DB] Added sehuatang_ids store');
+      debugLog('[DB] Added sehuatang_ids store');
     }
   }
 
@@ -359,7 +360,7 @@ export function migrateSchema(
         const store = upgradeTx.objectStore(storeName);
         if (!store.indexNames.contains(ADULT_AV_ID_INDEX)) {
           store.createIndex(ADULT_AV_ID_INDEX, ADULT_AV_ID_INDEX, { unique: false });
-          console.log(`[DB] v15: added ${ADULT_AV_ID_INDEX} index to ${storeName}`);
+          debugLog(`[DB] v15: added ${ADULT_AV_ID_INDEX} index to ${storeName}`);
         }
         // 回填游标（与建索引同一 upgrade 事务）：值内 avId ≠ 键后缀时补齐，
         // 否则该记录不会出现在索引中（旧库存量记录一律缺字段）。
@@ -368,7 +369,7 @@ export function migrateSchema(
         cursorReq.onsuccess = () => {
           const cursor = cursorReq.result;
           if (!cursor) {
-            console.log(`[DB] v15: backfilled ${backfilled} records in ${storeName}`);
+            debugLog(`[DB] v15: backfilled ${backfilled} records in ${storeName}`);
             return;
           }
           const key = cursor.key;
@@ -399,5 +400,5 @@ export function migrateSchema(
     }
   }
 
-  console.log(`[DB] Upgrade complete: now at v${DB_VERSION}`);
+  debugLog(`[DB] Upgrade complete: now at v${DB_VERSION}`);
 }

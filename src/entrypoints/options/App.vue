@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n';
 import { useThemeStore } from '@/store/theme';
 import { useAppStore } from '@/store/app';
 import { useLocaleSync } from '@/feature/composables/use-locale-sync';
-import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next';
+import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from '@/libraries/ui/icons';
 import ConfirmDialog from '@/feature/ConfirmDialog.vue';
 import ToastContainer from '@/feature/ToastContainer.vue';
 import NavItem from '@/libraries/ui/nav-item/NavItem.vue';

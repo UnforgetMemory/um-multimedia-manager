@@ -1,7 +1,7 @@
 /**
  * UMM Design Tokens — Content Script Colors (Layer 3)
  *
- * ADR-018: values are DERIVED from src/shared/styles/tokens.static.css
+ * ADR-018: values are DERIVED from src/libraries/styles/tokens.static.css
  * (the single source of truth). This file exists because global-injected
  * styles are JS template strings in scopes where CSS variables don't exist.
  * scripts/check-design-tokens.cjs (npm run ds:check) verifies this file

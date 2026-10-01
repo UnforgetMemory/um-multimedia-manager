@@ -84,9 +84,11 @@ export function createStatusChip(
   // （共享实现见 utils/status-label-key.ts）
   const k = (suffix: string, base: string): string => statusLabelKey(type, suffix, base);
 
+  // When a local-only "done" is shown, the *_local label IS the cache hint.
+  const doneWithLocalMarker = status === 2 && Boolean(note);
   const label =
     status === 2
-      ? note
+      ? doneWithLocalMarker
         ? t(k('done_local', 'status.done_local'))
         : t(k('done', 'status.done'))
       : status === 3
@@ -100,8 +102,9 @@ export function createStatusChip(
   // XSS 防护：转义所有用户输入
   const escapedLabel = escapeHtml(label);
   const escapedRatingText = ratingText ? escapeHtml(ratingText) : '';
-  // ✅ 修复：当 label 已包含"(本地)"标识时，不再显示 note，避免语义重复
-  const shouldShowNote = note && !label.includes('(本地)');
+  // 去重判据必须是「选了哪个文案键」，不是「文案里有没有 (本地)」字样 ——
+  // 旧写法只对 zh-CN 生效，en/zh-TW/zh-HK 下同一个提示会被显示两遍。
+  const shouldShowNote = Boolean(note) && !doneWithLocalMarker;
   const escapedNote = shouldShowNote ? escapeHtml(note) : '';
 
   chip.innerHTML = `

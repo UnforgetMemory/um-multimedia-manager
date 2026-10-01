@@ -1,0 +1,211 @@
+<!doctype html>
+<!--
+  Synthetic edge-shape fixture for tests/unit/extra-extract-edge.spec.ts.
+  NOT a saved page: each node is derived from a selector in
+  src/scenario/douban/pages/detail/extra-extract.ts and shaped to hit a
+  fallback the happy-path fixtures cannot express (name-less celebrity li,
+  unquoted url() with padding, video li without an anchor, recommendations
+  container absent, allstar-less comment, pattern-2 TOC span, count without a
+  rating span).
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>补充提取边缘形态</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="content">
+        <div class="grid-16-8 clearfix">
+          <div class="article">
+            <div id="celebrities" class="mod">
+              <h2>演职员 <span class="pl">( 1,024 )</span></h2>
+              <ul>
+                <li class="celebrity">
+                  <a
+                    class="avatar"
+                    href="https://movie.douban.com/celebrity/1770760/"
+                    style="
+                      background-image: url(https://img9.doubanio.com/view/celebrity/m/public/p77.jpg);
+                    "
+                  ></a>
+                  <span class="name"
+                    ><a href="https://movie.douban.com/celebrity/1770760/">彼特·丁拉基 </a></span
+                  >
+                  <span class="role">饰 提力昂 · 联合执行制片</span>
+                </li>
+                <li class="celebrity">
+                  <div class="info">
+                    <span class="role">配乐</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div id="authors">
+              <ul>
+                <li class="author fake">
+                  <img class="avatar" src="https://img9.doubanio.com/f/ad/m.jpg" />
+                  <a class="name" href="https://ad.douban.com/click">推广作者</a>
+                </li>
+                <li class="author">
+                  <img class="avatar" src="https://img3.doubanio.com/f/author/m/public/hesse.jpg" />
+                  <a class="name" href="https://book.douban.com/author/1044528/">赫尔曼·黑塞</a>
+                  <span class="role">作者</span>
+                </li>
+                <li class="author">
+                  <a class="name">无 href 译者</a>
+                  <span class="role">译者</span>
+                </li>
+              </ul>
+            </div>
+            <div id="related-pic" class="mod">
+              <h2><span class="pl">预告片12 · 图片88</span></h2>
+              <ul class="related-pic-bd">
+                <li>
+                  <span
+                    class="related-pic-video"
+                    style="
+                      background-image: url(https://img1.doubanio.com/f/movie/x1y2z3/img/trailer/trailer-poster-9.jpg);
+                    "
+                  ></span>
+                </li>
+                <li>
+                  <img
+                    src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p1234567890.jpg"
+                  />
+                </li>
+              </ul>
+            </div>
+            <div id="recommendations" class="mod">
+              <h2>喜欢这个数字的人也喜欢<span class="pl">(18)</span></h2>
+              <dl>
+                <dt>
+                  <a href="https://movie.douban.com/subject/1291544/">
+                    <img
+                      src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p453706299.jpg"
+                      alt="霸王别姬"
+                    />
+                  </a>
+                </dt>
+                <dd>
+                  <a href="https://movie.douban.com/subject/1291544/"></a
+                  ><span class="subject-rate">9.6</span>
+                </dd>
+              </dl>
+              <dl>
+                <dd><a href="https://movie.douban.com/subject/1292937/">阿飞正传</a></dd>
+              </dl>
+            </div>
+            <div id="comments-section">
+              <h3>热门短评<span class="pl">(70125)</span></h3>
+              <div id="hot-comments">
+                <div class="comment-item" data-cid="e1">
+                  <p class="short">缺 comment-info 的条目应被整条跳过。</p>
+                  <div class="comment-vote"><span class="votes">7</span></div>
+                </div>
+                <div class="comment-item" data-cid="e2">
+                  <div class="comment-info">
+                    <a href="https://www.douban.com/people/no-star/">无星级用户</a>
+                  </div>
+                  <p class="short">没有 allstar 类名 → rating 0。</p>
+                </div>
+                <div class="comment-item" data-cid="e3">
+                  <div class="comment-info">
+                    <a href="https://www.douban.com/people/blank-body/">空正文用户</a>
+                    <span class="allstar50">力荐</span>
+                  </div>
+                  <p class="short"></p>
+                </div>
+                <div class="comment-item" data-cid="e4">
+                  <div class="comment-info">
+                    <a href="https://www.douban.com/people/k-count/">计数带单位</a>
+                    <span class="allstar10">很差</span>
+                    <span class="comment-time">2019-11-11</span>
+                  </div>
+                  <p class="short">首行 次行</p>
+                  <div class="comment-vote"><span class="votes">1.2k</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="mod">
+              <h2>作者简介</h2>
+              <div class="indent">
+                <div class="bd">这一段没有 .intro 子节点，提取器应放弃。</div>
+              </div>
+            </div>
+            <div class="mod">
+              <h2>目录</h2>
+              <div id="dir_777888_short">
+                <span class="content">第一部<br />第二部（截断）</span>
+                <span class="all hidden">第一部<br />第二部<br />· · · · · ·<br />附录用语</span>
+              </div>
+            </div>
+            <div class="mod">
+              <h2>曲目列表</h2>
+              <div class="track-list">
+                <ul class="track-items">
+                  <li data-track-order="01">
+                    <span class="track-name">冬之来临</span><span class="duration">03:12</span>
+                  </li>
+                  <li data-track-order="02"></li>
+                  <li><span class="track-name">无编号曲</span></li>
+                </ul>
+              </div>
+            </div>
+            <div class="mod">
+              <h2>原文摘录</h2>
+              <ul class="blockquote-list">
+                <li>
+                  <figure>
+                    <div class="blockquote">凛冬将至， 孤身不能死。</div>
+                    <div class="blockquote-extra">
+                      <span class="blockquote-meta">
+                        <a class="author-name" href="https://www.douban.com/people/lyn/">凛冬</a>
+                        5 赞
+                      </span>
+                      <figcaption title="冰与火之歌 卷一">出处</figcaption>
+                    </div>
+                  </figure>
+                </li>
+                <li>
+                  <figure>
+                    <div class="blockquote">没有 extra 的摘录。</div>
+                  </figure>
+                </li>
+                <li>
+                  <div class="no-figure">无 figure 的条目应被跳过。</div>
+                </li>
+              </ul>
+            </div>
+            <div class="mod">
+              <h2>其他版本</h2>
+              <ul>
+                <li class="mb8">
+                  <div class="meta">
+                    <a href="https://book.douban.com/subject/26973406/"
+                      >德米安：彷徨少年时 (平装)</a
+                    >
+                  </div>
+                  <div class="count">2315人评价</div>
+                </li>
+                <li class="mb8">
+                  <div class="meta">
+                    <a href="https://book.douban.com/subject/10840982/"
+                      >德米安：彷徨少年时 (精装)</a
+                    >
+                  </div>
+                  <div class="count"><span>9.0</span> 9.0人评价</div>
+                </li>
+                <li>
+                  <div class="meta">
+                    <a href="https://book.douban.com/subject/00000000/">无 mb8 类</a>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

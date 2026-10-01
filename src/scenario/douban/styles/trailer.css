@@ -108,6 +108,10 @@
 }
 
 .umm-trailer-img {
+  /* Over the placeholder, not beside it: the cover keeps one box, and hiding
+     the image on `@error` uncovers the icon underneath. */
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;

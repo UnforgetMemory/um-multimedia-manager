@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue';
+import { t } from '../../shared/legacy-bridge';
 import type { UserProfileData } from './types';
 
 defineProps<{
@@ -19,11 +20,15 @@ defineProps<{
           :style="{ backgroundImage: `url(${data.avatarUrl})` }"
         />
         <div class="umm-hero-body">
-          <h1 class="umm-hero-name">{{ data.displayName }}</h1>
+          <h1 class="umm-hero-name">
+            {{ data.displayName || t('douban.user_fallback', { id: data.userId }) }}
+          </h1>
           <p v-if="data.signature" class="umm-hero-sig">{{ data.signature }}</p>
           <div v-if="data.location || data.joinDate" class="umm-hero-meta">
             <span v-if="data.location" class="umm-hero-tag">📍 {{ data.location }}</span>
-            <span v-if="data.joinDate" class="umm-hero-tag">🗓️ {{ data.joinDate }}加入</span>
+            <span v-if="data.joinDate" class="umm-hero-tag"
+              >🗓️ {{ t('douban.up.joined', { date: data.joinDate }) }}</span
+            >
           </div>
         </div>
       </div>
@@ -37,12 +42,12 @@ defineProps<{
             data.movieStats.collect > 0 ||
             data.movieStats.doulist > 0
           "
-          title="🎬 影视"
+          :title="t('douban.stat.title_movie')"
           :items="[
             ...(data.movieStats.watching > 0
               ? [
                   {
-                    label: '在看',
+                    label: t('douban.stat.movie_doing'),
                     value: data.movieStats.watching,
                     url: 'https://movie.douban.com/mine?status=do',
                   },
@@ -51,7 +56,7 @@ defineProps<{
             ...(data.movieStats.wish > 0
               ? [
                   {
-                    label: '想看',
+                    label: t('douban.stat.movie_wish'),
                     value: data.movieStats.wish,
                     url: 'https://movie.douban.com/mine?status=wish',
                   },
@@ -60,7 +65,7 @@ defineProps<{
             ...(data.movieStats.collect > 0
               ? [
                   {
-                    label: '看过',
+                    label: t('douban.stat.movie_done'),
                     value: data.movieStats.collect,
                     url: 'https://movie.douban.com/mine?status=collect',
                   },
@@ -69,7 +74,7 @@ defineProps<{
             ...(data.movieStats.doulist > 0
               ? [
                   {
-                    label: '片单',
+                    label: t('douban.stat.movie_list'),
                     value: data.movieStats.doulist,
                     url: `https://www.douban.com/people/${data.userId}/subject_doulists/movie`,
                   },
@@ -80,10 +85,10 @@ defineProps<{
 
         <UmmStatBar
           v-if="data.musicStats.collect > 0"
-          title="🎵 音乐"
+          :title="t('douban.stat.title_music')"
           :items="[
             {
-              label: '听过',
+              label: t('douban.stat.music_done'),
               value: data.musicStats.collect,
               url: 'https://music.douban.com/mine?status=collect',
             },
@@ -92,12 +97,12 @@ defineProps<{
 
         <UmmStatBar
           v-if="data.bookStats.wish > 0 || data.bookStats.collect > 0 || data.bookStats.doulist > 0"
-          title="📚 读书"
+          :title="t('douban.stat.title_book')"
           :items="[
             ...(data.bookStats.wish > 0
               ? [
                   {
-                    label: '想读',
+                    label: t('douban.stat.book_wish'),
                     value: data.bookStats.wish,
                     url: 'https://book.douban.com/mine?status=wish',
                   },
@@ -106,7 +111,7 @@ defineProps<{
             ...(data.bookStats.collect > 0
               ? [
                   {
-                    label: '读过',
+                    label: t('douban.stat.book_done'),
                     value: data.bookStats.collect,
                     url: 'https://book.douban.com/mine?status=collect',
                   },
@@ -115,7 +120,7 @@ defineProps<{
             ...(data.bookStats.doulist > 0
               ? [
                   {
-                    label: '书单',
+                    label: t('douban.stat.book_list'),
                     value: data.bookStats.doulist,
                     url: `https://www.douban.com/people/${data.userId}/subject_doulists/book`,
                   },
@@ -126,12 +131,12 @@ defineProps<{
 
         <UmmStatBar
           v-if="data.gameStats.playing > 0 || data.gameStats.played > 0"
-          title="🎮 游戏"
+          :title="t('douban.stat.title_game')"
           :items="[
             ...(data.gameStats.playing > 0
               ? [
                   {
-                    label: '在玩',
+                    label: t('douban.stat.game_doing'),
                     value: data.gameStats.playing,
                     url: 'https://www.douban.com/game/36188787/',
                   },
@@ -140,7 +145,7 @@ defineProps<{
             ...(data.gameStats.played > 0
               ? [
                   {
-                    label: '玩过',
+                    label: t('douban.stat.game_done'),
                     value: data.gameStats.played,
                     url: `https://www.douban.com/people/${data.userId}/games?action=collect`,
                   },
@@ -151,12 +156,12 @@ defineProps<{
 
         <UmmStatBar
           v-if="data.reviewCount > 0 || data.followerCount > 0"
-          title="📊 社交"
+          :title="t('douban.stat.title_social')"
           :items="[
             ...(data.reviewCount > 0
               ? [
                   {
-                    label: '评论',
+                    label: t('douban.stat.social_reviews'),
                     value: data.reviewCount,
                     url: `https://www.douban.com/people/${data.userId}/reviews`,
                   },
@@ -165,7 +170,7 @@ defineProps<{
             ...(data.followerCount > 0
               ? [
                   {
-                    label: '被关注',
+                    label: t('douban.stat.social_followers'),
                     value: data.followerCount,
                     url: `https://www.douban.com/people/${data.userId}/contacts`,
                   },
@@ -203,13 +208,13 @@ defineProps<{
       <!-- ===== Doulists ===== -->
       <div v-if="data.doulistSection" class="umm-dash-section">
         <h2 class="umm-dash-head">
-          📋 豆列
+          {{ t('douban.up.doulists') }}
           <a
             v-if="data.doulistSection.totalUrl"
             :href="data.doulistSection.totalUrl"
             class="umm-dash-head-link"
             target="_blank"
-            >全部{{ data.doulistSection.totalCount }}</a
+            >{{ t('douban.list.all_count', { count: data.doulistSection.totalCount }) }}</a
           >
         </h2>
         <div class="umm-doulist-grid">
@@ -228,14 +233,14 @@ defineProps<{
             :href="data.doulistSection.totalUrl"
             class="umm-doulist-item umm-doulist-item--more"
             target="_blank"
-            >更多…</a
+            >{{ t('douban.up.more') }}</a
           >
         </div>
       </div>
 
       <!-- ===== Reviews ===== -->
       <div v-if="data.reviews.length > 0" class="umm-dash-section">
-        <h2 class="umm-dash-head">📝 评论</h2>
+        <h2 class="umm-dash-head">{{ t('douban.up.reviews_head') }}</h2>
         <div class="umm-reviews-list">
           <article v-for="rev in data.reviews" :key="rev.id" class="umm-review-card">
             <div v-if="rev.posterUrl" class="umm-review-poster">
@@ -264,7 +269,7 @@ defineProps<{
 
       <!-- ===== Statuses ===== -->
       <div v-if="data.statuses.length > 0" class="umm-dash-section">
-        <h2 class="umm-dash-head">📡 广播</h2>
+        <h2 class="umm-dash-head">{{ t('douban.up.statuses') }}</h2>
         <div class="umm-statuses-list">
           <div v-for="st in data.statuses" :key="st.id" class="umm-status-item">
             <div class="umm-status-head">
@@ -291,13 +296,13 @@ defineProps<{
         class="umm-dash-section"
       >
         <h2 class="umm-dash-head">
-          👥 关注
+          {{ t('douban.up.following') }}
           <a
             v-if="data.friendSection.totalUrl"
             :href="data.friendSection.totalUrl"
             class="umm-dash-head-link"
             target="_blank"
-            >成员{{ data.friendSection.totalCount }}</a
+            >{{ t('douban.up.members_count', { count: data.friendSection.totalCount }) }}</a
           >
         </h2>
         <div class="umm-friend-grid">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import UmmStatBar from '@/scenario/douban/components/UmmStatBar.vue';
+import { t } from '../../shared/legacy-bridge';
 import type { MovieProfileData } from './types';
 
 defineProps<{
@@ -33,9 +34,9 @@ defineProps<{
       <div v-for="sec in data.sections" :key="sec.label" class="umm-dash-section">
         <div class="umm-dash-row-head">
           <span class="umm-dash-row-lbl">{{ sec.label }}</span>
-          <a :href="sec.url" class="umm-dash-more" target="_blank"
-            >全部 {{ sec.count.toLocaleString() }} →</a
-          >
+          <a :href="sec.url" class="umm-dash-more" target="_blank">{{
+            t('douban.mp.all_count', { count: sec.count.toLocaleString() })
+          }}</a>
         </div>
         <div v-if="sec.items.length > 0" class="umm-dash-grid">
           <a
@@ -59,10 +60,16 @@ defineProps<{
         v-if="data.celebrityCount > 0 || data.reviewCount > 0"
         :items="[
           ...(data.celebrityCount > 0
-            ? [{ label: '收藏的影人', value: data.celebrityCount, url: data.celebrityUrl }]
+            ? [
+                {
+                  label: t('douban.mp.celebrities'),
+                  value: data.celebrityCount,
+                  url: data.celebrityUrl,
+                },
+              ]
             : []),
           ...(data.reviewCount > 0
-            ? [{ label: '我的影评', value: data.reviewCount, url: data.reviewUrl }]
+            ? [{ label: t('douban.mp.reviews'), value: data.reviewCount, url: data.reviewUrl }]
             : []),
         ]"
       />
@@ -70,7 +77,7 @@ defineProps<{
       <!-- Doulists -->
       <div v-if="data.doulists.length > 0" class="umm-dash-section">
         <div class="umm-dash-row-head">
-          <span class="umm-dash-row-lbl">我的片单</span>
+          <span class="umm-dash-row-lbl">{{ t('douban.mp.doulists') }}</span>
         </div>
         <div class="umm-movie-profile-doulist">
           <a
@@ -81,7 +88,9 @@ defineProps<{
             target="_blank"
           >
             <span class="umm-movie-profile-doulist-title">{{ dl.title }}</span>
-            <span class="umm-movie-profile-doulist-followers">{{ dl.followers }}人关注</span>
+            <span class="umm-movie-profile-doulist-followers">{{
+              t('douban.mp.followers', { count: dl.followers })
+            }}</span>
           </a>
         </div>
       </div>

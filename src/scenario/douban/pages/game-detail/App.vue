@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import { UmmInterestBar } from '@/scenario/douban/components/umm-interest-bar';
-import { UmmMediaCard } from '@/scenario/douban/components/umm-media-card';
+import { UmmRecSection } from '@/scenario/douban/components/umm-rec-section';
 import { ASPECT_RATIO } from '@/scenario/douban/shared/media-formats';
 import {
   metaToChips,
@@ -14,13 +14,32 @@ import {
 } from '@/scenario/douban/shared/detail-ui';
 import { useInterest } from '@/scenario/douban/pages/detail/composables/use-interest';
 import { syncNeoDBOnLoad } from '@/scenario/douban/pages/detail/composables/use-cross-platform-sync';
+import { useRecordRefresh } from '@/scenario/douban/shared/composables/use-record-refresh';
 import { Store } from '@/engine/database';
+import { t } from '../../shared/legacy-bridge';
+import type { StoreRecord } from '@/types';
 import type { GameDetailData } from './game-detail-data';
 
-const props = defineProps<{ data: GameDetailData }>();
+const props = defineProps<{
+  data: GameDetailData;
+  recordMap?: Map<string, StoreRecord>;
+}>();
 const d = props.data;
 
-const record = ref<{ status: number; rating: number } | null>(null);
+// Seeded from the mount-time read: `syncNeoDBOnLoad` below only acts on a
+// record that already exists, and without a seed it never saw one.
+const record = ref<{ status: number; rating: number } | null>(
+  d.record ? { status: d.record.status, rating: d.record.rating } : null,
+);
+
+// Live refresh: replace the former 3s polling loop with the background
+// `record:updated` broadcast (ADR-015, unified via useRecordRefresh).
+useRecordRefresh(
+  () => props.data.identity,
+  (r) => {
+    record.value = r;
+  },
+);
 
 const interested = useInterest(
   () => d.identity.providerId,
@@ -34,10 +53,6 @@ const interested = useInterest(
   d.initialRating,
   '/j/ilmen/thing',
 );
-
-function updateRecord(newRecord: { status: number; rating: number } | null) {
-  record.value = newRecord;
-}
 
 async function onInterestSave(
   interest: 'wish' | 'do' | 'collect',
@@ -102,8 +117,6 @@ onMounted(() => {
 });
 
 const starClass = computed(() => starClassFn(d.bigstarNum));
-
-defineExpose({ updateRecord });
 </script>
 
 <template vapor>
@@ -136,7 +149,7 @@ defineExpose({ updateRecord });
               @save="onInterestSave"
             />
             <div v-if="interested.currentComment.value" class="umm-my-comment">
-              <span class="umm-my-comment-label">我的短评：</span>
+              <span class="umm-my-comment-label">{{ t('douban.my_comment') }}</span>
               <span class="umm-my-comment-text">{{ interested.currentComment.value }}</span>
             </div>
           </div>
@@ -158,14 +171,16 @@ defineExpose({ updateRecord });
                 <span class="umm-rating-stars">
                   <span v-if="starClass" :class="starClass"></span>
                 </span>
-                <span v-if="d.ratingPeople" class="umm-rating-people"
-                  >{{ d.ratingPeople }}人评价</span
-                >
+                <span v-if="d.ratingPeople" class="umm-rating-people">{{
+                  t('douban.rating_people', { count: d.ratingPeople })
+                }}</span>
               </div>
             </div>
             <div v-if="d.ratingBars.length" class="umm-rating-bars">
               <div v-for="(bar, i) in d.ratingBars" :key="i" class="umm-bar-row">
-                <span class="umm-bar-label">{{ bar.label.replace(/星/g, '') }}星</span>
+                <span class="umm-bar-label"
+                  >{{ bar.label.replace(/星/g, '') }}{{ t('douban.star_suffix') }}</span
+                >
                 <div class="umm-bar-track">
                   <div class="umm-bar-fill" :style="{ width: ratingBarWidth(bar.pct) }"></div>
                 </div>
@@ -184,19 +199,19 @@ defineExpose({ updateRecord });
           </div>
 
           <div v-if="d.synopsisHtml" class="umm-synopsis-card">
-            <h3 class="umm-synopsis-heading">简介</h3>
+            <h3 class="umm-synopsis-heading">{{ t('douban.gd.synopsis') }}</h3>
             <div class="umm-synopsis-text" v-html="d.synopsisHtml"></div>
           </div>
 
           <div class="umm-actions">
             <div id="umm-neodb-actions"></div>
-            <button class="umm-dl-trigger">+ 添加到豆列</button>
+            <button class="umm-dl-trigger">{{ t('douban.gd.add_doulist') }}</button>
           </div>
         </div>
       </div>
 
       <div v-if="d.galleryItems.length" class="umm-photo-card">
-        <h3 class="umm-photo-heading">媒体</h3>
+        <h3 class="umm-photo-heading">{{ t('douban.gd.media') }}</h3>
         <div class="umm-photo-grid">
           <div
             v-for="(item, i) in d.galleryItems"
@@ -209,32 +224,25 @@ defineExpose({ updateRecord });
               :alt="item.title || ''"
               :aspect-ratio="ASPECT_RATIO.WIDE"
             />
-            <span v-if="item.isVideo" class="umm-photo-badge">▶ {{ item.tag || '预告片' }}</span>
-            <span v-if="!item.isVideo" class="umm-photo-badge">图片</span>
+            <span v-if="item.isVideo" class="umm-photo-badge"
+              >▶ {{ item.tag || t('douban.trailer_word') }}</span
+            >
+            <span v-if="!item.isVideo" class="umm-photo-badge">{{ t('douban.image_word') }}</span>
           </div>
         </div>
       </div>
 
-      <div v-if="d.recItems.length" class="umm-rec-card">
-        <h3 class="umm-rec-heading">推荐</h3>
-        <div class="umm-rec-grid">
-          <UmmMediaCard
-            v-for="r in d.recItems"
-            :key="r.subjectId || r.link"
-            mode="grid"
-            :poster-url="r.poster"
-            :title="r.title"
-            :href="r.link"
-            :badge-status="r.recStatus || 0"
-            :badge-rating="r.personalRating || 0"
-            rating=""
-            type="game"
-          />
-        </div>
-      </div>
+      <UmmRecSection
+        :items="d.recItems"
+        media-type="game"
+        record-prefix="game"
+        :heading="t('douban.rec.heading')"
+        :show-score="false"
+        :record-map="recordMap"
+      />
 
       <div v-if="d.shortComments.length" class="umm-comment-card">
-        <h3 class="umm-comment-heading">热门短评</h3>
+        <h3 class="umm-comment-heading">{{ t('douban.top_comments') }}</h3>
         <div class="umm-comment-list">
           <div v-for="(c, i) in d.shortComments" :key="i" class="umm-comment-item">
             <div class="umm-comment-meta">
@@ -257,7 +265,9 @@ defineExpose({ updateRecord });
                 >
               </span>
               <span v-if="c.platform" class="umm-comment-platform">{{ c.platform }}</span>
-              <span v-if="c.votes > 0" class="umm-comment-up">{{ c.votes }} 有用</span>
+              <span v-if="c.votes > 0" class="umm-comment-up">{{
+                t('douban.useful', { count: c.votes })
+              }}</span>
             </div>
             <p class="umm-comment-text">{{ c.content }}</p>
             <span class="umm-comment-time">{{ c.time }}</span>

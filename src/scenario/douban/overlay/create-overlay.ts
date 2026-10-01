@@ -35,11 +35,41 @@ export interface OverlayOptions {
   overlayId: string;
   /** Subtitle text below "UMManager" */
   subtitle: string;
-  /** Whether to expose window.__ummDismissDetailMask() (detail page only) */
-  exposeDismiss?: boolean;
   /** Page-level host z-index (default 200; sehuatang needs a higher tier to
    *  cover Discuz fixed chrome yet stay below global .umm-overlay panels). */
   zIndex?: number;
+}
+
+/** Everything needed to undo one shell: DOM nodes + theme disposer + options. */
+interface ShellRecord {
+  overlay: HTMLElement;
+  pageStyle: HTMLStyleElement;
+  disposeThemeSync: () => void;
+  options: OverlayOptions;
+}
+
+/**
+ * Live shells by overlay id. The page-level style locks `body` scroll and the
+ * overlay paints an opaque full-screen wall, so every shell MUST be removable
+ * — these refs are the only way to unlock the page when a mount fails.
+ *
+ * NOT the only source of truth: the map is module state, and this file is
+ * inlined into BOTH content-script bundles (`douban-early` creates the shell,
+ * `douban-main` performs the rollback and the retry). A map entry therefore is
+ * invisible across the two, which made rollback a silent no-op. The same record
+ * is also hung on the shell element itself, which both bundles can see.
+ */
+const shells = new Map<string, ShellRecord>();
+
+/** Property key carrying the undo record on the shell element. */
+const SHELL_RECORD = '__ummShellRecord' as const;
+
+type ShellHost = HTMLElement & { [SHELL_RECORD]?: ShellRecord };
+
+/** Read the undo record for a shell, preferring the element itself. */
+function readShell(overlayId: string): ShellRecord | undefined {
+  const hosted = document.getElementById(overlayId) as ShellHost | null;
+  return hosted?.[SHELL_RECORD] ?? shells.get(overlayId);
 }
 
 /**
@@ -47,7 +77,14 @@ export interface OverlayOptions {
  * Must be called at document_start.
  */
 export function createOverlay(options: OverlayOptions): HTMLElement {
-  const { overlayId, subtitle, exposeDismiss = false, zIndex = 200 } = options;
+  const { overlayId, subtitle, zIndex = 200 } = options;
+  // Re-creating a live id (e.g. a mount retry) must not strand the old
+  // shell's theme listener or duplicate its page-level lock. Check the document
+  // as well as this bundle's map, since the existing shell may have been
+  // created by the other bundle.
+  if (shells.has(overlayId) || document.getElementById(overlayId)) {
+    removeOverlayShell(overlayId);
+  }
   // document_start guarantee: documentElement exists before any script runs.
   const doc = document.documentElement;
 
@@ -90,20 +127,47 @@ export function createOverlay(options: OverlayOptions): HTMLElement {
     `<div class="ov-subtitle">${subtitle}</div>`;
   shadow.appendChild(loading);
 
-  // 6. Sync theme onto host element
-  const stopThemeSync = startThemeSync(overlay);
+  // 6. Sync theme onto host element; keep the disposer so teardown can drop
+  //    the storage listener (one shell, one listener — no accumulation).
+  const disposeThemeSync = startThemeSync(overlay);
 
-  // 7. Expose dismiss for document_idle handler (detail page only)
-  if (exposeDismiss) {
-    (window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-      stopThemeSync();
-      if (!overlay.parentNode) return;
-      loading.remove();
-      const ps = document.getElementById(getPageStyleId(overlayId));
-      if (ps) ps.remove();
-      overlay.remove();
-    };
-  }
+  const record: ShellRecord = { overlay, pageStyle, disposeThemeSync, options };
+  shells.set(overlayId, record);
+  // Also hang it on the element: the shell is created in the `douban-early`
+  // bundle while the rollback/retry runs in `douban-main`, and a module-level
+  // Map cannot cross that boundary. Without this the failure path left the
+  // opaque wall and the body scroll lock in place.
+  (overlay as ShellHost)[SHELL_RECORD] = record;
 
   return overlay;
+}
+
+/**
+ * Tear down a shell completely: overlay element, page-level lock style (body
+ * scrolls again), and the theme-sync listener. Safe to call on unknown ids.
+ */
+export function removeOverlayShell(overlayId: string): boolean {
+  const shell = readShell(overlayId);
+  if (shell) {
+    shells.delete(overlayId);
+    shell.disposeThemeSync();
+    shell.pageStyle.remove();
+    shell.overlay.remove();
+    delete (shell.overlay as ShellHost)[SHELL_RECORD];
+    return true;
+  }
+  // Nothing reachable from this bundle's registry, but the shell may still be
+  // in the document (created by the other bundle before this map was even
+  // consulted). Remove by DOM identity so a failed mount never strands a wall.
+  const overlay = document.getElementById(overlayId);
+  const pageStyle = document.getElementById(getPageStyleId(overlayId));
+  if (!overlay && !pageStyle) return false;
+  pageStyle?.remove();
+  overlay?.remove();
+  return true;
+}
+
+/** Options a shell was created with — lets a retry rebuild it identically. */
+export function getOverlayShellOptions(overlayId: string): OverlayOptions | undefined {
+  return readShell(overlayId)?.options;
 }

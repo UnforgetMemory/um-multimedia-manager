@@ -1,0 +1,162 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/extra-extract.spec.ts and
+  detail-data.spec.ts (book branch: 原作名 / #interest_sectl 评分分布 / #link-report
+  内容简介 / #authors / 作者简介 / 目录 dir_full / 原文摘录 / 其他版本)。
+  NOT a real saved page; reproduces the book.douban.com /subject/{id}/ DOM shape
+  consumed by src/scenario/douban/pages/detail/extra-extract.ts.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>德米安</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="content">
+        <div class="grid-16-8 clearfix">
+          <div class="article">
+            <div class="header">
+              <div id="cover_block">
+                <a href="https://book.douban.com/subject/26973406/images">
+                  <img src="https://img9.doubanio.com/view/subject/l/public/s29753905.jpg" alt="德米安：彷徨少年时" />
+                </a>
+              </div>
+              <div id="info_wrap">
+                <h1 property="v:itemreviewed">德米安：彷徨少年时</h1>
+                <h2 class="subtitle">赫尔曼·黑塞</h2>
+                <div id="info">
+                  <span class="pl">作者:</span> <a href="https://book.douban.com/author/1044528/">赫尔曼·黑塞</a>
+                  <br />
+                  <span class="pl">出版年:</span> 2014-8
+                  <br />
+                  <span class="pl">页数:</span> 216
+                  <br />
+                  <span class="pl">定价:</span> 25.80元
+                  <br />
+                  <span class="pl">装帧:</span> 平装
+                  <br />
+                  <span class="pl">原作名:</span> Demian
+                  <br />
+                  <span class="pl">ISBN:</span> 9787532765992
+                </div>
+                <div id="interest_sectl">
+                  <div class="rating_wrap clearbox">
+                    <div class="rating_self clearfix">
+                      <strong class="rating_num property">9.0</strong>
+                      <div class="rating_people"><span property="v:votes">23841</span>人评价</div>
+                    </div>
+                    <dl class="ratings12">
+                      <div class="row"><span class="starstop starstop10">力荐</span><span class="power"><span class="inline" style="width: 53.9%"></span></span><span class="rating_per">53.9%</span></div>
+                      <div class="row"><span class="starstop starstop80">推荐</span><span class="power"><span class="inline" style="width: 32.1%"></span></span><span class="rating_per">32.1%</span></div>
+                      <div class="row"><span class="starstop starstop60">还行</span><span class="power"><span class="inline" style="width: 11.2%"></span></span><span class="rating_per">11.2%</span></div>
+                      <div class="row"><span class="starstop starstop40">较差</span><span class="power"><span class="inline" style="width: 1.8%"></span></span><span class="rating_per">1.8%</span></div>
+                      <div class="row"><span class="starstop starstop20">很差</span><span class="power"><span class="inline" style="width: 1.0%"></span></span><span class="rating_per">1.0%</span></div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="link-report" class="mod">
+              <h2>内容简介<span class="pl"> · · · · · ·</span></h2>
+              <div class="intro">
+                <div><span class="hidden">《德米安》是黑塞于1919年出版的中篇小说，讲述少年埃米尔·辛克莱的自我觉醒之旅。</span></div>
+              </div>
+              <div class="intro">
+                <div>两条路，一条通向安稳的世界，一条通向属于自己的命运。</div>
+              </div>
+            </div>
+            <div id="authors" class="mod">
+              <h2>作者</h2>
+              <ul>
+                <li class="author">
+                  <img class="avatar" src="https://img3.doubanio.com/f/author/legacy/2b14445630cc64891c64464445564c5f/o/hesse.jpg" />
+                  <a class="name" href="https://book.douban.com/author/1044528/">赫尔曼·黑塞</a>
+                  <span class="role">作者</span>
+                </li>
+                <li class="author">
+                  <img class="avatar" src="https://img2.doubanio.com/f/author/legacy/aaa1445630cc64891c64464445564c5f/o/yang.jpg" />
+                  <a class="name" href="https://book.douban.com/author/1204799/">杨武能</a>
+                  <span class="role">译者</span>
+                </li>
+                <li class="author fake">
+                  <img class="avatar" src="https://img9.doubanio.com/f/ad/b.jpg" />
+                  <a class="name" href="https://ad.douban.com/click">推广作者</a>
+                </li>
+              </ul>
+            </div>
+            <div class="mod">
+              <h2>作者简介<span class="pl"> · · · · · ·</span></h2>
+              <div class="indent">
+                <div class="intro">
+                  <p>赫尔曼·黑塞（1877—1962），德国作家、诗人，1946年获诺贝尔文学奖。</p>
+                  <p>代表作：《悉达多》《荒原狼》《纳尔齐斯与歌尔德蒙》。</p>
+                </div>
+              </div>
+            </div>
+            <div class="mod">
+              <h2>目录<span class="pl"> · · · · · ·</span></h2>
+              <div id="dir_3730858_full" style="display: none">
+                第一部 少年时代
+                <br />两个世界
+                <br />该隐
+                <br />第二部 该隐之后
+                <br />强尼
+                <br />第三部 萌芽
+                <br /><a href="javascript:void(0);">展开全部(共12章)</a>
+              </div>
+              <div id="dir_3730858_short">
+                第一部 少年时代
+                <br />两个世界
+                <br /><a href="javascript:void(0);">· · · · · · (更多)</a>
+              </div>
+            </div>
+            <div class="mod">
+              <h2>原文摘录<span class="pl"> · · · · · · (共2条)</span></h2>
+              <ul class="blockquote-list">
+                <li>
+                  <figure>
+                    “鸟要挣脱出壳。蛋就是世界。人要诞于世上，就得摧毁这个世界。”
+                    <div class="blockquote-extra">
+                      <span class="blockquote-meta"><a class="author-name" href="https://book.douban.com/reader/111/">灵枢</a> · 2020-03-14 22:10:00 · 36赞</span>
+                      <figcaption title="德米安：彷徨少年时">—— 摘自《德米安：彷徨少年时》</figcaption>
+                    </div>
+                  </figure>
+                </li>
+                <li>
+                  <figure>“对于每个人，他真正的职业在于：探求自身深处的声音。”</figure>
+                </li>
+                <li><span>无 figure 的干扰项</span></li>
+              </ul>
+            </div>
+            <div class="mod">
+              <h2>其他版本<span class="pl"> · · · · · · (全部2版)</span></h2>
+              <ul class="versions">
+                <li class="mb8">
+                  <div class="meta"><a href="https://book.douban.com/subject/26973406/">德米安：彷徨少年时 (2014)</a><div class="pub">上海译文出版社 · 平装</div></div>
+                  <span class="count"><span>9.0</span> 2315人评价</span>
+                </li>
+                <li class="mb8">
+                  <div class="meta"><a href="https://book.douban.com/subject/1044528/">德米安 (2009)</a></div>
+                  <span class="count"><span>8.7</span> 5987人评价</span>
+                </li>
+                <li>
+                  <div class="meta"><a href="https://book.douban.com/subject/30000000/">无 mb8 类，应被跳过</a></div>
+                </li>
+              </ul>
+            </div>
+            <div class="mod">
+              <h2>喜欢《德米安》的人也喜欢<span class="pl">(30)</span></h2>
+              <div class="recommendations-bd">
+                <dl>
+                  <dt><a href="https://book.douban.com/subject/1960240/"><img src="https://img1.doubanio.com/view/subject/l/public/s2960240.jpg" alt="悉达多" /></a></dt>
+                  <dd><a href="https://book.douban.com/subject/1960240/">悉达多</a><span class="subject-rate">9.1</span></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

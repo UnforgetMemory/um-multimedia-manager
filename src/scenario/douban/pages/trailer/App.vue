@@ -34,7 +34,9 @@
       <template v-else>
         <div class="umm-trailer-header">
           <h1 class="umm-trailer-title">{{ d.subjectTitle }}</h1>
-          <span class="umm-trailer-count">{{ totalCount }} 个视频</span>
+          <span class="umm-trailer-count">{{
+            t('douban.trailer.count', { count: totalCount })
+          }}</span>
         </div>
       </template>
 
@@ -47,6 +49,14 @@
           @click="openTrailer(item)"
         >
           <div class="umm-trailer-cover">
+            <!-- The placeholder is unconditional, not `v-else`: a thumbnail URL
+                 can be present and still fail to load, and `@error` below needs
+                 something to reveal. The image paints over it (see
+                 `.umm-trailer-img` in styles/trailer.css) and `@load` retires the
+                 placeholder once real pixels exist — otherwise an alpha thumbnail
+                 would show the play icon through itself. `loading="lazy"` is what
+                 makes the listener-before-load order safe: the fetch cannot start
+                 (so `load` cannot fire) while the element is still detached. -->
             <img
               v-if="item.thumbnail"
               class="umm-trailer-img"
@@ -54,8 +64,9 @@
               :alt="item.title"
               loading="lazy"
               @error="onImgError"
+              @load="onImgLoad"
             />
-            <div class="umm-trailer-cover-fallback" v-else>
+            <div class="umm-trailer-cover-fallback">
               <svg
                 width="48"
                 height="48"
@@ -69,7 +80,7 @@
             </div>
             <span class="umm-trailer-duration">{{ item.duration }}</span>
             <span class="umm-trailer-type">{{
-              item.type === 'trailer' ? '预告片' : '视频评论'
+              item.type === 'trailer' ? t('douban.trailer_word') : t('douban.video_review')
             }}</span>
           </div>
           <div class="umm-trailer-info">
@@ -86,8 +97,10 @@
 </template>
 
 <script setup lang="ts">
+import { openExternalUrl } from '@/libraries/utils/safe-url';
 import { useTemplateRef } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 
 const props = defineProps<{ data: import('./trailer-data').TrailerPageData }>();
 const d = props.data;
@@ -98,12 +111,13 @@ const videoRef = useTemplateRef<HTMLVideoElement>('videoRef');
 // Extract native links text from the page's aside.links
 const nativeLinks = document.querySelectorAll<HTMLAnchorElement>('.aside .links a');
 const listingBtnText =
-  nativeLinks[0]?.textContent?.trim().replace(/^>\s*/, '') || '去 本片全部视频的页面';
+  nativeLinks[0]?.textContent?.trim().replace(/^>\s*/, '') || t('douban.trailer.go_all');
 const subjectBtnText =
-  nativeLinks[1]?.textContent?.trim().replace(/^>\s*/, '') || `去 ${d.subjectTitle} 的页面`;
+  nativeLinks[1]?.textContent?.trim().replace(/^>\s*/, '') ||
+  t('douban.trailer.go_subject', { title: d.subjectTitle });
 
 function openTrailer(item: import('./trailer-data').TrailerItem): void {
-  window.open(item.link, '_blank');
+  openExternalUrl(item.link);
 }
 
 function pauseVideo(): void {
@@ -114,7 +128,7 @@ function goToListing(): void {
   pauseVideo();
   const link = document.querySelector<HTMLAnchorElement>('.aside .links a');
   if (link) {
-    window.open(link.getAttribute('href') || '', '_blank');
+    openExternalUrl(link.getAttribute('href'));
   }
 }
 
@@ -123,7 +137,7 @@ function goToSubject(): void {
   const links = document.querySelectorAll<HTMLAnchorElement>('.aside .links a');
   const link = links.length >= 2 ? links[1] : null;
   if (link) {
-    window.open(link.getAttribute('href') || '', '_blank');
+    openExternalUrl(link.getAttribute('href'));
   }
 }
 
@@ -132,5 +146,11 @@ function onImgError(e: Event): void {
   img.style.display = 'none';
   const fallback = img.nextElementSibling as HTMLElement | null;
   if (fallback) fallback.style.display = 'flex';
+}
+
+function onImgLoad(e: Event): void {
+  const img = e.target as HTMLImageElement;
+  const fallback = img.nextElementSibling as HTMLElement | null;
+  if (fallback) fallback.style.display = 'none';
 }
 </script>

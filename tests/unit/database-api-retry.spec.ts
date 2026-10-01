@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { dbGetWatchedIds } from '@/engine/database/api';
 
 /**
@@ -23,7 +26,7 @@ interface ScriptStep {
 let prevChrome: unknown;
 
 test.afterEach(() => {
-  (globalThis as { chrome?: unknown }).chrome = prevChrome;
+  defineGlobal('chrome', prevChrome);
   prevChrome = undefined;
 });
 
@@ -50,7 +53,7 @@ function stubChromeSendMessage(script: ScriptStep[]) {
   };
 
   prevChrome = (globalThis as { chrome?: unknown }).chrome;
-  (globalThis as unknown as { chrome: unknown }).chrome = { runtime } as unknown as typeof chrome;
+  defineGlobal('chrome', { runtime } as unknown as typeof chrome);
   return calls;
 }
 

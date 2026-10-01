@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { JSDOM } from 'jsdom';
+import { initFileSandbox, defineGlobal } from './helpers/global-sandbox';
 import { interestBarLabels, statusBadgeLabels } from '@/scenario/douban/shared/status-labels';
+import { initI18nSync } from '@/entrypoints/content/i18n';
 
 /**
  * Status → label mapping 国标化测试。
@@ -9,7 +12,28 @@ import { interestBarLabels, statusBadgeLabels } from '@/scenario/douban/shared/s
  * 2. statusBadgeLabels — 状态徽章展示（done/wish/none/doing）
  *
  * 关键决策（decision-1）：game done 文案统一为 '玩过'（非 '已玩'）。
+ *
+ * X105 起文案经 content i18n 的 `t()` 在**访问时**解析（getters），而
+ * `currentLocale` 是模块级单例——全量合并跑时前序 spec 可能已把它改成
+ * en-US/zh-TW，本文件若不钉语言就会把英文当成「标签漂移」。故在断言前
+ * 显式 `initI18nSync()` 到 zh-CN（词典值的唯一契约语言）。
  */
+
+initFileSandbox();
+const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+  url: 'https://example.com/',
+});
+defineGlobal('localStorage', dom.window.localStorage);
+defineGlobal('navigator', dom.window.navigator);
+
+function pinZhCn(): void {
+  dom.window.localStorage.setItem('umm:locale', 'zh-CN');
+  initI18nSync();
+}
+
+test.beforeEach(() => {
+  pinZhCn();
+});
 
 // ── interestBarLabels ──
 

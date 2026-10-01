@@ -1,7 +1,7 @@
 import { definePageMount } from '../../mount-factory';
 import { createApp } from 'vue';
-import { intervalWhenVisible } from '@/libraries/utils/visibility';
 import { hideNavForPage } from '../../shared/hide-nav';
+import { loadRecordMapForIds } from '../../shared/load-record-map';
 import { Store } from '@/engine/database';
 import { initDoulistReplacement } from '@/entrypoints/content/ui/doulist-replace';
 import { withRetry } from '../../shared/retry';
@@ -11,7 +11,7 @@ export const mountGameDetail = definePageMount({
   overlayId: 'umm-douban-overlay',
   importApp: () => import('./App.vue'),
   async beforeMount() {
-    const { extractGameDetailData, enrichGameRecItems } = await import('./game-detail-data');
+    const { extractGameDetailData } = await import('./game-detail-data');
     const data: import('./game-detail-data').GameDetailData | null = await withRetry(
       () => extractGameDetailData(),
       { attempts: 8, baseDelay: 300, isValid: (d) => d?.title },
@@ -22,39 +22,29 @@ export const mountGameDetail = definePageMount({
       const key = `${data.identity.type}::${data.identity.providerId}`;
       const record = await Store.dbGet('douban_records', key);
       if (record) {
+        // Handed to the overlay so the companion NeoDB reconcile runs for an
+        // already-watched game instead of waiting for a mark event.
+        data.record = record;
         if (record.status) data.initialStatus = record.status;
         if (record.rating) data.initialRating = record.rating / 2;
       }
     }
 
-    data.recItems = await enrichGameRecItems(data.recItems);
+    // Recommendation badges: one targeted batch read seeds the live cache the
+    // overlay derives from — the rows themselves are never mutated.
+    const recordMap = await loadRecordMapForIds(
+      'game',
+      data.recItems.map((item) => item.subjectId),
+    );
+
     hideNavForPage({ type: 'game-detail' });
-    return data;
+    return { data, recordMap };
   },
-  createApp: (RootCmp, data) => createApp(RootCmp, { data }),
-  async afterMount(_shadow, app, _container, data) {
+  createApp: (RootCmp, data) => createApp(RootCmp, data),
+  afterMount(_shadow, _app, _container, data) {
     // Initialize doulist modal click handler ("+ 添加到豆列")
-    if (data.identity) {
-      initDoulistReplacement(data.identity);
+    if (data.data.identity) {
+      initDoulistReplacement(data.data.identity);
     }
-
-    if (!data.identity) return;
-    // Pauses when tab is hidden via Page Visibility API
-    const recordPoller = intervalWhenVisible(async () => {
-      if (!data.identity) return;
-      const key = `${data.identity.type}::${data.identity.providerId}`;
-      const updated = await Store.dbGet('douban_records', key);
-      if (updated && app._instance) {
-        const vm = app._instance.proxy as unknown as Record<string, unknown>;
-        if (vm && typeof vm.updateRecord === 'function') {
-          vm.updateRecord(updated);
-        }
-      }
-    }, 3000);
-
-    (window as unknown as Record<string, unknown>).__ummDismissDetailMask = () => {
-      recordPoller.destroy();
-      app.unmount();
-    };
   },
 });

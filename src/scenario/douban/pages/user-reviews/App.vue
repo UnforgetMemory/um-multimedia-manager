@@ -2,6 +2,7 @@
 import UmmPageLinks from '@/scenario/douban/components/UmmPageLinks.vue';
 import { ref } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { t } from '../../shared/legacy-bridge';
 import type { UserReviewsData } from './types';
 import UmmUserBar from '@/scenario/douban/components/UmmUserBar.vue';
 
@@ -43,8 +44,8 @@ function starHtml(rating: number): string {
 
       <!-- Title -->
       <div class="umm-titlebar">
-        <h1 class="umm-titlebar-label">我的影评</h1>
-        <span class="umm-titlebar-count">共 {{ data.total }} 篇</span>
+        <h1 class="umm-titlebar-label">{{ t('douban.ur.title') }}</h1>
+        <span class="umm-titlebar-count">{{ t('douban.rev.count', { count: data.total }) }}</span>
       </div>
 
       <!-- Reviews -->
@@ -69,8 +70,12 @@ function starHtml(rating: number): string {
                 v-html="starHtml(item.rating)"
               />
               <span class="umm-reviews-stats">
-                <span v-if="item.readCount > 0">{{ item.readCount }} 阅读</span>
-                <span v-if="item.usefulCount > 0">· {{ item.usefulCount }} 有用</span>
+                <span v-if="item.readCount > 0">{{
+                  t('douban.rev.read', { count: item.readCount })
+                }}</span>
+                <span v-if="item.usefulCount > 0">{{
+                  t('douban.rev.useful', { count: item.usefulCount })
+                }}</span>
               </span>
             </div>
             <div
@@ -88,13 +93,13 @@ function starHtml(rating: number): string {
                 class="umm-reviews-expand"
                 @click.prevent="toggleExpand(item.id)"
               >
-                {{ isExpanded(item.id) ? '收起' : '展开全文' }}
+                {{ isExpanded(item.id) ? t('douban.rev.collapse') : t('douban.rev.expand') }}
               </button>
             </div>
           </div>
         </article>
       </div>
-      <div v-else class="umm-empty">暂无影评</div>
+      <div v-else class="umm-empty">{{ t('douban.ur.empty') }}</div>
 
       <!-- Paginator -->
       <UmmPageLinks

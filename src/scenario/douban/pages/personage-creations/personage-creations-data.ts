@@ -30,50 +30,49 @@ export interface CreationItem {
   cast: string;
   rating: string; // e.g. "7.1" or ""
   ratingStars: string; // e.g. "allstar35" or "allstar00"
-  recordStatus?: number;
-  recordRating?: number;
 }
 
 export interface RoleOption {
-  label: string;
+  labelKey: string; // i18n key for the chip label (douban.pc.role_*)
   role: string; // A1 / A2 / A3 or '' for "all"
   url: string; // full URL for this role filter
   active: boolean;
 }
 
 export interface RecordStatusBadge {
-  label: string; // 想看 / 在看 / 看过
+  labelKey: string; // douban.pc.badge_* — resolved by the render layer (X107)
   variant: 'wish' | 'do' | 'collect';
 }
 
 /**
- * Map a record status code to its badge label + CSS variant.
+ * Map a record status code to its badge label key + CSS variant.
  * Status codes (see domain/record/status.ts): 1=Wishlist, 2=Done, 3=Doing.
  * Returns null for neutral (0) or unknown codes.
+ * The key — not a literal — so a runtime language change is picked up at render.
  */
 export function recordStatusBadge(status: number): RecordStatusBadge | null {
-  if (status === 1) return { label: '想看', variant: 'wish' };
-  if (status === 3) return { label: '在看', variant: 'do' };
-  if (status === 2) return { label: '看过', variant: 'collect' };
+  if (status === 1) return { labelKey: 'douban.pc.badge_wish', variant: 'wish' };
+  if (status === 3) return { labelKey: 'douban.pc.badge_doing', variant: 'do' };
+  if (status === 2) return { labelKey: 'douban.pc.badge_done', variant: 'collect' };
   return null;
 }
 
 /**
  * Persistent role filter options (Douban role codes, stable across pages).
- * Order mirrors the native dropdown: 演员 → 出镜 → 配音.
+ * Order mirrors the native dropdown: 演员 → 出镜 → 配音 (labels by key).
  * NOT scraped from the native DOM — the native #role_filter dropdown is
  * inconsistently rendered, so the UI must not depend on it.
  */
-export const ROLE_FILTER_OPTIONS: ReadonlyArray<{ label: string; role: string }> = [
-  { label: '演员', role: 'A1' },
-  { label: '出镜', role: 'A3' },
-  { label: '配音', role: 'A2' },
+export const ROLE_FILTER_OPTIONS: ReadonlyArray<{ labelKey: string; role: string }> = [
+  { labelKey: 'douban.pc.role_actor', role: 'A1' },
+  { labelKey: 'douban.pc.role_guest', role: 'A3' },
+  { labelKey: 'douban.pc.role_dub', role: 'A2' },
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  A1: '演员',
-  A2: '配音',
-  A3: '出镜',
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  A1: 'douban.pc.role_actor',
+  A2: 'douban.pc.role_dub',
+  A3: 'douban.pc.role_guest',
 };
 
 export interface PersonageCreationsPageData {
@@ -150,12 +149,12 @@ function extractCurrentSort(doc: Document): 'time' | 'collection' | 'vote' {
 /**
  * Determine the current role filter from the URL role param (authoritative,
  * persistent — never reads the native dropdown). Returns '' when no role is
- * active, or the label ("演员"/"出镜"/"配音") when a known code is present.
+ * active, or the label KEY (douban.pc.role_*) when a known code is present.
  */
 function extractCurrentRole(url: string): string {
   const roleParam = new URL(url).searchParams.get('role');
   if (roleParam && /^A\d$/.test(roleParam)) {
-    return ROLE_LABELS[roleParam] || roleParam;
+    return ROLE_LABEL_KEYS[roleParam] || roleParam;
   }
   return '';
 }
@@ -169,12 +168,12 @@ function extractRoleOptions(url: string): RoleOption[] {
   const roleParam = new URL(url).searchParams.get('role');
   const activeCode = roleParam && /^A\d$/.test(roleParam) ? roleParam : '';
 
-  return ROLE_FILTER_OPTIONS.map(({ label, role }) => {
+  return ROLE_FILTER_OPTIONS.map(({ labelKey, role }) => {
     const u = new URL(url);
     u.searchParams.set('role', role);
     u.searchParams.delete('start');
     return {
-      label,
+      labelKey,
       role,
       url: u.toString(),
       active: role === activeCode,
@@ -367,7 +366,9 @@ export function extractPersonageCreationsPageData(
     creationsCount: creations.length,
     page: pagination.currentPage,
     total: pagination.totalPages,
-    roleOptions: extractRoleOptions(url).map((r) => `${r.role}:${r.label}${r.active ? '*' : ''}`),
+    roleOptions: extractRoleOptions(url).map(
+      (r) => `${r.role}:${r.labelKey}${r.active ? '*' : ''}`,
+    ),
   });
 
   return {

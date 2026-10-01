@@ -8,11 +8,11 @@ export type ThemeMode = 'light' | 'dark' | 'auto';
 /**
  * Theme store's own persistent key.
  *
- * Dual-key relationship with settings (do NOT unify in this wave):
+ * Dual-key relationship with settings (deliberately kept separate, do NOT unify):
  * - `umm:appearance` — written here via useStorage and re-read on
  *   chrome.storage.onChanged for cross-context sync (content scripts / popup).
  * - `theme` (STORAGE_KEYS.THEME) — mirrored by syncThemeToSettings() into the
- *   background settings cache; src/features/settings/cache.ts startListening()
+ *   background settings cache; src/engine/settings/cache.ts startListening()
  *   shims `umm:appearance` changes into `cache.theme` so both stay consistent.
  */
 const STORAGE_KEY = 'umm:appearance';
@@ -57,13 +57,21 @@ export const useThemeStore = defineStore('theme', () => {
   }
   applyAll();
 
-  // Persist on change
-  watch([theme], () => {
+  // Persist on change (single-ref source: array form would be pure noise)
+  watch(theme, () => {
     storage.value = { theme: theme.value };
     applyAll();
-    chrome.storage.local.set({ [STORAGE_KEY]: storage.value });
+    // Best-effort mirror like syncThemeToSettings: set() is async, so a bare call
+    // would leak quota/invalidated-context failures as unhandled rejections.
+    chrome.storage.local.set({ [STORAGE_KEY]: storage.value }).catch(() => {
+      // Silent — cross-tab vueuse storage and the settings mirror below cover it
+    });
     syncThemeToSettings(theme.value);
   });
+
+  // OS scheme flip while mode is 'auto': re-apply without touching persisted
+  // state; harmless in explicit light/dark because applyTheme is mode-pure.
+  watch(isDark, () => applyTheme(theme.value));
 
   // React to chrome.storage changes (cross-context sync)
   chrome.storage.onChanged.addListener((changes, area) => {

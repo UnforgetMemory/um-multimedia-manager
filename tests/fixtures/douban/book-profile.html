@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/book-profile-data.spec.ts.
+  NOT a saved page — every id/name/number below is fabricated. It reproduces
+  only the DOM contract that
+  src/scenario/douban/pages/book-profile/data.ts queries on
+  book.douban.com/people/<uid>/:
+    - .book-user-profile .avatar / .username / .time-registered
+      / .number-item(.number + .number-label)
+    - #db-usr-profile .nav-list > li (a | .user-profile-nav-activated | .sep)
+    - #db-book-mine > div:first-child / > div:nth-child(2) grids, each with
+      h2 .pl a count + .sub-list .list-s li a.cover img[title|alt]
+    - #author .sub-list li a.cover(/author/<id>) + a:not(.cover) name link
+    - .aside .mod「最近阅读」> ul.mbt > li.contact-update-time(.pl)
+      + li.mbtrmini(.starb > .pl + a, star span, .quote .inq)
+    - .comment-m .tlst(.ilst a[title]+img | .nlst h3 a |
+      .clst [class*="allstar"] | .review-short)
+    - .aside .mod「图书豆列」> .list-m li a + .rec
+  Deliberate skip rows lock the parser's drop paths: a grid li without a.cover,
+  a.cover whose href has no /subject/<digits>, an author li without a.cover,
+  /author/ without digits, a .mbtrmini without .starb, a non-mbtrmini .mbt li,
+  a promo .tlst whose title link has no /review/<digits>, a nav .sep li, and a
+  doulist li without a link.
+
+  RATING SHAPES (both pinned by the spec): reviews go through parseRating on
+  `[class*="allstar"]`, so allstar45 → 4.5 (half star) and allstar20 → 2.
+  Recent-reading instead matches `[class*="stars"]` with /stars(\d)/ — the
+  `stars4` span is the shape that regex can read, while Douban's real own-rating
+  span (`user-stars rating40`) matches the selector but not the regex, so that
+  entry pins the current rating 0 fallback.
+
+  NOTE: every expected value in the spec is a trimmed textContent or a resolved
+  href/src, so oxfmt line-wrapping the count-bearing h2s cannot change what the
+  parsers match; keep each count inside one `span.pl > a` anchor.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>贾探花的读书主页 - 豆瓣读书</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="db-usr-profile">
+        <div class="pic">
+          <a href="https://book.douban.com/people/27235071/">
+            <img src="https://img1.doubanio.com/icon/u27235071-8.jpg" alt="贾探花" />
+          </a>
+        </div>
+        <div class="info">
+          <h1>贾探花</h1>
+          <ul class="nav-list">
+            <li><a href="https://book.douban.com/people/27235071/">我的主页</a></li>
+            <li class="sep">|</li>
+            <li class="user-profile-nav-activated">图书</li>
+            <li><a href="https://book.douban.com/people/27235071/reviews">书评</a></li>
+            <li>
+              <a href="https://book.douban.com/people/27235071/doulists?subject=0">豆列</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="aside">
+        <div class="book-user-profile">
+          <img class="avatar" src="https://img1.doubanio.com/icon/u27235071-8.jpg" alt="头像" />
+          <div class="username">贾探花</div>
+          <div class="time-registered">2011-05-20 加入</div>
+          <div class="numbers">
+            <div class="number-item">
+              <span class="number">45</span><span class="number-label">读过</span>
+            </div>
+            <div class="number-item">
+              <span class="number">7</span><span class="number-label">书评</span>
+            </div>
+            <!-- unknown label → neither readCount nor reviewCount -->
+            <div class="number-item">
+              <span class="number">12</span><span class="number-label">在读</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <h2>最近阅读</h2>
+          <ul class="mbt">
+            <li class="contact-update-time"><span class="pl">2026-07-12</span></li>
+            <li class="mbtrmini">
+              <div class="starb">
+                <span class="pl">读过</span>
+                <a href="https://book.douban.com/subject/36185161/">长安的荔枝</a>
+              </div>
+              <span class="user-stars rating40" title="推荐"></span>
+              <div class="quote"><span class="inq">一骑红尘妃子笑，无人知是荔枝来。</span></div>
+            </li>
+            <li class="mbtrmini">
+              <div class="starb">
+                <span class="pl">2026-07-11 写了书评</span>
+                <a href="/subject/26800002/">盐的路线</a>
+              </div>
+              <span class="my_rating stars4" title="还行"></span>
+            </li>
+            <li class="contact-update-time"><span class="pl">2026-06-30</span></li>
+            <li class="mbtrmini">
+              <div class="starb">
+                <span class="pl">想读</span>
+                <a href="https://book.douban.com/subject/26268201/">夜航西飞</a>
+              </div>
+            </li>
+            <!-- skip: .mbtrmini without .starb -->
+            <li class="mbtrmini"><span class="pl">读过</span>缺 starb 的动态行</li>
+            <!-- ignored: neither date separator nor .mbtrmini -->
+            <li class="mbtmore">
+              <a href="https://book.douban.com/people/27235071/collect">浏览全部动态</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mod">
+          <h2>图书豆列</h2>
+          <ul class="list-m">
+            <li>
+              <p><a href="https://book.douban.com/doulist/143184672/">二十世纪中文小说</a></p>
+              <span class="rec">(34人关注)</span>
+            </li>
+            <li>
+              <p><a href="https://book.douban.com/doulist/150000001/">银河奖获奖书单</a></p>
+              <span class="rec">(7人关注)</span>
+            </li>
+            <li>
+              <p><a href="https://book.douban.com/doulist/150000002/">无关注数的豆列</a></p>
+            </li>
+            <!-- skip: placeholder row without any link -->
+            <li><span class="pl">查看更多豆列</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="content">
+        <div id="db-book-mine">
+          <div class="mod">
+            <h2>
+              读过 · <span class="pl"><a href="/people/27235071/collect">(45本)</a></span>
+            </h2>
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/subject/36185161/">
+                    <img
+                      src="https://img3.doubanio.com/view/subject/s/public/s36185161.jpg"
+                      title="长安的荔枝（插图珍藏本）"
+                      alt="长安的荔枝"
+                    />
+                  </a>
+                </li>
+                <li>
+                  <a class="cover" href="https://book.douban.com/subject/26800002/">
+                    <img src="/view/subject/s/26800002.jpg" alt="盐的路线" />
+                  </a>
+                </li>
+                <li>
+                  <a class="cover" href="/subject/1001234/">
+                    <img src="/view/subject/s/1001234.jpg" alt="夜航西飞·新注本" />
+                  </a>
+                </li>
+                <!-- skip: placeholder cell without a.cover -->
+                <li class="empty"><span class="pl">查看全部 45 本 ›</span></li>
+                <!-- skip: a.cover href without /subject/<digits> -->
+                <li>
+                  <a class="cover" href="/doulist/143184672/">
+                    <img src="/view/subject/s/no-subject.jpg" alt="豆列封面行应被跳过" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="mod">
+            <h2>
+              想读 · <span class="pl"><a href="/people/27235071/wish">(18本)</a></span>
+            </h2>
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/subject/26268201/">
+                    <img src="/view/subject/s/26268201.jpg" alt="太平洋彼岸的孩子" />
+                  </a>
+                </li>
+                <li>
+                  <a class="cover" href="https://book.douban.com/subject/25980843/">
+                    <img
+                      src="https://img3.doubanio.com/view/subject/s/public/s25980843.jpg"
+                      alt="沙丘译本考"
+                    />
+                  </a>
+                </li>
+                <!-- skip: no a.cover -->
+                <li class="empty"><span class="pl">查看全部 18 本 ›</span></li>
+              </ul>
+            </div>
+          </div>
+          <!-- third grid module: positional selectors must ignore it -->
+          <div class="mod">
+            <h2>
+              在读 · <span class="pl"><a href="/people/27235071/mark">(12本)</a></span>
+            </h2>
+            <div class="sub-list">
+              <ul class="list-s">
+                <li>
+                  <a class="cover" href="/subject/1002222/">
+                    <img src="/view/subject/s/1002222.jpg" alt="在读的书甲" />
+                  </a>
+                </li>
+                <li>
+                  <a class="cover" href="/subject/1003333/">
+                    <img src="/view/subject/s/1003333.jpg" alt="在读的书乙" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod" id="author">
+          <h2>
+            收藏的作者 ·
+            <span class="pl"><a href="/people/27235071/celebrities">(12位)</a></span>
+          </h2>
+          <div class="sub-list">
+            <ul class="list-s">
+              <li>
+                <a class="cover" href="https://book.douban.com/author/1005731/">
+                  <img src="https://img3.doubanio.com/img/author/normal/p1005731.jpg" />
+                </a>
+                <a href="https://book.douban.com/author/1005731/">刘慈欣</a>
+              </li>
+              <li>
+                <a class="cover" href="/author/1005739/">
+                  <img src="/img/author/normal/p1005739.jpg" />
+                </a>
+                <a class="pl" href="/author/1005739/">加西亚·马尔克斯</a>
+              </li>
+              <!-- skip: a.cover href without /author/<digits> -->
+              <li>
+                <a class="cover" href="/author/"><img src="/img/author/normal/nc.jpg" /></a>
+                <a href="/author/">缺数字的作者应被跳过</a>
+              </li>
+              <!-- skip: li without a.cover -->
+              <li><a href="/author/1005740/">没有封面链接的作者</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mod comment-m">
+          <h2>
+            最近书评 · <span class="pl"><a href="/people/27235071/reviews">(7篇)</a></span>
+          </h2>
+          <div class="review-item tlst">
+            <div class="ilst">
+              <a href="https://book.douban.com/subject/36185161/" title="长安的荔枝">
+                <img src="https://img3.doubanio.com/view/subject/l/public/s36185161.jpg" />
+              </a>
+            </div>
+            <div class="nlst">
+              <h3><a href="https://book.douban.com/review/42831570/">荔枝里的驿路程序</a></h3>
+            </div>
+            <div class="clst">
+              <div class="ll user">
+                <div class="starb">
+                  <a href="https://book.douban.com/people/27235071/">贾探花</a>
+                  <span class="user-stars allstar45" title="推荐"></span>
+                  <span class="pub">2026-07-11 12:00</span>
+                </div>
+              </div>
+              <div class="review-short">
+                <span>马伯庸把小吏写成了主角，驿路即程序，荔枝即 KPI。</span>
+              </div>
+            </div>
+          </div>
+          <div class="review-item tlst">
+            <div class="nlst">
+              <h3><a href="/review/41000000/">冰与海的边界</a></h3>
+              <div class="review-content"><p>潮汐般的铺陈，最后一页才收束。</p></div>
+            </div>
+            <div class="clst">
+              <div class="ll user">
+                <div class="starb">
+                  <a href="https://book.douban.com/people/27235071/">贾探花</a>
+                  <span class="user-stars allstar20" title="较差"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- skip: promo .tlst, title link has no /review/<digits> -->
+          <div class="tlst promo">
+            <div class="nlst">
+              <h3><a href="/subject/1001234/">本周新书速递</a></h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
 import { IDBFactory } from 'fake-indexeddb';
 import {
   ADULT_STORES,
@@ -320,7 +323,7 @@ test.describe('契约冻结 · 主库 schema（v15）', () => {
   });
 
   test('fresh v15 完整 schema 快照（12 store + 各自索引集合）', async () => {
-    (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
+    defineGlobal('indexedDB', new IDBFactory());
 
     const mdb = new MediaDatabase();
     await mdb.init();
@@ -334,7 +337,7 @@ test.describe('契约冻结 · 主库 schema（v15）', () => {
   });
 
   test('fresh 安装不携带遗留死 store（sehuatang_avids / sync_logs）', async () => {
-    (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
+    defineGlobal('indexedDB', new IDBFactory());
 
     const mdb = new MediaDatabase();
     await mdb.init();

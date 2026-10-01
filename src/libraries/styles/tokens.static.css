@@ -4,8 +4,8 @@
    Architecture (ADR-018): DSH-style three-tier token model.
    Tier 1 "static"  → THIS FILE. Raw palette scales. Theme-invariant.
    Tier 2 "semantic"→ thin alias layers ONLY var() references:
-                        - Layer 1 (SPA):      src/shared/styles/style.css (:root/.dark)
-                        - Layer 2 (Shadow DOM): src/content/douban/styles/design-tokens.css (:host)
+                        - Layer 1 (SPA):      src/libraries/styles/style.css (:root/.dark)
+                        - Layer 2 (Shadow DOM): src/scenario/douban/styles/design-tokens.css (:host)
                         - Layer 3 (JS inject):  src/entrypoints/content/styles/tokens.ts
    Tier 3 "component" → --umm-island-* etc., live beside their components.
 

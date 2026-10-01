@@ -21,6 +21,13 @@ test.beforeAll(() => {
   };
 });
 
+// Workers are shared across spec files; the location stub must not outlive this one.
+const ORIGINAL_LOCATION = Object.getOwnPropertyDescriptor(globalThis, 'location');
+test.afterAll(() => {
+  if (ORIGINAL_LOCATION) Object.defineProperty(globalThis, 'location', ORIGINAL_LOCATION);
+  else delete (globalThis as Record<string, unknown>).location;
+});
+
 /** 结构桩行：仅暴露提取所需的 href 与标识。 */
 function makeRow(href: string | null, id: string): Element {
   return { href, id } as unknown as Element;

@@ -4,6 +4,9 @@
  * Extracts the common detail page flow (waitForElement -> scan -> dbGet -> merge -> render -> dbPut)
  * into a reusable factory. Four consumers: imdb, tmdb, neodb, bangumi.
  *
+ * The returned handler also watches this record key for external writes and
+ * hands back a teardown for the router to run on route change.
+ *
  * The factory does NOT add its own try/catch — callers that need error isolation
  * (e.g. TMDB's waitForElement timeout guard) wrap the result themselves.
  */
@@ -11,6 +14,8 @@
 import type { UrlIdentity, StoreRecord } from '@/types';
 import { Store } from '@/engine/database';
 import { Utils } from '@/libraries/utils';
+import { warnLog } from '@/libraries/utils/logger';
+import { watchRecord } from '@/libraries/utils/watch-record';
 import { waitForElement } from '../utils/dom';
 import { FloatingToast } from '../utils/toast';
 import { t } from '../i18n';
@@ -63,12 +68,20 @@ export interface DetailPageHandlerConfig {
    * Used by neodb for linkedIds extraction, cross-platform sync, and conditional saves.
    */
   onSave?: (params: DetailPageHandlerSaveParams) => Promise<void>;
+  /**
+   * Test seam for the record-event subscription. Defaults to the real bus
+   * (`libraries/utils/watch-record`), which latches its chrome listener once per
+   * worker — a spec that drives events must inject its own bus rather than depend
+   * on which file registered first (that ordering is what makes merged runs differ
+   * from single-file runs).
+   */
+  watchRecord?: (storeName: string, key: string, onChange: () => void) => () => void;
 }
 
 // ---- Factory ----
 
 export function createDetailPageHandler(config: DetailPageHandlerConfig) {
-  return async function handleDetailPage(identity: UrlIdentity): Promise<void> {
+  return async function handleDetailPage(identity: UrlIdentity): Promise<(() => void) | void> {
     if (!identity) return;
 
     // Wait for the title element to appear; on timeout (selector mismatch /
@@ -99,26 +112,33 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
     const key = `${resolvedIdentity.type}::${resolvedIdentity.providerId}`;
     const localRecord = await Store.dbGet(storeName, key);
 
-    const isLocalDone = localRecord?.status === 2;
+    /**
+     * One merge definition on purpose: the external-write refresh below has to
+     * reach the SAME verdict as the first paint, and a second copy drifts (the
+     * symptom would be a chip flipping back on the next write).
+     */
+    const mergeVerdict = (page: PageScanResult, record: StoreRecord | null) => {
+      const isPageDone = page.status === 'done';
+      const isLocalDone = record?.status === 2;
+      const status = config.mergeStatusFn
+        ? config.mergeStatusFn(page, record)
+        : isPageDone || isLocalDone
+          ? 2
+          : 0;
+      return {
+        status,
+        // Page rating wins over the stored one.
+        rating: Utils.clampRating10(isPageDone ? page.rating : record?.rating || 0),
+        // A local "done" the page itself does not show deserves an explanation.
+        note: isLocalDone && !isPageDone ? t('common.cache_hint') : '',
+      };
+    };
+
     const isPageDone = pageState.status === 'done';
-
-    // Merge status: page state takes priority, then local DB
-    const finalStatus = config.mergeStatusFn
-      ? config.mergeStatusFn(pageState, localRecord)
-      : isPageDone || isLocalDone
-        ? 2
-        : 0;
-
-    // Merge rating: page rating takes priority
-    const finalRating = Utils.clampRating10(
-      isPageDone ? pageState.rating : localRecord?.rating || 0,
-    );
-
-    // Show cache hint when local says done but page doesn't
-    const note = isLocalDone && !isPageDone ? t('common.cache_hint') : '';
+    const initial = mergeVerdict(pageState, localRecord ?? null);
 
     // Render the status chip
-    await config.renderFn(resolvedIdentity, finalStatus, finalRating, note);
+    await config.renderFn(resolvedIdentity, initial.status, initial.rating, initial.note);
 
     // Base save: only when page shows done and a message key is configured
     if (isPageDone && config.savedMessageKey) {
@@ -150,5 +170,32 @@ export function createDetailPageHandler(config: DetailPageHandlerConfig) {
         isPageDone,
       });
     }
+
+    // An external write (popup, another tab, NeoDB/WebDAV sync) mutates no host
+    // DOM, so the platform's own state observer never fires and the chip would
+    // stay stale until reload. Re-derive from the same two inputs on the events
+    // that concern this key only.
+    let disposed = false;
+    const refresh = async (): Promise<void> => {
+      const page = await config.scanFn(resolvedIdentity);
+      const record = await Store.dbGet(storeName, key);
+      // The answer lands late; a route the user already left must not be painted.
+      if (disposed) return;
+      const next = mergeVerdict(page, record ?? null);
+      await config.renderFn(resolvedIdentity, next.status, next.rating, next.note);
+    };
+
+    const releaseRecordWatch = (config.watchRecord ?? watchRecord)(storeName, key, () => {
+      // A failed refresh must not vanish: the chip keeps the previous verdict,
+      // which is indistinguishable from "no external write happened".
+      void refresh().catch((error: unknown) => {
+        warnLog('Detail chip refresh failed:', error);
+      });
+    }); // MUT-close
+
+    return (): void => {
+      disposed = true;
+      releaseRecordWatch();
+    };
   };
 }

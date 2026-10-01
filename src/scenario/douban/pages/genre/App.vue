@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { safeHref } from '@/libraries/utils/safe-url';
+import { t } from '../../shared/legacy-bridge';
 import { computed } from 'vue';
 import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
 import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
@@ -11,7 +13,7 @@ const hasPrev = computed(() => !!d.pagination.prevUrl);
 const hasNext = computed(() => !!d.pagination.nextUrl);
 
 function goToPage(url: string): void {
-  if (url) window.location.href = url;
+  if (url) window.location.href = safeHref(url);
 }
 </script>
 
@@ -50,20 +52,22 @@ function goToPage(url: string): void {
             <UmmImageWrapper :src="artist.avatarUrl" :alt="artist.name" aspect-ratio="1" />
           </div>
           <span class="umm-artist-name">{{ artist.name }}</span>
-          <span class="umm-artist-likes">{{ artist.likes }}人喜欢</span>
+          <span class="umm-artist-likes">{{
+            t('douban.genre.likes', { count: artist.likes })
+          }}</span>
         </a>
       </div>
 
       <!-- Pagination -->
       <div class="umm-pagination">
         <button class="umm-page-btn" :disabled="!hasPrev" @click="goToPage(d.pagination.prevUrl)">
-          ‹ 前页
+          {{ t('douban.genre.prev') }}
         </button>
         <span class="umm-page-info"
           >{{ d.pagination.currentPage }} / {{ d.pagination.totalPages }}</span
         >
         <button class="umm-page-btn" :disabled="!hasNext" @click="goToPage(d.pagination.nextUrl)">
-          后页 ›
+          {{ t('douban.genre.next') }}
         </button>
       </div>
     </div>

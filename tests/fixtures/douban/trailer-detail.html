@@ -1,0 +1,47 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/trailer-data.spec.ts.
+  NOT a real saved page; reproduces the standalone movie.douban.com/trailer/{id}/
+  (also reused at /video/{id}/ via JSDOM url override) detail DOM shape consumed
+  by src/scenario/douban/pages/trailer/trailer-data.ts (#player source,
+  ld+json embedUrl, #video-list playlist, .trailer-info, .video-desc).
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>《肖申克的救赎》正式预告片</title>
+    <script type="application/ld+json">
+      { "@type": "VideoObject", "name": "正式预告片", "embedUrl": "https://movie.douban.com/embed/trailer/130123/" }
+    </script>
+  </head>
+  <body>
+    <div id="content">
+      <h1><a href="https://movie.douban.com/subject/1292052/">肖申克的救赎</a> 正式预告片</h1>
+      <div id="player">
+        <video preload="none" poster="https://img1.doubanio.com/f/movie/img/trailer/medium/p130123.jpg">
+          <source src="https://awvs.doubanio.com/view/video/public/130123.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="trailer-info"><span class="date">2013-12-15</span>发布 · 来自 <a href="#">预告片站</a></div>
+      <div class="video-desc">1947年，银行家安迪被指控谋杀，进入了肖申克监狱——本片正式预告片。</div>
+      <div id="video-list" class="mod">
+        <h3>相关预告片</h3>
+        <ul class="video-list-col">
+          <li class="cur">
+            <a class="pr-video" href="/trailer/130123/">
+              <img src="https://img1.doubanio.com/f/movie/img/trailer/small/p130123.jpg" alt="" />
+            </a>
+            <strong>《肖申克的救赎》正式预告片 (02:30)</strong>
+          </li>
+          <li>
+            <a class="pr-video" href="https://movie.douban.com/trailer/130124/">
+              <img data-src="https://img1.doubanio.com/f/movie/img/trailer/small/p130124.jpg" alt="" />
+            </a>
+            <strong>《肖申克的救赎》删减片段 (01:12)</strong>
+          </li>
+          <li><span>无链接播放列表项，应被跳过</span></li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

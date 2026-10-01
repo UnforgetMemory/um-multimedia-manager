@@ -27,7 +27,7 @@ interface LruEntry<T> {
 }
 
 /**
- * L1 缓存容量/TTL 魔法数字的唯一事实源（审计 §P-C3 收敛）：
+ * L1 缓存容量/TTL 魔法数字的唯一事实源：
  * MediaDatabase.readCache、CacheManager（background 装配）与 LruCache 默认值
  * 全部引用这两个常量，禁止在调用点重复字面量。
  */
@@ -137,7 +137,9 @@ export class LruCache<T = unknown> {
         oldestKey = key;
       }
     }
-    if (oldestKey) {
+    // `!== undefined`, NOT truthiness: '' is a legal key and must stay evictable,
+    // else it anchors the scan forever and maxSize stops being a cap.
+    if (oldestKey !== undefined) {
       this.map.delete(oldestKey);
       this.evictions++;
     }

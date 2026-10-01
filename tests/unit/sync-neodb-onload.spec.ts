@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
 import { JSDOM } from 'jsdom';
 import { syncNeoDBOnLoad } from '@/scenario/douban/pages/detail/composables/use-cross-platform-sync';
 import type { StoreRecord, UrlIdentity } from '@/types';
+
+// Installs happen inside tests below; register this file's sandbox hooks at module scope.
+initFileSandbox();
 
 /**
  * Regression for the syncNeoDBOnLoad local-record URL bug (umreview).
@@ -22,15 +26,13 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'https://movie.douban.com/subject/12345/',
   pretendToBeVisual: true,
 });
-(globalThis as { document?: unknown }).document = dom.window.document;
-(globalThis as { window?: unknown }).window = dom.window;
+defineGlobal('document', dom.window.document);
+defineGlobal('window', dom.window);
 if (
   typeof (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame === 'undefined'
 ) {
-  (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame =
-    dom.window.requestAnimationFrame.bind(dom.window);
-  (globalThis as { cancelAnimationFrame?: unknown }).cancelAnimationFrame =
-    dom.window.cancelAnimationFrame.bind(dom.window);
+  defineGlobal('requestAnimationFrame', dom.window.requestAnimationFrame.bind(dom.window));
+  defineGlobal('cancelAnimationFrame', dom.window.cancelAnimationFrame.bind(dom.window));
 }
 
 // JSDOM does not implement HTMLElement.innerText; polyfill it as textContent so
@@ -110,12 +112,12 @@ function installChromeStub(opts: StubOptions): { sent: SentMessage[] } {
       onMessage: { addListener: () => {} },
     },
   };
-  (globalThis as { chrome?: unknown }).chrome = chromeStub;
+  defineGlobal('chrome', chromeStub);
   return { sent };
 }
 
 function clearChromeStub(): void {
-  (globalThis as { chrome?: unknown }).chrome = undefined;
+  defineGlobal('chrome', undefined);
 }
 
 function neodbPut(sent: SentMessage[]): StoreRecord {

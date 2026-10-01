@@ -92,40 +92,29 @@ test.describe('heatmap smart range — real Chromium overflow contract', () => {
     });
   }
 
-  test('segmented active id follows pickRangeDaysForWidth (mount contract)', async ({ page }) => {
-    // Mirrors HeatmapCalendar.applySmartDefaultRange: measure clientWidth → set rangeDays
+  test('segmented active id comes from the production picker applied to measured width', async ({
+    page,
+  }) => {
+    // HeatmapCalendar.applySmartDefaultRange measures clientWidth at mount and
+    // feeds it to pickRangeDaysForWidth. Here the page does both the measuring
+    // and the picking, so a stale measurement or an ignored argument shows up
+    // as a diff instead of being echoed back from node.
+    await page.exposeFunction('__ummPickRangeDays', pickRangeDaysForWidth);
+    const picked: HeatmapRangeId[] = [];
     for (const width of [300, 500, 1000]) {
-      const expected = pickRangeDaysForWidth(width);
       await page.setContent(
         `<!DOCTYPE html><html><body>
           <div id="scroll" style="width:${width}px;overflow-x:auto"></div>
           <div id="seg"></div>
-          <script>
-            window.__apply = function (pick) {
-              const w = document.getElementById('scroll').clientWidth
-              const id = pick(w)
-              const seg = document.getElementById('seg')
-              seg.innerHTML = ''
-              for (const opt of ['90','150','365']) {
-                const b = document.createElement('button')
-                b.dataset.id = opt
-                b.className = opt === id ? 'active' : ''
-                b.textContent = opt
-                seg.appendChild(b)
-              }
-              return id
-            }
-          </script>
         </body></html>`,
         { waitUntil: 'domcontentloaded' },
       );
-      const active = await page.evaluate((w) => {
-        // Inline the same pick used by production (source of truth imported in node, re-evaluated here via arg)
-        void w;
-        return document.querySelector('#seg .active')?.getAttribute('data-id') ?? null;
-      }, width);
-      // Drive with production pick result as the expected active id
-      await page.evaluate((id) => {
+      const result = await page.evaluate(async () => {
+        const pick = (
+          window as unknown as { __ummPickRangeDays: (w: number) => Promise<HeatmapRangeId> }
+        ).__ummPickRangeDays;
+        const measured = document.getElementById('scroll')!.clientWidth;
+        const id = await pick(measured);
         const seg = document.getElementById('seg')!;
         seg.innerHTML = '';
         for (const opt of ['90', '150', '365']) {
@@ -134,10 +123,14 @@ test.describe('heatmap smart range — real Chromium overflow contract', () => {
           if (opt === id) b.className = 'active';
           seg.appendChild(b);
         }
-      }, expected);
-      const finalActive = await page.locator('#seg .active').getAttribute('data-id');
-      expect(finalActive).toBe(expected);
-      expect(active === null || typeof active === 'string').toBe(true);
+        return { measured, id };
+      });
+      expect(result.measured, `clientWidth at css width ${width}px`).toBe(width);
+      expect(await page.locator('#seg .active').getAttribute('data-id')).toBe(result.id);
+      picked.push(result.id);
     }
+    // Three distinct tiers: a picker that ignored its argument would satisfy
+    // every per-case assertion above while still being broken.
+    expect(picked).toEqual(['90', '150', '365']);
   });
 });

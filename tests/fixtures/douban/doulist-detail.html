@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/doulist-detail-data.spec.ts.
+  NOT a real saved page — all data is fabricated. Reproduces the public DOM shape
+  of https://www.douban.com/doulist/{id}/ as queried by
+  src/scenario/douban/pages/doulist-detail/doulist-detail-data.ts:
+  h1 > span title, #doulist-info (.doulist-cover img, .hd .avatar,
+  .hd .meta with (location) + .time "创建/更新", .bd description),
+  .doulist-filter tabs with (count), #content .doulist-item blocks
+  (.post a+img, .title a, .rating_nums + 评价人数 span, .abstract <br> lines,
+  .source, .doulist-add-btn a[data-id][data-cate], .doulist-video-items),
+  and .paginator (thispage data-total-page). Includes a music item whose id is
+  derived from the /subject/ URL, an unrated item, and an ad-like item that
+  must be skipped.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>犯罪类型片精选 - 豆列</title>
+  </head>
+  <body>
+    <div id="content">
+      <h1><span>犯罪类型片精选</span></h1>
+      <div id="doulist-info">
+        <div class="doulist-cover">
+          <img src="https://img1.doubanio.com/cpms/doulist/cover_1500001_big.jpg" alt="封面" />
+        </div>
+        <div class="hd">
+          <a class="avatar" href="https://www.douban.com/people/moviefan001/">
+            <img src="https://img2.doubanio.com/icon/u100000-1.jpg" alt="电影狂热者" />
+          </a>
+          <div class="meta">
+            来自: <a href="https://www.douban.com/people/moviefan001/">电影狂热者</a> (杭州)
+            <span class="time">2019-04-12 创建 · 2025-11-03 更新</span>
+          </div>
+        </div>
+        <div class="bd">精选华语与好莱坞犯罪类型片，按年代排序，持续更新。</div>
+      </div>
+      <div class="doulist-filter">
+        <a class="active" href="/doulist/1500001/">全部(35)</a>
+        <a href="/doulist/1500001/?type=unwatched">我没看过的(12)</a>
+        <a href="https://www.douban.com/doulist/1500001/?type=watched">我看过的(23)</a>
+      </div>
+      <div class="doulist-item">
+        <div class="post">
+          <a href="https://movie.douban.com/subject/6011813/">
+            <img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2936200101.jpg" />
+          </a>
+        </div>
+        <div class="content">
+          <div class="title"><a href="https://movie.douban.com/subject/6011813/">寒战 寒戰</a></div>
+          <div class="doulist-rate">
+            <span class="rating_nums">8.1</span><span>(431872人评价)</span>
+          </div>
+          <div class="abstract">
+            导演: 梁乐民 / 陆剑青<br />主演: 郭富城 / 梁家辉 / 李治廷<br />类型: 剧情 / 动作 / 犯罪<br />制片国家/地区: 中国香港/中国大陆<br />年份: 2012
+          </div>
+          <div class="source">来自：豆瓣电影</div>
+          <div class="doulist-add-btn">
+            <a data-id="6011813" data-cate="1002" href="#">添加到豆列</a>
+          </div>
+        </div>
+      </div>
+      <div class="doulist-item">
+        <div class="post">
+          <a href="https://music.douban.com/subject/1078062/">
+            <img src="https://img2.doubanio.com/view/subject/m/public/s1078062.jpg" />
+          </a>
+        </div>
+        <div class="content">
+          <div class="title"><a href="https://music.douban.com/subject/1078062/">范特西</a></div>
+          <div class="doulist-rate">
+            <span class="rating_nums">9.4</span><span>(120,540人评价)</span>
+          </div>
+          <div class="abstract">作者: 周杰伦<br />表演者: 周杰伦<br />流派: 流行<br />年份: 2001</div>
+          <div class="doulist-video-items"><a href="#">MV：双截棍</a></div>
+          <div class="doulist-add-btn"><a href="#">添加到豆列</a></div>
+        </div>
+      </div>
+      <div class="doulist-item">
+        <div class="post">
+          <a href="https://book.douban.com/subject/36185161/">
+            <img src="https://img3.doubanio.com/view/subject/l/public/s36185161.jpg" />
+          </a>
+        </div>
+        <div class="content">
+          <div class="title"><a href="https://book.douban.com/subject/36185161/">长安的荔枝</a></div>
+          <div class="abstract">作者: 马伯庸</div>
+          <div class="source">来自：豆瓣图书</div>
+          <div class="doulist-add-btn">
+            <a data-id="36185161" data-cate="1004" href="#">添加到豆列</a>
+          </div>
+        </div>
+      </div>
+      <div class="doulist-item">
+        <div class="gallery"><p>推广位：猜你想看</p></div>
+      </div>
+      <div class="paginator">
+        <span class="thispage" data-total-page="2">1</span>
+        <a href="?start=30">2</a>
+        <span class="next"><a href="?start=30">后页></a></span>
+      </div>
+    </div>
+  </body>
+</html>
