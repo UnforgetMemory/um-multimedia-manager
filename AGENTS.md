@@ -11,13 +11,22 @@ npm run dev             # 开发（WXT 热更新；内容脚本注入不可靠�
 npm run dev:build       # Dev 编译（无热更新/无 dev 服务器，全量确定性）→ dist/chrome-mv3-dev，日常联调推荐
 npm run build           # 生产构建 → dist/chrome-mv3（含 fix-paths 后置步骤，不可跳过）
 npm run type-check      # vue-tsc --noEmit（类型门禁，提交前必跑）
-npm run test:unit       # Playwright 单元测试
-npm test                # 全部 Playwright 测试
+npm run test:unit       # Playwright 单元测试（tests/unit，jsdom 级夹具）
+npm run test:e2e        # 扩展级真实浏览器交互测试（需先 npm run build；tests/e2e 用本地模拟页面替换宿主站点）
+npm test                # 全部 Playwright 测试（默认配置 testIgnore 掉 tests/e2e，避免单测扫到需要扩展上下文的用例）
 npm run i18n:check      # i18n 键完整性检查
 npm run arch:check      # 架构分层守卫（七层依赖方向；exit 1 即有违规）
 npm run ds:check        # 设计令牌门禁（三层令牌 + 对比度/对称断言）
 npm run scope:check     # 样式作用域守卫（注入宿主页面的样式禁止裸选择器，ADR-026 D7）
 npm run naming:check    # 文件命名守卫（kebab-case / PascalCase .vue / <domain>-extract 统一，ADR-026 D6）
+npm run size:check      # 文件尺寸守卫（src/tests 单文件 ≤600 行，防 God 文件反弹，ADR-026 需求 9）
+npm run doc:check       # 事实源指针守卫（注释里的 src/... 路径必须真实存在，ADR-026 回访波）
+npm run orphan:check    # 孤儿模块棘轮（新增无测试引用的 src 模块即失败，基线只可缩小，scripts/orphan-tests-baseline.json）
+npm run any:check       # 显式 any 守卫（AST 级 AnyKeyword，覆盖 src + tests 与 .vue 的 script 块）
+npm run isolation:check # 测试全局隔离棘轮（spec 改写 globalThis 必须登记还原，scripts/test-globals-baseline.json）
+npm run console:check   # 诊断出口棘轮（src 内裸 console.* 必须走 libraries/utils/logger，scripts/console-baseline.json）
+npm run cjk:check       # 裸中文棘轮（src/scenario/douban 的引号口径 + 模板文本口径只可降不可升，应走内容 i18n 词典，scripts/cjk-baseline.json）
+npm run isolation:baseline # 隔离基线重生成（只应在收口了泄漏 spec 之后，基线只能缩小）
 npm run lint            # oxlint 静态检查（正确性规则；--deny-warnings 零警告门禁）
 npm run format          # Oxfmt 全量格式化（统一风格：semi/单引号/printWidth 100/LF，ADR-026 D8）
 npm run format:check    # 格式化门禁（CI Static Gates 同列）
@@ -25,8 +34,8 @@ npm run package:patch   # 版本号 + 构建 + 打包（minor/major 同理）
 npm run zip             # 构建 + 打包 Chrome 商店包
 ```
 
-质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `scope:check` → `naming:check` → `i18n:check` → `lint` → `format:check` → `build`（见 ADR-026 D8）。
-CI 侧：`Type Check` → `Static Gates`（arch/ds/scope/naming/i18n/lint/format）→ `Build (chrome|firefox)`，门禁失败即阻断构建。
+质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `scope:check` → `naming:check` → `size:check` → `doc:check` → `orphan:check` → `any:check` → `isolation:check` → `console:check` → `cjk:check` → `i18n:check` → `lint` → `format:check` → `build`（见 ADR-026 D8）。
+CI 侧：`Type Check` → `Static Gates`（arch/ds/scope/naming/size/doc/orphan/any/isolation/console/cjk/i18n/lint/format）→ `Unit Tests`（`test:unit` 全量）→ `Build (chrome|firefox)`，任一失败即阻断构建。**分波自测不算验证**——跨文件全局桩会互相污染，结论只认仓库级合并复跑（见 `docs/audit/umpp-revisit-audit-2026-09-26.md` §7）。
 
 ## 环境
 
@@ -55,15 +64,15 @@ CI 侧：`Type Check` → `Static Gates`（arch/ds/scope/naming/i18n/lint/format
 
 1. **legacy**（`content.ts` → `content/router.ts` → `handlers/`）：服务所有非 Douban、非 Sehuatang 站点。Douban 域名在 content.ts 的 `excludeMatches` 排除；Sehuatang 的 matches 已从 content.ts 整体移除（由双入口接管），路由表亦无对应项。
 2. **新 Douban**（`douban-early/douban-main` → `src/scenario/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `scenario/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
-3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/scenario/sehuatang/`）：URL 判型唯一源 `src/scenario/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；**风控页例外**——任意路径可返回，DOM 双标记检测（`extract-risk.ts` 的 `isRiskGateDocument`）优先于 classifyPage，进入按钮点击委托原 DOM 按钮（站点 JS 绑定写 safeid cookie + 重载）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；四个编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）/ `app-risk.ts`（风控页，主题化重建面板）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
+3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/scenario/sehuatang/`）：URL 判型唯一源 `src/scenario/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；**风控页例外**——任意路径可返回，DOM 双标记检测（`risk-extract.ts` 的 `isRiskGateDocument`）优先于 classifyPage，进入按钮点击委托原 DOM 按钮（站点 JS 绑定写 safeid cookie + 重载）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；四个编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）/ `app-risk.ts`（风控页，主题化重建面板）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
 
 ### 领域层（domain/，纯 TS 无框架依赖）
 
-- `record/StoreRecord.ts` — 不可变聚合根（Status/Rating 值对象，`toSnapshot()`/`fromSnapshot()` 序列化）
-- `record/RecordService.ts` — 跨平台 sync（经 `IRecordRepository` 接口，仅 findByKey/save）
-- `identity/Identity.ts` — 跨平台身份（`Identity.fromUrl()` 解析 URL）
-- `platform/Platform.ts` — **`Platform.KNOWN` 是平台唯一清单**，`config.ts` 的 `Provider` 类型派生自它
-- `platform/MediaType.ts` — `MediaTypeId` 联合（movie/tv/music/book/game）
+- `record/store-record.ts` — 不可变聚合根（Status/Rating 值对象，`toSnapshot()`/`fromSnapshot()` 序列化）
+- `record/record-service.ts` — 跨平台 sync（经 `i-record-repository.ts` 的 `IRecordRepository` 接口，仅 findByKey/save）
+- `identity/identity.ts` — 跨平台身份（`Identity.fromUrl()` 解析 URL）
+- `platform/platform.ts` — **`Platform.KNOWN` 是平台唯一清单**，`config.ts` 的 `Provider` 类型派生自它
+- `platform/media-type.ts` — `MediaTypeId` 联合（movie/tv/music/book/game）
 
 ### 消息流
 
@@ -98,7 +107,7 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
 
 1. `content.ts` matches + `content/router.ts` 路由
 2. `content/handlers/` 建 handler（参照 `imdb.ts` / `create-detail-handler.ts`）
-3. `Platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
+3. `platform/platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
 4. `engine/database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
 5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + ResponseMessageMap/SuccessDataMap + background.ts switch
 6. 两个 i18n 系统补键
