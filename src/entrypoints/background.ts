@@ -27,6 +27,7 @@ import {
   handleWebDAVDownload,
 } from './background/handlers/webdav';
 import { handleWebDAVSync } from './background/handlers/webdav-sync';
+import { handleWebDAVPreview } from './background/handlers/webdav-preview';
 import { handleNeoDBPushRating } from './background/handlers/neodb';
 import {
   handleGetSettings,
@@ -416,24 +417,40 @@ export default defineBackground({
               priority: 'MEDIUM',
             });
             break;
-          case 'WEBDAV_UPLOAD':
-            await dataScheduler.schedule(() => handleWebDAVUpload(sendResponse), {
+          case 'WEBDAV_PREVIEW':
+            // ADR-027：只读预检（读本地 meta + 远端 meta，不落任何数据）。
+            await dataScheduler.schedule(() => handleWebDAVPreview(message.payload, sendResponse), {
               priority: 'MEDIUM',
-              timeout: 60_000,
+              timeout: 30_000,
+              lane: 'bulk',
+            });
+            break;
+          case 'WEBDAV_UPLOAD':
+            await dataScheduler.schedule(() => handleWebDAVUpload(message.payload, sendResponse), {
+              priority: 'MEDIUM',
+              // ADR-027：写路径含逐表回读复核，60s 在 10 表体量下过紧。
+              timeout: 120_000,
               lane: 'bulk',
             });
             break;
           case 'WEBDAV_DOWNLOAD':
-            await dataScheduler.schedule(() => handleWebDAVDownload(sendResponse), {
-              priority: 'MEDIUM',
-              timeout: 60_000,
-              lane: 'bulk',
-            });
+            await dataScheduler.schedule(
+              () => handleWebDAVDownload(message.payload, sendResponse),
+              {
+                priority: 'MEDIUM',
+                timeout: 120_000,
+                lane: 'bulk',
+              },
+            );
             break;
           case 'WEBDAV_SYNC':
-            await dataScheduler.schedule(() => handleWebDAVSync(sendResponse), {
+            // ADR-027：合并行需要「拉远端 + 推远端」双向往返（旧实现每表只走一个方向），
+            // 60s 预算会在分叉表较多时提前超时。调度器超时只 reject、**操作仍在后台继续**
+            // （data-scheduler.ts 的 Promise.race 语义），用户此时看到失败并重试就会与
+            // 在跑的同步并发 —— 故预算必须留足。
+            await dataScheduler.schedule(() => handleWebDAVSync(message.payload, sendResponse), {
               priority: 'MEDIUM',
-              timeout: 60_000,
+              timeout: 180_000,
               lane: 'bulk',
             });
             break;
