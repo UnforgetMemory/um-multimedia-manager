@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.18.1] - 2026-10-06
+
+### 新增
+
+- **WebDAV 同步三操作重写（ADR-027）**：只读预检 + 逐表对照确认对话框（含同步目标可见化）+ 预检指纹（STALE_PLAN 防护）+ 原子上传（暂存 + MOVE，坚果云 409 自动降级直传）+ 写后回读复核（`verified`）+ 写操作单飞锁 + 失败如实上报（`failedDatasets` / `skippedRecords` 全部折进结果）
+- **备份格式版本轴**：`dataVersion` 1→2 + 哈希算法生成表（gen-1 ≤5.18.0 / gen-2 当前）与逐代识别——gen-1 旧备份自愈采纳而非误判损坏；旧扩展读新备份得到明确更新提示
+- **代际偏斜自愈**：完整一代 ZIP 一律采纳（「云端覆盖本地」幂等可重复；「同步」为逐记录较新者胜并集），云端 meta 随上传收敛
+- **云端质疑与纠错**：meta 声明计数 ≠ ZIP 实际内容 ⇒ 结果消息显式回报（声明 X / 实际 Y）并以上传纠错 meta
+- **遗留成人表救援**：SW 启动时把遗留 `sehuatang_avids` 残留记录幂等补进 `jav_ids`（只增不删，不阻塞打开）
+- **诊断脚本**：`scripts/repair-webdav-meta.mjs`（逐表打印 meta 声明 vs ZIP 实际；哈希实现与扩展双代逐字节 parity 守卫）
+
+### 修复
+
+- **unlimitedStorage 权限缺失**：IndexedDB 属 best-effort 存储，磁盘压力下可被 Chrome 驱逐——补权限后存储转为持久（「数据清零」候选成因）
+- **neodb-push 后台 toast 消息从未发出**：`retries` 是尝试次数而非额外重试次数，传 0 一次都不发
+
 ## [Unreleased]
 
 ### 变更（内部重构）
