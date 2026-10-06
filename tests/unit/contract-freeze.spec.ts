@@ -60,8 +60,9 @@ type Assert<T extends true> = T;
 // ==================== 1. 消息契约（wire contract） ====================
 
 /**
- * 冻结的消息类型清单（33 项）。
+ * 冻结的消息类型清单（34 项）。
  * 顺序与 `src/types/messages.ts` 的 `MessageType` 联合保持一致，便于人工比对。
+ * ADR-027 新增 `WEBDAV_PREVIEW`（只读预检），故 33 → 34。
  */
 const FROZEN_MESSAGE_TYPES = [
   'SHOW_TOAST',
@@ -91,6 +92,7 @@ const FROZEN_MESSAGE_TYPES = [
   'ADULT_AV_STATS',
   'DOWNLOAD_FILE',
   'WEBDAV_TEST',
+  'WEBDAV_PREVIEW',
   'WEBDAV_UPLOAD',
   'WEBDAV_DOWNLOAD',
   'WEBDAV_SYNC',
@@ -100,7 +102,12 @@ const FROZEN_MESSAGE_TYPES = [
 ] as const;
 
 /**
- * 冻结的「无 payload」消息类型（8 项）。
+ * 冻结的「无 payload」消息类型（5 项）。
+ *
+ * ADR-027 变更：`WEBDAV_UPLOAD` / `WEBDAV_DOWNLOAD` / `WEBDAV_SYNC` 由 `void`
+ * 改为 `{ expectedFingerprint?: string }`（预检指纹，TOCTOU 防护），故 8 → 5。
+ * 类型级断言 `TVoidNoMissing` / `TVoidNoExtra` 会强制本清单与
+ * `MessagePayloadMap` 的实际 void 集合完全对齐。
  *
  * 注意 `ADULT_AV_STATS` 的 payload 声明为 `Record<never, never>` 而非 `void`，
  * 因此 `RuntimeMessageEnvelope` 会要求它带 `payload`；`WEBDAV_TEST` 声明为
@@ -112,9 +119,6 @@ const FROZEN_VOID_PAYLOAD_TYPES = [
   'GET_STATISTICS',
   'HEALTH_CHECK',
   'GET_MIGRATION_STATUS',
-  'WEBDAV_UPLOAD',
-  'WEBDAV_DOWNLOAD',
-  'WEBDAV_SYNC',
 ] as const;
 
 type FrozenMessageType = (typeof FROZEN_MESSAGE_TYPES)[number];
@@ -175,13 +179,13 @@ test.describe('契约冻结 · 消息协议', () => {
   });
 
   test('MessageType 清单冻结为 33 项且无重复', () => {
-    expect(FROZEN_MESSAGE_TYPES).toHaveLength(33);
-    expect(new Set<string>(FROZEN_MESSAGE_TYPES).size).toBe(33);
+    expect(FROZEN_MESSAGE_TYPES).toHaveLength(34);
+    expect(new Set<string>(FROZEN_MESSAGE_TYPES).size).toBe(34);
   });
 
-  test('无 payload 的消息类型冻结为 8 项', () => {
-    expect(FROZEN_VOID_PAYLOAD_TYPES).toHaveLength(8);
-    expect(new Set<string>(FROZEN_VOID_PAYLOAD_TYPES).size).toBe(8);
+  test('无 payload 的消息类型冻结为 5 项（ADR-027：三个 WebDAV 写动作已携带指纹载荷）', () => {
+    expect(FROZEN_VOID_PAYLOAD_TYPES).toHaveLength(5);
+    expect(new Set<string>(FROZEN_VOID_PAYLOAD_TYPES).size).toBe(5);
   });
 });
 

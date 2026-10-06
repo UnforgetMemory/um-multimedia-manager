@@ -18,6 +18,7 @@
 
 import type { RemoteMeta } from '@/types';
 import { errorMessage } from '@/libraries/utils/error-message';
+import { warnLog } from '@/libraries/utils/logger';
 import {
   hashKeyToFilename,
   normalizeRemoteMetaPayload,
@@ -170,7 +171,47 @@ export async function createDirectory(
   }
 }
 
-/** Upload a dataset ZIP blob — key is hashed to safe filename */
+/** 暂存后缀：原子上传路径先写 `<file>.tmp` 再 MOVE 到最终名（ADR-027 R2）。 */
+const STAGING_SUFFIX = '.tmp';
+
+/**
+ * 「MOVE 对我们不可用」的状态码集合 —— 命中即降级为直接 PUT：
+ * 403/401 无权、405/501 未实现、400/502 服务端或代理不接受该请求形态、
+ * 409 冲突（坚果云真机实证：MOVE 一律 409，直传 PUT 正常 —— 旧版从不 MOVE
+ * 故从未暴露；`putBlobWithMkcol` 已兜底「父集合缺失型 409」）。
+ */
+const MOVE_UNUSABLE_STATUSES: ReadonlySet<number> = new Set([400, 401, 403, 405, 409, 501, 502]);
+
+/** PUT 一个 blob；遇 409（父集合不存在）先建目录再重试一次。 */
+async function putBlobWithMkcol(
+  url: string,
+  headers: Record<string, string>,
+  blob: Blob,
+  baseUrl: string,
+  username: string,
+  password: string,
+): Promise<Response> {
+  const res = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob });
+  if (res.status !== 409) return res;
+  await createDirectory(baseUrl, username, password);
+  return fetchWithTimeout(url, { method: 'PUT', headers, body: blob });
+}
+
+/**
+ * Upload a dataset ZIP blob — key is hashed to safe filename.
+ *
+ * ADR-027 R2：**先 PUT 到 `<file>.tmp`，再 MOVE 到最终名**。PUT 是原地覆盖，
+ * 一旦中断/失败就把既有 blob 写成半截 ZIP（读侧整表报错）；经临时名切换后，最终名
+ * 在任何时刻要么是完整的旧内容、要么是完整的新内容。
+ *
+ * MOVE 不可用时降级为直接 PUT（与服务端能力对齐，而不是让备份永久失败）：
+ * 401/403（无权 MOVE）、405/501（未实现）、**400/502**（服务端不接受我们这种
+ * Destination 形态或经由代理失败 —— 无法与「真的坏请求」区分，而降级严格比让
+ * 备份永久失败更安全，`warnLog` 保留可诊断性）。
+ *
+ * 硬失败（网络中断、MOVE 5xx 之外的服务端错误）会**留下 `<file>.tmp` 暂存文件**：
+ * 最终名保持旧内容（这正是原子性的目的），孤儿暂存会在下一次上传同名 store 时被覆盖。
+ */
 export async function uploadDataset(
   baseUrl: string,
   username: string,
@@ -179,18 +220,35 @@ export async function uploadDataset(
   blob: Blob,
 ): Promise<void> {
   const filename = await hashKeyToFilename(key);
-  const url = datasetUrl(baseUrl, filename);
+  const finalUrl = datasetUrl(baseUrl, filename);
+  const stagingUrl = `${finalUrl}${STAGING_SUFFIX}`;
   const headers = { ...authHeaders(username, password), 'Content-Type': 'application/zip' };
 
-  const res = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob });
-  // 409 = directory doesn't exist, create and retry
-  if (res.status === 409) {
-    await createDirectory(baseUrl, username, password);
-    const retryRes = await fetchWithTimeout(url, { method: 'PUT', headers, body: blob });
-    if (!retryRes.ok) throw new Error(`Failed to upload dataset: HTTP ${retryRes.status}`);
-    return;
+  const staged = await putBlobWithMkcol(stagingUrl, headers, blob, baseUrl, username, password);
+  if (!staged.ok) throw new Error(`Failed to upload dataset (staging): HTTP ${staged.status}`);
+
+  const moved = await fetchWithTimeout(stagingUrl, {
+    method: 'MOVE',
+    headers: { ...authHeaders(username, password), Destination: finalUrl, Overwrite: 'T' },
+  });
+  if (moved.ok) return;
+
+  if (!MOVE_UNUSABLE_STATUSES.has(moved.status)) {
+    throw new Error(`Failed to finalize dataset: HTTP ${moved.status}`);
   }
-  if (!res.ok) throw new Error(`Failed to upload dataset: HTTP ${res.status}`);
+
+  warnLog(
+    `[WebDAV] MOVE unavailable (HTTP ${moved.status}) — falling back to in-place PUT ` +
+      `for '${key}' (no atomic swap)`,
+  );
+  // 尽力清掉暂存文件；删不掉也不影响主流程（下次上传会覆盖同名暂存）。
+  await fetchWithTimeout(stagingUrl, {
+    method: 'DELETE',
+    headers: authHeaders(username, password),
+  }).catch(() => undefined);
+
+  const direct = await putBlobWithMkcol(finalUrl, headers, blob, baseUrl, username, password);
+  if (!direct.ok) throw new Error(`Failed to upload dataset: HTTP ${direct.status}`);
 }
 
 /** Download a dataset ZIP blob — key is hashed to safe filename */

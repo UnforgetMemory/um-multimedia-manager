@@ -166,18 +166,49 @@ export default {
 
   // Sync
   'sync.smartMerge': 'Smart Merge Sync',
-  'sync.smartMergeDesc': 'Compare local and cloud data, automatically sync changes',
+  'sync.smartMergeDesc':
+    'Per-record merge: for the same key the newer updatedAt wins, cloud-only records are kept, nothing is deleted',
+  'sync.previewHint':
+    'Every action runs a read-only preflight first, showing a per-dataset table (counts / latest time / direction / risk) before you confirm',
+  'sync.previewFailed': 'Preflight failed',
+  'sync.targetDir': 'Target: {dir}',
+  'sync.previewSummary':
+    'Will upload {up} datasets / download {down} / merge {merge} / skip {skip}',
+  'sync.lossWarning': 'About {n} cloud records will not be preserved and cannot be recovered',
+  'sync.lossStores': 'Datasets: {stores}',
   'sync.startSync': 'Start Sync',
   'sync.cloudOverwrite': 'Cloud Overwrite Local',
-  'sync.cloudOverwriteDesc': 'Fully overwrite local data with cloud data',
+  'sync.cloudOverwriteDesc':
+    'Fully overwrite local data with cloud data (newer local copies of the same key are reverted)',
   'sync.localOverwrite': 'Local Overwrite Cloud',
-  'sync.localOverwriteDesc': 'Fully overwrite cloud data with local data',
+  'sync.localOverwriteDesc':
+    'Fully overwrite cloud data with local data (cloud-only records are erased)',
   'sync.irreversible': 'This action is irreversible',
   'sync.confirmOverwrite': 'Confirm Overwrite',
   'sync.downloadSuccess': 'Download successful',
   'sync.downloadFailed': 'Download failed',
   'sync.uploadSuccess': 'Upload successful',
   'sync.uploadFailed': 'Upload failed',
+  'sync.colDataset': 'Dataset',
+  'sync.colLocal': 'Local',
+  'sync.colRemote': 'Cloud',
+  'sync.colLocalLatest': 'Local latest',
+  'sync.colRemoteLatest': 'Cloud latest',
+  'sync.colDirection': 'Direction',
+  'sync.colRisk': 'Risk',
+  'sync.dirUpload': 'Upload',
+  'sync.dirDownload': 'Download',
+  'sync.dirMerge': 'Merge',
+  'sync.dirSkip': 'Unchanged',
+  'sync.riskNone': 'None',
+  'sync.empty': '-',
+  'sync.riskLoss': 'About {n} records will be lost',
+  'sync.riskOrphan': 'Cloud data will be emptied',
+  'sync.riskRevert': 'Local versions will be overwritten by cloud data',
+  'sync.dataset.jav': 'Adult codes (JP)',
+  'sync.dataset.usav': 'Adult codes (US/EU)',
+  'sync.dataset.sehuatang': 'Sehuatang history',
+  'sync.dataset.settings': 'Settings',
 
   // Weekday
   'weekday.sun': 'Sun',

@@ -13,7 +13,7 @@
 
 import { test, expect } from '@playwright/test';
 import { defineGlobal } from './helpers/global-sandbox';
-import { zip } from 'fflate';
+import { zip, zipSync, strToU8 } from 'fflate';
 import { packageDataset, unpackageDataset } from '@/libraries/utils/zip-utils';
 import type { StoreRecordSnapshot } from '@/domain/record/store-record';
 
@@ -111,20 +111,42 @@ test.describe('missing required files', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. Record-count ceiling (100 k records)
+// 5. Record-count ceiling (100 k records) — read/write symmetry (ADR-027 R5)
 // ---------------------------------------------------------------------------
-test.describe('record-count guard', () => {
-  test('rejects dataset with 100_001 records', async () => {
-    const count = 100_001;
-    const entries: Array<{ key: string; record: StoreRecordSnapshot }> = [];
-    for (let i = 0; i < count; i++) {
-      entries.push({
-        key: `m::${i}`,
-        record: record({ url: `https://e.com/s/${i}` }),
-      });
-    }
+/** `count` 条最小记录（超限用例专用；100k 条构造成本高，故只在这里生成）。 */
+function manyEntries(count: number): Array<{ key: string; record: StoreRecordSnapshot }> {
+  const entries: Array<{ key: string; record: StoreRecordSnapshot }> = [];
+  for (let i = 0; i < count; i++) {
+    entries.push({ key: `m::${i}`, record: record({ url: `https://e.com/s/${i}` }) });
+  }
+  return entries;
+}
 
-    const { blob } = await packageDataset('test', entries);
+test.describe('record-count guard', () => {
+  test('packageDataset refuses > 100_000 records（写侧不得产出读不回的备份）', async () => {
+    await expect(packageDataset('test', manyEntries(100_001))).rejects.toThrow(
+      /refuses to package|Refusing to package/,
+    );
+  });
+
+  test('unpackageDataset still rejects a > 100_000-record ZIP built by hand（读侧守卫独立成立）', async () => {
+    // 绕开写侧守卫手工造包，否则写侧的 reject 会把读侧用例一并挡在门外，
+    // 让「读侧上限」这一契约失去独立证据。
+    const data: Record<string, unknown> = {};
+    for (let i = 0; i < 100_001; i++) data[`m::${i}`] = record({ url: `https://e.com/s/${i}` });
+    const zipBytes = zipSync({
+      'data.json': strToU8(JSON.stringify(data)),
+      'meta.json': strToU8(
+        JSON.stringify({
+          key: 'test',
+          hash: 'x',
+          updatedAt: '2026-08-04T00:00:00.000Z',
+          recordCount: 100_001,
+          dataVersion: 1,
+        }),
+      ),
+    });
+    const blob = new Blob([zipBytes.slice()], { type: 'application/zip' });
     await expect(unpackageDataset(blob)).rejects.toThrow('records exceeds');
   });
 });

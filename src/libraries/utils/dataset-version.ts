@@ -15,5 +15,13 @@
 /** Minimum supported dataset (backup ZIP) version */
 export const MIN_SUPPORTED_DATASET_VERSION = 1;
 
-/** Current dataset (backup ZIP) version */
-export const CURRENT_DATASET_VERSION = 1;
+/**
+ * Current dataset (backup ZIP) version.
+ *
+ * v2（2026-10-05）：哈希签名字段纳入 `comment`（ADR-027）—— 哈希语义是数据集格式
+ * 的一部分，签名变更必须 bump 版本，读侧才能按版本轴选择解读规则（见
+ * hash-utils 的 `hashFieldsForDatasetVersion`）。v1 为历史版本：其哈希存在
+ * **歧义带**（发布版 gen-1 无 comment / ADR-027 WIP 构建 gen-2 有 comment 共用
+ * v1），读侧对 v1 逐代尝试识别。
+ */
+export const CURRENT_DATASET_VERSION = 2;

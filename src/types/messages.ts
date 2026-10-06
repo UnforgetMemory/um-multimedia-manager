@@ -26,6 +26,8 @@ import type {
   PtIdCacheEntry,
   Statistics,
   StoreRecord,
+  SyncPreview,
+  SyncPlanMode,
 } from './index';
 import type { ShelfItemResponse } from '@/provider/neodb/api';
 import type { MediaTypeId } from '@/domain/platform/media-type';
@@ -65,12 +67,19 @@ export type MessageType =
   | 'ADULT_AV_STATS'
   | 'DOWNLOAD_FILE'
   | 'WEBDAV_TEST'
+  | 'WEBDAV_PREVIEW'
   | 'WEBDAV_UPLOAD'
   | 'WEBDAV_DOWNLOAD'
   | 'WEBDAV_SYNC'
   | 'NEODB_PUSH_RATING'
   | 'SEHUATANG_CACHE_GET_BATCH'
   | 'SEHUATANG_CACHE_PUT';
+
+/**
+ * ADR-027：三个写动作（上传/下载/同步）统一携带预检指纹；执行侧重算后不一致
+ * 即中止且零写入（TOCTOU 防护）。省略视为「未经预检」——仍允许执行，但 UI 恒传。
+ */
+export type WebDAVPlanPayload = { expectedFingerprint?: string };
 
 export interface MessagePayloadMap {
   SHOW_TOAST: { type: ToastType; title: string; message?: string };
@@ -121,9 +130,11 @@ export interface MessagePayloadMap {
         webdavPassword?: string;
       }
     | undefined;
-  WEBDAV_UPLOAD: void;
-  WEBDAV_DOWNLOAD: void;
-  WEBDAV_SYNC: void;
+  WEBDAV_UPLOAD: WebDAVPlanPayload;
+  WEBDAV_DOWNLOAD: WebDAVPlanPayload;
+  WEBDAV_SYNC: WebDAVPlanPayload;
+  /** ADR-027：只读预检，返回逐表计划与指纹；不落任何数据。 */
+  WEBDAV_PREVIEW: { mode: SyncPlanMode };
   NEODB_PUSH_RATING: {
     record: {
       providerId: string;
@@ -228,8 +239,15 @@ export interface ResponseMessageMap {
         timestamp: string;
         direction: 'upload';
         message: string;
+        /** ADR-027：写后回读远端 meta 复核落盘结果。 */
+        verified: boolean;
       }
-    | { success: false; error: string; message?: string };
+    | {
+        success: false;
+        error: string;
+        message?: string;
+        errorCode?: 'STALE_PLAN' | 'WRITE_IN_PROGRESS';
+      };
   WEBDAV_DOWNLOAD:
     | {
         success: true;
@@ -237,8 +255,15 @@ export interface ResponseMessageMap {
         timestamp: string;
         direction: 'download';
         message: string;
+        /** ADR-027：写后按预期键集复核本地计数。 */
+        verified: boolean;
       }
-    | { success: false; error: string; message?: string };
+    | {
+        success: false;
+        error: string;
+        message?: string;
+        errorCode?: 'STALE_PLAN' | 'WRITE_IN_PROGRESS';
+      };
   WEBDAV_SYNC:
     | {
         success: true;
@@ -248,7 +273,21 @@ export interface ResponseMessageMap {
         downloaded: number;
         skipped: number;
         timestamp: string;
+        /** ADR-027：合并后计数复核结果。 */
+        verified: boolean;
+        /** ADR-027：两侧都有数据、走了并集合并的表数（R3 后 uploaded 只计真正新增）。 */
+        mergedTables: number;
+        /** ADR-027：同键同时间但内容不同、保留本地并登记的数量。 */
+        mergeConflicts: number;
       }
+    | {
+        success: false;
+        error: string;
+        message?: string;
+        errorCode?: 'STALE_PLAN' | 'WRITE_IN_PROGRESS';
+      };
+  WEBDAV_PREVIEW:
+    | { success: true; preview: SyncPreview; fingerprint: string }
     | { success: false; error: string; message?: string };
   NEODB_PUSH_RATING:
     | { success: true; shelfItem: ShelfItemResponse | null; catalogUuid: string }
@@ -301,12 +340,19 @@ export interface SuccessDataMap {
   ADULT_AV_STATS: { jp: number; us: number; tid: number };
   DOWNLOAD_FILE: Record<never, never>;
   WEBDAV_TEST: { ok: boolean; message: string };
-  WEBDAV_UPLOAD: { totalUploaded: number; timestamp: string; direction: 'upload'; message: string };
+  WEBDAV_UPLOAD: {
+    totalUploaded: number;
+    timestamp: string;
+    direction: 'upload';
+    message: string;
+    verified: boolean;
+  };
   WEBDAV_DOWNLOAD: {
     totalDownloaded: number;
     timestamp: string;
     direction: 'download';
     message: string;
+    verified: boolean;
   };
   WEBDAV_SYNC: {
     direction: 'merge';
@@ -315,7 +361,11 @@ export interface SuccessDataMap {
     downloaded: number;
     skipped: number;
     timestamp: string;
+    verified: boolean;
+    mergedTables: number;
+    mergeConflicts: number;
   };
+  WEBDAV_PREVIEW: { preview: SyncPreview; fingerprint: string };
   NEODB_PUSH_RATING: { shelfItem: ShelfItemResponse | null; catalogUuid: string };
   SEHUATANG_CACHE_GET_BATCH: { data: { entries: Record<string, SehuatangDetailCacheEntry> } };
   SEHUATANG_CACHE_PUT: { data: { saved: number } };

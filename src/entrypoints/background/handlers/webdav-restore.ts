@@ -10,6 +10,8 @@ import type { AppSettings, LogLevel, RecordStoreName, StoreRecord } from '@/type
 import { EXTENSION_LOCALES, type ExtensionLocale } from '@/libraries/locale-sets';
 import { mediaDB, normalizeStoreRecordKey } from '@/engine/database/models';
 import { normalizeStoreRecord, validateDatasetVersion } from '@/engine/migration/models';
+import { judgeDatasetHash } from '@/provider/webdav/plan';
+import { identifyStoreHashGeneration } from '@/libraries/utils/hash-utils';
 import * as WebDAV from '@/provider/webdav/api';
 import { unpackageDataset } from '@/libraries/utils/zip-utils';
 import { errorLog, warnLog } from '@/libraries/utils/logger';
@@ -171,20 +173,37 @@ export async function restoreSettingsDataset(creds: WebDAVCredentials): Promise<
   }
 }
 
+export interface ReadDataset {
+  /** 解包 + 逐记录迁移后的条目（键已按 store 规则归一）。 */
+  entries: Array<{ key: string; record: StoreRecord }>;
+  /** ZIP 内声明的格式版本（已通过 validateDatasetVersion 门禁）。 */
+  dataVersion: number;
+  /** ZIP 内原始记录总数（含被跳过的记录），用于回报与复核。 */
+  rawCount: number;
+  /**
+   * 被跳过的记录数（形状非法，或单条迁移失败 —— 见下方 per-record 分支）。
+   * 暴露它的理由：**恢复不完整不能报成功**。原先只写 errorLog，`verified` 看不到它，
+   * 于是一份损坏/异构的数据集会「部分恢复 + 复核通过」。
+   */
+  skippedRecords: number;
+  /**
+   * R2 修正（代际偏斜自愈）：远端 meta 声明 hash 陈旧、但 ZIP 内部自洽且本地该表为空
+   * ⇒ 按 ZIP 自述采纳。true 时调用方须在回报里显式列出（用户应知道 meta 待收敛）。
+   */
+  staleGenerationRecovered: boolean;
+}
+
 /**
- * Download one record dataset, validate its version, normalize/migrate every
- * record, and batchPut the result into the local store. Shared by the
- * WEBDAV_DOWNLOAD and WEBDAV_SYNC paths; `op` only labels the per-record
- * skip log. Returns the number of records present in the dataset; throws on
- * any dataset-level failure so the caller can skip-and-continue.
+ * 拉取并解析一个远端记录数据集，**不写本地**（ADR-027）。
+ * 供两条路径共用：`downloadDatasetIntoStore`（落盘）与同步的并集合并（先并入再落盘）。
+ * 版本不相容抛 MigrationError，由调用方跳过该 dataset（不中断整轮）。
  */
-export async function downloadDatasetIntoStore(
+export async function readDatasetEntries(
   creds: WebDAVCredentials,
   storeKey: string,
   op: 'download' | 'sync',
-  writtenStores: Set<string>,
-  writtenKeys: Map<string, string[]>,
-): Promise<number> {
+  expectedHash: string | undefined,
+): Promise<ReadDataset> {
   const blob = await WebDAV.downloadDataset(
     creds.webdavUrl,
     creds.webdavUsername,
@@ -194,23 +213,101 @@ export async function downloadDatasetIntoStore(
   const { data, meta: datasetMeta } = await unpackageDataset(blob);
   // 版本兼容性策略归调用方（zip-utils 只负责解析）：不相容时抛 MigrationError
   validateDatasetVersion(datasetMeta.dataVersion);
-  const batch: Array<{ key: string; record: StoreRecord }> = [];
+
+  const entries: Array<{ key: string; record: StoreRecord }> = [];
+  let shapeSkipped = 0;
   for (const [recordKey, record] of Object.entries(data)) {
-    // Validate record shape before writing (external data is untrusted).
-    if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue;
+    // Validate record shape before use (external data is untrusted).
+    if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') {
+      shapeSkipped += 1;
+      continue;
+    }
     try {
       // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
       // A too-new record throws MigrationError — skip just that record.
       const { record: migrated } = normalizeStoreRecord(record);
-      batch.push({ key: normalizeStoreRecordKey(storeKey, recordKey), record: migrated });
+      entries.push({ key: normalizeStoreRecordKey(storeKey, recordKey), record: migrated });
     } catch (err: unknown) {
       errorLog(`WebDAV ${op} skipped record '${recordKey}' in '${storeKey}': ${errorMessage(err)}`);
     }
   }
-  if (batch.length > 0) {
-    await mediaDB.batchPut(storeKey as RecordStoreName, batch);
-    writtenStores.add(storeKey);
-    writtenKeys.set(storeKey, [...(writtenKeys.get(storeKey) ?? []), ...batch.map((b) => b.key)]);
+  const rawCount = Object.keys(data).length;
+  // 形状非法的记录走静默 continue（migration 失败另有逐条 errorLog）——总量必须
+  // 汇总上报，否则「部分恢复」对 verified 与用户都不可见。
+  if (shapeSkipped > 0) {
+    errorLog(`WebDAV ${op}: '${storeKey}' skipped ${shapeSkipped} record(s) with invalid shape`);
   }
-  return Object.keys(data).length;
+
+  // R2 修正（版本兼容层）：**无条件**重算数据哈希并按代际表识别（v2+ 单代精确；
+  // v1 歧义带逐代尝试）。这同时是完整性门禁 —— 数据必须与其自带 manifest 对得上
+  // （任一已知哈希代），否则拒收：截断/篡改/手工伪造的「manifest 双声明一致但数据
+  // 不符」都在此拒绝。识别命中但与远端 meta 声明不一致 = 完整旧代（历史上传中断的
+  // 混装）⇒ 自愈采纳并回报（download 为显式 cloud-wins、幂等可重复；sync 为并集）。
+  // 成本：当前代重算 ≈ 每表一次 calculateStoreHash，28.7k 全表 ≈ 亚秒级。
+  const matchedGeneration = await identifyStoreHashGeneration(
+    entries,
+    datasetMeta.hash,
+    datasetMeta.dataVersion,
+  );
+  const verdict = judgeDatasetHash(expectedHash, datasetMeta.hash, matchedGeneration !== null);
+  if (verdict === 'refuse-corrupt-zip') {
+    throw new Error(
+      `Dataset hash mismatch: remote meta declares ${expectedHash} but the ZIP contains ` +
+        `${String(datasetMeta.hash)}, and no known hash generation matches its data ` +
+        `— corrupted or tampered ZIP`,
+    );
+  }
+  let staleGenerationRecovered = false;
+  if (verdict === 'accept-stale-generation') {
+    staleGenerationRecovered = true;
+    warnLog(
+      `WebDAV ${op}: '${storeKey}' accepted as a complete older generation ` +
+        `(meta declares ${expectedHash}, ZIP self-declares ${String(datasetMeta.hash)}, ` +
+        `hash gen ${matchedGeneration ?? '?'}) — next 上传 will reconcile the meta`,
+    );
+  }
+
+  return {
+    entries,
+    dataVersion: datasetMeta.dataVersion,
+    rawCount,
+    skippedRecords: rawCount - entries.length,
+    staleGenerationRecovered,
+  };
+}
+
+/** 一次 dataset 落盘的结果：总条数 + 被跳过的条数 + 是否代际自愈（供调用方折进回报）。 */
+export interface DownloadOutcome {
+  total: number;
+  skipped: number;
+  staleGenerationRecovered: boolean;
+}
+
+/**
+ * Download one record dataset, validate its version, normalize/migrate every
+ * record, and batchPut the result into the local store. Shared by the
+ * WEBDAV_DOWNLOAD and WEBDAV_SYNC paths; `op` only labels the per-record
+ * skip log. Returns the dataset's record count **和被跳过的条数**；任何
+ * dataset 级失败都抛出，由调用方跳过该表并继续。
+ */
+export async function downloadDatasetIntoStore(
+  creds: WebDAVCredentials,
+  storeKey: string,
+  op: 'download' | 'sync',
+  writtenStores: Set<string>,
+  writtenKeys: Map<string, string[]>,
+  expectedHash: string | undefined,
+): Promise<DownloadOutcome> {
+  const { entries, rawCount, skippedRecords, staleGenerationRecovered } = await readDatasetEntries(
+    creds,
+    storeKey,
+    op,
+    expectedHash,
+  );
+  if (entries.length > 0) {
+    await mediaDB.batchPut(storeKey as RecordStoreName, entries);
+    writtenStores.add(storeKey);
+    writtenKeys.set(storeKey, [...(writtenKeys.get(storeKey) ?? []), ...entries.map((b) => b.key)]);
+  }
+  return { total: rawCount, skipped: skippedRecords, staleGenerationRecovered };
 }

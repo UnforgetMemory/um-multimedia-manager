@@ -97,6 +97,7 @@ test.describe('useConfirmStore', () => {
       description: 'a',
       warning: 'careful',
       details: 'file.txt',
+      table: { headers: ['h'], rows: [{ cells: ['c'], tone: 'danger' }] },
       confirmText: '导入',
       action: async () => {},
       icon: AlertCircle,
@@ -108,7 +109,24 @@ test.describe('useConfirmStore', () => {
     // warning the user about an action they never asked for.
     expect(store.state.warning).toBeUndefined();
     expect(store.state.details).toBeUndefined();
+    expect(store.state.table).toBeUndefined();
     expect(store.state.confirmText).toBe('确认');
+  });
+
+  test('结构化预览表（ADR-027）逐字段透传，含风险色调', async () => {
+    const { store, AlertCircle } = await freshStore();
+    const table = {
+      headers: ['数据集', '本地', '云端', '方向', '风险'],
+      rows: [
+        { cells: ['豆瓣', '2', '100', '上传', '预计丢失 98 条'], tone: 'danger' as const },
+        { cells: ['设置', '12', '12', '无变化', '—'] },
+      ],
+    };
+    store.show({ title: 't', description: 'd', icon: AlertCircle, table, action: async () => {} });
+    // 结构性相等：reactive 包装使 state.table 不是同一个对象引用。
+    expect(store.state.table).toEqual(table);
+    expect(store.state.table?.rows[0]?.tone).toBe('danger');
+    expect(store.state.table?.rows[1]?.tone).toBeUndefined();
   });
 
   test('confirm() success: loading during the action, closed + un-loaded after', async () => {

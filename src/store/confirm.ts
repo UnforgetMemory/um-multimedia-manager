@@ -3,12 +3,28 @@ import { reactive } from 'vue';
 import type { Component } from 'vue';
 import { AlertCircle } from '@/libraries/ui/icons';
 
+/**
+ * 结构化预览表格（ADR-027）——通用形状，**不耦合任何业务类型**：
+ * 调用方（如 WebDAV 同步页签）把业务数据映射成已本地化的表头与单元格。
+ */
+export interface ConfirmTableRow {
+  cells: string[];
+  /** 语义色调：`danger` = 会覆盖/丢失数据，`warn` = 需留意（本地较新会被回退）。 */
+  tone?: 'default' | 'warn' | 'danger';
+}
+
+export interface ConfirmTable {
+  headers: string[];
+  rows: ConfirmTableRow[];
+}
+
 interface ConfirmDialogState {
   open: boolean;
   title: string;
   description: string;
   warning?: string;
   details?: string;
+  table?: ConfirmTable;
   icon: Component;
   confirmText?: string;
   loading: boolean;
@@ -24,6 +40,7 @@ const defaultState: ConfirmDialogState = {
   // state forever.
   warning: undefined,
   details: undefined,
+  table: undefined,
   icon: AlertCircle,
   confirmText: '确认',
   loading: false,

@@ -151,7 +151,7 @@ export interface DatasetMeta {
   hash: string; // SHA-256 hex of sorted dataset content
   updatedAt: string; // ISO 8601, latest record update time
   recordCount: number; // number of records in this dataset
-  dataVersion: number; // schema version for this dataset
+  dataVersion: number; // schema version for this dataset — v2 起哈希签名字段集随版本轴确定（v1 为歧义带，读侧逐代尝试）
 }
 
 export interface RemoteMeta {
@@ -159,6 +159,59 @@ export interface RemoteMeta {
   version: 1;
   generatedAt: string;
   datasets: DatasetMeta[];
+}
+
+// ==================== WebDAV Sync Preview (ADR-027) ====================
+
+/**
+ * 同步计划模式：`sync` 走并集合并（幂等、永不减少记录）；`upload`/`download`
+ * 保持显式覆盖/恢复语义，仅纳入预检与风险确认。
+ */
+export type SyncPlanMode = 'sync' | 'upload' | 'download';
+
+/** 单表执行方向；`merge` 仅在 `sync` 模式出现。 */
+export type SyncPlanDirection = 'upload' | 'download' | 'merge' | 'skip';
+
+/** 预检产出的逐表对照行 —— 决定 UI 风险提示与执行侧指纹的字段集。 */
+export interface SyncPlanRow {
+  key: string;
+  localCount: number;
+  remoteCount: number;
+  /**
+   * 该侧最新记录时间；**计数为 0 或非合并数据集（如 `__settings__`）时为空串** ——
+   * 那两种情况下的时间戳没有含义（本地空表由「现在」占位），透出会误导。
+   */
+  localLatest: string;
+  remoteLatest: string;
+  hashEqual: boolean;
+  direction: SyncPlanDirection;
+  /** 预估丢失记录数；`sync` 恒为 0（非零即合并语义回退的回归哨兵）。 */
+  lossEstimate: number;
+  /** `upload`：本地空而远端有数据 ⇒ 远端 dataset 将成不可达孤儿。 */
+  orphansRemote: boolean;
+  /**
+   * `download`：本地版本会被云端覆盖 —— 覆盖两种情况：① 本地 `updatedAt` 更晚；
+   * ② 两侧时间戳相同但 `hashEqual === false`（内容不同，下载按既有语义以云端为准）。
+   * 后者原先不告警，会让「同时间戳、内容有别」的本地修订（典型是注释）被静默回退。
+   */
+  revertsNewer: boolean;
+}
+
+export interface SyncPlanTotals {
+  upload: number;
+  download: number;
+  merge: number;
+  skip: number;
+  lossEstimate: number;
+  orphaned: number;
+  revertsNewer: number;
+}
+
+/** 预检结果（只读，未落任何数据）。 */
+export interface SyncPreview {
+  mode: SyncPlanMode;
+  rows: SyncPlanRow[];
+  totals: SyncPlanTotals;
 }
 
 // ==================== Statistics ====================
