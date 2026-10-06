@@ -9,7 +9,9 @@
 
 import type { StoreRecord } from '@/types';
 import { LruCache, DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL_MS } from '@/engine/cache/lru-cache';
+import { warnLog } from '@/libraries/utils/logger';
 import { migrateSchema } from './migrate';
+import { rescueLegacyAdultRecords } from './legacy-store-rescue';
 import {
   DB_NAME,
   DB_VERSION,
@@ -68,6 +70,20 @@ export class DatabaseConnection {
         this.db.onerror = () => {
           console.warn('[DB] Unhandled database error event');
         };
+
+        // umreview U2：把遗留 sehuatang_avids 的残留条目补进 jav_ids（幂等、只增不删）。
+        // 不 await：救援绝不能拖慢/阻塞 DB 打开（它自己有完整容错）。实现在每次 SW 启动
+        // 都会跑一次，且成功后遗留表为空，后续成本仅为一次 objectStoreNames 检查。
+        // 注意 this.db 已在上方赋值 —— 救援内部的 ensureDB() 会立即返回，不会自锁。
+        void rescueLegacyAdultRecords(this)
+          .then(({ rescued }) => {
+            if (rescued > 0) {
+              warnLog(`[DB] rescued ${rescued} legacy adult record(s) from sehuatang_avids`);
+            }
+          })
+          .catch((err: unknown) => {
+            warnLog('[DB] legacy adult rescue failed:', err);
+          });
 
         resolve();
       };
