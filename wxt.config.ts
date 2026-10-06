@@ -6,7 +6,7 @@ import { devVersionSegment } from './src/libraries/utils/dev-version';
  * Extension version — single source inside this config; kept in sync with
  * package.json (npm run package:* updates both).
  */
-const VERSION = '5.18.0';
+const VERSION = '5.18.1';
 
 const PROD_NAME = 'UMManager - 多媒体管理器';
 const DEV_NAME = `${PROD_NAME} (DEV)`;
@@ -68,7 +68,17 @@ export default defineConfig({
       minimum_chrome_version: '119',
       description:
         '常见影视音乐平台的观看/收听记录管理工具，支持数据导入、清洗、合并和导出，提供 WebDAV 备份和第三方平台数据抓取功能。',
-      permissions: ['storage', 'notifications', 'alarms', 'contextMenus', 'scripting', 'activeTab'],
+      permissions: [
+        'storage',
+        'notifications',
+        'alarms',
+        'contextMenus',
+        'scripting',
+        'activeTab',
+        // 数据是用户的唯一副本：不加 unlimitedStorage 会被 Chrome 磁盘压力按 LRU 驱逐
+        // 整个源的 IndexedDB（真机清零事故的候选成因之一，2026-10-06 排查）。
+        'unlimitedStorage',
+      ],
       host_permissions: [
         '*://movie.douban.com/*',
         '*://music.douban.com/*',
