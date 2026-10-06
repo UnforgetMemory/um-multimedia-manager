@@ -143,7 +143,10 @@ test.describe('pushToNeoDB — loading state is always released', () => {
     clickPush();
     await sleep(300);
     // No token ⇒ the handler bails before the push message; this is the early return.
-    expect(sent.map((m) => m.type)).toEqual(['GET_SETTINGS']);
+    // ADR-027 R6：这条 SHOW_TOAST 过去因 `retries: 0` **一次都没发送**
+    // （safeSendMessage 的 retries 是尝试次数，0 = 不发送），本地 fallback 掩盖了症状。
+    // 修正为 `retries: 1` 后，后台 toast 才真正发出 —— 本断言随之更新为「两条都发」。
+    expect(sent.map((m) => m.type)).toEqual(['GET_SETTINGS', 'SHOW_TOAST']);
     expect(loadingState()).toEqual(released);
   });
 

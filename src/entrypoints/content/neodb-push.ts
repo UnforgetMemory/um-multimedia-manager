@@ -245,7 +245,11 @@ async function pushToNeoDB(
             message: t('neodb.config_missing'),
           },
         },
-        { timeout: 5000, retries: 0 },
+        // retries 是**尝试次数**而非「额外重试」次数（safeSendMessage 的
+        // `for (attempt = 1; attempt <= retries; attempt++)`）：传 0 会一次都不发送、
+        // 直接返回 null —— 这条 background toast 曾因此从未真正发出（一直由下面的
+        // 本地 fallback 兜底）。取 1 = 只发一次、不重试。
+        { timeout: 5000, retries: 1 },
       );
       if (!toastSent) {
         showToast(t('neodb.config_missing'), 'error');
