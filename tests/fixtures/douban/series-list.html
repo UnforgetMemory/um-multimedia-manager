@@ -1,0 +1,95 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/series-data.spec.ts.
+  NOT a real saved page; reproduces the book series page
+  (book.douban.com/series/{id}/) DOM consumed by
+  src/scenario/douban/pages/series/data.ts:
+    - header h1 / .ll.publishers / .clear-both 册数 / h2简介 + next sibling
+    - ul.subject-list li.subject-item cards (.pic a.nbg img, .info h2 a,
+      .pub, .star .rating_nums + .pl, blurb <p>) incl. skip/zero-rating edges
+    - .paginator with .thispage[data-total-page] (rich parser contract)
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>译文经典_书目_豆瓣读书</title>
+  </head>
+  <body>
+    <div class="book-container clearfix">
+      <h1>译文经典</h1>
+      <span class="ll publishers">文汇出版社</span>
+      <div class="clear-both">册数: 12&nbsp;&nbsp;出版者: 文汇出版社</div>
+      <h2>简介</h2>
+      <div class="intro">一套跨越六十年的世界文学丛书，收入多种传世译本。</div>
+
+      <ul class="subject-list">
+        <li class="subject-item">
+          <div class="pic">
+            <a class="nbg" href="/subject/26800001/"
+              ><img src="/view/subject/s/26800001.jpg" alt="百年之期"
+            /></a>
+          </div>
+          <div class="info">
+            <h2><a href="/subject/26800001/">百年之期</a></h2>
+            <div class="pub">[美] 作者甲 / 文汇出版社 / 2021-3 / 68.00元</div>
+            <div class="star">
+              <span class="rating_nums">8.7</span><span class="pl">(1,234人评价)</span>
+            </div>
+            <p>一部关于时间与社会记忆的小说。</p>
+          </div>
+        </li>
+        <li class="subject-item">
+          <div class="pic">
+            <a class="nbg" href="https://book.douban.com/subject/26800002/"
+              ><img
+                src="https://img3.doubanio.com/view/cover_l/public/p26800002.jpg"
+                alt="盐的路线"
+            /></a>
+          </div>
+          <div class="info">
+            <h2><a href="https://book.douban.com/subject/26800002/">盐的路线</a></h2>
+            <div class="pub">[英] 作者乙 / 文汇出版社 / 2019-11 / 52.00元</div>
+            <div class="star">
+              <span class="rating_nums">9.1</span><span class="pl">3 人评价</span>
+            </div>
+            <p>从海路写就的人类史。</p>
+          </div>
+        </li>
+        <li class="subject-item">
+          <div class="pic">
+            <a class="nbg" href="/subject/26800003/"
+              ><img src="/view/subject/s/26800003.jpg" alt="夜航西飞新注"
+            /></a>
+          </div>
+          <div class="info">
+            <h2><a href="/subject/26800003/">夜航西飞新注</a></h2>
+            <div class="pub">[英] 作者丙 / 文汇出版社 / 2024-1 / 45.00元</div>
+            <div class="star"><span class="pl">尚未评分</span></div>
+            <p>非洲飞行回忆录的新注本。</p>
+          </div>
+        </li>
+        <li class="subject-item">
+          <div class="info">
+            <h2><a href="/subject/26800004/">缺封面链接的项，应被跳过</a></h2>
+          </div>
+        </li>
+        <li class="subject-item">
+          <div class="pic">
+            <a class="nbg" href="/subject/"><img src="/view/subject/s/no.jpg" /></a>
+          </div>
+          <div class="info">
+            <h2><a href="/subject/">链接无数字，应被跳过</a></h2>
+          </div>
+        </li>
+      </ul>
+
+      <div class="paginator">
+        <span class="prev"><a href="?start=0">上一页</a></span>
+        <span class="thispage" data-total-page="3">2</span>
+        <a href="?start=0">1</a>
+        <a href="?start=50">3</a>
+        <span class="next"><a href="?start=50">下一页</a></span>
+      </div>
+    </div>
+  </body>
+</html>

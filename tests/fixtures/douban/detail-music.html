@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/extra-extract.spec.ts and
+  detail-data.spec.ts (music branch: v:des 简介 / 表演者 / 曲目 / #db-rec-section)。
+  NOT a real saved page; reproduces the music.douban.com /subject/{id}/ DOM
+  shape consumed by src/scenario/douban/pages/detail/extra-extract.ts.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wish You Were Here</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="content">
+        <div class="grid-16-8 clearfix">
+          <div class="article">
+            <div class="header">
+              <h1><span property="v:itemreviewed">Wish You Were Here</span></h1>
+              <h2 class="subtitle">Pink Floyd</h2>
+              <div id="mainpic">
+                <a href="https://music.douban.com/subject/1422007/photos">
+                  <img src="https://img1.doubanio.com/view/subject/s/public/s1437690.jpg" alt="Wish You Were Here" />
+                </a>
+              </div>
+              <div id="info">
+                <span class="pl">表演者:</span> Pink Floyd
+                <br />
+                <span class="pl">流派:</span> 摇滚
+                <br />
+                <span class="pl">专辑类型:</span> 专辑
+                <br />
+                <span class="pl">介质:</span> CD
+                <br />
+                <span class="pl">发行时间:</span> 1975-09-15
+                <br />
+                <span class="pl">出版者:</span> Columbia
+              </div>
+              <div class="rating_wrap clearbox">
+                <div class="rating_self clearfix">
+                  <strong class="rating_num property">9.4</strong>
+                  <span class="bigstar bigstar45"></span>
+                  <div class="rating_people"><span property="v:votes">79841</span>人评价</div>
+                </div>
+                <div class="ratings-on-weight">
+                  <div class="item"><span class="starstop star10">力荐</span><span class="rating_power"><span class="rating_power_inner" style="width: 71.2%"></span></span><span class="rating_per">71.2%</span></div>
+                  <div class="item"><span class="starstop star80">推荐</span><span class="rating_power"><span class="rating_power_inner" style="width: 21.3%"></span></span><span class="rating_per">21.3%</span></div>
+                  <div class="item"><span class="starstop star60">还行</span><span class="rating_power"><span class="rating_power_inner" style="width: 5.4%"></span></span><span class="rating_per">5.4%</span></div>
+                  <div class="item"><span class="starstop star40">较差</span><span class="rating_power"><span class="rating_power_inner" style="width: 1.2%"></span></span><span class="rating_per">1.2%</span></div>
+                  <div class="item"><span class="starstop star20">很差</span><span class="rating_power"><span class="rating_power_inner" style="width: 0.9%"></span></span><span class="rating_per">0.9%</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="related-info">
+              <h2>简介</h2>
+              <div class="intro">
+                <div property="v:des"> Wish You Were Here 是平克·弗洛伊德第九张录音室专辑，献给离去又留下的那位朋友。 </div>
+              </div>
+            </div>
+            <div id="celebrities" class="mod">
+              <h2>表演者 <span class="pl">(12)</span></h2>
+              <ul>
+                <li class="celebrity">
+                  <a class="avatar" href="https://www.douban.com/musician/1001/" style="background-image:url(https://img9.doubanio.com/view/musician/s_ratio_public/p1001.jpg)"></a>
+                  <div class="info">
+                    <span class="name"><a href="https://www.douban.com/musician/1001/">Pink Floyd</a></span>
+                    <span class="role">表演者</span>
+                  </div>
+                </li>
+                <li class="celebrity">
+                  <div class="info">
+                    <span class="name"><a href="https://www.douban.com/musician/1002/">大卫·吉尔莫</a></span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="mod">
+              <h2>曲目<span class="pl"> · · · · · ·</span></h2>
+              <div class="track-list">
+                <ul class="track-items">
+                  <li data-track-order="1">Shine On You Crazy Diamond (Parts I-V)</li>
+                  <li data-track-order="2">Welcome to the Machine</li>
+                  <li>Have a Cigar</li>
+                </ul>
+              </div>
+            </div>
+            <div id="db-rec-section" class="mod">
+              <h2>喜欢这张专辑的人都喜欢</h2>
+              <div class="content">
+                <dl>
+                  <dt><a href="https://music.douban.com/subject/1433673/"><img src="https://img3.doubanio.com/view/subject/s/public/s1439863.jpg" alt="The Dark Side of the Moon" /></a></dt>
+                  <dd><a href="https://music.douban.com/subject/1433673/">The Dark Side of the Moon</a><span class="subject-rate">9.5</span></dd>
+                </dl>
+                <dl>
+                  <dt><a href="https://music.douban.com/subject/1461334/"><img src="https://img2.doubanio.com/view/subject/s/public/s1439869.jpg" alt="Animals" /></a></dt>
+                  <dd><a href="https://music.douban.com/subject/1461334/">Animals</a><span class="subject-rate">9.3</span></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

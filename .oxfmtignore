@@ -1,0 +1,3 @@
+# Scraped-DOM mock fixtures: whitespace is semantically meaningful for text-node extraction assertions.
+# Formatting them (indent/line-wrap between inline elements) changes rendered text and breaks extract specs.
+tests/fixtures/**/*.html

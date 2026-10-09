@@ -1,0 +1,165 @@
+<!doctype html>
+<!--
+  Synthetic Discuz-style Sehuatang forum index (pg_index) fixture for
+  tests/unit/sehuatang-home-extract.spec.ts. NOT a real saved page; the DOM
+  shape reproduces exactly what src/scenario/sehuatang/home-extract.ts
+  queries: [id^="category_"] DIV.bm_c containers preceded by .bm_h h2 titles,
+  td.fl_g sub-forum cells (dt a / dt em today count / dd em stats / lastpost
+  dd), the category_94_img id decoy, and the #chart .chart stats strip.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>色花堂 - 首页（合成夹具）</title>
+  </head>
+  <body>
+    <div id="chart" class="bm cl">
+      <div class="chart">
+        <span><em>128</em></span>|<span><em>246</em></span>|<span><em>3578万</em></span>|<span><em>69万</em></span>|
+        <span><em>5821</em></span>
+      </div>
+    </div>
+    <div class="bm">
+      <div class="bm_h">
+        <h2 class="xs2"><span>原创BT电影</span></h2>
+        <div class="y">版主: <a href="space-uid-101.html">阿强</a></div>
+      </div>
+      <div id="category_2" class="bm_c">
+        <table cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td class="fl_g" width="312">
+                <div class="fl_icn_g">
+                  <a href="forum-8-1.html"><img src="static/image/common/forum_new.gif" alt="国产原创" width="34" height="34" /></a>
+                </div>
+                <dl>
+                  <dt><a href="forum-8-1.html" class="s xst">国产原创</a><em class="xw0 xi1"> (45)</em></dt>
+                  <dd><em>主题: 1万</em><em>&nbsp;&nbsp;帖数: 247万</em></dd>
+                  <dd>最后发表: <span title="2026-09-26 08:12">2 小时前</span></dd>
+                  <dd class="clp">子分类: <a href="forum-64-1.html">团队专区</a></dd>
+                </dl>
+              </td>
+              <td class="fl_g" width="312">
+                <div class="fl_icn_g">
+                  <a href="forum-10-1.html"><img src="static/image/common/forum.gif" alt="欧美原创" width="34" height="34" /></a>
+                </div>
+                <dl>
+                  <dt><a href="forum-10-1.html" class="s xst">欧美原创</a></dt>
+                  <dd><em>主题: 77869</em><em>&nbsp;&nbsp;帖数: 15万</em></dd>
+                  <dd>最后发表: <span title="2025-12-30 10:00">从未</span></dd>
+                </dl>
+              </td>
+              <!-- placeholder cell without dt a → skipped -->
+              <td class="fl_g" width="312">
+                <dl>
+                  <dt><span class="xg1">广告位</span></dt>
+                  <dd><em>主题: 0</em></dd>
+                </dl>
+              </td>
+            </tr>
+            <tr>
+              <!-- external-link forum: single dd, Discuz text passthrough -->
+              <td class="fl_g" width="312">
+                <div class="fl_icn_g">
+                  <a href="https://live.example.com" target="_blank"><img src="static/image/common/forum_link.gif" alt="外链" width="34" height="34" /></a>
+                </div>
+                <dl>
+                  <dt><a href="https://live.example.com" target="_blank">鲍鱼直播盒子</a></dt>
+                  <dd>链接到外部地址</dd>
+                </dl>
+              </td>
+              <!-- single dd holding stats (DOM drift) → must NOT leak as lastPostLabel -->
+              <td class="fl_g" width="312">
+                <div class="fl_icn_g">
+                  <a href="forum-12-1.html"><img src="static/image/common/forum.gif" alt="综合" width="34" height="34" /></a>
+                </div>
+                <dl>
+                  <dt><a href="forum-12-1.html" class="s xst">综合讨论</a></dt>
+                  <dd><em>主题: 30万</em><em>&nbsp;&nbsp;帖数: 90万</em></dd>
+                </dl>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- id decoy: img elements may share the category_ id prefix → DIV-only guard -->
+    <img id="category_2_img" class="bm_c" src="static/image/common/collapsed_no.gif" alt="" />
+    <div class="bm">
+      <div class="bm_h">
+        <h2 class="xs2">欧美BT剧集</h2>
+      </div>
+      <div id="category_5" class="bm_c">
+        <table cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td class="fl_g" width="312">
+                <div class="fl_icn_g">
+                  <a href="forum-21-1.html"><img src="static/image/common/forum_new.gif" alt="剧集" width="34" height="34" /></a>
+                </div>
+                <dl>
+                  <dt><a href="forum-21-1.html" class="s xst">美剧系列</a><em class="xw0 xi1"> (7)</em></dt>
+                  <dd><em>主题: 5万</em><em>&nbsp;&nbsp;帖数: 80万</em></dd>
+                  <dd>最后发表: <span title="2026-09-27 07:30">1 小时前</span></dd>
+                </dl>
+              </td>
+              <!-- anchor without href → href fallback '#' -->
+              <td class="fl_g" width="312">
+                <dl>
+                  <dt><a class="s xst">待迁移版块</a></dt>
+                  <dd><em>主题: 12</em><em>帖数: 34</em></dd>
+                  <dd>最后发表: 前天</dd>
+                </dl>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bm">
+      <div id="category_7" class="bm_c">
+        <table cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr>
+              <td class="fl_g" width="312">
+                <dl>
+                  <dt><a href="forum-30-1.html" class="s xst">资源补档</a></dt>
+                  <dd><em>主题: 400</em><em>帖数: 900</em></dd>
+                  <dd>最后发表: 昨天 22:10</dd>
+                </dl>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- category container without any valid fl_g → whole category skipped -->
+    <div class="bm">
+      <div class="bm_h">
+        <h2 class="xs2"><span>站务管理</span></h2>
+      </div>
+      <div id="category_99" class="bm_c">
+        <table cellspacing="0" cellpadding="0">
+          <tbody>
+            <tr><td class="flo_gp"><a href="forum-99-1.html">空版块（非 fl_g）</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bm">
+      <div id="category_9" class="bm">
+        <h2 class="xs2"><span>结构变体：容器无 bm_c</span></h2>
+        <table>
+          <tr>
+            <td class="fl_g">
+              <dl>
+                <dt><a href="forum-40-1.html">不受影响的版块</a></dt>
+                <dd><em>主题: 1</em></dd>
+              </dl>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

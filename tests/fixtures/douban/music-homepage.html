@@ -1,0 +1,167 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/music-homepage-extract.spec.ts.
+  NOT a real saved page: reproduces the public music.douban.com homepage DOM
+  shape (.popular-artists tabs, [data-react-component="NewAlbums"] album
+  carousel, .tag-block genre table) to match the extractor contract in
+  src/scenario/douban/pages/music-homepage/music-homepage-extract.ts.
+  All artist/album data is fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>豆瓣音乐</title>
+  </head>
+  <body>
+    <div id="db-nav-music"></div>
+
+    <!-- 本周流行 / 上升最快 -->
+    <div class="popular-artists">
+      <div class="artists">
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/echochan/">
+            <span
+              class="artist-photo-img"
+              style="background-image: url(https://img3.doubanio.com/img/mixed/2026/artist_big_echo.jpg)"
+            ></span>
+          </a>
+          <a class="title" href="https://site.douban.com/echochan/">潮汐少女</a>
+          <span class="genre">梦幻流行</span>
+        </div>
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/linsheng/">
+            <span
+              class="artist-photo-img"
+              style="background-image: url('https://img2.doubanio.com/img/mixed/2026/artist_big_lin.jpg')"
+            ></span>
+          </a>
+          <a class="title" href="https://site.douban.com/linsheng/">林声</a>
+          <span class="genre">民谣</span>
+        </div>
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/kongo/">
+            <span
+              class="artist-photo-img"
+              style='background-image: url("https://img1.doubanio.com/img/mixed/2026/artist_big_kongo.jpg")'
+            ></span>
+          </a>
+          <a class="title" href="https://site.douban.com/kongo/">刚果电声乐团</a>
+        </div>
+        <!-- photo span without background-image → dropped (href+name+photoUrl all required) -->
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/nophoto/">
+            <span class="artist-photo-img"></span>
+          </a>
+          <a class="title" href="https://site.douban.com/nophoto/">无图音乐人</a>
+          <span class="genre">电子</span>
+        </div>
+        <!-- no .title anchor → dropped -->
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/nameless/">
+            <span
+              class="artist-photo-img"
+              style="background-image: url(https://img9.doubanio.com/img/mixed/2026/artist_big_nameless.jpg)"
+            ></span>
+          </a>
+          <span class="genre">古典</span>
+        </div>
+      </div>
+      <div class="new-artists">
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/rising1/">
+            <span
+              class="artist-photo-img"
+              style="background-image: url(https://img3.doubanio.com/img/mixed/2026/artist_big_rising1.jpg)"
+            ></span>
+          </a>
+          <a class="title" href="https://site.douban.com/rising1/">夜航电台</a>
+          <span class="genre">独立摇滚</span>
+        </div>
+        <div class="artist-item">
+          <a class="artist-photo" href="https://site.douban.com/rising2/">
+            <span
+              class="artist-photo-img"
+              style="background-image: url(https://img2.doubanio.com/img/mixed/2026/artist_big_rising2.jpg)"
+            ></span>
+          </a>
+          <a class="title" href="https://site.douban.com/rising2/">玻璃回廊</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新碟上线 -->
+    <div data-react-component="NewAlbums">
+      <div class="album-tabs">
+        <span class="tab active">全部</span>
+      </div>
+      <div class="album-content">
+        <div class="album-item">
+          <div class="cover">
+            <a href="https://music.douban.com/subject/37220001/"
+              ><img src="https://img1.doubanio.com/spic_upload/p37220001.jpg" alt="午后信号"
+            /></a>
+          </div>
+          <div class="inner">
+            <p class="album-title"><a href="https://music.douban.com/subject/37220001/">午后信号</a></p>
+            <p><a href="https://music.douban.com/artist/xiaoman">小满乐队</a></p>
+            <div class="star"><span class="rating_star clear_both allstar45"></span></div>
+          </div>
+        </div>
+        <div class="album-item">
+          <div class="cover">
+            <a href="https://music.douban.com/subject/37220002/"
+              ><img src="https://img2.doubanio.com/spic_upload/p37220002.jpg"
+            /></a>
+          </div>
+          <div class="inner">
+            <p class="album-title"><a href="https://music.douban.com/subject/37220002/">雾中演奏会</a></p>
+            <p>陈与舟</p>
+            <div class="star"><span class="rating_star clear_both allstar00"></span></div>
+          </div>
+        </div>
+        <!-- no star block → rate '' -->
+        <div class="album-item">
+          <div class="cover">
+            <a href="https://music.douban.com/subject/37220003/"
+              ><img src="https://img3.doubanio.com/spic_upload/p37220003.jpg"
+            /></a>
+          </div>
+          <div class="inner">
+            <p class="album-title"><a href="https://music.douban.com/subject/37220003/">单声道情歌</a></p>
+            <p>阿禾</p>
+          </div>
+        </div>
+        <!-- no /subject/ link anywhere → skipped -->
+        <div class="album-item">
+          <div class="cover">
+            <a href="https://music.douban.com/search?q=promo"
+              ><img src="https://img9.doubanio.com/promo.jpg"
+            /></a>
+          </div>
+          <div class="inner">
+            <p class="album-title"><a href="https://music.douban.com/search?q=promo">推广条目</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 流派标签 -->
+    <div class="tag-block">
+      <table>
+        <tr>
+          <th><a href="https://music.douban.com/tag/%E6%91%87%E6%BB%9A">摇滚</a></th>
+          <td><a href="https://music.douban.com/tag/%E6%B0%91%E8%B0%A3">民谣</a></td>
+          <td><a href="https://music.douban.com/tag/%E7%94%B5%E5%AD%90">电子</a></td>
+        </tr>
+        <tr>
+          <th><a href="https://music.douban.com/tag/%E7%88%B5%E7%81%B5">爵士</a></th>
+          <td><a href="https://music.douban.com/tag/%E5%8F%A4%E5%85%B8">古典</a></td>
+          <td><span>无链接文本</span></td>
+        </tr>
+        <tr>
+          <th><a href="https://music.douban.com/tag/%E7%A9%BA%E7%81%B5"></a></th>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

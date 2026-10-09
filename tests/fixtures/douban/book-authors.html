@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/book-authors-data.spec.ts.
+  NOT a real saved page: all data is fabricated; only the public
+  book.douban.com/people/{uid}/authors DOM shape (#db-usr-profile sidebar +
+  .grid-view .item blocks with .title a em / .pic img / .info .intro) is
+  reproduced to match the extractor contract in
+  src/scenario/douban/pages/book-authors/book-authors-data.ts.
+  Items cover: two-intro author, single-intro author (works reuse intro[0]),
+  no-em title (text fallback), link-less item (must be skipped), paginator.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Renji的授权作者</title>
+  </head>
+  <body>
+    <div class="grid-16-8">
+      <div class="aside">
+        <div id="db-usr-profile" class="article">
+          <div class="pic">
+            <img src="https://img1.doubanio.com/icon/u1234567-8.jpg" alt="Renji" />
+          </div>
+          <div class="info">
+            <h1>关注的作者(28)</h1>
+            <ul class="plim">
+              <li><a href="https://book.douban.com/people/renji/">主页</a> |</li>
+              <li><a href="https://book.douban.com/people/renji/reviews">书影音</a> |</li>
+              <li><a href="https://book.douban.com/people/renji/monitor">动态</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="article">
+        <div class="opt-bar clearfix">
+          <span class="subject-num">1-25 / 28</span>
+          <span class="grid-on">网格视图</span>
+        </div>
+        <div class="grid-view">
+          <div class="item">
+            <div class="pic">
+              <a href="https://book.douban.com/author/10098/"
+                ><img src="https://img2.doubanio.com/spic/za/public/10098.jpg" alt=""
+              /></a>
+            </div>
+            <div class="title">
+              <a href="https://book.douban.com/author/10098/"
+                ><em>厄希恩-马里亚-雷马克</em> (Erich Maria Remarque)</a
+              >
+            </div>
+            <div class="info">
+              <div class="intro">作者 Author</div>
+              <div class="intro">
+                代表作:
+                <a href="https://book.douban.com/subject/1010066/">西线无战事</a>
+                ·
+                <a href="https://book.douban.com/subject/1050031/">三个战友</a>
+                ·
+                <a href="https://book.douban.com/subject/25804099/">凯旋门</a>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="pic">
+              <a href="https://book.douban.com/author/30226/"
+                ><img src="https://img9.doubanio.com/spic/za/public/30226.jpg" alt=""
+              /></a>
+            </div>
+            <div class="title">
+              <a href="https://book.douban.com/author/30226/"><em>若泽-萨拉马戈</em></a>
+            </div>
+            <div class="info">
+              <!-- 只有一个 intro：works 回用最后一个 intro（含 /subject/ 链接） -->
+              <div class="intro">
+                葡萄牙作家 —
+                <a href="https://book.douban.com/subject/1085420/">失明症漫记</a>
+                ·
+                <a href="https://book.douban.com/subject/26385689/">杀死一只歌鸟</a>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <!-- title 链接无 em：name 回退为链接全文 -->
+            <div class="title">
+              <a href="https://book.douban.com/author/43288/">奥尔加-托卡尔丘克</a>
+            </div>
+            <div class="info">
+              <div class="intro">作家</div>
+              <div class="intro">
+                <a href="https://book.douban.com/subject/27043845/">太古和其他的时间</a>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <!-- 无 .title a 链接 → 必须整体跳过 -->
+            <div class="pic"><img src="https://img3.doubanio.com/spic/za/public/00000.jpg" /></div>
+            <div class="info"><div class="intro">佚名</div></div>
+          </div>
+        </div>
+        <div class="paginator">
+          <span class="thispage" data-total-page="2">1</span>
+          <a href="?start=25">2</a>
+          <span class="next"><a href="?start=25">下一页&gt;</a></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

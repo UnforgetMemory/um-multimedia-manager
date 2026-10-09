@@ -540,7 +540,7 @@ um-multimedia-manager/
 | **Build / Extension Framework** | WXT (Vite-powered, multi-browser) |
 | **UI Components** | shadcn/vue (reka-ui primitives) |
 | **Styling** | Tailwind CSS v4 |
-| **Icons** | Lucide (via lucide-vue-next) |
+| **Icons** | Lucide node data (inlined in `src/libraries/ui/icons.ts`, ISC) |
 | **State Management** | Pinia |
 | **Internationalization** | vue-i18n |
 | **Data Storage** | IndexedDB |

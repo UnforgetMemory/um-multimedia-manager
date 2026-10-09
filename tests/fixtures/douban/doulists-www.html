@@ -1,0 +1,86 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/doulists-data.spec.ts (www branch).
+  NOT a real saved page — all user data is fabricated. Reproduces the public DOM
+  shape of https://www.douban.com/people/{uid}/doulists as queried by
+  src/scenario/douban/pages/doulists/doulists-data.ts:
+  #db-usr-profile sidebar, .switch_tabs created/collected toggle,
+  .xbar > div category tabs (span.now = current), ul.doulist-list items
+  (.doulist-cover a category class, .meta watched/total ratio, .collect-num),
+  and .paginator. Includes a no-cover item and a non-doulist li that must be skipped.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>书影漫游者的豆列</title>
+  </head>
+  <body>
+    <div id="db-usr-profile">
+      <div class="pic">
+        <a href="https://www.douban.com/people/1234567/">
+          <img src="https://img1.doubanio.com/icon/u1234567-8.jpg" alt="书影漫游者" />
+        </a>
+      </div>
+      <div class="info">
+        <h1>我的豆列</h1>
+        <ul>
+          <li><a href="https://www.douban.com/people/1234567/">主页</a></li>
+          <li class="sep">|</li>
+          <li><a href="https://www.douban.com/people/1234567/status/">动态</a></li>
+          <li class="sep">|</li>
+          <li><a href="https://www.douban.com/people/1234567/doulists/">豆列</a></li>
+        </ul>
+      </div>
+    </div>
+    <div id="content">
+      <div class="switch_tabs">
+        <span class="current">创建(7)</span>
+        <span><a href="/people/1234567/doulists?owned=followed">关注(3)</a></span>
+      </div>
+      <div class="xbar">
+        <div>
+          <a href="/people/1234567/subject_doulists/movie">片单(52)</a>
+          <span class="now">全部豆列(59)</span>
+          <a href="/people/1234567/subject_doulists/book">书单(4)</a>
+        </div>
+      </div>
+      <ul class="doulist-list">
+        <li class="doulist-item">
+          <div class="doulist-cover">
+            <a class="doulist-movie" href="https://www.douban.com/doulist/1500001/">
+              <img src="https://img1.doubanio.com/cpms/doulist/cover_1500001.jpg" alt="" width="84" />
+            </a>
+          </div>
+          <h3><a href="https://www.douban.com/doulist/1500001/">华语犯罪片单</a></h3>
+          <p class="intro">2000 年后优秀的华语犯罪类型片，按年代排列。</p>
+          <div class="meta">2026-07-07 20:09 更新 · 看过 17 / 20 部</div>
+          <div class="collect-num">1283 人关注</div>
+        </li>
+        <li class="doulist-item">
+          <div class="doulist-cover">
+            <a class="doulist-book" href="https://book.douban.com/subject_collection/ECMXTQVB">
+              <img src="https://img2.doubanio.com/cpms/doulist/cover_ecmxtqvb.jpg" alt="" width="84" />
+            </a>
+          </div>
+          <h3><a href="https://book.douban.com/subject_collection/ECMXTQVB">2026 私人书单</a></h3>
+          <div class="meta">2026-06-01 09:30 更新 · 读过 10 / 10 本</div>
+          <div class="collect-num">45 人关注</div>
+        </li>
+        <li class="doulist-item">
+          <h3><a href="https://www.douban.com/doulist/1490003/">通勤歌单</a></h3>
+          <div class="meta">2026-05-11 08:00 更新 · 听过 24 张</div>
+          <div class="collect-num">12 人关注</div>
+        </li>
+        <li class="doulist-item">
+          <h3><a href="https://www.douban.com/topic/66612345/">小组热帖（非豆列，混入列表）</a></h3>
+        </li>
+      </ul>
+      <div class="paginator">
+        <span class="thispage" data-total-page="3">1</span>
+        <a href="?start=20">2</a>
+        <a href="?start=40">3</a>
+        <span class="next"><a href="?start=20">后页></a></span>
+      </div>
+    </div>
+  </body>
+</html>

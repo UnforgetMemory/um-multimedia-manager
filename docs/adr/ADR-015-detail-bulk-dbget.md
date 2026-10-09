@@ -1,9 +1,9 @@
 # ADR-015 — Detail 页跨平台同步链的 dbGet 批量化方案
 
 - **日期**: 2026-08
-- **状态**: Accepted（已实现 — onCrossPlatformSave 并行读 + 写合并 + 事件驱动，2026-08）
+- **状态**: Accepted（已实现 — onCrossPlatformSave 并行读 + 写合并 + 事件驱动，2026-08；**2026-09-27 X30 收口**：事件刷新从 detail 页扩展到 7 个列表快照页，并补 `record:deleted` 方向，见 §7；同日 **X31 回访补漏**：X30 的「全量」口径过宽，两处推荐位网格仍是挂载快照、game-detail 记录通路是死代码，见 §7.1）
 - **作者**: 架构调研子代理
-- **范围**: `src/content/douban/pages/detail/` 的 DB 访问链路 + `src/utils/event-bus.ts` 的消费侧
+- **范围**: `src/scenario/douban/pages/detail/` 的 DB 访问链路 + `src/libraries/utils/event-bus.ts` 的消费侧（收口后扩展至 douban 全部列表页 overlay）
 
 ---
 
@@ -57,11 +57,11 @@ C.syncNeoDBOnLoad(3) + C.syncToNeoDB(8) + A.onCrossPlatformSave(6) + B.syncToNeo
 ### 1.2 已具备的基础设施
 
 - **`DB_GET_BULK` 消息**：`src/types/index.ts:116`（MessageType）、`:148`（MessagePayloadMap `{ storeName, keys }`）。
-- **`Store.dbGetBulk` 封装**：`src/features/database/api.ts:103-109`，返回 `Array<{ key, record }>`。
+- **`Store.dbGetBulk` 封装**：`src/engine/database/api.ts:122`，返回 `Array<{ key, record }>`。
 - **SW 处理器**：`src/entrypoints/background/handlers/db.ts:118-132`（`handleDbGetBulk`），单事务 `batchGet`，带 `bulk:{store}:{keys}` 缓存（TTL 5s）。
-- **`EVENT_BUS` + `record:updated` 事件**：`src/utils/event-bus.ts`；写操作已在 `db.ts:86/102/191/202` 广播 `record:updated`，payload 为 `{ storeName, key }`。
-- **既有事件订阅先例**：`src/content/douban/shared/composables/useRecordCache.ts:56-67` 已订阅 `record:updated` 做实时刷新，证明该事件足以驱动 detail 页同类需求。
-- **`initEventBus` 已在 detail 页所在注入系统初始化**：`src/content/douban/main.ts:103`。
+- **`EVENT_BUS` + `record:updated` 事件**：`src/libraries/utils/event-bus.ts`；写操作已在 `db.ts:87/227/238` 广播 `record:updated`，payload 为 `{ storeName, key }`（`:238` 位于 linked 平台循环内，一次同步写可产生 1+L 条广播）。
+- **既有事件订阅先例**：`src/scenario/douban/shared/composables/use-record-cache.ts:52` 已订阅 `record:updated` 做实时刷新，证明该事件足以驱动 detail 页同类需求。
+- **`initEventBus` 已在 detail 页所在注入系统初始化**：`src/scenario/douban/main.ts:114`。
 
 > 结论：批量化与事件驱动所需的全部基础设施均已就绪，本次不新增消息类型、不动 SW、不动类型层。
 
@@ -167,7 +167,7 @@ const unsubscribe = onEvent('record:updated', (data: unknown) => {
 ```
 
 - **`isRecordUpdatedPayload` 复用**：`useRecordCache.ts:9-13` 已导出该守卫，可提升至 `shared/` 共享，避免重复实现。
-- **跨 tab 生效**：`broadcast` 用 `chrome.runtime.sendMessage` 广播到所有 content script，detail 页在 tab A、保存发生在 tab B 时也能收到——比 3s 轮询更及时且零空转。
+- **跨 tab 生效（原表述有误，2026-09-26 回访更正）**：本节原写「`broadcast` 用 `chrome.runtime.sendMessage` 广播到所有 content script」——**该前提是错的**。MV3 语义下，Service Worker 发起的 `chrome.runtime.sendMessage` 只送达**扩展页面**（popup/options/其它扩展页），**不会**送达 content script；content script 只能被 `chrome.tabs.sendMessage(tabId, …)` 逐 tab 触达。因此原实现的跨 tab 事件在注入 UI（detail/首页/PT dimmer）里**永远收不到**，是一整个静默失效的功能（44 个单测全绿也掩盖不了，因为单测只 fake 了 `runtime.sendMessage` 一条腿）。修复：`event-bus.ts` 的 `broadcast()` 现在走**两条腿**——`sendSilently`（runtime，覆盖扩展页面）+ `sendToTabs`（遍历 `tabs.query({})` 逐 tab 投递，覆盖 content script），后者在 Node 侧无 `chrome` 绑定时静默跳过。跨 tab 结论由真实浏览器 e2e（`tests/e2e/book-home-live-refresh.spec.ts`、`pt-dimmer-live-refresh.spec.ts`）锁定，不再依赖轮询兜底。
 - **保留兜底**：若担心事件丢失（MV3 SW 被杀时广播可能丢），可保留一个 **60s** 的低频兜底轮询（而非 3s），作为「最终一致」的安全网。这是可选项，默认不加。
 
 - **收益**：D 流程从「每 3s 1 次往返」降至「仅变更时 1 次往返」。挂载 5 分钟的页面从 100 次往返降至 0–2 次。
@@ -215,6 +215,8 @@ await Promise.all(
 
 > **实现偏差说明**（2026-08 落地后回填）：`dbGetBulk` 最终未采用——它是单 store 多 key，而跨平台链接分散在 imdb/tmdb/neodb 三个 store 且各至多 1 个 key，故改为 `Promise.all` 并行 3 路 `dbGet`。实际读取为 **4 次 dbGet 消息（1 次 douban 串行 + 3 路并行）**，CHANGELOG 记为「8→4」；`syncToNeoDB` 读 3→0、douban 写 2→1 均已落地。§3.2 建议 7 项测试实际落地 4 项（`cross-platform-save-bulk.spec`），事件驱动/生命周期/跨 tab 未补测试。
 
+> **回访更正**（2026-09-26 第三轮）：上述「未补测试」的空洞已按真实浏览器 e2e 补齐——事件驱动 + 跨 tab 由 `tests/e2e/book-home-live-refresh.spec.ts`（首页徽标）、`detail-record-roundtrip.spec.ts`（overlay 免重载更新）、`pt-dimmer-live-refresh.spec.ts`（200 行列表 live 重淡化 + 长任务预算）、`imdb-detail-roundtrip.spec.ts`（legacy 管线）覆盖。**正是这批 e2e 暴露了 §2.3 的错误前提**：单测只 fake `runtime.sendMessage`，跨进程送达语义无从验证，所以 44 个绿单测下藏着一条完全不通的事件通道。生命周期（组件卸载/取消订阅）仍无专项测试。
+
 ---
 
 ## 3. 风险评估
@@ -226,7 +228,7 @@ await Promise.all(
 | **入口预提取 `extractCrossPlatformLinks`** | 在 `existing` 读出前调用，当前实现不依赖 existing（`cross-platform-links.ts:21` 用 `existingLinkedIds = {}`）→ 语义一致 | 仅 detail 页 |
 | **`syncToNeoDB` 改为传入 ctx** | 若调用方未传 ctx 或传错 record 快照，推送后写回的 douban.linkedIds.neodb 会基于过期快照 → 丢失其他字段的并发更新 | A/C 调用方 |
 | **写缓冲合并同一 key** | 若流程中途有「读自己刚写的值」的逻辑，缓冲会返回内存值而非 DB 值——当前代码无此模式（写后不立即读同 key） | 全流程 |
-| **3s 轮询 → 事件驱动** | (a) MV3 SW 被杀时 `broadcast` 的 `sendMessage` 可能无接收端（`event-bus.ts:20-26` 已吞 `Could not establish connection`）→ 事件丢失，页面不刷新；(b) 同 tab 内保存后 SW 广播回同 tab，`initEventBus` 的 listener（`main.ts:103`）需已就绪 | detail 页挂载期间 |
+| **3s 轮询 → 事件驱动** | (a) MV3 SW 被杀时广播可能丢失，`event-bus.ts` 的 `sendToTabs` 已吞 `Could not establish connection`（tab 已关闭/内容脚本未注入），页面不刷新；(b) **送达通道分两条腿**——`runtime.sendMessage` 只达扩展页面，content script 必须经 `tabs.sendMessage` 逐 tab；漏第二条腿即静默失效（2026-09-26 实测踩中，见 §2.3 更正）；(c) 同 tab 内保存后广播回同 tab，`initEventBus` 的 listener（`main.ts:103`）需已就绪 | detail 页 / 首页 / PT dimmer 挂载期间 |
 | **跨 tab 一致性** | 事件驱动天然支持跨 tab（优于轮询），但 detail 页 `vm.updateRecord`（`config.ts:40`）若在 unmount 后被回调触发 → 需确保 `unsubscribe` 在 `__ummDismissDetailMask` 中先调用 | 生命周期边界 |
 | **neodb 二轮读** | `existing.linkedIds.neodb` 依赖一轮 bulk 读的 douban record，若 douban record 缺失则无 neodb key → 与现状一致（现状 `:81` 也基于 existing） | 无新增风险 |
 
@@ -291,3 +293,83 @@ await Promise.all(
 3. **`DB_GET_BULK` 跨 store 批量化**：当前 `dbGetBulk` 单 store 单事务。若需一次消息读多个 store（如 douban+imdb+tmdb+neodb 一条消息），需新增 `DB_GET_BULK_MULTI` 消息类型——本次不必要（`Promise.all` 3 条已够快），但若未来出现 10+ store 场景可评估。
 4. **detail 页 `injectNeoDBPushButtons` 的末尾读**（A:113 / C:146）：推送按钮注入依赖最新 douban record。方案 2.4 的写缓冲 flush 后，可直接用内存中的 finalRecord 注入，消除这次读。
 5. **`intervalWhenVisible` 的其他消费方**：若 detail 页是唯一用户，可考虑从 `visibility.ts` 标记 deprecated。需先 grep 确认无其他调用方。
+
+---
+
+## 7. 列表快照页收口（2026-09-27，X30）
+
+原方案只覆盖 detail 页，回访发现「事件驱动刷新」在其余 overlay 页面是**名义存在**：7 个列表页（`albums` / `doulist-detail` / `game-explore` / `personage` / `personage-creations` / `series` / `search`）在 `config.ts:beforeMount` 里调一次 `loadRecordMap()` 把结果**写进提取对象**，之后再无任何订阅——本 ADR 的 2.3 对这些页等于没做。
+
+**收口后的统一形态（两条路径，各司其职）**：
+
+| 关注点 | 载体 | 语义 |
+|---|---|---|
+| 列表页（多记录） | `shared/composables/use-record-cache.ts` | config 的批量读仅作 **seed**（首帧同步出徽章，不闪空）；组件内 `records` 为响应式 Map，`record:updated` / `record:deleted` 到达时按 `{prefix}::{id}` 走定向 `DB_GET_BULK`，绝不 `dbGetAll` 全表扫描 |
+| 详情页（单记录） | `shared/composables/use-record-refresh.ts` | 同一套事件订阅，回读单键；**删除方向上报 `null`**（此前只订 `record:updated`，删记录后徽章滞留） |
+
+**Vapor 约束（关键陷阱）**：徽章必须是**派生值**——查找写在 `computed` 或模板函数里，渲染效果才依赖 `records`。`<script setup>` 顶层取一次 `props.x.get(…)` 会把徽章冻结成常量（这正是原先「就地写进 `WorkItem`」在 Vapor 下变成永久快照的原因）。同理，用换 `:key` 强制重挂来模拟刷新属反模式：DOM 整棵重建既掩盖缺陷又制造一次性批量写入。
+
+**证据**：`tests/unit/record-cache.spec.ts`（seed / 定向回读 / 两事件订阅与成对退订 / `subjectIdFromUrl`）、`tests/unit/record-refresh.spec.ts`（14 例，含删除清徽章、无键删除全清、删除与重写竞态）、`tests/e2e/x30-personage-live-refresh.spec.ts`（真实浏览器：外部 `DB_PUT`/`DB_DELETE` 免重载双向翻徽章，并断言 `page.url()` 全程不变）。新用例均经生产变异反向验证（把活读改回 mount 快照 → 必红）。
+
+### 7.1 X30 口径更正 · 推荐位网格与 game-detail 死路径（2026-09-27，X31）
+
+§7 写作「全量收口」是**过宽的**：它只覆盖了「主列表行」的徽章，回访（X31）重新计量后发现三类同族缺陷仍是挂载快照，且本轮才修：
+
+| 漏项 | 症状 | 收口方式 |
+|---|---|---|
+| detail 页推荐位（`recItems`） | 记录状态在 `extractRecItemsDom` 阶段被烤进行对象，之后永不重算；`config.ts` 另调一次 `loadRecordMap` 只为填首帧 | 渲染改走 `src/scenario/douban/components/umm-rec-section.ts`：批量读降级为 **seed**，徽章在渲染函数内从 `records` 派生，`:key` 用 `subjectId`（稳定键——把状态放进键等于整卡重挂来伪装刷新） |
+| game-detail 页推荐位 | 同上：`v-for="r in d.recItems"` 渲染的是提取期烤进对象的状态，永不重算 | 同上，经同一组件 |
+| game-detail 本页记录 | `config.ts` 从不回读已有记录，`App.vue` 的 `record` ref 挂载时恒为 `null` → `syncNeoDBOnLoad(identity, record.value)` 对「已看过的游戏」永远拿不到状态，伴生 NeoDB 对齐只在用户现场标记后才可能触发（**死路径**） | `config.ts` 按 `{type}::{providerId}` 先读一次并交下 `data.record` / `initialStatus` / `initialRating`；`record` ref 以此为初值，`useRecordRefresh` 回调继续更新它 |
+
+顺带补的性能前置：推荐位的批量读收进 `loadRecordMapForIds(prefix, ids)` / `loadRecordMapForKeys(keys)`（`src/scenario/douban/shared/load-record-map.ts`），空（或缺省）id 列表直接返回空映射——绕过它们把空数组传给 `loadRecordMap` 会退化成 `dbGetAll` 全表扫（`src/scenario/douban/shared/record-cache-core.ts` 的 `ids.length > 0` 分支）。
+
+**两件事必须同波做**（X31-B 的实际形状）：全表扫虽然贵，却在客观上替「挂载后才出现的行」（翻页、无限滚动、SPA 软导航）兜了底——`useRecordCache` 当时只在**事件到达**时重读，可见 id 集合自身增长不会触发读取。所以单纯把 7 个 config 换成守卫版会让这些行的徽章永久停在 none。收口顺序因此是：先给 `useRecordCache` 加**随可见 id 集合走的重读**（watch 的是排序后的 id 串，同集合换序/换引用不触发；`load()` 内另有 dedup，一拍内多次追加只读一次），再把 config 换到守卫版。`book-homepage` / `homepage` / `music-homepage` 原本手工 `watch(visibleIds, () => load())`，现由 composable 统一承担。
+
+**证据**：`tests/unit/rec-map-read-hygiene.spec.ts`（fall-through 正反例 + 逐页 config 结构守卫，含「正则能区分裸调用与守卫调用」的守卫自证种子；页面清单由 `pages/` 目录枚举而非硬编码，新页不可能漏网）、`tests/unit/record-cache.spec.ts` 新增 3 例（集合增长→一次定向读、仅换引用/换序→零读、集合清空→清表且零读）。反向验证：watcher 落地前「增长→重读」「清空→清表」两例即 RED。
+
+
+**证据（X31）**：`tests/unit/umm-rec-section.spec.ts`（18 例：seed 首帧、外部写入免重载翻徽章且**同一 DOM 节点**被复用、删除回到 none、无关键零回读、空 id 列表不发批量读、订阅失败必须上报）、`tests/unit/detail-record-loader.spec.ts`（`loadRecordMapForIds` 的键形态 / 去重 / 单条 null 不中断整批 / 零消息流量）、`tests/e2e/x31-rec-badge-live.spec.ts`（真实浏览器：detail 推荐位 `DB_PUT`→`DB_DELETE` 全程不重载地走完 想看→已看→none；game-detail 预置记录后断言伴生 NeoDB 读真实发生）。反向验证：把派生改回挂载快照、把状态放进 `:key`、删掉空 ids 守卫，三种生产变异各自转红。
+
+### 7.2 legacy 注入侧的同一缺陷族（2026-09-27，X32 ①）
+
+douban 面收口不等于全仓收口：按**消费面**重新枚举后，legacy 内容脚本（bilibili / youtube 首页列表）是同一族的第二面，且症状更重——不仅「事件到了不重算」，而是**删除方向在写入侧就无法表达**：
+
+| 缺陷 | 位置与形态 | 收口 |
+|---|---|---|
+| 无记录的行被跳过 | 两站 pass 的写回循环 `if (record) updates.push(...)`：删记录后 `DB_GET_BULK` 不再返回该键，于是该行**根本不进入写入集**，旧淡化与旧徽章永远留着 | 改为每行都出裁决：`record ?? null` 入队，null 走「未看 + 撤淡化」（缺答案是答案，不是缺答案） |
+| 淡化只加不减 | youtube `setAttribute(LISTING_VIEWED_ATTR)`、bilibili `classList.add`（且 shell/card 两处互斥）都无 else 分支 | youtube `applyListingVerdict(card, record \| null)` 单写入口；bilibili 在 else 分支同时撤 shell 与 card 两种 class |
+| 事件通道未接 | `bilibili-homepage.content` / `youtube-homepage.content` 连 `initEventBus()` 都没调用，列表 pass 只由 host DOM 的 `MutationObserver` 驱动 ⇒ 弹窗/其它 tab/同步写入永远看不见 | 入口订阅 `record:updated` + `record:deleted`，按事件键精准脏化（`invalidateProcessedRows`），随列表下线释放 |
+
+`invalidateProcessedRows(root, eventKey)` 的键语义与 `matchesVisibleId` 一致但刻意不复用：legacy 的行 id 就在 DOM（bvid / videoId），单键精准脏化可行；而扫描型 PT 站的行 id 不在 DOM 里，单键事件天然清不掉标记，必须靠解析行记忆化（`src/entrypoints/content/enhancers/pt/dimmer/`）才能重算。键缺省或 `'*'` 表示批量写入形态 ⇒ 全量脏化。
+
+**证据（X32 ①）**：`youtube-listing.spec.ts` +4 例（落地前 4 failed）、`x26d-bilibili-bulk-read-failure.spec.ts` +4 例、`legacy-listing-bus.spec.ts`（4 例结构守卫，含正/负种子：入口清单由 `src/entrypoints/*/index.ts` 枚举，未接线样本必须判 false）、`tests/e2e/x32-legacy-listing-live-refresh.spec.ts`（真实浏览器：一次 `DB_PUT` 只翻那一张卡、一次 `DB_DELETE` 翻回，并用文档 token 断言全程未重载）。反向验证三轮：仅摘掉入口接线（保留模块能力）⇒ e2e 红在 `toHaveClass(/umm-viewed/)`；把 bilibili 写回改回 `if (record)` ⇒ 删除用例红；去掉 else 撤淡化分支 ⇒ 降阈值用例红。
+
+**X32 余量（本节当时；已由 §7.4 收口推荐位一项）**：`src/entrypoints/content/ui/video-overlay.ts` 推荐位（3 处读、0 订阅）与 `src/entrypoints/content/handlers/javdb.ts`（其标记来源不在这条读路径上，需先确认）；详情页链与 bilibili/youtube 列表已在 §7.2 / §7.3 收口。事件通道本身另有死码：`settings:changed` 实测 0 生产者 + 0 消费者、`sync:completed` 3 生产者 + 0 消费者——删除还是补消费者需人工裁决（见任务 X32 ③）。
+
+### 7.3 legacy 详情页链的同一收口（2026-09-27，X32 ②）
+
+四站详情（imdb / tmdb / neodb / bangumi）共用 `create-detail-handler.ts`，故单点收口。约束两条：
+
+1. **合并逻辑必须同源**：首帧与「事件后重绘」若各有一份 merge，会漂移成「下一次外部写入把 chip 翻回旧值」。工厂内收敛为单一 `mergeVerdict(pageState, record)`，两条路径都走它。
+2. **订阅必须随路由下线释放**：`legacy` 的 router 已有 `RouteDisposer` 契约（X26-C），工厂因此**返回 disposer**，路由侧 `return await handler(identity)` 透传；imdb 把手写状态观察器的 disposer 与新的记录 disposer 组合成一个。除退订外还要有 `disposed` 标志：退订只挡新工作，**在途刷新的晚到答案**仍会重绘用户已经离开的标题。
+
+框架无关的订阅原语落在 `src/libraries/utils/watch-record.ts`（`useRecordCache` 一类 Vue 消费者继续用 composable；legacy 无生命周期可挂，故需这一层）。它带 `deps` 注入缝——理由与 `RecordCacheDeps` 相同：`event-bus` 的模块级 `initialized` 使「谁先 `initEventBus()` 谁的 chrome 桩胜出」，全局桩形态的单测结果依赖 worker 用例顺序。
+
+**证据**：`tests/unit/detail-handler-refresh.spec.ts`（7 例，含在途竞态）、`tests/unit/watch-record.spec.ts`（7 例）、`tests/e2e/imdb-detail-roundtrip.spec.ts` 新增真实浏览器外部写入 + 删除双向刷新（接线前先红）。**方法论记录**：反向验证中一次「摘订阅」变异写成 `void watchRecord(...)` 依旧完成订阅 ⇒ 用例全绿是假绿；变异自身必须先自证生效。另一例：既有的「下线后不再重绘」用例对 `disposed` 守卫完全不灵敏（退订已使回调不触发），补了在途竞态用例才有断言对象。
+
+
+
+### 7.4 legacy 推荐位：空键全表扫兜底 + 外部写入刷新（2026-09-27，X40）
+
+`src/entrypoints/content/ui/video-overlay-recommendations.ts`（bilibili / youtube 观看页推荐位共用）是同一缺陷族的第三面，且带一条**看起来像防御、实为纯浪费**的兜底：
+
+```ts
+// 修前：注释写的是「免得徽章静默消失」
+const request = keys.length > 0 ? Store.dbGetBulk(storeName, keys) : Store.dbGetAll(storeName);
+```
+
+键集合为空意味着**页面上没有可装饰的卡**，装饰循环本来就不会跑，所以那次全表扫描换不来任何徽章，只换来一次整库遍历；而宿主 feed 的 `MutationObserver` 会在推荐位水合完成前反复触发同一条路径（bilibili 上这是常见时序）。现改为 `if (keys.length === 0) return Promise.resolve();` —— 零消息流量。判据通用：**「为空时读全部」这种兜底必须先回答「读回来的结果有谁消费」**，否则它就是 X31-B 里那条「性能修法要先查清旧路径客观承担的功能」的反向情形：这次旧路径什么也没承担。
+
+刷新侧同 §7.2/§7.3：订阅 `watchRecord(storeName, undefined, …)`（整库任一写入都重看一次），复用类里已有的 `rec-refresh` trailing settle 槽，于是一次同步风暴内的多次广播只产生一次定向批量读；`cleanup()` 释放订阅。`createVideoOverlay` 配置带可选 `subscribeRecord` 注入缝，理由与 §7.3 相同（真实 event-bus 按 worker 首个 `initEventBus()` 者定死，走全局总线的单测会在合并复跑里随机红）。
+
+**证据**：`tests/unit/x26c2-video-overlay-rec-timers.spec.ts` 4 → **7 例**（空卡集合零读取 / 外部写触发一次定向批量读 / destroy 释放订阅且不再排程），落地前三例即 RED；反向验证同时施加两个变异（恢复 `dbGetAll` 兜底、不 arm 订阅）⇒ 恰好这 3 例转红、原 4 例不受影响。**默认订阅路径（真实总线）不在单测覆盖范围内**：它由 §7.3 的 IMDb e2e（同一条总线投递链）与 `watch-record.spec.ts`（键/store 过滤语义）分别保证，避免把 worker 顺序写进测试。

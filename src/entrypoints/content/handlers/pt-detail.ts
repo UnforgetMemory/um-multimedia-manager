@@ -11,28 +11,28 @@
  * - NexusPHP: details.php?id={id} (audiences, hdhome, hdarea, ourbits, pterclub)
  */
 
-import { Store } from '@/features/database'
+import { Store } from '@/engine/database';
 
 /** Extract douban ID from a URL like https://douban.com/subject/12345/ or https://movie.douban.com/subject/12345/ */
 function extractDoubanId(url: string): string | null {
-  const m = url.match(/douban\.com\/subject\/(\d+)/)
-  return m?.[1] ?? null
+  const m = url.match(/douban\.com\/subject\/(\d+)/);
+  return m?.[1] ?? null;
 }
 
 /** Extract IMDb ID from a URL like https://www.imdb.com/title/tt1234567/ */
 function extractImdbId(url: string): string | null {
-  const m = url.match(/imdb\.com\/title\/(tt\d+)/)
-  return m?.[1] ?? null
+  const m = url.match(/imdb\.com\/title\/(tt\d+)/);
+  return m?.[1] ?? null;
 }
 
 /** Build a normalized cache key from the current page URL */
 function buildCacheKey(url: string): string {
   try {
-    const u = new URL(url)
+    const u = new URL(url);
     // Strip tracking params, keep path + id
-    return `${u.origin}${u.pathname}${u.search}`
+    return `${u.origin}${u.pathname}${u.search}`;
   } catch {
-    return url
+    return url;
   }
 }
 
@@ -41,41 +41,41 @@ function buildCacheKey(url: string): string {
  * M-Team uses React SPA; links may be in <a[href]> or data attributes.
  */
 function extractMTeamDetailIds(): { doubanId: string | null; imdbId: string | null } {
-  let doubanId: string | null = null
-  let imdbId: string | null = null
+  let doubanId: string | null = null;
+  let imdbId: string | null = null;
 
   // Scan all links on the page
   for (const a of document.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-    const href = a.href
-    if (!doubanId) doubanId = extractDoubanId(href)
-    if (!imdbId) imdbId = extractImdbId(href)
-    if (doubanId && imdbId) break
+    const href = a.href;
+    if (!doubanId) doubanId = extractDoubanId(href);
+    if (!imdbId) imdbId = extractImdbId(href);
+    if (doubanId && imdbId) break;
   }
 
   // Also check query params in the current URL (some M-Team pages embed IDs)
   if (!doubanId || !imdbId) {
-    const params = new URLSearchParams(location.search)
+    const params = new URLSearchParams(location.search);
     if (!doubanId) {
-      const d = params.get('douban')
-      if (d && /^\d+$/.test(d)) doubanId = d
+      const d = params.get('douban');
+      if (d && /^\d+$/.test(d)) doubanId = d;
     }
     if (!imdbId) {
-      const i = params.get('imdb')
-      if (i && /^tt\d+$/.test(i)) imdbId = i
+      const i = params.get('imdb');
+      if (i && /^tt\d+$/.test(i)) imdbId = i;
     }
   }
 
   // Check data attributes on body or main container
   if (!doubanId) {
-    const el = document.querySelector('[data-doubanid]')
-    if (el) doubanId = el.getAttribute('data-doubanid')
+    const el = document.querySelector('[data-doubanid]');
+    if (el) doubanId = el.getAttribute('data-doubanid');
   }
   if (!imdbId) {
-    const el = document.querySelector('[data-imdbid]')
-    if (el) imdbId = el.getAttribute('data-imdbid')
+    const el = document.querySelector('[data-imdbid]');
+    if (el) imdbId = el.getAttribute('data-imdbid');
   }
 
-  return { doubanId, imdbId }
+  return { doubanId, imdbId };
 }
 
 /**
@@ -83,34 +83,34 @@ function extractMTeamDetailIds(): { doubanId: string | null; imdbId: string | nu
  * NexusPHP sites typically show douban/imdb links in the info table.
  */
 function extractNexusPHPDetailIds(): { doubanId: string | null; imdbId: string | null } {
-  let doubanId: string | null = null
-  let imdbId: string | null = null
+  let doubanId: string | null = null;
+  let imdbId: string | null = null;
 
   // Standard NexusPHP: links in the detail table
   for (const a of document.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-    const href = a.href
-    if (!doubanId) doubanId = extractDoubanId(href)
-    if (!imdbId) imdbId = extractImdbId(href)
-    if (doubanId && imdbId) break
+    const href = a.href;
+    if (!doubanId) doubanId = extractDoubanId(href);
+    if (!imdbId) imdbId = extractImdbId(href);
+    if (doubanId && imdbId) break;
   }
 
   // Some NexusPHP sites use data attributes
   if (!doubanId) {
-    const el = document.querySelector('[data-doubanid]')
-    if (el) doubanId = el.getAttribute('data-doubanid')
+    const el = document.querySelector('[data-doubanid]');
+    if (el) doubanId = el.getAttribute('data-doubanid');
   }
   if (!imdbId) {
-    const el = document.querySelector('[data-imdbid]')
-    if (el) imdbId = el.getAttribute('data-imdbid')
+    const el = document.querySelector('[data-imdbid]');
+    if (el) imdbId = el.getAttribute('data-imdbid');
   }
 
   // Some sites embed IDs in hidden inputs or meta tags
   if (!imdbId) {
-    const meta = document.querySelector('meta[property="imdb"]') as HTMLMetaElement | null
-    if (meta?.content) imdbId = meta.content
+    const meta = document.querySelector('meta[property="imdb"]') as HTMLMetaElement | null;
+    if (meta?.content) imdbId = meta.content;
   }
 
-  return { doubanId, imdbId }
+  return { doubanId, imdbId };
 }
 
 /** Wait for content to load (SPA-aware) */
@@ -121,26 +121,26 @@ function waitForContent(
   contentCheck?: (el: Element) => boolean,
 ): void {
   const match = (): Element | null => {
-    const el = document.querySelector(selector)
-    if (!el) return null
-    if (contentCheck && !contentCheck(el)) return null
-    return el
-  }
+    const el = document.querySelector(selector);
+    if (!el) return null;
+    if (contentCheck && !contentCheck(el)) return null;
+    return el;
+  };
 
   if (match()) {
-    callback()
-    return
+    callback();
+    return;
   }
 
   const observer = new MutationObserver(() => {
     if (match()) {
-      observer.disconnect()
-      callback()
+      observer.disconnect();
+      callback();
     }
-  })
+  });
 
-  observer.observe(document.body, { childList: true, subtree: true })
-  setTimeout(() => observer.disconnect(), timeout)
+  observer.observe(document.body, { childList: true, subtree: true });
+  setTimeout(() => observer.disconnect(), timeout);
 }
 
 /**
@@ -148,41 +148,52 @@ function waitForContent(
  * Extracts platform IDs and caches them in IndexedDB
  */
 export async function handlePTDetailPage(url: string): Promise<void> {
-  const isMTeam = url.includes('m-team.cc')
-const isNexusPHP = [
-  'audiences.me', 'hdhome.org', 'hdarea.club',
-  'ourbits.club', 'pterclub.net', 'pthome.net', 'haidan.cc', 'ptsbao.club', 'pt.btschool.club',
-  'discfan.net', 'hhanclub.net', 'hddolby.com', 'hdfans.org', 'pt.soulvoice.club', 'hdtime.org', 'piggo.me',
-].some((host) => url.includes(host))
+  const isMTeam = url.includes('m-team.cc');
+  const isNexusPHP = [
+    'audiences.me',
+    'hdhome.org',
+    'hdarea.club',
+    'ourbits.club',
+    'pterclub.net',
+    'pthome.net',
+    'haidan.cc',
+    'ptsbao.club',
+    'pt.btschool.club',
+    'discfan.net',
+    'hhanclub.net',
+    'hddolby.com',
+    'hdfans.org',
+    'pt.soulvoice.club',
+    'hdtime.org',
+    'piggo.me',
+  ].some((host) => url.includes(host));
 
-  if (!isMTeam && !isNexusPHP) return
+  if (!isMTeam && !isNexusPHP) return;
 
-  const cacheKey = buildCacheKey(url)
+  const cacheKey = buildCacheKey(url);
 
   // Check if already cached (skip extraction)
-  const existing = await Store.ptIdCacheGet(cacheKey)
+  const existing = await Store.ptIdCacheGet(cacheKey);
   if (existing && existing.doubanId && existing.imdbId) {
-    console.log('[PT Detail] Already cached with IDs')
-    return
+    console.log('[PT Detail] Already cached with IDs');
+    return;
   }
 
   // For M-Team SPA: wait for content to render
-  const selector = isMTeam ? '#root' : 'body'
+  const selector = isMTeam ? '#root' : 'body';
 
   waitForContent(
     selector,
     async () => {
-      const { doubanId, imdbId } = isMTeam
-        ? extractMTeamDetailIds()
-        : extractNexusPHPDetailIds()
+      const { doubanId, imdbId } = isMTeam ? extractMTeamDetailIds() : extractNexusPHPDetailIds();
 
       if (!doubanId && !imdbId) {
-        console.log('[PT Detail] No platform IDs found — caching empty')
+        console.log('[PT Detail] No platform IDs found — caching empty');
         await Store.ptIdCachePut({
           ptUrl: cacheKey,
           updatedAt: new Date().toISOString(),
-        })
-        return
+        });
+        return;
       }
 
       const entry = {
@@ -190,13 +201,11 @@ const isNexusPHP = [
         doubanId: doubanId ?? undefined,
         imdbId: imdbId ?? undefined,
         updatedAt: new Date().toISOString(),
-      }
-      await Store.ptIdCachePut(entry)
-      console.log('[PT Detail] Cached')
+      };
+      await Store.ptIdCachePut(entry);
+      console.log('[PT Detail] Cached');
     },
     8000,
-    isMTeam
-      ? (el) => el.childElementCount > 0 && el.querySelector('a[href]') !== null
-      : undefined,
-  )
+    isMTeam ? (el) => el.childElementCount > 0 && el.querySelector('a[href]') !== null : undefined,
+  );
 }

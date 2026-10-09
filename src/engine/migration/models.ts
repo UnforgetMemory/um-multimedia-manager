@@ -1,0 +1,434 @@
+/**
+ * Record-level Schema Migration System
+ *
+ * Provides iterative, step-by-step data migration for StoreRecord and PtIdCacheEntry.
+ * Each migration step transforms records from version N to N+1.
+ * Records are migrated on read and stamped on write.
+ *
+ * Architecture:
+ * - MigrationStep: { from, to, migrate(record) → record }
+ * - migrateRecord(): applies steps iteratively until CURRENT_RECORD_VERSION
+ * - MigrationError: thrown when migration fails or version is unsupported
+ * - MediaDatabase calls normalizeRecord() on every read path
+ *
+ * Adding a new migration:
+ * 1. Increment CURRENT_RECORD_VERSION
+ * 2. Add a MigrationStep { from: prev, to: new, migrate: fn }
+ * 3. Done — all existing records auto-migrate on next read
+ */
+
+import type { StoreRecord, PtIdCacheEntry, MigrationStatus } from '@/types';
+// dataset（备份 ZIP）格式版本常量的唯一事实源已下沉到 libraries 层
+// （纯数据、无错误类型耦合，见 src/libraries/utils/dataset-version.ts）。
+// 此处 import 供本模块 validateDatasetVersion 使用，并再导出以保持既有
+// 消费方（webdav/data handlers 与若干 spec）的导入路径不变。
+import {
+  CURRENT_DATASET_VERSION,
+  MIN_SUPPORTED_DATASET_VERSION,
+} from '@/libraries/utils/dataset-version';
+
+export {
+  CURRENT_DATASET_VERSION,
+  MIN_SUPPORTED_DATASET_VERSION,
+} from '@/libraries/utils/dataset-version';
+
+// ==================== Version Constants ====================
+
+/** Current schema version for StoreRecord */
+export const CURRENT_RECORD_VERSION = 2;
+
+/** Current schema version for PtIdCacheEntry */
+export const CURRENT_CACHE_VERSION = 1;
+
+/** Minimum supported record version (below this = data too old) */
+export const MIN_SUPPORTED_RECORD_VERSION = 0;
+
+/** Minimum supported export data version */
+export const MIN_SUPPORTED_EXPORT_VERSION = 1;
+
+/** Current export data version */
+export const CURRENT_EXPORT_VERSION = 2;
+
+// dataset（备份 ZIP）版本常量见上方 `@/libraries/utils/dataset-version` 的 import/再导出
+
+// ==================== Error Types ====================
+
+export class MigrationError extends Error {
+  readonly code:
+    | 'VERSION_TOO_OLD'
+    | 'VERSION_TOO_NEW'
+    | 'NO_MIGRATION_PATH'
+    | 'MIGRATION_FAILED'
+    | 'IMPORT_INCOMPATIBLE'
+    | 'INVALID_RECORD';
+  readonly details?: Record<string, unknown>;
+
+  constructor(
+    message: string,
+    code:
+      | 'VERSION_TOO_OLD'
+      | 'VERSION_TOO_NEW'
+      | 'NO_MIGRATION_PATH'
+      | 'MIGRATION_FAILED'
+      | 'IMPORT_INCOMPATIBLE'
+      | 'INVALID_RECORD',
+    details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'MigrationError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+// ==================== Migration Step Interface ====================
+
+/**
+ * Loosely-typed snapshot as it flows through the migration pipeline:
+ * untrusted IndexedDB/import JSON narrowed to an indexable object only.
+ */
+export type MigrationPayload = Record<string, unknown>;
+
+/**
+ * Fields the record migrators (v0→1, v1→2) actually read from unversioned
+ * legacy rows. All optional: the v1..v15 IndexedDB schemas wrote varying
+ * subsets (comment/linkedIds/recordVersion arrived over time). Values are
+ * `unknown` because the migrators only apply `??` defaults on nullish input —
+ * malformed legacy values pass through untouched (behavior contract).
+ */
+interface LegacyRecordSnapshot {
+  url?: unknown;
+  status?: unknown;
+  rating?: unknown;
+  comment?: unknown;
+  updatedAt?: unknown;
+  linkedIds?: unknown;
+  [key: string]: unknown;
+}
+
+/** Fields the cache v0→1 migrator reads from legacy pt-id rows (same tolerance rules). */
+interface LegacyCacheEntrySnapshot {
+  ptUrl?: unknown;
+  doubanId?: unknown;
+  imdbId?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+export interface MigrationStep {
+  /** Source version (0 = unversioned legacy) */
+  from: number;
+  /** Target version */
+  to: number;
+  /** Transform function — receives a payload snapshot, returns the migrated snapshot */
+  migrate: (record: MigrationPayload) => MigrationPayload;
+}
+
+// ==================== Record Migrations ====================
+
+/**
+ * Ordered list of migration steps for StoreRecord.
+ * Each step transforms from version N to N+1.
+ * Steps MUST be ordered by `from` ascending.
+ */
+const recordMigrations: MigrationStep[] = [
+  {
+    from: 0,
+    to: 1,
+    migrate: (record: LegacyRecordSnapshot) => ({
+      ...record,
+      // Ensure all required fields exist with defaults
+      url: record.url ?? '',
+      status: typeof record.status === 'number' ? record.status : 0,
+      rating: typeof record.rating === 'number' ? record.rating : 0,
+      updatedAt: record.updatedAt ?? new Date().toISOString(),
+      linkedIds: record.linkedIds ?? {},
+      // Stamp version
+      schemaVersion: 1,
+    }),
+  },
+  {
+    from: 1,
+    to: 2,
+    migrate: (record: LegacyRecordSnapshot) => ({
+      ...record,
+      // Ensure comment field exists
+      comment: record.comment ?? undefined,
+      // Stamp version
+      schemaVersion: 2,
+    }),
+  },
+];
+
+/**
+ * Ordered list of migration steps for PtIdCacheEntry.
+ */
+const cacheMigrations: MigrationStep[] = [
+  {
+    from: 0,
+    to: 1,
+    migrate: (entry: LegacyCacheEntrySnapshot) => ({
+      ...entry,
+      ptUrl: entry.ptUrl ?? '',
+      doubanId: entry.doubanId ?? undefined,
+      imdbId: entry.imdbId ?? undefined,
+      updatedAt: entry.updatedAt ?? new Date().toISOString(),
+      schemaVersion: 1,
+    }),
+  },
+];
+
+// ==================== Migration Engine ====================
+
+export interface MigrationResult<T> {
+  /** The migrated record (or original if no migration needed) */
+  record: T;
+  /** Whether any migration was applied */
+  migrated: boolean;
+  /** List of version numbers that were applied (e.g., [1] means 0→1) */
+  steps: number[];
+}
+
+/**
+ * Iteratively migrate a record through each version step until CURRENT_RECORD_VERSION.
+ *
+ * Algorithm:
+ * 1. Read current schemaVersion (default 0 for legacy)
+ * 2. If > CURRENT → throw VERSION_TOO_NEW
+ * 3. If < MIN_SUPPORTED → throw VERSION_TOO_OLD
+ * 4. While version < CURRENT:
+ *    a. Find migration step with `from === currentVersion`
+ *    b. If no step found → throw NO_MIGRATION_PATH
+ *    c. Apply step, advance version
+ * 5. Return migrated record
+ */
+export function migrateRecord<T = MigrationPayload>(
+  raw: unknown,
+  steps: MigrationStep[],
+  currentVersion: number,
+  minSupported: number = 0,
+): MigrationResult<T> {
+  // The engine reads exactly one field from the untrusted payload. schemaVersion
+  // is only ever written as a number (stamp/migrate steps); this view exposes
+  // that contract while any other runtime shape flows through the same
+  // comparisons it did when the parameter was untyped.
+  const source = raw as (MigrationPayload & { schemaVersion?: number }) | null | undefined;
+  const recordVersion = source?.schemaVersion ?? 0;
+
+  // Already at current version — no migration needed
+  if (recordVersion === currentVersion) {
+    return { record: raw as T, migrated: false, steps: [] };
+  }
+
+  // Version too new — data from a newer extension version
+  if (recordVersion > currentVersion) {
+    throw new MigrationError(
+      `Record schema version ${recordVersion} is newer than supported version ${currentVersion}. ` +
+        `Please update the extension.`,
+      'VERSION_TOO_NEW',
+      { recordVersion, currentVersion },
+    );
+  }
+
+  // Version too old — below minimum supported
+  if (recordVersion < minSupported) {
+    throw new MigrationError(
+      `Record schema version ${recordVersion} is too old (minimum supported: ${minSupported}). ` +
+        `Data may be corrupted or from an incompatible version.`,
+      'VERSION_TOO_OLD',
+      { recordVersion, minSupported },
+    );
+  }
+
+  // Iterative migration: apply each step in order
+  let result: MigrationPayload = { ...source };
+  const appliedSteps: number[] = [];
+  let version = recordVersion;
+
+  while (version < currentVersion) {
+    const step = steps.find((s) => s.from === version);
+    if (!step) {
+      throw new MigrationError(
+        `No migration path from schema version ${version} to ${currentVersion}. ` +
+          `Missing migration step for version ${version}.`,
+        'NO_MIGRATION_PATH',
+        { currentVersion: version, targetVersion: currentVersion },
+      );
+    }
+
+    try {
+      result = step.migrate(result);
+      version = step.to;
+      appliedSteps.push(step.to);
+    } catch (err: unknown) {
+      throw new MigrationError(
+        `Migration from v${step.from} to v${step.to} failed: ${err instanceof Error ? err.message : String(err)}`,
+        'MIGRATION_FAILED',
+        { from: step.from, to: step.to, error: err },
+      );
+    }
+  }
+
+  return { record: result as T, migrated: true, steps: appliedSteps };
+}
+
+/** Snapshot fields accepted from untrusted import data (see normalizeStoreRecord). */
+const RECORD_FIELD_WHITELIST = [
+  'url',
+  'status',
+  'rating',
+  'comment',
+  'updatedAt',
+  'linkedIds',
+  'schemaVersion',
+  'recordVersion',
+] as const;
+
+/**
+ * Normalize a StoreRecord on read.
+ * Applies iterative migrations if the record's schemaVersion is behind.
+ * Returns the migrated record (caller should write it back if migrated).
+ *
+ * Boundary hardening for untrusted imported data (WebDAV download/sync, ZIP
+ * import): rejects non-object/array payloads, strips unknown fields (CWE-915
+ * mass-assignment), and drops out-of-range status/rating values.
+ */
+export function normalizeStoreRecord(raw: unknown): MigrationResult<StoreRecord> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new MigrationError('Invalid record: expected a record object', 'INVALID_RECORD', {});
+  }
+
+  const source = raw as MigrationPayload;
+  // Whitelist snapshot fields only — unknown keys from a malicious dataset are dropped.
+  const sanitized: MigrationPayload = {};
+  for (const key of RECORD_FIELD_WHITELIST) {
+    if (key in source) sanitized[key] = source[key];
+  }
+
+  // Numeric sanity: status ∈ [0,3], rating ∈ [0,10]; invalid values are dropped
+  // so downstream defaults (status 0 / rating 0) apply instead of poisoning state.
+  if (
+    typeof sanitized.status !== 'number' ||
+    !Number.isInteger(sanitized.status) ||
+    sanitized.status < 0 ||
+    sanitized.status > 3
+  ) {
+    delete sanitized.status;
+  }
+  if (
+    typeof sanitized.rating !== 'number' ||
+    !Number.isFinite(sanitized.rating) ||
+    sanitized.rating < 0 ||
+    sanitized.rating > 10
+  ) {
+    delete sanitized.rating;
+  }
+  if (
+    sanitized.linkedIds !== undefined &&
+    (typeof sanitized.linkedIds !== 'object' ||
+      sanitized.linkedIds === null ||
+      Array.isArray(sanitized.linkedIds))
+  ) {
+    delete sanitized.linkedIds;
+  }
+
+  return migrateRecord<StoreRecord>(
+    sanitized,
+    recordMigrations,
+    CURRENT_RECORD_VERSION,
+    MIN_SUPPORTED_RECORD_VERSION,
+  );
+}
+
+/**
+ * Normalize a PtIdCacheEntry on read.
+ * Cache rows are untrusted legacy JSON — the v0→1 step fills missing fields
+ * with defaults instead of rejecting them, so no boundary validation applies.
+ */
+export function normalizeCacheEntry(raw: unknown): MigrationResult<PtIdCacheEntry> {
+  return migrateRecord<PtIdCacheEntry>(
+    raw,
+    cacheMigrations,
+    CURRENT_CACHE_VERSION,
+    MIN_SUPPORTED_RECORD_VERSION,
+  );
+}
+
+/**
+ * Stamp a StoreRecord with the current schema version before write.
+ * Ensures all records written to DB have the correct version.
+ */
+export function stampRecordVersion(record: StoreRecord): StoreRecord {
+  return { ...record, schemaVersion: CURRENT_RECORD_VERSION };
+}
+
+/**
+ * Stamp a PtIdCacheEntry with the current cache version before write.
+ */
+export function stampCacheVersion(entry: PtIdCacheEntry): PtIdCacheEntry {
+  return { ...entry, schemaVersion: CURRENT_CACHE_VERSION };
+}
+
+/**
+ * Validate export data compatibility.
+ * Returns true if importable, throws MigrationError if not.
+ */
+export function validateExportVersion(exportVersion: number): boolean {
+  if (exportVersion < MIN_SUPPORTED_EXPORT_VERSION) {
+    throw new MigrationError(
+      `Export data version ${exportVersion} is too old to import (minimum supported: ${MIN_SUPPORTED_EXPORT_VERSION}). ` +
+        `Please export from a newer version of the extension first.`,
+      'IMPORT_INCOMPATIBLE',
+      { exportVersion, minSupported: MIN_SUPPORTED_EXPORT_VERSION },
+    );
+  }
+  if (exportVersion > CURRENT_EXPORT_VERSION) {
+    throw new MigrationError(
+      `Export data version ${exportVersion} was created by a newer version of the extension. ` +
+        `Please update before importing.`,
+      'IMPORT_INCOMPATIBLE',
+      { exportVersion, currentVersion: CURRENT_EXPORT_VERSION },
+    );
+  }
+  return true;
+}
+
+/**
+ * Validate dataset (backup ZIP) version compatibility.
+ * Returns true if importable, throws MigrationError if not.
+ */
+export function validateDatasetVersion(datasetVersion: number): boolean {
+  if (datasetVersion < MIN_SUPPORTED_DATASET_VERSION) {
+    throw new MigrationError(
+      `Dataset version ${datasetVersion} is too old to import (minimum supported: ${MIN_SUPPORTED_DATASET_VERSION}). ` +
+        `Please export from a newer version of the extension first.`,
+      'IMPORT_INCOMPATIBLE',
+      { datasetVersion, minSupported: MIN_SUPPORTED_DATASET_VERSION },
+    );
+  }
+  if (datasetVersion > CURRENT_DATASET_VERSION) {
+    throw new MigrationError(
+      `Dataset version ${datasetVersion} was created by a newer version of the extension. ` +
+        `Please update before importing.`,
+      'VERSION_TOO_NEW',
+      { datasetVersion, currentVersion: CURRENT_DATASET_VERSION },
+    );
+  }
+  return true;
+}
+
+/**
+ * Get migration status info for diagnostics.
+ * Return type is the wire contract for GET_MIGRATION_STATUS (types/index.ts).
+ */
+export function getMigrationInfo(): MigrationStatus {
+  return {
+    currentRecordVersion: CURRENT_RECORD_VERSION,
+    currentCacheVersion: CURRENT_CACHE_VERSION,
+    currentExportVersion: CURRENT_EXPORT_VERSION,
+    minSupportedRecordVersion: MIN_SUPPORTED_RECORD_VERSION,
+    minSupportedExportVersion: MIN_SUPPORTED_EXPORT_VERSION,
+    recordMigrationSteps: recordMigrations.length,
+    cacheMigrationSteps: cacheMigrations.length,
+  };
+}

@@ -14,12 +14,12 @@
  * 工厂基础保存逻辑仍会兜底写入（两处写入以最后一次为准，行为一致）。
  */
 
-import type { UrlIdentity, StoreRecord } from '@/types'
-import { Store } from '@/features/database'
-import { createStatusChip } from '../utils/dom'
-import { FloatingToast } from '../utils/toast'
-import { t } from '../i18n'
-import { createDetailPageHandler, type PageScanResult } from './create-detail-handler'
+import type { UrlIdentity, StoreRecord } from '@/types';
+import { Store } from '@/engine/database';
+import { createStatusChip } from '../utils/dom';
+import { FloatingToast } from '../utils/toast';
+import { t } from '../i18n';
+import { createDetailPageHandler, type PageScanResult } from './create-detail-handler';
 import {
   extractBangumiRating,
   extractBangumiStatus,
@@ -27,42 +27,44 @@ import {
   inferBangumiMediaType,
   type BangumiInfoboxRow,
   type BangumiPageStatus,
-} from './bangumi-extract'
+} from './bangumi-extract';
 
 // ---- DOM 读取 ----
 
 /** 读取收藏状态：优先 window.INTEREST_TYPE（1=想看 2=看过 3=在看 4=搁置 5=抛弃），
  *  缺失时回退解析 .interest_now 文本（未登录时无此变量也无收藏盒）。 */
 function readBangumiInterestType(): number | null {
-  const raw = (window as unknown as { INTEREST_TYPE?: unknown }).INTEREST_TYPE
-  if (typeof raw === 'number' && Number.isInteger(raw)) return raw
+  const raw = (window as unknown as { INTEREST_TYPE?: unknown }).INTEREST_TYPE;
+  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
 
   const interestText =
-    document.querySelector<HTMLElement>('#panelInterestWrapper .interest_now')?.textContent?.trim() ?? ''
-  return inferBangumiInterestFromText(interestText)
+    document
+      .querySelector<HTMLElement>('#panelInterestWrapper .interest_now')
+      ?.textContent?.trim() ?? '';
+  return inferBangumiInterestFromText(interestText);
 }
 
 /** 读取用户评分（0-10）：form[name="rate-now"] 内 checked 的 name="rate" radio。 */
 function readBangumiUserRating(): number {
   const checked = document.querySelector<HTMLInputElement>(
-    'form[name="rate-now"] input[name="rate"]:checked'
-  )
-  return extractBangumiRating(checked?.value ?? null)
+    'form[name="rate-now"] input[name="rate"]:checked',
+  );
+  return extractBangumiRating(checked?.value ?? null);
 }
 
 /** 提取 #infobox 各行：label = span.tip 文本，value = li 文本减去 label。 */
 function readBangumiInfoboxRows(): BangumiInfoboxRow[] {
-  const rows: BangumiInfoboxRow[] = []
-  const items = document.querySelectorAll<HTMLElement>('#infobox li')
+  const rows: BangumiInfoboxRow[] = [];
+  const items = document.querySelectorAll<HTMLElement>('#infobox li');
   for (const li of items) {
-    const tip = li.querySelector('span.tip')
-    if (!tip) continue
-    const label = tip.textContent?.trim() ?? ''
-    if (!label) continue
-    const value = (li.textContent ?? '').replace(label, '').trim()
-    rows.push({ label, value })
+    const tip = li.querySelector('span.tip');
+    if (!tip) continue;
+    const label = tip.textContent?.trim() ?? '';
+    if (!label) continue;
+    const value = (li.textContent ?? '').replace(label, '').trim();
+    rows.push({ label, value });
   }
-  return rows
+  return rows;
 }
 
 // ---- 扫描 / 解析 ----
@@ -70,10 +72,13 @@ function readBangumiInfoboxRows(): BangumiInfoboxRow[] {
 /**
  * 扫描页面状态：INTEREST_TYPE → wish/done/doing/none；checked radio → 用户评分。
  */
-export async function scanBangumiPageStatus(): Promise<{ status: BangumiPageStatus; rating: number }> {
-  const status = extractBangumiStatus(readBangumiInterestType())
-  const rating = readBangumiUserRating()
-  return { status, rating }
+export async function scanBangumiPageStatus(): Promise<{
+  status: BangumiPageStatus;
+  rating: number;
+}> {
+  const status = extractBangumiStatus(readBangumiInterestType());
+  const rating = readBangumiUserRating();
+  return { status, rating };
 }
 
 /**
@@ -81,11 +86,11 @@ export async function scanBangumiPageStatus(): Promise<{ status: BangumiPageStat
  */
 async function resolveBangumiIdentity(
   identity: UrlIdentity,
-  _pageState: PageScanResult
+  _pageState: PageScanResult,
 ): Promise<UrlIdentity> {
-  const inferredType = inferBangumiMediaType(readBangumiInfoboxRows())
-  if (inferredType === identity.type) return identity
-  return { ...identity, type: inferredType }
+  const inferredType = inferBangumiMediaType(readBangumiInfoboxRows());
+  if (inferredType === identity.type) return identity;
+  return { ...identity, type: inferredType };
 }
 
 // ---- 渲染 ----
@@ -96,7 +101,7 @@ const STATUS_MENU_OPTIONS: ReadonlyArray<{ status: number; labelKey: string }> =
   { status: 1, labelKey: 'status.wish' },
   { status: 3, labelKey: 'status.doing' },
   { status: 2, labelKey: 'status.done' },
-]
+];
 
 /** 菜单容器内联样式（浅色深色自适应：CSS 系统色 Canvas/CanvasText）。 */
 const STATUS_MENU_STYLE = [
@@ -113,7 +118,7 @@ const STATUS_MENU_STYLE = [
   'color:CanvasText',
   'border:1px solid rgba(128,128,128,0.35)',
   'box-shadow:0 10px 24px rgba(15,23,42,0.18)',
-].join(';')
+].join(';');
 
 /** 菜单选项内联样式；current 高亮当前状态。 */
 function statusOptionStyle(current: boolean): string {
@@ -127,12 +132,12 @@ function statusOptionStyle(current: boolean): string {
     'cursor:pointer',
     'color:inherit',
     'background:transparent',
-  ]
+  ];
   if (current) {
-    base.push('background:rgba(99,102,241,0.16)')
-    base.push('box-shadow:inset 0 0 0 1px rgba(99,102,241,0.6)')
+    base.push('background:rgba(99,102,241,0.16)');
+    base.push('box-shadow:inset 0 0 0 1px rgba(99,102,241,0.6)');
   }
-  return base.join(';')
+  return base.join(';');
 }
 
 /**
@@ -141,32 +146,32 @@ function statusOptionStyle(current: boolean): string {
  * 已存在 data-umm-owner = bangumi-{type} 的标签则原位替换（重渲染复用同一锚点）。
  */
 function mountBangumiChip(chip: HTMLElement): void {
-  const sidePanel = document.querySelector('#panelInterestWrapper .SidePanel')
+  const sidePanel = document.querySelector('#panelInterestWrapper .SidePanel');
   if (sidePanel) {
-    const existingChip = sidePanel.querySelector<HTMLElement>('.umm-status-chip[data-umm-owner]')
+    const existingChip = sidePanel.querySelector<HTMLElement>('.umm-status-chip[data-umm-owner]');
     if (existingChip) {
-      existingChip.replaceWith(chip)
-      return
+      existingChip.replaceWith(chip);
+      return;
     }
-    const rateForm = sidePanel.querySelector('form[name="rate-now"]')
+    const rateForm = sidePanel.querySelector('form[name="rate-now"]');
     if (rateForm) {
-      rateForm.insertAdjacentElement('beforebegin', chip)
+      rateForm.insertAdjacentElement('beforebegin', chip);
     } else {
-      sidePanel.insertAdjacentElement('beforeend', chip)
+      sidePanel.insertAdjacentElement('beforeend', chip);
     }
-    return
+    return;
   }
 
-  const subjectNav = document.querySelector('#headerSubject .subjectNav')
+  const subjectNav = document.querySelector('#headerSubject .subjectNav');
   if (!subjectNav) {
-    console.warn('[UMM] Could not find Bangumi anchor element for status chip')
-    return
+    console.warn('[UMM] Could not find Bangumi anchor element for status chip');
+    return;
   }
-  const existingChip = subjectNav.querySelector<HTMLElement>('.umm-status-chip[data-umm-owner]')
+  const existingChip = subjectNav.querySelector<HTMLElement>('.umm-status-chip[data-umm-owner]');
   if (existingChip) {
-    existingChip.replaceWith(chip)
+    existingChip.replaceWith(chip);
   } else {
-    subjectNav.appendChild(chip)
+    subjectNav.appendChild(chip);
   }
 }
 
@@ -182,13 +187,13 @@ export async function renderBangumiStatusChip(
   identity: UrlIdentity,
   status: number, // 0/1/2/3
   rating: number,
-  note: string = ''
+  note: string = '',
 ): Promise<void> {
-  const storeName = `${identity.platform}_records`
-  const key = `${identity.type}::${identity.providerId}`
-  const localRecord: StoreRecord | null = await Store.dbGet(storeName, key)
+  const storeName = `${identity.platform}_records`;
+  const key = `${identity.type}::${identity.providerId}`;
+  const localRecord: StoreRecord | null = await Store.dbGet(storeName, key);
   // 保留本地评分（有则用之，无则回退页面评分）
-  const localRating = localRecord?.rating && localRecord.rating > 0 ? localRecord.rating : rating
+  const localRating = localRecord?.rating && localRecord.rating > 0 ? localRecord.rating : rating;
 
   /** 选中菜单项：写入 DB → 重渲染 → toast。 */
   const saveStatus = async (nextStatus: number): Promise<void> => {
@@ -200,74 +205,74 @@ export async function renderBangumiStatusChip(
         comment: localRecord?.comment ?? '',
         updatedAt: new Date().toISOString(),
         linkedIds: localRecord?.linkedIds ?? {},
-      })
+      });
     } catch (error: unknown) {
-      console.error('[UMM] Failed to save Bangumi status:', error)
-      FloatingToast.error('UMM', t('neodb.comm_failed'))
-      return
+      console.error('[UMM] Failed to save Bangumi status:', error);
+      FloatingToast.error('UMM', t('neodb.comm_failed'));
+      return;
     }
-    renderChip(nextStatus, localRating, '')
-    FloatingToast.success('UMM', t('bangumi.saved'))
-  }
+    renderChip(nextStatus, localRating, '');
+    FloatingToast.success('UMM', t('bangumi.saved'));
+  };
 
   /** 创建标签 + 菜单交互，并幂等挂载。重渲染走同一路径（replaceWith 旧标签）。 */
   const renderChip = (chipStatus: number, chipRating: number, chipNote: string): void => {
-    const chip = createStatusChip(identity.type, chipStatus, chipRating, chipNote)
-    chip.dataset.ummOwner = `bangumi-${identity.type}`
-    chip.style.position = 'relative'
-    chip.style.cursor = 'pointer'
-    chip.setAttribute('aria-haspopup', 'menu')
+    const chip = createStatusChip(identity.type, chipStatus, chipRating, chipNote);
+    chip.dataset.ummOwner = `bangumi-${identity.type}`;
+    chip.style.position = 'relative';
+    chip.style.cursor = 'pointer';
+    chip.setAttribute('aria-haspopup', 'menu');
 
-    let menu: HTMLElement | null = null
+    let menu: HTMLElement | null = null;
     const closeMenu = (): void => {
       if (menu) {
-        menu.remove()
-        menu = null
+        menu.remove();
+        menu = null;
       }
-      document.removeEventListener('click', closeMenu)
-    }
+      document.removeEventListener('click', closeMenu);
+    };
 
     const openMenu = (): void => {
       if (menu) {
-        closeMenu()
-        return
+        closeMenu();
+        return;
       }
-      menu = document.createElement('div')
-      menu.className = 'umm-status-menu'
-      menu.style.cssText = STATUS_MENU_STYLE
-      menu.setAttribute('role', 'menu')
+      menu = document.createElement('div');
+      menu.className = 'umm-status-menu';
+      menu.style.cssText = STATUS_MENU_STYLE;
+      menu.setAttribute('role', 'menu');
 
       for (const option of STATUS_MENU_OPTIONS) {
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.className = 'umm-status-option'
-        button.dataset.status = String(option.status)
-        button.textContent = t(option.labelKey)
-        button.style.cssText = statusOptionStyle(option.status === chipStatus)
-        button.setAttribute('role', 'menuitem')
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'umm-status-option';
+        button.dataset.status = String(option.status);
+        button.textContent = t(option.labelKey);
+        button.style.cssText = statusOptionStyle(option.status === chipStatus);
+        button.setAttribute('role', 'menuitem');
         button.addEventListener('click', (event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          closeMenu()
-          void saveStatus(option.status)
-        })
-        menu.appendChild(button)
+          event.preventDefault();
+          event.stopPropagation();
+          closeMenu();
+          void saveStatus(option.status);
+        });
+        menu.appendChild(button);
       }
 
-      chip.appendChild(menu)
+      chip.appendChild(menu);
       // 点击标签以外任意处关闭菜单（标签自身点击 stopPropagation，不触发此监听）
-      document.addEventListener('click', closeMenu)
-    }
+      document.addEventListener('click', closeMenu);
+    };
 
     chip.addEventListener('click', (event) => {
-      event.stopPropagation()
-      openMenu()
-    })
+      event.stopPropagation();
+      openMenu();
+    });
 
-    mountBangumiChip(chip)
-  }
+    mountBangumiChip(chip);
+  };
 
-  renderChip(status, rating, note)
+  renderChip(status, rating, note);
 }
 
 // ---- Handler ----
@@ -282,11 +287,11 @@ export const handleBangumiDetailPage = createDetailPageHandler({
   resolveIdentity: resolveBangumiIdentity,
   // 页面 wish→1、done→2、doing→3；页面 none（含 4/5 搁置/抛弃）→ 保留本地状态
   mergeStatusFn: (pageState, localRecord) => {
-    if (pageState.status === 'wish') return 1
-    if (pageState.status === 'done') return 2
-    if (pageState.status === 'doing') return 3
-    return localRecord?.status ?? 0
+    if (pageState.status === 'wish') return 1;
+    if (pageState.status === 'done') return 2;
+    if (pageState.status === 'doing') return 3;
+    return localRecord?.status ?? 0;
   },
   renderFn: renderBangumiStatusChip,
   savedMessageKey: 'bangumi.saved',
-})
+});

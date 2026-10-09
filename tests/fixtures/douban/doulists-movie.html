@@ -1,0 +1,61 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/doulists-data.spec.ts (movie branch).
+  NOT a real saved page — all user data is fabricated. Reproduces the public DOM
+  shape of https://movie.douban.com/people/{uid}/doulists as queried by
+  src/scenario/douban/pages/doulists/doulists-data.ts:
+  #db-usr-profile (h1 "李四的豆列" + native www nav links), .xbar tab bar with
+  span.now override + 关注 link, and #doulist-content table.list-b rows
+  (td > a + em "[count]", td.num follower count). No .paginator → empty paging.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>李四的豆列</title>
+  </head>
+  <body>
+    <div id="db-usr-profile">
+      <div class="pic">
+        <a href="https://www.douban.com/people/li4/">
+          <img src="https://img3.doubanio.com/icon/u987654-3.jpg" alt="李四" />
+        </a>
+      </div>
+      <div class="info">
+        <h1>李四的豆列</h1>
+        <ul>
+          <li><a href="https://www.douban.com/people/li4/">主页</a></li>
+          <li class="sep">|</li>
+          <li><a href="https://www.douban.com/people/li4/movie/">电影</a></li>
+          <li class="sep">|</li>
+          <li><a href="https://www.douban.com/note/123456/">笔记</a></li>
+        </ul>
+      </div>
+    </div>
+    <div id="content">
+      <div class="xbar">
+        <span class="now">创建豆列(18)</span>
+        <a href="https://www.douban.com/people/li4/doulists?owned=followed">关注豆列(5)</a>
+      </div>
+      <div id="doulist-content">
+        <table class="list-b">
+          <tbody>
+            <tr>
+              <td>
+                <a href="https://movie.douban.com/doulist/1450001/">是枝裕和剧场</a><em>[28]</em>
+              </td>
+              <td class="num">412</td>
+            </tr>
+            <tr>
+              <td><a href="/doulist/1450003/">夜航片单</a></td>
+              <td class="num">36人</td>
+            </tr>
+            <tr>
+              <td><span>无链接的推荐位</span></td>
+              <td class="num">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

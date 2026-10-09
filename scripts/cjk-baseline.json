@@ -1,0 +1,81 @@
+{
+  "scope": "src/scenario/douban",
+  "totals": {
+    "quoted": 84,
+    "template": 0
+  },
+  "files": {
+    "src/scenario/douban/pages/book-profile/data.ts": {
+      "quoted": 7,
+      "template": 0
+    },
+    "src/scenario/douban/pages/book-review-detail/book-review-detail-data.ts": {
+      "quoted": 4,
+      "template": 0
+    },
+    "src/scenario/douban/pages/book-reviews/book-reviews-data.ts": {
+      "quoted": 1,
+      "template": 0
+    },
+    "src/scenario/douban/pages/detail/App.vue": {
+      "quoted": 1,
+      "template": 0
+    },
+    "src/scenario/douban/pages/detail/detail-extract.ts": {
+      "quoted": 3,
+      "template": 0
+    },
+    "src/scenario/douban/pages/detail/extra-extract.ts": {
+      "quoted": 4,
+      "template": 0
+    },
+    "src/scenario/douban/pages/doulist-detail/doulist-detail-data.ts": {
+      "quoted": 10,
+      "template": 0
+    },
+    "src/scenario/douban/pages/doulists/doulists-data.ts": {
+      "quoted": 8,
+      "template": 0
+    },
+    "src/scenario/douban/pages/game-detail/game-detail-data.ts": {
+      "quoted": 10,
+      "template": 0
+    },
+    "src/scenario/douban/pages/game-explore/game-explore-data.ts": {
+      "quoted": 2,
+      "template": 0
+    },
+    "src/scenario/douban/pages/movie-profile/movie-profile-data.ts": {
+      "quoted": 4,
+      "template": 0
+    },
+    "src/scenario/douban/pages/personage-creations/personage-creations-data.ts": {
+      "quoted": 2,
+      "template": 0
+    },
+    "src/scenario/douban/pages/review-detail/review-detail-data.ts": {
+      "quoted": 6,
+      "template": 0
+    },
+    "src/scenario/douban/pages/search/App.vue": {
+      "quoted": 1,
+      "template": 0
+    },
+    "src/scenario/douban/pages/series/data.ts": {
+      "quoted": 1,
+      "template": 0
+    },
+    "src/scenario/douban/pages/user-profile/user-profile-data.ts": {
+      "quoted": 11,
+      "template": 0
+    },
+    "src/scenario/douban/pages/user-reviews/user-reviews-data.ts": {
+      "quoted": 3,
+      "template": 0
+    },
+    "src/scenario/douban/shared/media-formats.ts": {
+      "quoted": 6,
+      "template": 0
+    }
+  }
+}

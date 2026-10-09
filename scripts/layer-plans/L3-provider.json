@@ -1,0 +1,15 @@
+{
+  "name": "L3-provider",
+  "moves": [
+    { "from": "src/features/webdav", "to": "src/provider/webdav", "type": "dir" },
+    { "from": "src/features/neodb", "to": "src/provider/neodb", "type": "dir" },
+    { "from": "src/features/adult-av", "to": "src/provider/adult-av", "type": "dir" },
+    { "from": "src/features/sehuatang-cache", "to": "src/provider/sehuatang-cache", "type": "dir" }
+  ],
+  "aliasRewrites": [
+    ["@/features/webdav", "@/provider/webdav"],
+    ["@/features/neodb", "@/provider/neodb"],
+    ["@/features/adult-av", "@/provider/adult-av"],
+    ["@/features/sehuatang-cache", "@/provider/sehuatang-cache"]
+  ]
+}

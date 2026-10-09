@@ -1,0 +1,281 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/user-profile-data.spec.ts.
+  NOT a real saved page: all data is fabricated; only the public
+  www.douban.com/people/{uid}/ DOM shape is reproduced to match the extractor
+  contract in src/scenario/douban/pages/user-profile/user-profile-data.ts:
+  #db-usr-profile h1, .basic-info sidebar (userface/user-info/pl),
+  #edit_signature #display, #intro_display, "sandwich" sections
+  (#movie/#music/#book/#game: h2 + h2 .pl a stats + .obssin subsections with
+  li.aob > a + img.climg), #doulist ul.doulist-list, #friend dl.obu
+  (img avatar / .verify-avatar dual-url background), #review > ul.tlst
+  (li.pl2.clst title, li.ilst subject+poster, allstar, .review-short),
+  #statuses .status-item (data-sid/p.text two-anchor/action text/allstar/
+  .status-content .status-text/.created_at a), .user-opt .a-btn-add.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>UnforgetMemory</title>
+  </head>
+  <body>
+    <div id="db-usr-profile">
+      <div class="info">
+        <h1>
+          UnforgetMemory
+          <div class="user-info-more"><span class="pl">IP属地: 上海</span></div>
+        </h1>
+      </div>
+      <div class="basic-info">
+        <img class="userface" src="https://img1.doubanio.com/icon/u55667788-9.jpg" />
+        <div class="user-info">
+          <span>昵称: UnforgetMemory</span><br />
+          <span>常居: 上海 中国</span>
+        </div>
+        <p class="pl">2013-05-20加入</p>
+        <p class="pl">粉丝 128 · 关注 56</p>
+        <span class="user-opt"><a class="a-btn-add" href="#">已关注</a></span>
+      </div>
+    </div>
+    <div id="intro_display">记录电影、书和偶尔的愤怒。</div>
+    <div id="edit_signature"><span id="display">勿在深夜做决定</span></div>
+
+    <div id="movie" class="article">
+      <h2>
+        我看
+        <span class="pl"
+          >[<a href="https://movie.douban.com/people/unforgetmemory/collect">看过 2513</a>] [<a
+            href="https://movie.douban.com/people/unforgetmemory/do"
+            >在看 5</a
+          >] [<a href="https://movie.douban.com/people/unforgetmemory/wish">想看 88</a>] [<a
+            href="https://www.douban.com/people/unforgetmemory/movie_doulists"
+            >片单 3</a
+          >]</span
+        >
+      </h2>
+      <div class="obssin">
+        <span class="substatus">最近看过</span>
+        <ul class="lis">
+          <li class="aob">
+            <a href="https://movie.douban.com/subject/36185501/"
+              ><img class="climg" src="https://img1.doubanio.com/poster/g.jpg" alt="好东西"
+            /></a>
+          </li>
+          <li class="aob">
+            <!-- 无 img.climg：title 回退为链接文本，posterUrl 为空 -->
+            <a href="https://movie.douban.com/subject/2589592/">宇宙探索编辑部</a>
+          </li>
+          <li class="aob">纯文本占位，无链接 → 跳过</li>
+        </ul>
+      </div>
+      <div class="obssin">
+        <span class="substatus">正在看</span>
+        <ul class="lis">
+          <li class="aob">
+            <a href="https://movie.douban.com/subject/1291544/"
+              ><img class="climg" src="https://img9.doubanio.com/poster/f.jpg" alt="吉尔莫女孩"
+            /></a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="music" class="article">
+      <h2>
+        我听
+        <span class="pl"
+          >[<a href="https://music.douban.com/people/unforgetmemory/collect">听过 314</a>]</span
+        >
+      </h2>
+      <div class="obssin">
+        <span class="substatus">最近听过</span>
+        <ul class="lis">
+          <li class="aob">
+            <a href="https://music.douban.com/subject/36728012/"
+              ><img class="climg" src="https://img2.doubanio.com/music/a.jpg" alt="拉威尔"
+            /></a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="book" class="article">
+      <h2>
+        我读
+        <span class="pl"
+          >[<a href="https://book.douban.com/people/unforgetmemory/wish">想读 21</a>] [<a
+            href="https://book.douban.com/people/unforgetmemory/collect"
+            >读过 305</a
+          >] [<a href="https://book.douban.com/people/unforgetmemory/book_doulists">书单 2</a
+          >]</span
+        >
+      </h2>
+      <div class="obssin">
+        <span class="substatus">最近读过</span>
+        <ul class="lis">
+          <li class="aob">
+            <a href="https://book.douban.com/subject/27043845/">太古和其他的时间</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="game" class="article">
+      <h2>
+        我的游戏
+        <span class="pl"
+          >[<a href="https://www.douban.com/game/people/unforgetmemory?action=do">在玩 3</a>] [<a
+            href="https://www.douban.com/game/people/unforgetmemory"
+            >玩过 12</a
+          >]</span
+        >
+      </h2>
+      <div class="obssin">
+        <span class="substatus">最近玩过</span>
+        <ul class="lis">
+          <li class="aob">
+            <a href="https://www.douban.com/game/36313881/"
+              ><img class="climg" src="https://img3.doubanio.com/game/a.jpg" alt="黑帝斯II"
+            /></a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="doulist" class="article">
+      <h2>
+        豆列
+        <span class="pl"
+          >[<a href="https://www.douban.com/people/unforgetmemory/doulists">4个豆列</a>]</span
+        >
+      </h2>
+      <ul class="doulist-list">
+        <li><a href="https://www.douban.com/doulist/1500001/">华语佳片 (52)</a></li>
+        <li>
+          <!-- 无 (N) 计数 → itemCount 0，title 全文 -->
+          <a href="https://www.douban.com/doulist/1500002/">还没想好名字</a>
+        </li>
+        <li>纯文本 → 跳过</li>
+      </ul>
+    </div>
+
+    <div id="friend" class="article">
+      <h2>
+        朋友
+        <span class="pl"
+          >[<a href="https://www.douban.com/people/unforgetmemory/contacts">128</a>]</span
+        >
+      </h2>
+      <dl class="obu">
+        <dt>
+          <a class="pic" href="https://www.douban.com/people/amao/"
+            ><img src="https://img1.doubanio.com/icon/u111-1.jpg"
+          /></a>
+        </dt>
+        <dd><a href="https://www.douban.com/people/amao/">阿毛</a></dd>
+      </dl>
+      <dl class="obu">
+        <!-- 认证账号：.verify-avatar 双 url() 背景，取最后一个为头像 -->
+        <dt>
+          <span
+            class="verify-avatar"
+            style="
+              background-image:
+                url('https://img3.doubanio.com/f/icon-verify.png'),
+                url('https://img2.doubanio.com/icon/verified-av.jpg');
+            "
+          ></span>
+        </dt>
+        <dd><a href="https://www.douban.com/people/verified/">认证好友</a></dd>
+      </dl>
+      <dl class="obu">
+        <dt></dt>
+        <!-- 无头像 → avatarUrl 空串，但条目保留 -->
+        <dd><a href="https://www.douban.com/people/noav/">无头像好友</a></dd>
+      </dl>
+      <dl class="obu">
+        <dt><img src="https://img9.doubanio.com/icon/u333-3.jpg" /></dt>
+        <dd>无名字链接 → 跳过</dd>
+      </dl>
+    </div>
+
+    <div id="review" class="article">
+      <h2>
+        影评
+        <span class="pl"
+          >[<a href="https://movie.douban.com/people/unforgetmemory/reviews">3篇</a>]</span
+        >
+      </h2>
+      <ul class="tlst">
+        <li class="pl2 clst">
+          <a href="https://movie.douban.com/review/3666098/">她不再道歉：性别叙事</a>
+        </li>
+        <li class="ilst">
+          <a href="https://movie.douban.com/subject/36185501/" title="好东西"
+            ><img src="https://img1.doubanio.com/poster/g.jpg"
+          /></a>
+        </li>
+        <li><span class="allstar45 rstarmark" title="推荐"></span></li>
+        <li class="review-short">举重若轻的寓言，前夫哥也很好。</li>
+      </ul>
+      <ul class="tlst">
+        <li class="pl2 clst">
+          <a href="https://movie.douban.com/review/3600001/">宇宙探索编辑部：民科的浪漫</a>
+        </li>
+        <li><span class="allstar00 rstarmark"></span></li>
+        <!-- 无 ilst/摘要：posterUrl/subject/excerpt 均空，rating 0 -->
+      </ul>
+      <ul class="tlst">
+        <li class="pl2 clst">
+          <!-- 链接非 /review/\d+ → id 解析失败，整条跳过 -->
+          <a href="https://movie.douban.com/subject/1291544/">不是影评的链接</a>
+        </li>
+      </ul>
+      <div class="tlst">
+        <!-- 非 ul.tlst → 不被 #review > ul.tlst 命中 -->
+        <li class="pl2 clst"><a href="https://movie.douban.com/review/7777777/">div 不算</a></li>
+      </div>
+    </div>
+
+    <div id="statuses">
+      <div class="status-item" data-sid="9876543210" data-target-type="movie">
+        <div class="status-content">
+          <p class="text">
+            <a href="https://www.douban.com/people/unforgetmemory/">UnforgetMemory</a>
+            看过
+            <a href="https://movie.douban.com/subject/36185501/">好东西</a>
+          </p>
+          <p class="status-text">年度最佳，看得我头皮发麻。</p>
+        </div>
+        <div class="status-collect"><span class="allstar50 rstarmark" title="力荐"></span></div>
+        <p class="created_at">
+          <a href="https://www.douban.com/topic/293741/?from=group">2024-11-23</a>
+        </p>
+      </div>
+      <div class="status-item" data-sid="9876500001" data-target-type="music">
+        <div class="status-content">
+          <p class="text">
+            <a href="https://www.douban.com/people/unforgetmemory/">UnforgetMemory</a>
+            标记了
+            <a href="https://music.douban.com/subject/36728012/">拉威尔: 钢琴协奏曲</a>
+          </p>
+        </div>
+        <!-- 无评分/无正文/无时间：全为空值兜底 -->
+      </div>
+      <div class="status-item" data-target-type="movie">
+        <!-- 无 data-sid → 跳过 -->
+        <div class="status-content">
+          <p class="text"><a href="#">x</a> 看过 <a href="#">y</a></p>
+        </div>
+      </div>
+      <div class="status-item" data-sid="9876500002" data-target-type="movie">
+        <!-- p.text 只有一个锚点 → targetTitle 空 → 跳过 -->
+        <div class="status-content">
+          <p class="text">
+            <a href="https://www.douban.com/people/unforgetmemory/">UnforgetMemory</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

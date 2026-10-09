@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/user-reviews-data.spec.ts.
+  NOT a real saved page: all data is fabricated; only the public
+  movie.douban.com/people/{uid}/reviews DOM shape is reproduced to match the
+  extractor contract in src/scenario/douban/pages/user-reviews/user-reviews-data.ts:
+  .grid-16-8 wrapper containing #db-usr-profile (avatar alt = display name,
+  h1 "我的影评(N)" = total, .info ul li a = nav) and .article > div whose
+  per-review uls carry [id^="review_"], .nlst h3 > a, .ilst subject link +
+  poster, allstar rating, .review-content p / .review-short span, .starb a
+  author, .main-author spans (阅读数/来自) and .useful_count/.useless_count.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>UnforgetMemory的影评</title>
+  </head>
+  <body>
+    <div class="grid-16-8">
+      <div class="aside">
+        <div id="db-usr-profile">
+          <div class="pic">
+            <img src="https://img1.doubanio.com/icon/u55667788-9.jpg" alt="UnforgetMemory" />
+          </div>
+          <div class="info">
+            <h1>UnforgetMemory的影评(3)</h1>
+            <ul class="plim">
+              <li><a href="https://www.douban.com/people/unforgetmemory/">主页</a></li>
+              <li><a href="https://www.douban.com/people/unforgetmemory/monitor">动态</a></li>
+              <li><a href="https://movie.douban.com/people/unforgetmemory/collect">我看</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="article">
+        <div class="reviews-wrapper">
+          <ul class="item-list">
+            <li class="row" id="review_3666098">
+              <div class="main-review">
+                <div class="main-meta">
+                  <div class="starb">
+                    <a href="https://movie.douban.com/people/unforgetmemory/">UnforgetMemory</a>
+                  </div>
+                  <div class="main-author">
+                    2024-11-23 发布
+                    <span class="divide">|</span>
+                    <span>4562人阅读</span>
+                    <span class="divide">|</span>
+                    <span>来自: 好东西</span>
+                    <span class="operate">
+                      <a class="useful_count">218 有用</a>
+                      <a class="useless_count">9 没用</a>
+                    </span>
+                  </div>
+                </div>
+                <ul class="nlst">
+                  <li>
+                    <h3>
+                      <a href="https://movie.douban.com/review/3666098/"
+                        >她不再道歉：《好东西》里的性别叙事</a
+                      >
+                    </h3>
+                    <span class="allstar50 rstarmark" title="力荐"></span>
+                    <div class="review-content">
+                      <p>
+                        邵艺辉的第二部长片把上海梧桐区拍成了轻盈的寓言，前夫哥与铁梅的关系处理举重若轻。
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+                <ul class="ilst">
+                  <li>
+                    <a href="https://movie.douban.com/subject/36185501/" title="好东西">
+                      <img
+                        src="https://img1.doubanio.com/view/photo/s_ratio_poster/p2923492298.jpg"
+                      />
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </ul>
+          <ul class="item-list">
+            <li class="row" id="review_3600001">
+              <div class="main-review">
+                <div class="main-meta">
+                  <div class="starb">
+                    <a href="https://movie.douban.com/people/unforgetmemory/">UnforgetMemory</a>
+                  </div>
+                  <div class="main-author"><span>89人阅读</span></div>
+                </div>
+                <ul class="nlst">
+                  <li>
+                    <h3>
+                      <a href="https://movie.douban.com/review/3600001"
+                        >宇宙探索编辑部：民科的浪漫</a
+                      >
+                    </h3>
+                    <!-- 无 allstar 评分 → rating 必须为 0；正文走 .review-short span 兜底 -->
+                    <span class="review-short">
+                      <span>豆瓣同步的短评节选，没给分。</span>
+                    </span>
+                  </li>
+                </ul>
+                <ul class="ilst">
+                  <li>
+                    <a href="https://movie.douban.com/subject/30236198/" title="宇宙探索编辑部">
+                      <img
+                        src="https://img9.doubanio.com/view/photo/s_ratio_poster/p2870827646.jpg"
+                      />
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </ul>
+          <ul class="item-list">
+            <!-- 缺 [id^=review_] → 整条跳过 -->
+            <li class="row">
+              <div class="main-review">
+                <ul class="nlst">
+                  <li>
+                    <h3>
+                      <a href="https://movie.douban.com/review/9999999/">没有 id 的孤儿条目</a>
+                    </h3>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </ul>
+          <div class="paginator">
+            <span class="thispage" data-total-page="1">1</span>
+            <a href="?p=2">2</a>
+            <span class="next"><a href="?p=2">后页&gt;</a></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,143 @@
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue';
+import { t } from '../../shared/legacy-bridge';
+import { useRecordCache } from '../../shared/composables/use-record-cache';
+import { useDoubanSection } from '../homepage/composables/use-douban-section';
+import { usePageObserver } from '../homepage/composables/use-homepage-observer';
+import { UmmPageLayout } from '@/scenario/douban/components/umm-page-layout';
+import { UmmMediaCard } from '@/scenario/douban/components/umm-media-card';
+import { UmmImageWrapper } from '@/scenario/douban/components/umm-image-wrapper';
+import {
+  extractNewAlbums,
+  extractGenreTags,
+  extractPopularArtists,
+} from './music-homepage-extract';
+import { sleep } from '@/libraries/utils';
+import type { GenreTag, PopularArtistItem } from './types';
+
+// Only ids of currently-visible albums are fetched (dbGetBulk), never a
+// full-store scan. Grows as late-parsed albums appear; see collectIds().
+const visibleIds = ref<string[]>([]);
+const { records, load } = useRecordCache('music', visibleIds);
+
+const { items: newAlbums, refresh: refreshNewAlbums } = useDoubanSection(extractNewAlbums, records);
+const genreTags = ref<GenreTag[]>([]);
+const popularArtists = ref<PopularArtistItem[]>([]);
+
+function collectIds() {
+  const ids = new Set<string>();
+  for (const item of newAlbums.value) {
+    if (item.subjectId) ids.add(item.subjectId);
+  }
+  visibleIds.value = Array.from(ids);
+}
+
+function refreshFromDom() {
+  collectIds();
+  refreshNewAlbums();
+  const artists = extractPopularArtists();
+  if (artists.length > 0) popularArtists.value = artists;
+}
+
+const { start } = usePageObserver(refreshFromDom, {
+  containerSelectors:
+    '.popular-artists, .new-albums, [data-react-component="NewAlbums"], .album-content',
+});
+
+// Late-parsed albums grow visibleIds → reload so their badges appear.
+watch(visibleIds, () => void load());
+
+onMounted(async () => {
+  collectIds();
+  await load();
+  genreTags.value = extractGenreTags();
+  popularArtists.value = extractPopularArtists();
+  start();
+  // Staggered re-parses for React-injected content
+  setTimeout(refreshFromDom, 800);
+  setTimeout(refreshFromDom, 2500);
+  setTimeout(refreshFromDom, 6000);
+  // Dedicated retry for popular artists (SPA renders asynchronously)
+  (async function retryPopularArtists() {
+    for (const delay of [1000, 2000, 3000, 5000]) {
+      await sleep(delay);
+      if (popularArtists.value.length > 0) return;
+      const artists = extractPopularArtists();
+      if (artists.length > 0) {
+        popularArtists.value = artists;
+        return;
+      }
+    }
+  })();
+});
+
+function recordFor(item: { subjectId: string }) {
+  const rec = records.value.get(item.subjectId);
+  return { status: rec?.status ?? 0, rating: rec?.rating ?? 0 };
+}
+</script>
+
+<template vapor>
+  <UmmPageLayout type="music">
+    <div class="umm-top-panel">
+      <div v-if="genreTags.length > 0" class="umm-section">
+        <div class="umm-section-hd">
+          <h2>{{ t('douban.mh.hot_artists') }}</h2>
+        </div>
+        <div class="umm-genre-tags">
+          <a
+            v-for="tag in genreTags"
+            :key="tag.name"
+            :href="tag.href"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="umm-genre-tag"
+            >{{ tag.name }}</a
+          >
+        </div>
+      </div>
+
+      <div class="umm-section">
+        <div class="umm-section-hd">
+          <h2>{{ t('douban.mh.new_albums') }}</h2>
+        </div>
+        <div v-if="newAlbums.length > 0" class="umm-album-grid">
+          <UmmMediaCard
+            v-for="item in newAlbums"
+            :key="item.subjectId || item.href"
+            mode="grid"
+            :poster-url="item.posterUrl"
+            :title="item.title"
+            :href="item.href"
+            :rating="item.rate"
+            :badge-status="recordFor(item).status"
+            :badge-rating="recordFor(item).rating"
+            type="music"
+          />
+        </div>
+      </div>
+
+      <div v-if="popularArtists.length > 0" class="umm-section">
+        <div class="umm-section-hd">
+          <h2>{{ t('douban.mh.pop_artists') }}</h2>
+        </div>
+        <div class="umm-artist-grid">
+          <a
+            v-for="(artist, i) in popularArtists"
+            :key="i"
+            :href="artist.href"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="umm-artist-card"
+          >
+            <div class="umm-artist-avatar">
+              <UmmImageWrapper :src="artist.photoUrl" :alt="artist.name" aspect-ratio="1" />
+            </div>
+            <span class="umm-artist-name">{{ artist.name }}</span>
+            <span class="umm-artist-genre">{{ artist.genre }}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </UmmPageLayout>
+</template>

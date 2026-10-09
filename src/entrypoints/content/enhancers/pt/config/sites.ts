@@ -1,87 +1,93 @@
-import type { SiteScannerConfig } from '../types'
+import type { SiteScannerConfig } from '../types';
 
 function extractDetailUrlFromLink(row: Element): string | null {
-  const links = row.querySelectorAll<HTMLAnchorElement>('a[href*="details.php"]')
+  const links = row.querySelectorAll<HTMLAnchorElement>('a[href*="details.php"]');
   for (const link of links) {
-    const href = link.getAttribute('href') || link.href
-    if (href.includes('userdetails.php')) continue
+    const href = link.getAttribute('href') || link.href;
+    if (href.includes('userdetails.php')) continue;
     try {
-      const url = new URL(link.href, location.origin)
-      return `${url.origin}${url.pathname}${url.search}`
+      const url = new URL(link.href, location.origin);
+      return `${url.origin}${url.pathname}${url.search}`;
     } catch {
-      return link.href
+      return link.href;
     }
   }
-  return null
+  return null;
 }
 
 function extractIdsFromDoc(doc: Document): { doubanId?: string; imdbId?: string } {
-  let doubanId: string | null = null
-  let imdbId: string | null = null
+  let doubanId: string | null = null;
+  let imdbId: string | null = null;
 
   for (const a of doc.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-    const href = a.getAttribute('href') || a.href
+    const href = a.getAttribute('href') || a.href;
     if (!doubanId) {
-      const m = href.match(/douban\.com\/subject\/(\d+)/)
-      if (m) doubanId = m[1]
+      const subjectId = href.match(/douban\.com\/subject\/(\d+)/)?.[1];
+      if (subjectId) doubanId = subjectId;
     }
     if (!imdbId) {
-      const m = href.match(/imdb\.com\/title\/(tt\d+)/)
-      if (m) imdbId = m[1]
+      const titleId = href.match(/imdb\.com\/title\/(tt\d+)/)?.[1];
+      if (titleId) imdbId = titleId;
     }
-    if (doubanId && imdbId) break
+    if (doubanId && imdbId) break;
   }
 
   if (!doubanId || !imdbId) {
-    const bodyText = doc.body?.textContent || ''
+    const bodyText = doc.body?.textContent || '';
     if (!doubanId) {
-      const m = bodyText.match(/douban\.com\/subject\/(\d+)/)
-      if (m) doubanId = m[1]
+      const subjectId = bodyText.match(/douban\.com\/subject\/(\d+)/)?.[1];
+      if (subjectId) doubanId = subjectId;
     }
     if (!imdbId) {
-      const m = bodyText.match(/imdb\.com\/title\/(tt\d+)/)
-      if (m) imdbId = m[1]
+      const titleId = bodyText.match(/imdb\.com\/title\/(tt\d+)/)?.[1];
+      if (titleId) imdbId = titleId;
     }
     if (!imdbId) {
-      const m = bodyText.match(/(?:IMDb|imdb)[\s:：]*(tt\d{5,})/i)
-      if (m) imdbId = m[1]
+      const titleId = bodyText.match(/(?:IMDb|imdb)[\s:：]*(tt\d{5,})/i)?.[1];
+      if (titleId) imdbId = titleId;
     }
   }
 
-  return { doubanId: doubanId ?? undefined, imdbId: imdbId ?? undefined }
+  return { doubanId: doubanId ?? undefined, imdbId: imdbId ?? undefined };
 }
 
 function extractIdsFromRowLinks(row: Element): { doubanId?: string; imdbId?: string } {
-  let doubanId: string | null = null
-  let imdbId: string | null = null
+  let doubanId: string | null = null;
+  let imdbId: string | null = null;
 
-  const doubanLink = row.querySelector('a[href*="douban.com/subject/"]') as HTMLAnchorElement | null
-  const imdbLink = row.querySelector('a[href*="imdb.com/title/"]') as HTMLAnchorElement | null
+  const doubanLink = row.querySelector(
+    'a[href*="douban.com/subject/"]',
+  ) as HTMLAnchorElement | null;
+  const imdbLink = row.querySelector('a[href*="imdb.com/title/"]') as HTMLAnchorElement | null;
 
   if (doubanLink) {
-    const m = doubanLink.getAttribute('href')?.match(/\/subject\/(\d+)/)
-    if (m) doubanId = m[1]
+    const subjectId = doubanLink.getAttribute('href')?.match(/\/subject\/(\d+)/)?.[1];
+    if (subjectId) doubanId = subjectId;
   }
   if (imdbLink) {
-    const m = imdbLink.getAttribute('href')?.match(/\/title\/(tt\d+)/)
-    if (m) imdbId = m[1]
+    const titleId = imdbLink.getAttribute('href')?.match(/\/title\/(tt\d+)/)?.[1];
+    if (titleId) imdbId = titleId;
   }
 
   if (!doubanId || !imdbId) {
-    const dataDouban = row.getAttribute('data-doubanid')
-    const dataImdb = row.getAttribute('data-imdbid')
-    if (!doubanId && dataDouban) doubanId = dataDouban
-    if (!imdbId && dataImdb) imdbId = dataImdb.startsWith('tt') ? dataImdb : `tt${dataImdb}`
+    const dataDouban = row.getAttribute('data-doubanid');
+    const dataImdb = row.getAttribute('data-imdbid');
+    if (!doubanId && dataDouban) doubanId = dataDouban;
+    if (!imdbId && dataImdb) imdbId = dataImdb.startsWith('tt') ? dataImdb : `tt${dataImdb}`;
   }
 
-  return { doubanId: doubanId ?? undefined, imdbId: imdbId ?? undefined }
+  return { doubanId: doubanId ?? undefined, imdbId: imdbId ?? undefined };
 }
 
 function extractIdsFromDataAttrs(row: Element): { doubanId?: string; imdbId?: string } {
-  const doubanId = row.querySelector('[data-doubanid]')?.getAttribute('data-doubanid') ?? undefined
-  const rawImdbId = row.querySelector('[data-imdbid]')?.getAttribute('data-imdbid') ?? undefined
-  const imdbId = rawImdbId ? (rawImdbId.startsWith('tt') ? rawImdbId : `tt${rawImdbId}`) : undefined
-  return { doubanId, imdbId }
+  const doubanId = row.querySelector('[data-doubanid]')?.getAttribute('data-doubanid') ?? undefined;
+  const rawImdbId = row.querySelector('[data-imdbid]')?.getAttribute('data-imdbid') ?? undefined;
+  const imdbId = rawImdbId
+    ? rawImdbId.startsWith('tt')
+      ? rawImdbId
+      : `tt${rawImdbId}`
+    : undefined;
+  return { doubanId, imdbId };
 }
 
 export const SITE_CONFIGS: SiteScannerConfig[] = [
@@ -99,16 +105,17 @@ export const SITE_CONFIGS: SiteScannerConfig[] = [
   },
   {
     domain: 'haidan.cc',
-    isListPage: (url) => url.includes('haidan.cc') && (url.includes('torrents.php') || url.includes('videos.php')),
+    isListPage: (url) =>
+      url.includes('haidan.cc') && (url.includes('torrents.php') || url.includes('videos.php')),
     isDetailPage: (url) => url.includes('haidan.cc/details.php'),
     extractDetailUrl: (row) => {
-      const link = row.querySelector('a.video_name_str') as HTMLAnchorElement | null
-      if (!link) return null
+      const link = row.querySelector('a.video_name_str') as HTMLAnchorElement | null;
+      if (!link) return null;
       try {
-        const url = new URL(link.href, location.origin)
-        return `${url.origin}${url.pathname}${url.search}`
+        const url = new URL(link.href, location.origin);
+        return `${url.origin}${url.pathname}${url.search}`;
       } catch {
-        return link.href
+        return link.href;
       }
     },
     extractIdsFromDetail: extractIdsFromDoc,
@@ -134,7 +141,9 @@ export const SITE_CONFIGS: SiteScannerConfig[] = [
   },
   {
     domain: 'pterclub.net',
-    isListPage: (url) => url.includes('pterclub.net') && (url.includes('torrents.php') || url.includes('officialgroup.php')),
+    isListPage: (url) =>
+      url.includes('pterclub.net') &&
+      (url.includes('torrents.php') || url.includes('officialgroup.php')),
     isDetailPage: (url) => url.includes('pterclub.net/details.php'),
     extractDetailUrl: extractDetailUrlFromLink,
     extractIdsFromDetail: extractIdsFromDoc,
@@ -286,4 +295,4 @@ export const SITE_CONFIGS: SiteScannerConfig[] = [
     scanConcurrency: 3,
     scanDelayRange: [1000, 2000],
   },
-]
+];

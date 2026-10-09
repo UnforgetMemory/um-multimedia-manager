@@ -7,41 +7,51 @@
  * v2: 新增持久化 Toast（PersistentToast）支持进度条、队列去重、最大数量限制
  */
 
-import { escapeHtml } from './dom'
-import { t } from '../i18n'
-import { MAX_QUICK_TOASTS, TOAST_DEDUP_HASH_MS, TOAST_DEDUP_TITLE_MS, TOAST_CONTAINER_CLEANUP_MS } from '@/shared/toast'
-import { TOAST_CORE_CSS } from '@/shared/styles/toast-css'
-
+import { escapeHtml } from './dom';
+import { t } from '../i18n';
+import {
+  MAX_QUICK_TOASTS,
+  TOAST_DEDUP_HASH_MS,
+  TOAST_DEDUP_TITLE_MS,
+  TOAST_CONTAINER_CLEANUP_MS,
+} from '@/libraries/toast';
+import { toastAria } from '@/libraries/toast-aria';
+import { TOAST_CORE_CSS } from '@/libraries/styles/toast-css';
 
 // ─── 内部类型 ────────────────────────────────────────────
 
 interface QuickToastRecord {
-  element: HTMLElement
-  hash: string
-  title: string
-  timestamp: number
-  removeTimer: ReturnType<typeof setTimeout> | null
+  element: HTMLElement;
+  hash: string;
+  title: string;
+  timestamp: number;
+  removeTimer: ReturnType<typeof setTimeout> | null;
 }
 
 // ─── 模块级状态 ──────────────────────────────────────────
 
-let container: HTMLElement | null = null
-let cleanupTimer: ReturnType<typeof setTimeout> | null = null
-let stylesInjected = false
+let container: HTMLElement | null = null;
+let cleanupTimer: ReturnType<typeof setTimeout> | null = null;
+let stylesInjected = false;
 
 /** 当前可见的快速 toast（按插入顺序，最早在前） */
-const quickToasts: QuickToastRecord[] = []
+const quickToasts: QuickToastRecord[] = [];
 
 /** 上一次快速 toast 记录，用于去重 */
-let lastQuickToast: { hash: string; title: string; timestamp: number; element: HTMLElement } | null = null
+let lastQuickToast: {
+  hash: string;
+  title: string;
+  timestamp: number;
+  element: HTMLElement;
+} | null = null;
 
 // ─── 容器管理 ────────────────────────────────────────────
 
 function ensureContainer(): HTMLElement {
-  if (container && container.isConnected) return container
+  if (container && container.isConnected) return container;
 
-  container = document.createElement('div')
-  container.id = 'umm-toast-container'
+  container = document.createElement('div');
+  container.id = 'umm-toast-container';
   container.style.cssText = `
     position: fixed;
     bottom: 24px;
@@ -54,50 +64,50 @@ function ensureContainer(): HTMLElement {
     gap: 12px;
     align-items: flex-end;
     pointer-events: none;
-  `
-  container.setAttribute('role', 'region')
-  container.setAttribute('aria-label', t('toast.aria_region'))
+  `;
+  container.setAttribute('role', 'region');
+  container.setAttribute('aria-label', t('toast.aria_region'));
 
   if (!document.body) {
     // body 还没就绪，返回一个临时占位；调用方应处理 retry
-    return container
+    return container;
   }
 
-  document.body.appendChild(container)
-  return container
+  document.body.appendChild(container);
+  return container;
 }
 
 function scheduleContainerCleanup(): void {
-  if (cleanupTimer) clearTimeout(cleanupTimer)
+  if (cleanupTimer) clearTimeout(cleanupTimer);
   cleanupTimer = setTimeout(() => {
     if (container && container.children.length === 0) {
-      container.remove()
-      container = null
-      stylesInjected = false
-      console.log('[FloatingToast] Container cleaned up due to inactivity')
+      container.remove();
+      container = null;
+      stylesInjected = false;
+      console.log('[FloatingToast] Container cleaned up due to inactivity');
     }
-  }, TOAST_CONTAINER_CLEANUP_MS)
+  }, TOAST_CONTAINER_CLEANUP_MS);
 }
 
 // ─── 样式注入 ────────────────────────────────────────────
 
 function injectStyles(): void {
   if (stylesInjected || document.getElementById('umm-toast-styles')) {
-    stylesInjected = true
-    return
+    stylesInjected = true;
+    return;
   }
 
-  const style = document.createElement('style')
-  style.id = 'umm-toast-styles'
-  style.textContent = TOAST_CORE_CSS
-  document.head.appendChild(style)
-  stylesInjected = true
+  const style = document.createElement('style');
+  style.id = 'umm-toast-styles';
+  style.textContent = TOAST_CORE_CSS;
+  document.head.appendChild(style);
+  stylesInjected = true;
 }
 
 // ─── 去重逻辑 ────────────────────────────────────────────
 
 function computeHash(title: string, message?: string): string {
-  return `${title}\x00${message ?? ''}`
+  return `${title}\x00${message ?? ''}`;
 }
 
 /**
@@ -107,33 +117,41 @@ function computeHash(title: string, message?: string): string {
  * - 否则 → 返回 null（调用方应创建新 toast）
  */
 function tryDedup(title: string, message: string | undefined, hash: string): HTMLElement | null {
-  const now = Date.now()
+  const now = Date.now();
 
   // 1. Same hash within 500ms → reuse
-  if (lastQuickToast && lastQuickToast.hash === hash && now - lastQuickToast.timestamp < TOAST_DEDUP_HASH_MS) {
-    updateQuickToastContent(lastQuickToast.element, title, message)
-    lastQuickToast.timestamp = now
-    return lastQuickToast.element
+  if (
+    lastQuickToast &&
+    lastQuickToast.hash === hash &&
+    now - lastQuickToast.timestamp < TOAST_DEDUP_HASH_MS
+  ) {
+    updateQuickToastContent(lastQuickToast.element, title, message);
+    lastQuickToast.timestamp = now;
+    return lastQuickToast.element;
   }
 
   // 2. Same title within 2s → replace content
-  if (lastQuickToast && lastQuickToast.title === title && now - lastQuickToast.timestamp < TOAST_DEDUP_TITLE_MS) {
-    updateQuickToastContent(lastQuickToast.element, title, message)
-    lastQuickToast.hash = hash
-    lastQuickToast.timestamp = now
-    return lastQuickToast.element
+  if (
+    lastQuickToast &&
+    lastQuickToast.title === title &&
+    now - lastQuickToast.timestamp < TOAST_DEDUP_TITLE_MS
+  ) {
+    updateQuickToastContent(lastQuickToast.element, title, message);
+    lastQuickToast.hash = hash;
+    lastQuickToast.timestamp = now;
+    return lastQuickToast.element;
   }
 
-  return null
+  return null;
 }
 
 function updateQuickToastContent(el: HTMLElement, title: string, message?: string): void {
-  const inner = el.querySelector('.umm-toast__content')
+  const inner = el.querySelector('.umm-toast__content');
   if (inner) {
     inner.innerHTML = `
       <strong>${escapeHtml(title)}</strong>
       ${message ? `<p>${escapeHtml(message)}</p>` : ''}
-    `
+    `;
   }
 }
 
@@ -141,82 +159,87 @@ function updateQuickToastContent(el: HTMLElement, title: string, message?: strin
 
 function trimQuickToasts(): void {
   while (quickToasts.length >= MAX_QUICK_TOASTS) {
-    const oldest = quickToasts.shift()!
-    removeQuickToastElement(oldest)
+    const oldest = quickToasts.shift()!;
+    removeQuickToastElement(oldest);
   }
 }
 
 function removeQuickToastElement(record: QuickToastRecord): void {
   if (record.removeTimer) {
-    clearTimeout(record.removeTimer)
-    record.removeTimer = null
+    clearTimeout(record.removeTimer);
+    record.removeTimer = null;
   }
-  record.element.classList.remove('show')
+  record.element.classList.remove('show');
   setTimeout(() => {
-    record.element.remove()
-    scheduleContainerCleanup()
-  }, 350)
+    record.element.remove();
+    scheduleContainerCleanup();
+  }, 350);
 }
 
 function removeQuickToastRecord(element: HTMLElement): void {
-  const idx = quickToasts.findIndex(r => r.element === element)
+  const idx = quickToasts.findIndex((r) => r.element === element);
   if (idx !== -1) {
-    const record = quickToasts[idx]
-    if (record.removeTimer) clearTimeout(record.removeTimer)
-    quickToasts.splice(idx, 1)
+    const record = quickToasts[idx];
+    if (record?.removeTimer) clearTimeout(record.removeTimer);
+    quickToasts.splice(idx, 1);
   }
 }
 
 // ─── 创建 toast 元素 ─────────────────────────────────────
 
-function createToastElement(type: string, title: string, message?: string, persistent = false): HTMLElement {
-  const toast = document.createElement('div')
-  const typeClass = `umm-toast--${type}`
-  const persistentClass = persistent ? ' umm-toast--persistent' : ''
-  toast.className = `umm-toast ${typeClass}${persistentClass}`
+function createToastElement(
+  type: string,
+  title: string,
+  message?: string,
+  persistent = false,
+): HTMLElement {
+  const toast = document.createElement('div');
+  const typeClass = `umm-toast--${type}`;
+  const persistentClass = persistent ? ' umm-toast--persistent' : '';
+  toast.className = `umm-toast ${typeClass}${persistentClass}`;
 
-  const ariaLive = type === 'error' ? 'assertive' : 'polite'
-  toast.setAttribute('role', 'alert')
-  toast.setAttribute('aria-live', ariaLive)
-  toast.setAttribute('aria-atomic', 'true')
+  const aria = toastAria(type);
+  toast.setAttribute('role', aria.role);
+  toast.setAttribute('aria-live', aria.live);
+  toast.setAttribute('aria-atomic', 'true');
 
-  const content = document.createElement('div')
-  content.className = 'umm-toast__content'
+  const content = document.createElement('div');
+  content.className = 'umm-toast__content';
   content.innerHTML = `
     <strong>${escapeHtml(title)}</strong>
     ${message ? `<p>${escapeHtml(message)}</p>` : ''}
-  `
-  toast.appendChild(content)
+  `;
+  toast.appendChild(content);
 
-  return toast
+  return toast;
 }
 
 // ─── 页面卸载清理 ─────────────────────────────────────────
 
-let unloadListenerAttached = false
+let unloadListenerAttached = false;
 
 function attachUnloadListener(): void {
-  if (unloadListenerAttached) return
-  unloadListenerAttached = true
+  if (unloadListenerAttached) return;
+  unloadListenerAttached = true;
 
   const cleanup = () => {
     // 清理所有快速 toast
     for (const record of quickToasts) {
-      if (record.removeTimer) clearTimeout(record.removeTimer)
+      if (record.removeTimer) clearTimeout(record.removeTimer);
     }
-    quickToasts.length = 0
-    lastQuickToast = null
+    quickToasts.length = 0;
+    lastQuickToast = null;
 
     // 清理容器
-    if (cleanupTimer) clearTimeout(cleanupTimer)
+    if (cleanupTimer) clearTimeout(cleanupTimer);
     if (container) {
-      container.remove()
-      container = null
+      container.remove();
+      container = null;
     }
-  }
+  };
 
-  window.addEventListener('beforeunload', cleanup)
-  window.addEventListener('pagehide', cleanup)
+  window.addEventListener('beforeunload', cleanup);
+  window.addEventListener('pagehide', cleanup);
 }
 
 // ─── PersistentToast 类 ──────────────────────────────────
@@ -227,19 +250,19 @@ function attachUnloadListener(): void {
  * 使用 `FloatingToast.persistent(title, type?)` 创建
  */
 export class PersistentToast {
-  private element: HTMLElement | null = null
-  private progressBar: HTMLElement | null = null
-  private contentDiv: HTMLElement | null = null
-  private autoCloseTimer: ReturnType<typeof setTimeout> | null = null
-  private closed = false
-  private currentType: 'info' | 'loading' | 'success' | 'error'
-  private title: string
+  private element: HTMLElement | null = null;
+  private progressBar: HTMLElement | null = null;
+  private contentDiv: HTMLElement | null = null;
+  private autoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  private closed = false;
+  private currentType: 'info' | 'loading' | 'success' | 'error';
+  private title: string;
 
   /** @internal 由 FloatingToast.persistent() 调用 */
   constructor(title: string, type: 'info' | 'loading' = 'loading') {
-    this.title = title
-    this.currentType = type
-    this.build()
+    this.title = title;
+    this.currentType = type;
+    this.build();
   }
 
   // ── 公开 API ──────────────────────────────────
@@ -251,19 +274,19 @@ export class PersistentToast {
    * @param options.progress - 进度 0-100
    */
   update(options: { message?: string; progress?: number }): void {
-    if (this.closed || !this.element) return
+    if (this.closed || !this.element) return;
 
     if (options.message !== undefined) {
-      this.updateContent(this.title, options.message)
+      this.updateContent(this.title, options.message);
     }
 
     if (options.progress !== undefined && this.progressBar) {
-      const clamped = Math.max(0, Math.min(100, options.progress))
+      const clamped = Math.max(0, Math.min(100, options.progress));
       requestAnimationFrame(() => {
         if (this.progressBar) {
-          this.progressBar.style.width = `${clamped}%`
+          this.progressBar.style.width = `${clamped}%`;
         }
-      })
+      });
     }
   }
 
@@ -271,124 +294,129 @@ export class PersistentToast {
    * 转换为成功状态，2 秒后自动关闭
    */
   success(message?: string): void {
-    if (this.closed) return
-    this.convertTo('success', message, 2000)
+    if (this.closed) return;
+    this.convertTo('success', message, 2000);
   }
 
   /**
    * 转换为成功状态，保持显示（不自动关闭）
    */
   successKeep(message?: string): void {
-    if (this.closed) return
-    this.convertTo('success', message)
+    if (this.closed) return;
+    this.convertTo('success', message);
   }
 
   /**
    * 转换为错误状态，3 秒后自动关闭
    */
   error(message?: string): void {
-    if (this.closed) return
-    this.convertTo('error', message, 3000)
+    if (this.closed) return;
+    this.convertTo('error', message, 3000);
   }
 
   /**
    * 立即关闭
    */
   close(): void {
-    if (this.closed) return
-    this.closed = true
+    if (this.closed) return;
+    this.closed = true;
 
     if (this.autoCloseTimer) {
-      clearTimeout(this.autoCloseTimer)
-      this.autoCloseTimer = null
+      clearTimeout(this.autoCloseTimer);
+      this.autoCloseTimer = null;
     }
 
     if (this.element) {
-      this.element.classList.remove('show')
+      this.element.classList.remove('show');
       setTimeout(() => {
-        this.element?.remove()
-        this.element = null
-        scheduleContainerCleanup()
-      }, 350)
+        this.element?.remove();
+        this.element = null;
+        scheduleContainerCleanup();
+      }, 350);
     }
   }
 
   // ── 内部方法 ──────────────────────────────────
 
   private build(): void {
-    injectStyles()
+    injectStyles();
 
-    const el = createToastElement(this.currentType, this.title, undefined, true)
-    this.element = el
-    this.contentDiv = el.querySelector('.umm-toast__content') as HTMLElement
+    const el = createToastElement(this.currentType, this.title, undefined, true);
+    this.element = el;
+    this.contentDiv = el.querySelector('.umm-toast__content') as HTMLElement;
 
     // 关闭按钮
-    const closeBtn = document.createElement('button')
-    closeBtn.className = 'umm-toast__close'
-    closeBtn.innerHTML = '×'
-    closeBtn.setAttribute('aria-label', t('toast.aria_close'))
-    closeBtn.addEventListener('click', () => this.close())
-    el.appendChild(closeBtn)
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'umm-toast__close';
+    closeBtn.innerHTML = '×';
+    closeBtn.setAttribute('aria-label', t('toast.aria_close'));
+    closeBtn.addEventListener('click', () => this.close());
+    el.appendChild(closeBtn);
 
     // 进度条
-    const track = document.createElement('div')
-    track.className = 'umm-toast__progress-track'
-    const bar = document.createElement('div')
-    bar.className = 'umm-toast__progress-bar'
-    track.appendChild(bar)
-    el.appendChild(track)
-    this.progressBar = bar
+    const track = document.createElement('div');
+    track.className = 'umm-toast__progress-track';
+    const bar = document.createElement('div');
+    bar.className = 'umm-toast__progress-bar';
+    track.appendChild(bar);
+    el.appendChild(track);
+    this.progressBar = bar;
 
     // 挂载
-    const ctr = ensureContainer()
+    const ctr = ensureContainer();
     if (!document.body) {
-      console.warn('[FloatingToast] document.body not ready, retrying...')
-      setTimeout(() => this.build(), 100)
-      return
+      console.warn('[FloatingToast] document.body not ready, retrying...');
+      setTimeout(() => this.build(), 100);
+      return;
     }
     if (!ctr.isConnected) {
-      document.body.appendChild(ctr)
+      document.body.appendChild(ctr);
     }
 
-    ctr.appendChild(el)
-    attachUnloadListener()
+    ctr.appendChild(el);
+    attachUnloadListener();
 
     requestAnimationFrame(() => {
-      el.classList.add('show')
-    })
+      el.classList.add('show');
+    });
   }
 
   private updateContent(title: string, message?: string): void {
-    if (!this.contentDiv) return
+    if (!this.contentDiv) return;
     this.contentDiv.innerHTML = `
       <strong>${escapeHtml(title)}</strong>
       ${message ? `<p>${escapeHtml(message)}</p>` : ''}
-    `
+    `;
   }
 
   private convertTo(type: 'success' | 'error', message?: string, autoCloseMs?: number): void {
-    this.currentType = type
+    this.currentType = type;
 
     if (this.element) {
       // 替换类型 class
-      this.element.classList.remove('umm-toast--info', 'umm-toast--loading', 'umm-toast--success', 'umm-toast--error')
-      this.element.classList.add(`umm-toast--${type}`)
+      this.element.classList.remove(
+        'umm-toast--info',
+        'umm-toast--loading',
+        'umm-toast--success',
+        'umm-toast--error',
+      );
+      this.element.classList.add(`umm-toast--${type}`);
     }
 
     if (message !== undefined) {
-      this.updateContent(this.title, message)
+      this.updateContent(this.title, message);
     }
 
     // 隐藏进度条（最终状态不需要）
     if (this.progressBar) {
-      this.progressBar.style.width = '100%'
-      this.progressBar.style.transition = 'width 0.3s ease, opacity 0.3s ease'
-      this.progressBar.style.opacity = '0'
+      this.progressBar.style.width = '100%';
+      this.progressBar.style.transition = 'width 0.3s ease, opacity 0.3s ease';
+      this.progressBar.style.opacity = '0';
     }
 
     if (autoCloseMs) {
-      if (this.autoCloseTimer) clearTimeout(this.autoCloseTimer)
-      this.autoCloseTimer = setTimeout(() => this.close(), autoCloseMs)
+      if (this.autoCloseTimer) clearTimeout(this.autoCloseTimer);
+      this.autoCloseTimer = setTimeout(() => this.close(), autoCloseMs);
     }
   }
 }
@@ -403,28 +431,28 @@ export class FloatingToast {
    * 显示成功通知
    */
   static success(title: string, message?: string): void {
-    showQuick('success', title, message)
+    showQuick('success', title, message);
   }
 
   /**
    * 显示错误通知
    */
   static error(title: string, message?: string): void {
-    showQuick('error', title, message)
+    showQuick('error', title, message);
   }
 
   /**
    * 显示信息通知
    */
   static info(title: string, message?: string): void {
-    showQuick('info', title, message)
+    showQuick('info', title, message);
   }
 
   /**
    * 显示加载通知
    */
   static loading(title: string, message?: string): void {
-    showQuick('loading', title, message)
+    showQuick('loading', title, message);
   }
 
   /**
@@ -442,45 +470,49 @@ export class FloatingToast {
    * ```
    */
   static persistent(title: string, type?: 'info' | 'loading'): PersistentToast {
-    return new PersistentToast(title, type ?? 'loading')
+    return new PersistentToast(title, type ?? 'loading');
   }
 }
 
 // ─── 快速 toast 内部实现 ─────────────────────────────────
 
-function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string): void {
+function showQuick(
+  type: 'success' | 'error' | 'info' | 'loading',
+  title: string,
+  message?: string,
+): void {
   // 1. Defensive checks
   if (!document.body) {
-    console.warn('[FloatingToast] document.body not ready, retrying...')
-    setTimeout(() => showQuick(type, title, message), 100)
-    return
+    console.warn('[FloatingToast] document.body not ready, retrying...');
+    setTimeout(() => showQuick(type, title, message), 100);
+    return;
   }
 
   // 2. Inject styles
-  injectStyles()
-  attachUnloadListener()
+  injectStyles();
+  attachUnloadListener();
 
   // 3. Deduplicate
-  const hash = computeHash(title, message)
-  const existing = tryDedup(title, message, hash)
+  const hash = computeHash(title, message);
+  const existing = tryDedup(title, message, hash);
   if (existing) {
     // 已复用/替换，刷新 lastQuickToast 时间戳
-    lastQuickToast = { hash, title, timestamp: Date.now(), element: existing }
-    scheduleContainerCleanup()
-    return
+    lastQuickToast = { hash, title, timestamp: Date.now(), element: existing };
+    scheduleContainerCleanup();
+    return;
   }
 
   // 4. Remove oldest when over limit
-  trimQuickToasts()
+  trimQuickToasts();
 
   // 5. Create new toast
-  const ctr = ensureContainer()
+  const ctr = ensureContainer();
   if (!ctr.isConnected) {
-    document.body.appendChild(ctr)
+    document.body.appendChild(ctr);
   }
 
-  const toast = createToastElement(type, title, message)
-  ctr.appendChild(toast)
+  const toast = createToastElement(type, title, message);
+  ctr.appendChild(toast);
 
   // 6. Track
   const record: QuickToastRecord = {
@@ -489,25 +521,25 @@ function showQuick(type: 'success' | 'error' | 'info' | 'loading', title: string
     title,
     timestamp: Date.now(),
     removeTimer: null,
-  }
-  quickToasts.push(record)
-  lastQuickToast = { hash, title, timestamp: record.timestamp, element: toast }
+  };
+  quickToasts.push(record);
+  lastQuickToast = { hash, title, timestamp: record.timestamp, element: toast };
 
   // 7. Animate in
   requestAnimationFrame(() => {
-    toast.classList.add('show')
-  })
+    toast.classList.add('show');
+  });
 
   // 8. Auto-dismiss (2.8s)
   record.removeTimer = setTimeout(() => {
-    toast.classList.remove('show')
+    toast.classList.remove('show');
     setTimeout(() => {
-      toast.remove()
-      removeQuickToastRecord(toast)
-      scheduleContainerCleanup()
-    }, 350)
-  }, 2800)
+      toast.remove();
+      removeQuickToastRecord(toast);
+      scheduleContainerCleanup();
+    }, 350);
+  }, 2800);
 
   // 9. Reset container cleanup
-  scheduleContainerCleanup()
+  scheduleContainerCleanup();
 }

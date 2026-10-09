@@ -1,221 +1,154 @@
 /**
  * WebDAV Sync Message Handlers
  *
- * Handles WEBDAV_TEST, WEBDAV_UPLOAD, WEBDAV_DOWNLOAD, WEBDAV_SYNC messages.
- * Extracted from background.ts for modularity.
+ * Handles WEBDAV_TEST, WEBDAV_UPLOAD, WEBDAV_DOWNLOAD messages（ADR-027：三者
+ * 均先做预检指纹校验、后做完整性复核）。预览/计划推导在 ./webdav-preview，
+ * 合并语义在 ./webdav-sync，共享原语在 ./webdav-restore / ./webdav-settings。
  */
 
-import type { RecordStoreName, RemoteMeta, DatasetMeta, MessagePayloadMap, StoreRecord, AppSettings } from '@/types'
-import { mediaDB, RECORD_STORES, BACKUP_STORES, STORE_NAMES, normalizeStoreRecordKey } from '@/features/database/models'
-import { normalizeStoreRecord } from '@/features/migration/models'
-import * as WebDAV from '@/features/webdav/api'
-import { packageDataset, unpackageDataset } from '@/utils/zip-utils'
-import { calculateStoreHash } from '@/utils/hash-utils'
-import { errorLog } from '@/utils/logger'
-import { broadcast } from '@/utils/event-bus'
-import { getCacheManager, invalidateSchedulerStore } from './cache-invalidation'
-import { EXPORT_SETTINGS_KEYS, IMPORT_SETTINGS_KEYS } from './data'
-import { settingsCache } from '@/features/settings/cache'
-import { settingsItems } from '@/features/settings/items'
-import { errorMessage, type SendResponse } from '@/utils/error-message'
-
-/** Read WebDAV settings from the typed storage items (targeted, batched) */
-async function getWebDAVSettings() {
-  const items = settingsItems()
-  const [webdavUrl, webdavUsername, webdavPassword] = await Promise.all([
-    items.webdavUrl.getValue(),
-    items.webdavUsername.getValue(),
-    items.webdavPassword.getValue(),
-  ])
-  return { webdavUrl, webdavUsername, webdavPassword }
-}
-
-/**
- * ADR-016: settings are backed up as a virtual `__settings__` dataset inside
- * `RemoteMeta.datasets` (scheme A — no RemoteMeta version bump). Settings are
- * scalar key/value pairs, not StoreRecord rows, so they travel as a JSON blob
- * rather than a packaged ZIP.
- */
-export const SETTINGS_DATASET_KEY = '__settings__'
-
-/**
- * Collect the non-sensitive settings (ADR-016 decision 1: reuses
- * EXPORT_SETTINGS_KEYS — every key except WebDAV credentials; neodbToken
- * is exportable per ADR-016) into a plain JSON object.
- */
-export function collectBackupSettings(): Record<string, unknown> {
-  const appSettings = settingsCache.get()
-  const settingsPayload: Record<string, unknown> = {}
-  for (const key of EXPORT_SETTINGS_KEYS) {
-    const value = appSettings[key]
-    if (value !== undefined) settingsPayload[key] = value
-  }
-  return settingsPayload
-}
-
-/**
- * SHA-256 hash of the settings JSON (stable UTF-8 → SHA-256). Settings are
- * scalar values, not StoreRecord rows, so calculateStoreHash (which dereferences
- * record.status/rating/linkedIds/url) does not apply; a direct content hash is
- * the type-safe equivalent of the ADR-016 example that used `as any` to fake a
- * StoreRecord (banned by project convention).
- */
-export async function calculateSettingsHash(settings: Record<string, unknown>): Promise<string> {
-  const keys = Object.keys(settings).toSorted((a, b) => a.localeCompare(b))
-  const sorted: Record<string, unknown> = {}
-  for (const k of keys) sorted[k] = settings[k]
-  const encoder = new TextEncoder()
-  const data = encoder.encode(JSON.stringify(sorted))
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-/*
- * Restored bilibili/youtube keys are normalized to canonical movie:: form at write time
- * (normalizeStoreRecordKey, models.ts) — legacy 'video::X' / bare 'X' keys from a pre-v13
- * backup land as 'movie::X', mirroring the v13 DB migration. See decision-3.
- */
-
-/**
- * Invalidate the scheduler L1 cache and broadcast record:updated for every
- * store written by a bulk WebDAV download/merge path, so merged/downloaded
- * records are visible immediately instead of after the 5-10s cache TTL.
- */
-function flushStoreCacheInvalidations(
-  writtenStores: Set<string>,
-  writtenKeys: Map<string, string[]>
-): void {
-  const cm = getCacheManager()
-  if (cm) {
-    for (const s of writtenStores) invalidateSchedulerStore(cm, s, writtenKeys.get(s))
-  }
-  for (const s of writtenStores) {
-    broadcast('record:updated', { storeName: s, key: '*', bulk: true })
-  }
-}
-
-/** Build local meta for all record stores */
-async function buildLocalMeta(): Promise<RemoteMeta> {
-  const datasets: DatasetMeta[] = []
-  for (const storeName of RECORD_STORES) {
-    const entries = await mediaDB.getAll(storeName)
-    const hash = await calculateStoreHash(entries)
-    let latestTs = ''
-    for (const e of entries) {
-      if (e.record.updatedAt > latestTs) latestTs = e.record.updatedAt
-    }
-    datasets.push({
-      key: storeName,
-      hash,
-      updatedAt: latestTs || new Date().toISOString(),
-      recordCount: entries.length,
-      dataVersion: 1,
-    })
-  }
-  // Include jav_ids store in sync metadata
-  const javEntries = await mediaDB.getAll(STORE_NAMES.JAV_IDS)
-  if (javEntries.length > 0) {
-    const javHash = await calculateStoreHash(javEntries)
-    let latestTs = ''
-    for (const e of javEntries) {
-      if (e.record.updatedAt > latestTs) latestTs = e.record.updatedAt
-    }
-    datasets.push({
-      key: STORE_NAMES.JAV_IDS,
-      hash: javHash,
-      updatedAt: latestTs || new Date().toISOString(),
-      recordCount: javEntries.length,
-      dataVersion: 1,
-    })
-  }
-  // ADR-016: include __settings__ virtual dataset meta so sync sees it locally.
-  // Settings themselves are only restored via upload/download (sync skips them),
-  // but the meta entry keeps the local/remote dataset sets symmetric.
-  const localSettings = collectBackupSettings()
-  const settingsHash = await calculateSettingsHash(localSettings)
-  datasets.push({
-    key: SETTINGS_DATASET_KEY,
-    hash: settingsHash,
-    updatedAt: new Date().toISOString(),
-    recordCount: Object.keys(localSettings).length,
-    dataVersion: 1,
-  })
-  return {
-    schema: 'umm-meta',
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    datasets,
-  }
-}
+import type { DatasetMeta, MessagePayloadMap, RecordStoreName, RemoteMeta } from '@/types';
+import { mediaDB, BACKUP_STORES } from '@/engine/database/models';
+import { CURRENT_DATASET_VERSION } from '@/libraries/utils/dataset-version';
+import * as WebDAV from '@/provider/webdav/api';
+import { packageDataset } from '@/libraries/utils/zip-utils';
+import { errorLog } from '@/libraries/utils/logger';
+import { broadcast } from '@/libraries/utils/event-bus';
+import { errorMessage, type SendResponse } from '@/libraries/utils/error-message';
+import {
+  getWebDAVSettings,
+  SETTINGS_DATASET_KEY,
+  collectBackupSettings,
+  calculateSettingsHash,
+} from './webdav-settings';
+import { computePreview, buildLocalMeta, verifyRemoteMeta } from './webdav-preview';
+import { releaseWebdavWrite, tryAcquireWebdavWrite } from './webdav-lock';
+import {
+  flushStoreCacheInvalidations,
+  restoreSettingsDataset,
+  downloadDatasetIntoStore,
+} from './webdav-restore';
 
 /**
  * WEBDAV_TEST payload — canonical superset from MessagePayloadMap (both caller
  * dialects); every field optional, `undefined` allowed (falls back to stored
  * settings inside the handler).
  */
-type WebDAVTestPayload = NonNullable<MessagePayloadMap['WEBDAV_TEST']>
+type WebDAVTestPayload = NonNullable<MessagePayloadMap['WEBDAV_TEST']>;
+
+/** ADR-027：三个写动作共用的载荷（预检指纹）。 */
+type WebDAVOpPayload = MessagePayloadMap['WEBDAV_UPLOAD'];
 
 /** WEBDAV_TEST — check connection */
 export async function handleWebDAVTest(
   payload: WebDAVTestPayload | undefined,
-  sendResponse: SendResponse
+  sendResponse: SendResponse,
 ) {
   try {
-    let webdavUrl: string
-    let webdavUsername: string
-    let webdavPassword: string
+    let webdavUrl: string;
+    let webdavUsername: string;
+    let webdavPassword: string;
 
     if (payload) {
-      webdavUrl = payload.webdavUrl ?? payload.url ?? ''
-      webdavUsername = payload.webdavUsername ?? payload.username ?? ''
-      webdavPassword = payload.webdavPassword ?? payload.password ?? ''
+      webdavUrl = payload.webdavUrl ?? payload.url ?? '';
+      webdavUsername = payload.webdavUsername ?? payload.username ?? '';
+      webdavPassword = payload.webdavPassword ?? payload.password ?? '';
     } else {
-      const settings = await getWebDAVSettings()
-      webdavUrl = settings.webdavUrl
-      webdavUsername = settings.webdavUsername
-      webdavPassword = settings.webdavPassword
+      const settings = await getWebDAVSettings();
+      webdavUrl = settings.webdavUrl;
+      webdavUsername = settings.webdavUsername;
+      webdavPassword = settings.webdavPassword;
     }
 
-    const result = await WebDAV.testConnection(webdavUrl, webdavUsername, webdavPassword)
-    sendResponse({ success: true, ...result })
+    const result = await WebDAV.testConnection(webdavUrl, webdavUsername, webdavPassword);
+    sendResponse({ success: true, ...result });
   } catch (err: unknown) {
-    sendResponse({ success: false, message: errorMessage(err) })
+    sendResponse({ success: false, message: errorMessage(err) });
   }
 }
 
-/** WEBDAV_UPLOAD — local → WebDAV */
-export async function handleWebDAVUpload(sendResponse: SendResponse) {
+/** 空数据集 meta（本机该表无记录时）。 */
+function emptyMeta(key: string): DatasetMeta {
+  return {
+    key,
+    hash: 'empty',
+    updatedAt: new Date().toISOString(),
+    recordCount: 0,
+    dataVersion: CURRENT_DATASET_VERSION,
+  };
+}
+
+/** WEBDAV_UPLOAD — local → WebDAV（显式覆盖；ADR-027 加预检指纹与执行后复核） */
+export async function handleWebDAVUpload(payload: WebDAVOpPayload, sendResponse: SendResponse) {
+  if (!tryAcquireWebdavWrite()) {
+    sendResponse({
+      success: false,
+      error: 'WRITE_IN_PROGRESS',
+      message: '另一个 WebDAV 写操作正在进行，已拒绝本次上传',
+      errorCode: 'WRITE_IN_PROGRESS',
+    });
+    return;
+  }
   try {
-    const { webdavUrl, webdavUsername, webdavPassword } = await getWebDAVSettings()
+    const { webdavUrl, webdavUsername, webdavPassword } = await getWebDAVSettings();
     if (!webdavUrl) {
-      sendResponse({ success: false, error: 'WebDAV URL not configured' })
-      return
+      sendResponse({ success: false, error: 'WebDAV URL not configured' });
+      return;
     }
+    const creds = { webdavUrl, webdavUsername, webdavPassword };
 
-    await WebDAV.createDirectory(webdavUrl, webdavUsername, webdavPassword)
+    const { fingerprint, remoteMeta } = await computePreview(creds, 'upload');
+    if (payload?.expectedFingerprint && payload.expectedFingerprint !== fingerprint) {
+      sendResponse({
+        success: false,
+        error: 'STALE_PLAN',
+        message: '数据在预检后已变化，已中止上传（未写入任何数据），请重新预检',
+        errorCode: 'STALE_PLAN',
+      });
+      return;
+    }
+    const remoteMap = new Map((remoteMeta?.datasets ?? []).map((d) => [d.key, d]));
 
-    let totalUploaded = 0
-    const datasetMetas: DatasetMeta[] = []
+    await WebDAV.createDirectory(webdavUrl, webdavUsername, webdavPassword);
 
-    // Backup all record stores plus jav_ids so adult viewing history is included too.
+    let totalUploaded = 0;
+    let failedStores = 0;
+    const datasetMetas: DatasetMeta[] = [];
+
+    // 备份全部记录 store 与成人三表（BACKUP_STORES 唯一事实源）。
+    //
+    // 逐表错误隔离（umreview U1）：单表的读/打包/上传失败**不得**中止整轮备份 ——
+    // 否则它后面的每张表都不会进备份（「备份没完全」），且 meta 停在上一次的样子，
+    // 而已写成功的 blob 与陈旧 meta 跨代不一致，读侧的 hash 一致性校验会连带拒绝这些表。
+    // 失败时推**远端侧的旧条目**（远端没有该表则记 0，如实表示「云端没有这份数据」），
+    // 这样留存下来的表 meta 与 blob 始终自洽，本地领先的部分留给下一次上传收敛。
     for (const storeName of BACKUP_STORES) {
-      const entries = await mediaDB.getAll(storeName)
-      if (entries.length === 0) {
-        datasetMetas.push({
-          key: storeName,
-          hash: 'empty',
-          updatedAt: new Date().toISOString(),
-          recordCount: 0,
-          dataVersion: 1,
-        })
-        continue
-      }
+      try {
+        const entries = await mediaDB.getAll(storeName);
 
-      const { blob, meta } = await packageDataset(storeName, entries)
-      await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, storeName, blob)
-      datasetMetas.push(meta)
-      totalUploaded += entries.length
+        if (entries.length === 0) {
+          const remoteEntry = remoteMap.get(storeName);
+          if (remoteEntry && remoteEntry.recordCount > 0) {
+            // ADR-027 D4：本机为空而云端有数据 —— 写**空数据集**而非只把 meta 计为 0。
+            // 只写 0 会让既有 blob 变成 UI 不可达的孤儿（下载侧按 recordCount===0 跳过）；
+            // 写空数据集使「完全覆盖」名副其实且 meta 不撒谎。风险已在预检中标示。
+            const { blob, meta } = await packageDataset(storeName, []);
+            await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, storeName, blob);
+            datasetMetas.push(meta);
+          } else {
+            datasetMetas.push(emptyMeta(storeName));
+          }
+          continue;
+        }
+
+        const { blob, meta } = await packageDataset(storeName, entries);
+        await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, storeName, blob);
+        datasetMetas.push(meta);
+        totalUploaded += entries.length;
+      } catch (storeErr: unknown) {
+        errorLog(`WebDAV upload skipped dataset '${storeName}': ${errorMessage(storeErr)}`);
+        failedStores += 1;
+        datasetMetas.push(remoteMap.get(storeName) ?? emptyMeta(storeName));
+      }
     }
 
     // ADR-016 decision 1: upload non-sensitive settings (12 keys, excludes
@@ -223,338 +156,214 @@ export async function handleWebDAVUpload(sendResponse: SendResponse) {
     // scalar values, not StoreRecord rows, so they travel as a plain JSON blob
     // (application/json) instead of a packaged ZIP. This is the single source
     // of truth for the upload side; buildLocalMeta mirrors the meta entry.
-    const settingsPayload = collectBackupSettings()
-    const settingsBlob = new Blob([JSON.stringify(settingsPayload, null, 2)], { type: 'application/json' })
-    await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, SETTINGS_DATASET_KEY, settingsBlob)
-    const settingsHash = await calculateSettingsHash(settingsPayload)
-    datasetMetas.push({
-      key: SETTINGS_DATASET_KEY,
-      hash: settingsHash,
-      updatedAt: new Date().toISOString(),
-      recordCount: Object.keys(settingsPayload).length,
-      dataVersion: 1,
-    })
+    try {
+      const settingsPayload = collectBackupSettings();
+      const settingsBlob = new Blob([JSON.stringify(settingsPayload, null, 2)], {
+        type: 'application/json',
+      });
+      await WebDAV.uploadDataset(
+        webdavUrl,
+        webdavUsername,
+        webdavPassword,
+        SETTINGS_DATASET_KEY,
+        settingsBlob,
+      );
+      const settingsHash = await calculateSettingsHash(settingsPayload);
+      datasetMetas.push({
+        key: SETTINGS_DATASET_KEY,
+        hash: settingsHash,
+        updatedAt: new Date().toISOString(),
+        recordCount: Object.keys(settingsPayload).length,
+        dataVersion: CURRENT_DATASET_VERSION,
+      });
+    } catch (settingsErr: unknown) {
+      errorLog(`WebDAV upload skipped settings: ${errorMessage(settingsErr)}`);
+      failedStores += 1;
+      datasetMetas.push(remoteMap.get(SETTINGS_DATASET_KEY) ?? emptyMeta(SETTINGS_DATASET_KEY));
+    }
 
-    const remoteMeta: RemoteMeta = {
+    const remoteMetaOut: RemoteMeta = {
       schema: 'umm-meta',
       version: 1,
       generatedAt: new Date().toISOString(),
       datasets: datasetMetas,
-    }
-    await WebDAV.uploadMeta(webdavUrl, webdavUsername, webdavPassword, remoteMeta)
+    };
+    await WebDAV.uploadMeta(webdavUrl, webdavUsername, webdavPassword, remoteMetaOut);
 
+    // `verified` = 本次上传完整落地（任一张表失败即未通过），与远端 meta 的元数据级复核取与。
+    const verified = failedStores === 0 && (await verifyRemoteMeta(creds, datasetMetas));
+    const parts = [`已上传 ${totalUploaded} 条记录`];
+    if (failedStores > 0) parts.push(`${failedStores} 张表上传失败（云端保持原状）`);
+    if (!verified) parts.push('完整性复核未通过');
     sendResponse({
       success: true,
       totalUploaded,
-      timestamp: remoteMeta.generatedAt,
+      timestamp: remoteMetaOut.generatedAt,
       direction: 'upload',
-      message: `已上传 ${totalUploaded} 条记录`,
-    })
+      message: parts.join('，'),
+      verified,
+    });
   } catch (err: unknown) {
-    errorLog('WebDAV upload failed:', err)
-    sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '上传失败' })
+    errorLog('WebDAV upload failed:', err);
+    sendResponse({
+      success: false,
+      error: errorMessage(err),
+      message: (err as Error)?.message || '上传失败',
+    });
+  } finally {
+    releaseWebdavWrite();
   }
 }
 
-/** WEBDAV_DOWNLOAD — WebDAV → local */
-export async function handleWebDAVDownload(sendResponse: SendResponse) {
+/** WEBDAV_DOWNLOAD — WebDAV → local（显式恢复；ADR-027 加预检指纹与执行后复核） */
+export async function handleWebDAVDownload(payload: WebDAVOpPayload, sendResponse: SendResponse) {
+  if (!tryAcquireWebdavWrite()) {
+    sendResponse({
+      success: false,
+      error: 'WRITE_IN_PROGRESS',
+      message: '另一个 WebDAV 写操作正在进行，已拒绝本次下载',
+      errorCode: 'WRITE_IN_PROGRESS',
+    });
+    return;
+  }
   try {
-    const { webdavUrl, webdavUsername, webdavPassword } = await getWebDAVSettings()
-    if (!webdavUrl) {
-      sendResponse({ success: false, error: 'WebDAV URL not configured' })
-      return
+    const creds = await getWebDAVSettings();
+    if (!creds.webdavUrl) {
+      sendResponse({ success: false, error: 'WebDAV URL not configured' });
+      return;
     }
 
-    const remoteMeta = await WebDAV.fetchRemoteMeta(webdavUrl, webdavUsername, webdavPassword)
+    const { preview, fingerprint, localMeta, remoteMeta } = await computePreview(creds, 'download');
+    if (payload?.expectedFingerprint && payload.expectedFingerprint !== fingerprint) {
+      sendResponse({
+        success: false,
+        error: 'STALE_PLAN',
+        message: '数据在预检后已变化，已中止下载（未写入任何数据），请重新预检',
+        errorCode: 'STALE_PLAN',
+      });
+      return;
+    }
     if (!remoteMeta) {
-      sendResponse({ success: false, error: 'No remote data found', message: '云端没有数据' })
-      return
+      sendResponse({ success: false, error: 'No remote data found', message: '云端没有数据' });
+      return;
     }
 
-    let totalDownloaded = 0
-    const writtenStores = new Set<string>()
-    const writtenKeys = new Map<string, string[]>()
+    let totalDownloaded = 0;
+    let skippedRecords = 0;
+    // 执行消费本次预检的方向矩阵（指纹校验保证它就是用户确认的那份计划）：
+    // hash 相等（无变化）的表不重拉重写 —— 内容逐签名一致，重拉只会用云端（可能更旧
+    // 的）updatedAt 覆盖本地统计口径，并无谓膨胀 recordVersion，还白耗整表 I/O；
+    // 跳过同时让执行与预览的「无变化」口径一致。
+    const directionByKey = new Map(preview.rows.map((r) => [r.key, r.direction]));
+    let unchangedDatasets = 0;
+    // dataset 级失败（hash 混装/404/坏 ZIP/版本过新）与 upload 的 failedStores、sync 的
+    // rowFailures 同口径计数 —— 此前只 errorLog 就 continue，既不翻转 `verified` 也不
+    // 进消息，UI 会对「丢了一整张表」的恢复照报成功（umpp 深度模拟 D 用例 RED 实证）。
+    let failedDatasets = 0;
+    const failedNames: string[] = [];
+    // R2 修正（代际偏斜自愈）：完整一代 ZIP 一律采纳（显式 cloud-wins、幂等可重复），
+    // 仅真损坏拒绝。
+    const staleRecovered: string[] = [];
+    const writtenStores = new Set<string>();
+    const writtenKeys = new Map<string, string[]>();
     for (const ds of remoteMeta.datasets) {
-      // ADR-016 decision 4/5: the __settings__ virtual dataset carries scalar
-      // settings (not StoreRecord rows) as a JSON blob. Route it to a dedicated
-      // restore path BEFORE the BACKUP_STORES allowlist check — __settings__ is
-      // not an IndexedDB store name, so the allowlist would otherwise reject it.
-      // The restore reuses IMPORT_SETTINGS_KEYS (data.ts) so a malicious WebDAV
-      // server cannot inject credential keys (webdavUrl/Username/Password) —
-      // the security model mirrors handleImportData exactly.
+      // ADR-016 decision 4/5: route the __settings__ virtual dataset to its
+      // dedicated restore path BEFORE the BACKUP_STORES allowlist check
+      // (details in webdav-restore.ts#restoreSettingsDataset).
       if (ds.key === SETTINGS_DATASET_KEY) {
-        if (ds.recordCount === 0) continue
-        try {
-          const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, SETTINGS_DATASET_KEY)
-          const text = await blob.text()
-          let rawSettings: Record<string, unknown>
-          try {
-            rawSettings = JSON.parse(text) as Record<string, unknown>
-          } catch (parseErr: unknown) {
-            errorLog(`WebDAV download: ${SETTINGS_DATASET_KEY} dataset is not valid JSON, skipping: ${errorMessage(parseErr)}`)
-            continue
-          }
-          // Reuse IMPORT_SETTINGS_KEYS whitelist (mirrors EXPORT_SETTINGS_KEYS,
-          // excludes WebDAV credentials) — same security model as handleImportData.
-          // Iterate EXPORT_SETTINGS_KEYS for keyof-AppSettings typing; the .has()
-          // check keeps the runtime gate on IMPORT_SETTINGS_KEYS so a future
-          // divergence (if IMPORT_SETTINGS_KEYS is ever narrowed) is honored.
-          const filtered: Record<string, unknown> = {}
-          for (const key of EXPORT_SETTINGS_KEYS) {
-            if (IMPORT_SETTINGS_KEYS.has(key) && key in rawSettings) {
-              filtered[key] = rawSettings[key]
-            }
-          }
-          if (Object.keys(filtered).length > 0) {
-            await settingsCache.updateAll(filtered as Partial<AppSettings>)
-          }
-        } catch (dsErr: unknown) {
-          errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
-        }
-        continue
+        if (ds.recordCount === 0) continue;
+        await restoreSettingsDataset(creds);
+        continue;
       }
-      if (ds.recordCount === 0) continue
+      if (ds.recordCount === 0) continue;
       // Security: only accept datasets whose store name is a known backup store
-      // (record stores + jav_ids). remoteMeta comes from an external WebDAV server
-      // and is attacker-influenceable; an arbitrary store name would let a malicious
-      // server write into any store.
+      // (record stores + adult stores). remoteMeta comes from an external WebDAV
+      // server and is attacker-influenceable; an arbitrary store name would let a
+      // malicious server write into any store.
       if (!BACKUP_STORES.includes(ds.key as RecordStoreName)) {
-        errorLog(`WebDAV download skipped '${ds.key}': not a known backup store`)
-        continue
+        errorLog(`WebDAV download skipped '${ds.key}': not a known backup store`);
+        continue;
+      }
+      if (directionByKey.get(ds.key) === 'skip') {
+        unchangedDatasets += 1;
+        continue;
       }
       try {
-        const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, ds.key)
-        const { data } = await unpackageDataset(blob)
-        const batch: Array<{ key: string; record: StoreRecord }> = []
-        for (const [key, record] of Object.entries(data)) {
-          // Validate record shape before writing (external data is untrusted).
-          if (typeof record !== 'object' || record === null || typeof key !== 'string') continue
-          try {
-            // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
-            // A too-new record throws MigrationError — skip just that record.
-            const { record: migrated } = normalizeStoreRecord(record)
-            batch.push({ key: normalizeStoreRecordKey(ds.key, key), record: migrated })
-          } catch (err: unknown) {
-            errorLog(`WebDAV download skipped record '${key}' in '${ds.key}': ${errorMessage(err)}`)
-          }
-        }
-        if (batch.length > 0) {
-          await mediaDB.batchPut(ds.key as RecordStoreName, batch)
-          writtenStores.add(ds.key)
-          writtenKeys.set(ds.key, [...(writtenKeys.get(ds.key) ?? []), ...batch.map(b => b.key)])
-        }
-        totalDownloaded += Object.keys(data).length
+        const outcome = await downloadDatasetIntoStore(
+          creds,
+          ds.key,
+          'download',
+          writtenStores,
+          writtenKeys,
+          ds.hash,
+        );
+        totalDownloaded += outcome.total;
+        skippedRecords += outcome.skipped;
+        if (outcome.staleGenerationRecovered) staleRecovered.push(ds.key);
       } catch (dsErr: unknown) {
-        errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`)
-        continue
+        errorLog(`WebDAV download skipped '${ds.key}': ${errorMessage(dsErr)}`);
+        failedDatasets += 1;
+        failedNames.push(ds.key);
+        continue;
       }
     }
 
-    flushStoreCacheInvalidations(writtenStores, writtenKeys)
-    broadcast('sync:completed', { direction: 'download', totalDownloaded })
+    flushStoreCacheInvalidations(writtenStores, writtenKeys);
+    // `verified` = 本次恢复完整落地：任一整表失败、被跳过的记录（损坏/异构）、
+    // 或本地计数缩减，都算未通过。
+    const verified =
+      failedDatasets === 0 &&
+      skippedRecords === 0 &&
+      (await verifyLocalNeverShrunk(localMeta, writtenStores));
+    const parts = [`已下载 ${totalDownloaded} 条记录`];
+    if (unchangedDatasets > 0) parts.push(`${unchangedDatasets} 个数据集无变化`);
+    if (staleRecovered.length > 0)
+      parts.push(
+        `${staleRecovered.length} 张表按 ZIP 自述恢复（云端 meta 代际陈旧，已自愈：${staleRecovered.join('、')}；下次上传将收敛 meta）`,
+      );
+    if (skippedRecords > 0) parts.push(`${skippedRecords} 条记录被跳过（格式不合）`);
+    if (failedDatasets > 0)
+      parts.push(
+        `${failedDatasets} 张表下载失败（已跳过：${failedNames.join('、')}；云端保持原状，可重试或用「同步」收敛）`,
+      );
+    if (!verified) parts.push('完整性复核未通过');
+    broadcast('sync:completed', { direction: 'download', totalDownloaded, verified });
     sendResponse({
       success: true,
       totalDownloaded,
       timestamp: remoteMeta.generatedAt,
       direction: 'download',
-      message: `已下载 ${totalDownloaded} 条记录`,
-    })
+      message: parts.join('，'),
+      verified,
+    });
   } catch (err: unknown) {
-    errorLog('WebDAV download failed:', err)
-    sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '下载失败' })
+    errorLog('WebDAV download failed:', err);
+    sendResponse({
+      success: false,
+      error: errorMessage(err),
+      message: (err as Error)?.message || '下载失败',
+    });
+  } finally {
+    releaseWebdavWrite();
   }
 }
 
-/** WEBDAV_SYNC — merge: compare local vs remote, sync each dataset directionally */
-export async function handleWebDAVSync(sendResponse: SendResponse) {
+/**
+ * 下载后复核：被写入的表记录数不得少于下载前（下载是逐记录 upsert，永不删除）。
+ * 计数减少即意味着发生了非预期删除 —— 回报 `verified: false`。
+ */
+async function verifyLocalNeverShrunk(before: RemoteMeta, written: Set<string>): Promise<boolean> {
   try {
-    const { webdavUrl, webdavUsername, webdavPassword } = await getWebDAVSettings()
-    if (!webdavUrl) {
-      sendResponse({ success: false, error: 'WebDAV URL not configured' })
-      return
+    const beforeMap = new Map(before.datasets.map((d) => [d.key, d.recordCount]));
+    const after = await buildLocalMeta();
+    const afterMap = new Map(after.datasets.map((d) => [d.key, d.recordCount]));
+    for (const key of written) {
+      const prev = beforeMap.get(key) ?? 0;
+      if ((afterMap.get(key) ?? 0) < prev) return false;
     }
-
-    const localMeta = await buildLocalMeta()
-    const localMap = new Map(localMeta.datasets.map(d => [d.key, d]))
-
-    const remoteMeta = await WebDAV.fetchRemoteMeta(webdavUrl, webdavUsername, webdavPassword)
-    const remoteMap = new Map((remoteMeta?.datasets || []).map(d => [d.key, d]))
-
-    const allKeys = new Set([...localMap.keys(), ...remoteMap.keys()])
-
-    let uploaded = 0
-    let downloaded = 0
-    let skipped = 0
-    const resultingMetas: DatasetMeta[] = []
-    const writtenStores = new Set<string>()
-    const writtenKeys = new Map<string, string[]>()
-
-    for (const key of allKeys) {
-      const local = localMap.get(key)
-      const remote = remoteMap.get(key)
-
-      // ADR-016 decision 5: settings do not participate in the bidirectional
-      // merge. Settings are scalar values with no primary-key merge semantics,
-      // and changes are infrequent (typically one device). Preserve the local
-      // meta (buildLocalMeta always emits it) and skip upload/download — users
-      // who want settings synced use the explicit upload/download actions.
-      if (key === SETTINGS_DATASET_KEY) {
-        resultingMetas.push(local || remote || {
-          key,
-          hash: 'empty',
-          updatedAt: new Date().toISOString(),
-          recordCount: 0,
-          dataVersion: 1,
-        })
-        skipped++
-        continue
-      }
-
-      // Security: mirror the download-path guard — only sync known backup stores
-      // (record stores + jav_ids). remoteMeta.datasets[].key is attacker-influenceable
-      // on a malicious/compromised WebDAV endpoint; writing into non-backup stores
-      // (pt_id_cache / ttl_cache) would poison them (wrong PT dimming, stale cache).
-      if (!BACKUP_STORES.includes(key as RecordStoreName)) {
-        errorLog(`WebDAV sync skipped dataset '${key}': not a known backup store`)
-        resultingMetas.push(local || remote || {
-          key,
-          hash: 'empty',
-          updatedAt: new Date().toISOString(),
-          recordCount: 0,
-          dataVersion: 1,
-        })
-        continue
-      }
-
-      try {
-        // Both empty → skip
-        if ((!local || local.recordCount === 0) && (!remote || remote.recordCount === 0)) {
-          skipped++
-          resultingMetas.push(local || remote || {
-            key,
-            hash: 'empty',
-            updatedAt: new Date().toISOString(),
-            recordCount: 0,
-            dataVersion: 1,
-          })
-          continue
-        }
-
-        // Only local → upload
-        if (!remote || remote.recordCount === 0) {
-          const entries = await mediaDB.getAll(key as RecordStoreName)
-          const { blob, meta } = await packageDataset(key as RecordStoreName, entries)
-          await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, key, blob)
-          resultingMetas.push(meta)
-          uploaded += entries.length
-          continue
-        }
-
-        // Only remote → download
-        if (!local || local.recordCount === 0) {
-          const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
-          const { data } = await unpackageDataset(blob)
-          const batch: Array<{ key: string; record: StoreRecord }> = []
-          for (const [recordKey, record] of Object.entries(data)) {
-            if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
-            try {
-              // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
-              // A too-new record throws MigrationError — skip just that record.
-              const { record: migrated } = normalizeStoreRecord(record)
-              batch.push({ key: normalizeStoreRecordKey(key, recordKey), record: migrated })
-            } catch (err: unknown) {
-              errorLog(`WebDAV sync skipped record '${recordKey}' in '${key}': ${errorMessage(err)}`)
-            }
-          }
-          if (batch.length > 0) {
-            await mediaDB.batchPut(key as RecordStoreName, batch)
-            writtenStores.add(key)
-            writtenKeys.set(key, [...(writtenKeys.get(key) ?? []), ...batch.map(b => b.key)])
-          }
-          resultingMetas.push(remote)
-          downloaded += Object.keys(data).length
-          continue
-        }
-
-        // Both have data — compare hashes
-        if (local.hash === remote.hash) {
-          skipped++
-          resultingMetas.push(local)
-          continue
-        }
-
-        // Different hashes — compare updatedAt, newer wins
-        if (local.updatedAt >= remote.updatedAt) {
-          const entries = await mediaDB.getAll(key as RecordStoreName)
-          const { blob, meta } = await packageDataset(key as RecordStoreName, entries)
-          await WebDAV.uploadDataset(webdavUrl, webdavUsername, webdavPassword, key, blob)
-          resultingMetas.push(meta)
-          uploaded += entries.length
-        } else {
-          const blob = await WebDAV.downloadDataset(webdavUrl, webdavUsername, webdavPassword, key)
-          const { data } = await unpackageDataset(blob)
-          const batch: Array<{ key: string; record: StoreRecord }> = []
-          for (const [recordKey, record] of Object.entries(data)) {
-            if (typeof record !== 'object' || record === null || typeof recordKey !== 'string') continue
-            try {
-              // Migrate old-schema records (0→1→2) to the current schema (adds `comment`).
-              // A too-new record throws MigrationError — skip just that record.
-            const { record: migrated } = normalizeStoreRecord(record)
-            batch.push({ key: normalizeStoreRecordKey(key, recordKey), record: migrated })
-          } catch (err: unknown) {
-            errorLog(`WebDAV sync skipped record '${recordKey}' in '${key}': ${errorMessage(err)}`)
-            }
-          }
-          if (batch.length > 0) {
-            await mediaDB.batchPut(key as RecordStoreName, batch)
-            writtenStores.add(key)
-            writtenKeys.set(key, [...(writtenKeys.get(key) ?? []), ...batch.map(b => b.key)])
-          }
-          resultingMetas.push(remote)
-          downloaded += Object.keys(data).length
-        }
-      } catch (dsErr: unknown) {
-        errorLog(`WebDAV sync skipped dataset '${key}': ${errorMessage(dsErr)}`)
-        resultingMetas.push(local || remote || {
-          key,
-          hash: 'empty',
-          updatedAt: new Date().toISOString(),
-          recordCount: 0,
-          dataVersion: 1,
-        })
-        continue
-      }
-    }
-
-    // Update remote meta after merge
-    const newRemoteMeta: RemoteMeta = {
-      schema: 'umm-meta',
-      version: 1,
-      generatedAt: new Date().toISOString(),
-      datasets: resultingMetas,
-    }
-    await WebDAV.createDirectory(webdavUrl, webdavUsername, webdavPassword)
-    await WebDAV.uploadMeta(webdavUrl, webdavUsername, webdavPassword, newRemoteMeta)
-
-    const parts: string[] = []
-    if (uploaded > 0) parts.push(`上传 ${uploaded} 条`)
-    if (downloaded > 0) parts.push(`下载 ${downloaded} 条`)
-    if (skipped > 0) parts.push(`${skipped} 个数据集无变化`)
-    const msg = parts.length > 0 ? parts.join('，') : '所有数据集均无变化'
-
-    flushStoreCacheInvalidations(writtenStores, writtenKeys)
-    broadcast('sync:completed', { direction: 'merge', uploaded, downloaded, skipped })
-    sendResponse({
-      success: true,
-      direction: 'merge',
-      message: msg,
-      uploaded,
-      downloaded,
-      skipped,
-      timestamp: newRemoteMeta.generatedAt,
-    })
+    return true;
   } catch (err: unknown) {
-    errorLog('WebDAV sync failed:', err)
-    sendResponse({ success: false, error: errorMessage(err), message: (err as Error)?.message || '同步失败' })
+    errorLog('WebDAV download verification failed:', err);
+    return false;
   }
 }

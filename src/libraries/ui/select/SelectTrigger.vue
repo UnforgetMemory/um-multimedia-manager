@@ -1,0 +1,32 @@
+<script setup lang="ts">
+import { forwardProps } from '@/libraries/ui/forward-props';
+import type { SelectTriggerProps } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+import { reactiveOmit } from '@vueuse/core';
+import { ChevronDown } from '@/libraries/ui/icons';
+import { SelectIcon, SelectTrigger } from 'reka-ui';
+import { cn } from '@/libraries/utils/cn';
+
+const props = defineProps<SelectTriggerProps & { class?: HTMLAttributes['class'] }>();
+
+const delegatedProps = reactiveOmit(props, 'class');
+
+const forwardedProps = forwardProps(delegatedProps);
+</script>
+
+<template vapor>
+  <SelectTrigger
+    v-bind="forwardedProps"
+    :class="
+      cn(
+        'umm:flex umm:h-10 umm:w-full umm:items-center umm:justify-between umm:rounded-md umm:border umm:border-input umm:bg-background umm:px-3 umm:py-2 umm:text-sm umm:ring-offset-background umm:data-[placeholder]:text-muted-foreground umm:focus:outline-none umm:focus:ring-2 umm:focus:ring-ring umm:focus:ring-offset-2 umm:disabled:cursor-not-allowed umm:disabled:opacity-50 umm:[&>span]:truncate umm:text-start',
+        props.class,
+      )
+    "
+  >
+    <slot />
+    <SelectIcon as-child>
+      <ChevronDown class="umm:w-4 umm:h-4 umm:opacity-50 umm:shrink-0" />
+    </SelectIcon>
+  </SelectTrigger>
+</template>

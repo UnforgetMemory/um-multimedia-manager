@@ -1,0 +1,80 @@
+/* ===== Media Format Chips — shared across search and albums pages ===== */
+/* ADR-018/020: raw values live in tokens.static.css (--umm-static-chip-*).
+   Deep categorical fills keep WHITE ink in BOTH themes — the former dark-theme
+   color-mix lightening broke text contrast and was removed (ADR-020 D3). */
+
+:host {
+  --umm-chip-cd: var(--umm-static-chip-cd);
+  --umm-chip-dvd: var(--umm-static-chip-dvd);
+  --umm-chip-cd-dvd: var(--umm-static-chip-cd-dvd);
+  --umm-chip-cassette: var(--umm-static-chip-cassette);
+  --umm-chip-digital: var(--umm-static-chip-digital);
+  --umm-chip-vinyl: var(--umm-static-chip-vinyl);
+  --umm-chip-lp: var(--umm-static-chip-lp);
+  --umm-chip-sacd: var(--umm-static-chip-sacd);
+  --umm-chip-bluray: var(--umm-static-chip-bluray);
+  --umm-chip-vcd: var(--umm-static-chip-vcd);
+  --umm-chip-ld: var(--umm-static-chip-ld);
+  --umm-chip-streaming: var(--umm-static-chip-streaming);
+}
+
+.umm-chip-cd {
+  background: var(--umm-chip-cd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-dvd {
+  background: var(--umm-chip-dvd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-cd-dvd {
+  background: var(--umm-chip-cd-dvd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-cassette {
+  background: var(--umm-chip-cassette);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-digital {
+  background: var(--umm-chip-digital);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-vinyl {
+  background: var(--umm-chip-vinyl);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-lp {
+  background: var(--umm-chip-lp);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-sacd {
+  background: var(--umm-chip-sacd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-bluray {
+  background: var(--umm-chip-bluray);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-vcd {
+  background: var(--umm-chip-vcd);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-ld {
+  background: var(--umm-chip-ld);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}
+.umm-chip-streaming {
+  background: var(--umm-chip-streaming);
+  color: var(--umm-static-neutral-00);
+  border-color: transparent;
+}

@@ -1,6 +1,12 @@
-import { test, expect } from '@playwright/test'
-import { IDBFactory, IDBKeyRange } from 'fake-indexeddb'
-import { MediaDatabase, DB_NAME, DB_VERSION, STORE_NAMES, isWatchedStatus } from '@/features/database/models'
+import { test, expect } from '@playwright/test';
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
+import {
+  MediaDatabase,
+  DB_NAME,
+  DB_VERSION,
+  STORE_NAMES,
+  isWatchedStatus,
+} from '@/engine/database/models';
 
 /**
  * T7 — getWatchedIds characterization gate.
@@ -22,20 +28,27 @@ import { MediaDatabase, DB_NAME, DB_VERSION, STORE_NAMES, isWatchedStatus } from
  * Also installs IDBKeyRange — a native browser global the dual-cursor
  * implementation relies on, but absent in the Node test env (fake-indexeddb
  * ships it as an export). Mirrors the Chrome runtime the extension targets.
+ * characterize()'s finally releases both again (shared-worker hygiene).
  */
+const globalScope = globalThis as unknown as {
+  indexedDB?: IDBFactory;
+  IDBKeyRange?: typeof IDBKeyRange;
+};
+const ORIGINAL_INDEXEDDB = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+const ORIGINAL_IDB_KEY_RANGE = Object.getOwnPropertyDescriptor(globalThis, 'IDBKeyRange');
+
 function freshIndexedDB(): void {
-  const g = globalThis as unknown as { indexedDB: IDBFactory; IDBKeyRange: typeof IDBKeyRange }
-  g.indexedDB = new IDBFactory()
-  g.IDBKeyRange = IDBKeyRange
+  globalScope.indexedDB = new IDBFactory();
+  globalScope.IDBKeyRange = IDBKeyRange;
 }
 
 /** Open a raw connection to the (already-created) DB. No upgrade runs. */
 function openDB(name: string, version: number): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(name, version)
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
+    const req = indexedDB.open(name, version);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 /**
@@ -45,29 +58,27 @@ function openDB(name: string, version: number): Promise<IDBDatabase> {
  */
 function referenceGetWatchedIds(db: IDBDatabase, storeName: string): Promise<Set<string>> {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly')
-    const store = tx.objectStore(storeName)
-    const request = store.openCursor()
-    const ids = new Set<string>()
-    let count = 0
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const request = store.openCursor();
+    const ids = new Set<string>();
 
     request.onsuccess = () => {
-      const cursor = request.result
+      const cursor = request.result;
       if (cursor) {
-        const record = cursor.value
-        const rawStatus = record?.status
+        const record = cursor.value;
+        const rawStatus = record?.status;
         if (isWatchedStatus(rawStatus)) {
-          ids.add(cursor.primaryKey as string)
+          ids.add(cursor.primaryKey as string);
         }
-        count++
-        cursor.continue()
+        cursor.continue();
       } else {
-        resolve(ids)
+        resolve(ids);
       }
-    }
-    request.onerror = () => reject(request.error)
-    tx.onerror = () => reject(tx.error)
-  })
+    };
+    request.onerror = () => reject(request.error);
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 /** Seed raw records (not normalized) into the given store — getWatchedIds reads raw values. */
@@ -77,15 +88,15 @@ function seedStore(
   records: Array<{ key: string; record: Record<string, unknown> }>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite')
-    const store = tx.objectStore(storeName)
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
     for (const { key, record } of records) {
-      store.put(record, key)
+      store.put(record, key);
     }
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-    tx.onabort = () => reject(tx.error)
-  })
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
 }
 
 /**
@@ -98,26 +109,33 @@ async function characterize(
   records: Array<{ key: string; record: Record<string, unknown> }>,
   expectedWatched?: string[],
 ): Promise<void> {
-  freshIndexedDB()
-  const mdb = new MediaDatabase()
-  await mdb.init()
-  const rawDb = await openDB(DB_NAME, DB_VERSION)
-  const storeName = STORE_NAMES.DOUBAN
-  await seedStore(rawDb, storeName, records)
+  freshIndexedDB();
+  const mdb = new MediaDatabase();
+  await mdb.init();
+  const rawDb = await openDB(DB_NAME, DB_VERSION);
+  const storeName = STORE_NAMES.DOUBAN;
+  await seedStore(rawDb, storeName, records);
   try {
-    const expected = await referenceGetWatchedIds(rawDb, storeName)
-    const actual = await mdb.getWatchedIds(storeName)
+    const expected = await referenceGetWatchedIds(rawDb, storeName);
+    const actual = await mdb.getWatchedIds(storeName);
 
-    const sorted = (s: Iterable<string>) => [...s].sort()
-    expect(sorted(actual)).toEqual(sorted(expected))
-    expect(actual.size).toBe(expected.size)
+    const sorted = (s: Iterable<string>) => [...s].sort();
+    expect(sorted(actual)).toEqual(sorted(expected));
+    expect(actual.size).toBe(expected.size);
 
     if (expectedWatched) {
-      expect(sorted(actual)).toEqual(sorted(new Set(expectedWatched)))
+      expect(sorted(actual)).toEqual(sorted(new Set(expectedWatched)));
     }
   } finally {
-    mdb.close()
-    rawDb.close()
+    mdb.close();
+    rawDb.close();
+    // Playwright reuses one worker across spec files: drop the fake-indexeddb
+    // globals this run installed instead of leaking them to the next spec.
+    if (ORIGINAL_INDEXEDDB) Object.defineProperty(globalThis, 'indexedDB', ORIGINAL_INDEXEDDB);
+    else delete globalScope.indexedDB;
+    if (ORIGINAL_IDB_KEY_RANGE)
+      Object.defineProperty(globalThis, 'IDBKeyRange', ORIGINAL_IDB_KEY_RANGE);
+    else delete globalScope.IDBKeyRange;
   }
 }
 
@@ -128,7 +146,7 @@ function base(over: Record<string, unknown> = {}): Record<string, unknown> {
     url: 'https://example.com/x',
     updatedAt: '2025-01-01T00:00:00.000Z',
     ...over,
-  }
+  };
 }
 
 test.describe('T7 getWatchedIds characterization (dual index cursor == old full scan)', () => {
@@ -161,53 +179,53 @@ test.describe('T7 getWatchedIds characterization (dual index cursor == old full 
       { key: 'unrelated::done', record: base({ status: 'done' }) },
       // other number (999) → OUT
       { key: 'movie::big', record: base({ status: 999 }) },
-    ]
+    ];
 
     await characterize(seeds, [
       'movie::w-num',
       'tv::w-done',
       'unrelated::watched',
       'unrelated::done',
-    ])
-  })
+    ]);
+  });
 
   test('5000-record scale: new implementation matches old full scan exactly', async () => {
-    const seeds: Array<{ key: string; record: Record<string, unknown> }> = []
+    const seeds: Array<{ key: string; record: Record<string, unknown> }> = [];
     for (let i = 0; i < 5000; i++) {
-      const prefix = i % 3 === 0 ? 'movie::' : i % 3 === 1 ? 'tv::' : 'music::'
-      const mod = i % 8
-      let status: unknown
-      if (mod === 0) status = 2
-      else if (mod === 1) status = 'done'
-      else if (mod === 2) status = 3
-      else if (mod === 3) status = 1
-      else if (mod === 4) status = 'wish'
-      else if (mod === 5) status = 0
-      else if (mod === 6) status = 'watching'
-      else status = undefined // missing → status key omitted
+      const prefix = i % 3 === 0 ? 'movie::' : i % 3 === 1 ? 'tv::' : 'music::';
+      const mod = i % 8;
+      let status: unknown;
+      if (mod === 0) status = 2;
+      else if (mod === 1) status = 'done';
+      else if (mod === 2) status = 3;
+      else if (mod === 3) status = 1;
+      else if (mod === 4) status = 'wish';
+      else if (mod === 5) status = 0;
+      else if (mod === 6) status = 'watching';
+      else status = undefined; // missing → status key omitted
       const record: Record<string, unknown> = {
         title: `seed-${i}`,
         url: `https://example.com/${i}`,
         updatedAt: '2025-01-01T00:00:00.000Z',
-      }
-      if (status !== undefined) record.status = status
-      seeds.push({ key: `${prefix}${i}`, record })
+      };
+      if (status !== undefined) record.status = status;
+      seeds.push({ key: `${prefix}${i}`, record });
     }
     // A handful of extra null-status records — excluded by both paths.
-    seeds.push({ key: 'movie::extra-null', record: base({ status: null }) })
-    seeds.push({ key: 'tv::extra-null', record: base({ status: null }) })
-    seeds.push({ key: 'music::extra-null', record: base({ status: null }) })
+    seeds.push({ key: 'movie::extra-null', record: base({ status: null }) });
+    seeds.push({ key: 'tv::extra-null', record: base({ status: null }) });
+    seeds.push({ key: 'music::extra-null', record: base({ status: null }) });
 
     // mod ∈ {0,1} → watched. Multiples of 8 in [0,4999]: 625; 1-mod-8: 625.
-    await characterize(seeds, undefined)
+    await characterize(seeds, undefined);
     // Sanity: the fixture itself must contain the expected watched count, so a
     // silent seeding failure (both impls returning empty) cannot pass the gate.
-    const counts: Record<number, number> = {}
+    const counts: Record<number, number> = {};
     for (const s of seeds) {
-      const mod = Number(s.key.split('::')[1]) % 8
-      counts[mod] = (counts[mod] ?? 0) + 1
+      const mod = Number(s.key.split('::')[1]) % 8;
+      counts[mod] = (counts[mod] ?? 0) + 1;
     }
-    expect(counts[0] ?? 0).toBe(625)
-    expect(counts[1] ?? 0).toBe(625)
-  })
-})
+    expect(counts[0] ?? 0).toBe(625);
+    expect(counts[1] ?? 0).toBe(625);
+  });
+});

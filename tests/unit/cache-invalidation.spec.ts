@@ -1,10 +1,10 @@
-import { test, expect } from '@playwright/test'
-import { CacheManager } from '@/features/cache/cache-manager'
+import { test, expect } from '@playwright/test';
+import { CacheManager } from '@/engine/cache/cache-manager';
 import {
   registerCacheManager,
   getCacheManager,
   invalidateSchedulerStore,
-} from '@/entrypoints/background/handlers/cache-invalidation'
+} from '@/entrypoints/background/handlers/cache-invalidation';
 
 /**
  * Shared scheduler-cache invalidation helper.
@@ -25,23 +25,23 @@ import {
  * immediately after the (void) call — no await, no TTL grace.
  */
 
-const STORE = 'douban_records'
+const STORE = 'douban_records';
 
 async function seedStore(cm: CacheManager): Promise<void> {
-  await cm.set('scheduler', `get:${STORE}:movie::1`, { status: 2 })
-  await cm.set('scheduler', `get:${STORE}:movie::2`, { status: 3 })
-  await cm.set('scheduler', `all:${STORE}`, [{ key: 'movie::1' }])
-  await cm.set('scheduler', `count:${STORE}`, 1)
-  await cm.set('scheduler', `watched:${STORE}`, ['movie::1'])
-  await cm.set('scheduler', `bulk:${STORE}:movie::1,movie::2`, [{ key: 'movie::1' }])
+  await cm.set('scheduler', `get:${STORE}:movie::1`, { status: 2 });
+  await cm.set('scheduler', `get:${STORE}:movie::2`, { status: 3 });
+  await cm.set('scheduler', `all:${STORE}`, [{ key: 'movie::1' }]);
+  await cm.set('scheduler', `count:${STORE}`, 1);
+  await cm.set('scheduler', `watched:${STORE}`, ['movie::1']);
+  await cm.set('scheduler', `bulk:${STORE}:movie::1,movie::2`, [{ key: 'movie::1' }]);
 }
 
 test.describe('invalidateSchedulerStore', () => {
   test('removes get:/all:/count:/watched:/bulk: entries for that store (no keys → get: prefix)', async () => {
-    const cm = new CacheManager()
-    await seedStore(cm)
+    const cm = new CacheManager();
+    await seedStore(cm);
 
-    invalidateSchedulerStore(cm, STORE)
+    invalidateSchedulerStore(cm, STORE);
 
     for (const key of [
       `get:${STORE}:movie::1`,
@@ -51,22 +51,23 @@ test.describe('invalidateSchedulerStore', () => {
       `watched:${STORE}`,
       `bulk:${STORE}:movie::1,movie::2`,
     ]) {
-      expect(cm.has('scheduler', key), `${key} must be invalidated`).toBe(false)
+      expect(cm.has('scheduler', key), `${key} must be invalidated`).toBe(false);
     }
-  })
+  });
 
   test('unrelated store and ptcache-bulk entries survive', async () => {
-    const cm = new CacheManager()
-    await seedStore(cm)
-    await cm.set('scheduler', 'get:imdb_records:tt0111161', { status: 2 })
-    await cm.set('scheduler', 'all:imdb_records', [{ key: 'tt0111161' }])
-    await cm.set('scheduler', 'count:imdb_records', 0)
-    await cm.set('scheduler', 'watched:imdb_records', [])
-    await cm.set('scheduler', 'bulk:imdb_records:tt0111161', [{ key: 'tt0111161' }])
-    const ptKey = 'ptcache-bulk:https://pt.example.org/details.php?id=1,https://pt.example.org/details.php?id=2'
-    await cm.set('scheduler', ptKey, { 'https://pt.example.org/details.php?id=1': { id: '1' } })
+    const cm = new CacheManager();
+    await seedStore(cm);
+    await cm.set('scheduler', 'get:imdb_records:tt0111161', { status: 2 });
+    await cm.set('scheduler', 'all:imdb_records', [{ key: 'tt0111161' }]);
+    await cm.set('scheduler', 'count:imdb_records', 0);
+    await cm.set('scheduler', 'watched:imdb_records', []);
+    await cm.set('scheduler', 'bulk:imdb_records:tt0111161', [{ key: 'tt0111161' }]);
+    const ptKey =
+      'ptcache-bulk:https://pt.example.org/details.php?id=1,https://pt.example.org/details.php?id=2';
+    await cm.set('scheduler', ptKey, { 'https://pt.example.org/details.php?id=1': { id: '1' } });
 
-    invalidateSchedulerStore(cm, STORE)
+    invalidateSchedulerStore(cm, STORE);
 
     // Unrelated store untouched
     for (const key of [
@@ -76,34 +77,62 @@ test.describe('invalidateSchedulerStore', () => {
       'watched:imdb_records',
       'bulk:imdb_records:tt0111161',
     ]) {
-      expect(cm.has('scheduler', key), `${key} must survive`).toBe(true)
+      expect(cm.has('scheduler', key), `${key} must survive`).toBe(true);
     }
     // `bulk:{store}:` pattern must not collide with the `ptcache-bulk:` prefix
-    expect(cm.has('scheduler', ptKey)).toBe(true)
-  })
+    expect(cm.has('scheduler', ptKey)).toBe(true);
+  });
 
   test('key-specific form removes only the given key get: entry, other keys survive', async () => {
-    const cm = new CacheManager()
-    await seedStore(cm)
+    const cm = new CacheManager();
+    await seedStore(cm);
 
-    invalidateSchedulerStore(cm, STORE, ['movie::1'])
+    invalidateSchedulerStore(cm, STORE, ['movie::1']);
 
     // Written key's get: entry gone
-    expect(cm.has('scheduler', `get:${STORE}:movie::1`)).toBe(false)
+    expect(cm.has('scheduler', `get:${STORE}:movie::1`)).toBe(false);
     // Other key's get: entry survives (exact-key semantics, not prefix)
-    expect(cm.has('scheduler', `get:${STORE}:movie::2`)).toBe(true)
+    expect(cm.has('scheduler', `get:${STORE}:movie::2`)).toBe(true);
     // Aggregate entries still invalidated
-    expect(cm.has('scheduler', `all:${STORE}`)).toBe(false)
-    expect(cm.has('scheduler', `count:${STORE}`)).toBe(false)
-    expect(cm.has('scheduler', `watched:${STORE}`)).toBe(false)
-    expect(cm.has('scheduler', `bulk:${STORE}:movie::1,movie::2`)).toBe(false)
-  })
-})
+    expect(cm.has('scheduler', `all:${STORE}`)).toBe(false);
+    expect(cm.has('scheduler', `count:${STORE}`)).toBe(false);
+    expect(cm.has('scheduler', `watched:${STORE}`)).toBe(false);
+    expect(cm.has('scheduler', `bulk:${STORE}:movie::1,movie::2`)).toBe(false);
+  });
+});
+
+test.describe('CacheManager.invalidate key presence', () => {
+  test("empty-string key drops only the ns::'' entry, never escalates to the namespace", async () => {
+    const cm = new CacheManager();
+    await cm.set('ns', '', 'empty-key');
+    await cm.set('ns', 'a', 'va');
+    await cm.set('other', '', 'other-empty');
+
+    await cm.invalidate('ns', '');
+
+    expect(cm.has('ns', '')).toBe(false);
+    expect(cm.has('ns', 'a'), 'sibling entry must survive').toBe(true);
+    expect(cm.has('other', '')).toBe(true);
+  });
+
+  test('omitted key keeps its documented meaning: whole-namespace purge, empty-string entry included', async () => {
+    const cm = new CacheManager();
+    await cm.set('ns', '', 'empty-key');
+    await cm.set('ns', 'a', 'va');
+    await cm.set('other', 'b', 'vb');
+
+    await cm.invalidate('ns');
+
+    expect(cm.has('ns', '')).toBe(false);
+    expect(cm.has('ns', 'a')).toBe(false);
+    expect(cm.has('other', 'b'), 'other namespaces must survive').toBe(true);
+  });
+});
 
 test.describe('registerCacheManager / getCacheManager', () => {
   test('roundtrip returns the registered shared manager', () => {
-    const cm = new CacheManager()
-    registerCacheManager(cm)
-    expect(getCacheManager()).toBe(cm)
-  })
-})
+    const cm = new CacheManager();
+    registerCacheManager(cm);
+    expect(getCacheManager()).toBe(cm);
+  });
+});

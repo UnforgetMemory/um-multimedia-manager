@@ -6,19 +6,44 @@
  * card shell on the page. Dim + badge anchors are applied surgically in JS.
  */
 
-import { parseBilibiliBvidFromHref, storeKey, STATUS_COLORS, STATUS_LABELS } from './video-overlay-pure'
+import { runChunked, type ChunkOptions } from '@/libraries/utils/dom-chunk';
+import { sleep } from '@/libraries/utils';
+import { errorMessage } from '@/libraries/utils/error-message';
+import { warnLog } from '@/libraries/utils/logger';
+import {
+  parseBilibiliBvidFromHref,
+  storeKey,
+  STATUS_COLORS,
+  STATUS_LABELS,
+} from './video-overlay-pure';
 
 /** status >= DIMMER_TRIGGER → dimmed */
-export const DIMMER_TRIGGER = 2
+export const DIMMER_TRIGGER = 2;
 
-export const LISTING_PROCESSED_ATTR = 'data-umm-bili-processed'
-export const LISTING_BADGE_CLASS = 'umm-bili-badge'
-export const LISTING_DIMMER_CLASS = 'umm-viewed'
+/**
+ * Bulk-record-read ladder. The single read behind every badge used to sit in a
+ * silent catch, so a rejected DB_GET_BULK left the whole page showing the
+ * phase-1 "unwatched" placeholder as if the background had answered it —
+ * a wrong number is worse than no number, hence retry then withdraw.
+ */
+const BULK_READ_ATTEMPTS = 3;
+const BULK_READ_BACKOFF_MS = [400, 1200] as const;
+
+/**
+ * Cards mutated per animation frame (X9-B): badge creation does
+ * createElement/appendChild + a cached getComputedStyle read, so writes are
+ * chunked AND every chunk runs a read phase before its write phase.
+ */
+const LISTING_CHUNK_SIZE = 10;
+
+export const LISTING_PROCESSED_ATTR = 'data-umm-bili-processed';
+export const LISTING_BADGE_CLASS = 'umm-bili-badge';
+export const LISTING_DIMMER_CLASS = 'umm-viewed';
 /** JS-applied class on the nearest known list shell when a card is dimmed. */
-export const LISTING_SHELL_DIM_CLASS = 'umm-bili-dim-shell'
-export const LISTING_STYLE_ID = 'umm-bili-homepage-styles'
+export const LISTING_SHELL_DIM_CLASS = 'umm-bili-dim-shell';
+export const LISTING_STYLE_ID = 'umm-bili-homepage-styles';
 
-export const LISTING_CARD_SELECTOR = '.bili-video-card'
+export const LISTING_CARD_SELECTOR = '.bili-video-card';
 
 export const LISTING_ROOT_SELECTORS = [
   '.space-main',
@@ -27,7 +52,7 @@ export const LISTING_ROOT_SELECTORS = [
   '.search-content',
   '.search-page',
   '#app',
-] as const
+] as const;
 
 /**
  * Badge DOM anchors in probe order. Do NOT style these globally —
@@ -39,14 +64,14 @@ export const BADGE_ANCHOR_SELECTORS = [
   '.bili-video-card__image--filter',
   '.bili-video-card__cover a.bili-cover-card',
   '.bili-video-card__cover',
-] as const
+] as const;
 
 /** Nearest shells that may receive LISTING_SHELL_DIM_CLASS (JS, not CSS :has). */
 export const DIMMER_WRAPPER_SELECTORS = [
   '.upload-video-card',
   '.list-video-item',
   '.video-list__item',
-] as const
+] as const;
 
 export type BiliListingRoute =
   | 'space-home'
@@ -55,69 +80,69 @@ export type BiliListingRoute =
   | 'space-upload'
   | 'space-other'
   | 'www-listing'
-  | 'other'
+  | 'other';
 
 export function shouldDimStatus(status: number): boolean {
-  return status >= DIMMER_TRIGGER
+  return status >= DIMMER_TRIGGER;
 }
 
 export function extractBvidFromHref(href: string | null | undefined): string | null {
-  return parseBilibiliBvidFromHref(href || '')
+  return parseBilibiliBvidFromHref(href || '');
 }
 
 export interface CardLike {
-  getAttribute(name: string): string | null
-  querySelector(sel: string): { getAttribute(name: string): string | null } | null
-  querySelectorAll(sel: string): ArrayLike<{ getAttribute(name: string): string | null }>
+  getAttribute(name: string): string | null;
+  querySelector(sel: string): { getAttribute(name: string): string | null } | null;
+  querySelectorAll(sel: string): ArrayLike<{ getAttribute(name: string): string | null }>;
 }
 
 export function extractBvidFromCard(card: CardLike): string | null {
-  const dataBvid = card.getAttribute('data-bsb-bvid')
-  if (dataBvid && /^BV[a-zA-Z0-9]+$/i.test(dataBvid)) return dataBvid
+  const dataBvid = card.getAttribute('data-bsb-bvid');
+  if (dataBvid && /^BV[a-zA-Z0-9]+$/i.test(dataBvid)) return dataBvid;
 
-  const link = card.querySelector('a[href*="/video/"]')
+  const link = card.querySelector('a[href*="/video/"]');
   if (link) {
-    const id = extractBvidFromHref(link.getAttribute('href'))
-    if (id) return id
+    const id = extractBvidFromHref(link.getAttribute('href'));
+    if (id) return id;
   }
-  const links = card.querySelectorAll('[href*="/video/"]')
+  const links = card.querySelectorAll('[href*="/video/"]');
   for (let i = 0; i < links.length; i++) {
-    const id = extractBvidFromHref(links[i]!.getAttribute('href'))
-    if (id) return id
+    const id = extractBvidFromHref(links[i]!.getAttribute('href'));
+    if (id) return id;
   }
-  return null
+  return null;
 }
 
 export function resolveBadgeAnchorSelector(card: CardLike): string | null {
   for (const sel of BADGE_ANCHOR_SELECTORS) {
-    if (card.querySelector(sel)) return sel
+    if (card.querySelector(sel)) return sel;
   }
-  return null
+  return null;
 }
 
 export function parseBiliListingRoute(href: string): BiliListingRoute {
-  let url: URL
+  let url: URL;
   try {
-    url = new URL(href, 'https://www.bilibili.com')
+    url = new URL(href, 'https://www.bilibili.com');
   } catch {
-    return 'other'
+    return 'other';
   }
-  const host = url.hostname
-  const path = url.pathname
+  const host = url.hostname;
+  const path = url.pathname;
   if (host === 'space.bilibili.com') {
-    if (/\/lists\/[^/]+/.test(path)) return 'space-list-details'
-    if (/\/lists\/?$/.test(path)) return 'space-lists'
-    if (/\/upload\/video/.test(path)) return 'space-upload'
-    if (/^\/\d+\/?$/.test(path) || path === '/' || path === '') return 'space-home'
-    return 'space-other'
+    if (/\/lists\/[^/]+/.test(path)) return 'space-list-details';
+    if (/\/lists\/?$/.test(path)) return 'space-lists';
+    if (/\/upload\/video/.test(path)) return 'space-upload';
+    if (/^\/\d+\/?$/.test(path) || path === '/' || path === '') return 'space-home';
+    return 'space-other';
   }
-  if (host === 'search.bilibili.com') return 'www-listing'
-  if (host === 'www.bilibili.com' || host === 'bilibili.com') return 'www-listing'
-  return 'other'
+  if (host === 'search.bilibili.com') return 'www-listing';
+  if (host === 'www.bilibili.com' || host === 'bilibili.com') return 'www-listing';
+  return 'other';
 }
 
 export function isListingCapableRoute(route: BiliListingRoute): boolean {
-  return route !== 'other'
+  return route !== 'other';
 }
 
 /**
@@ -157,40 +182,69 @@ export function buildListingDimmerCss(): string {
           cursor: default !important;
           pointer-events: none !important;
         }
-  `.trim()
+        /* Reduced-motion (P-E wave): the dim reveal is an opacity/filter fade — kill it. */
+        @media (prefers-reduced-motion: reduce) {
+          .${LISTING_CARD_SELECTOR.slice(1)}.${LISTING_DIMMER_CLASS},
+          .${LISTING_SHELL_DIM_CLASS} {
+            transition: none !important;
+          }
+        }
+  `.trim();
 }
 
 /** Dim target selectors used by unit tests (card + optional JS shell class). */
 export function listingDimTargetSelectors(): { dim: string[]; hover: string[] } {
-  const card = `.${LISTING_CARD_SELECTOR.slice(1)}.${LISTING_DIMMER_CLASS}`
-  const shell = `.${LISTING_SHELL_DIM_CLASS}`
+  const card = `.${LISTING_CARD_SELECTOR.slice(1)}.${LISTING_DIMMER_CLASS}`;
+  const shell = `.${LISTING_SHELL_DIM_CLASS}`;
   return {
     dim: [card, shell],
     hover: [`${card}:hover`, `${shell}:hover`],
-  }
+  };
 }
 
 export function bulkKeysForBvids(bvids: string[]): string[] {
-  return bvids.map((id) => storeKey(id))
+  return bvids.map((id) => storeKey(id));
 }
 
 export interface ListingRecordLike {
-  status?: number
-  rating?: number
+  status?: number;
+  rating?: number;
 }
 
 export type ListingBulkReader = (
   storeName: string,
   keys: string[],
-) => Promise<Array<{ key: string; record?: ListingRecordLike | null }>>
+) => Promise<Array<{ key: string; record?: ListingRecordLike | null }>>;
 
 /** Nearest known shell for JS shell-dim; null on bare homepage cards. */
 export function findDimShell(card: Element): Element | null {
   for (const sel of DIMMER_WRAPPER_SELECTORS) {
-    const shell = card.closest(sel)
-    if (shell) return shell
+    const shell = card.closest(sel);
+    if (shell) return shell;
   }
-  return null
+  return null;
+}
+
+/**
+ * Read-phase snapshot for badge injection: anchor resolution + its computed
+ * position, captured WITHOUT touching the DOM. Passing it to setListingBadge
+ * keeps getComputedStyle out of the write phase (one forced layout per chunk
+ * instead of one per card).
+ */
+export interface BadgeAnchorState {
+  card: HTMLElement;
+  anchorSel: string | null;
+  anchorPosition: string | null;
+}
+
+/** Pure read phase — must not mutate anything. */
+export function readBadgeAnchorState(card: HTMLElement): BadgeAnchorState {
+  const anchorSel = resolveBadgeAnchorSelector(card);
+  const anchor = anchorSel ? card.querySelector<HTMLElement>(anchorSel) : null;
+  const anchorPosition = anchor
+    ? (card.ownerDocument?.defaultView?.getComputedStyle(anchor).position ?? null)
+    : null;
+  return { card, anchorSel, anchorPosition };
 }
 
 export function setListingBadge(
@@ -199,119 +253,234 @@ export function setListingBadge(
   rating?: number,
   badgeClass: string = LISTING_BADGE_CLASS,
   dimmerClass: string = LISTING_DIMMER_CLASS,
+  precomputed?: BadgeAnchorState | null,
 ): HTMLElement {
-  let badge = card.querySelector<HTMLElement>(`.${badgeClass}`)
+  let badge = card.querySelector<HTMLElement>(`.${badgeClass}`);
   if (!badge) {
-    const doc = card.ownerDocument || document
-    badge = doc.createElement('div')
-    badge.className = badgeClass
-    const anchorSel = resolveBadgeAnchorSelector(card)
-    const anchor = anchorSel ? card.querySelector<HTMLElement>(anchorSel) : null
+    const doc = card.ownerDocument || document;
+    badge = doc.createElement('div');
+    badge.className = badgeClass;
+    // Writes below consume the cached read when present; direct single-card
+    // callers outside the chunked pass fall back to measuring here.
+    const usePre = precomputed && precomputed.card === card ? precomputed : null;
+    const anchorSel = usePre ? usePre.anchorSel : resolveBadgeAnchorSelector(card);
+    const anchor = anchorSel ? card.querySelector<HTMLElement>(anchorSel) : null;
     if (anchor) {
       // Surgical positioning only — never global CSS on every cover node.
-      const computed = doc.defaultView?.getComputedStyle(anchor).position
+      const computed = usePre
+        ? usePre.anchorPosition
+        : (doc.defaultView?.getComputedStyle(anchor).position ?? null);
       if (computed === 'static' || !computed) {
-        anchor.style.position = 'relative'
+        anchor.style.position = 'relative';
       }
-      anchor.appendChild(badge)
+      anchor.appendChild(badge);
     } else {
-      card.style.position = card.style.position || 'relative'
-      card.appendChild(badge)
+      card.style.position = card.style.position || 'relative';
+      card.appendChild(badge);
     }
   }
 
-  let label = STATUS_LABELS[status] || STATUS_LABELS[0]
+  let label = STATUS_LABELS[status] || STATUS_LABELS[0];
   if (status === 2 && rating && rating > 0) {
-    label += ' ' + rating
+    label += ' ' + rating;
   }
-  badge.textContent = label
-  badge.style.background = STATUS_COLORS[status] || STATUS_COLORS[0]
+  badge.textContent = label;
+  badge.style.background = STATUS_COLORS[status] || STATUS_COLORS[0];
 
-  if (card.classList.contains(dimmerClass) || findDimShell(card)?.classList.contains(LISTING_SHELL_DIM_CLASS)) {
-    badge.style.pointerEvents = 'auto'
+  if (
+    card.classList.contains(dimmerClass) ||
+    findDimShell(card)?.classList.contains(LISTING_SHELL_DIM_CLASS)
+  ) {
+    badge.style.pointerEvents = 'auto';
     badge.onmouseenter = () => {
-      card.style.opacity = '1'
-      card.style.filter = 'none'
-      const shell = findDimShell(card)
+      card.style.opacity = '1';
+      card.style.filter = 'none';
+      const shell = findDimShell(card);
       if (shell) {
-        ;(shell as HTMLElement).style.opacity = '1'
-        ;(shell as HTMLElement).style.filter = 'none'
+        (shell as HTMLElement).style.opacity = '1';
+        (shell as HTMLElement).style.filter = 'none';
       }
-    }
+    };
     badge.onmouseleave = () => {
-      card.style.removeProperty('opacity')
-      card.style.removeProperty('filter')
-      const shell = findDimShell(card)
+      card.style.removeProperty('opacity');
+      card.style.removeProperty('filter');
+      const shell = findDimShell(card);
       if (shell) {
-        ;(shell as HTMLElement).style.removeProperty('opacity')
-        ;(shell as HTMLElement).style.removeProperty('filter')
+        (shell as HTMLElement).style.removeProperty('opacity');
+        (shell as HTMLElement).style.removeProperty('filter');
       }
-    }
+    };
   }
-  return badge
+  return badge;
 }
 
 export interface ListingPassResult {
-  scanned: number
-  withBvid: number
-  dimmed: number
-  badgeHits: number
-  bulkKeys: string[]
+  scanned: number;
+  withBvid: number;
+  dimmed: number;
+  badgeHits: number;
+  bulkKeys: string[];
+  /** False only when every read attempt failed — badges were then withdrawn, not answered. */
+  bulkReadOk: boolean;
 }
 
+/** Withdraw the phase-1 placeholder badge: "unread" must not render as "unwatched". */
+function removeListingBadge(card: HTMLElement): void {
+  card.querySelector(`.${LISTING_BADGE_CLASS}`)?.remove();
+}
+
+/**
+ * X9-B: both write phases go through runChunked. Phase 1 items are card
+ * GROUPS (chunkSize cards each) run 1 group per frame, so within a frame all
+ * getComputedStyle reads complete before any badge/attr writes — interleaved
+ * read/write per card was forcing layout on every card of the batch.
+ * The 250ms observer throttle gates pass triggers, not this write pass.
+ */
 export async function runListingDimmerPass(opts: {
-  root: ParentNode
-  storeName: string
-  dbGetBulk: ListingBulkReader
+  root: ParentNode;
+  storeName: string;
+  dbGetBulk: ListingBulkReader;
+  /** Cards mutated per animation frame. */
+  chunkSize?: number;
+  /** Injectable frame scheduler for tests; defaults to requestAnimationFrame. */
+  schedule?: ChunkOptions['schedule'];
+  /** Injectable bulk-read backoff, so a failing read is testable without sleeping. */
+  readWait?: (ms: number) => Promise<void>;
 }): Promise<ListingPassResult> {
-  const { root, storeName, dbGetBulk } = opts
-  const unprocessed = `${LISTING_CARD_SELECTOR}:not([${LISTING_PROCESSED_ATTR}])`
-  const cards = root.querySelectorAll<HTMLElement>(unprocessed)
-  const result: ListingPassResult = { scanned: 0, withBvid: 0, dimmed: 0, badgeHits: 0, bulkKeys: [] }
-  if (cards.length === 0) return result
-  result.scanned = cards.length
+  const { root, storeName, dbGetBulk, chunkSize = LISTING_CHUNK_SIZE, schedule, readWait } = opts;
+  const unprocessed = `${LISTING_CARD_SELECTOR}:not([${LISTING_PROCESSED_ATTR}])`;
+  const cards = Array.from(root.querySelectorAll<HTMLElement>(unprocessed));
+  const result: ListingPassResult = {
+    scanned: cards.length,
+    withBvid: 0,
+    dimmed: 0,
+    badgeHits: 0,
+    bulkKeys: [],
+    bulkReadOk: true,
+  };
+  if (cards.length === 0) return result;
 
-  const batch: Array<{ el: HTMLElement; bvid: string }> = []
-  cards.forEach((card) => {
-    card.setAttribute(LISTING_PROCESSED_ATTR, 'true')
-    const bvid = extractBvidFromCard(card)
-    if (!bvid) return
-    batch.push({ el: card, bvid })
-    setListingBadge(card, 0)
-  })
-  result.withBvid = batch.length
-  if (batch.length === 0) return result
+  const groups: HTMLElement[][] = [];
+  for (let i = 0; i < cards.length; i += chunkSize) groups.push(cards.slice(i, i + chunkSize));
 
-  const keys = bulkKeysForBvids(batch.map((b) => b.bvid))
-  result.bulkKeys = keys
+  const batch: Array<{ el: HTMLElement; bvid: string }> = [];
+  await runChunked(
+    groups,
+    (group) => {
+      // Read phase: batch all computed-style measurements for this frame.
+      const states = group.map(readBadgeAnchorState);
+      // Write phase: mutations only from here on.
+      for (const state of states) {
+        state.card.setAttribute(LISTING_PROCESSED_ATTR, 'true');
+        const bvid = extractBvidFromCard(state.card);
+        if (!bvid) continue;
+        batch.push({ el: state.card, bvid });
+        setListingBadge(state.card, 0, undefined, LISTING_BADGE_CLASS, LISTING_DIMMER_CLASS, state);
+      }
+    },
+    { chunkSize: 1, schedule },
+  ).promise;
+  result.withBvid = batch.length;
+  if (batch.length === 0) return result;
 
-  try {
-    const entries = await dbGetBulk(storeName, keys)
-    const byKey = new Map<string, ListingRecordLike>()
-    for (const entry of entries) {
-      if (!entry?.key) continue
-      byKey.set(entry.key, entry.record || {})
+  const keys = bulkKeysForBvids(batch.map((b) => b.bvid));
+  result.bulkKeys = keys;
+
+  let entries: Awaited<ReturnType<ListingBulkReader>> | null = null;
+  let readError: unknown;
+  for (let attempt = 0; attempt < BULK_READ_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      await (readWait ?? sleep)(
+        BULK_READ_BACKOFF_MS[Math.min(attempt - 1, BULK_READ_BACKOFF_MS.length - 1)]!,
+      );
     }
-    for (const { el, bvid } of batch) {
-      const record = byKey.get(storeKey(bvid))
-      if (!record) continue
-      const status = record.status || 0
-      const rating = record.rating || 0
+    try {
+      entries = await dbGetBulk(storeName, keys);
+      break;
+    } catch (err: unknown) {
+      readError = err;
+    }
+  }
+  if (!entries) {
+    // Nothing was answered: drop the placeholders instead of shipping them as
+    // verdicts, and leave the cards marked processed so withdrawing a badge
+    // cannot re-arm the host-page observer into a read loop.
+    result.bulkReadOk = false;
+    warnLog(
+      '[UMM] Bilibili listing DB_GET_BULK unread after all attempts, badges withdrawn:',
+      errorMessage(readError),
+    );
+    await runChunked(
+      batch.map((item) => item.el),
+      removeListingBadge,
+      { chunkSize, schedule },
+    ).promise;
+    return result;
+  }
+
+  const byKey = new Map<string, ListingRecordLike>();
+  for (const entry of entries) {
+    if (!entry?.key) continue;
+    byKey.set(entry.key, entry.record || {});
+  }
+  const updates: Array<{ el: HTMLElement; record: ListingRecordLike | null }> = [];
+  for (const { el, bvid } of batch) {
+    // A row with NO record is an answer ("not watched"), not a missing verdict:
+    // skipping it is what made the delete direction unrepresentable on re-scan.
+    updates.push({ el, record: byKey.get(storeKey(bvid)) ?? null });
+  }
+  // Badge nodes already exist from phase 1, so this pass is pure writes —
+  // still chunked to keep each frame's mutation cost bounded.
+  await runChunked(
+    updates,
+    ({ el, record }) => {
+      const status = record?.status ?? 0;
+      const rating = record?.rating ?? 0;
+      const shell = findDimShell(el);
       if (shouldDimStatus(status)) {
         // Exclusive visual dim: shell XOR card — never both (compound opacity).
-        const shell = findDimShell(el)
         if (shell) {
-          shell.classList.add(LISTING_SHELL_DIM_CLASS)
+          shell.classList.add(LISTING_SHELL_DIM_CLASS);
+          el.classList.remove(LISTING_DIMMER_CLASS);
         } else {
-          el.classList.add(LISTING_DIMMER_CLASS)
+          el.classList.add(LISTING_DIMMER_CLASS);
         }
-        result.dimmed += 1
+        result.dimmed += 1;
+      } else {
+        if (shell) shell.classList.remove(LISTING_SHELL_DIM_CLASS);
+        el.classList.remove(LISTING_DIMMER_CLASS);
       }
-      setListingBadge(el, status, rating)
-      result.badgeHits += 1
+      setListingBadge(el, status, rating);
+      if (record) result.badgeHits += 1;
+    },
+    { chunkSize, schedule },
+  ).promise;
+  return result;
+}
+
+/**
+ * Drop the processed mark on the rows this record event can change so the next
+ * pass re-reads them; a keyless or `'*'` broadcast is a bulk write (import /
+ * restore) and dirties every row, while an unrelated key dirties none — one
+ * foreign write must never re-scan the whole feed.
+ *
+ * Returns the number of dirtied rows (0 ⇒ no re-scan needed).
+ */
+export function invalidateProcessedRows(root: ParentNode, eventKey?: string): number {
+  const bareId = eventKey && eventKey !== '*' ? eventKey.split('::').pop() : undefined;
+  let dirtied = 0;
+  for (const card of Array.from(
+    root.querySelectorAll<HTMLElement>(`[${LISTING_PROCESSED_ATTR}]`),
+  )) {
+    if (!eventKey || eventKey === '*') {
+      card.removeAttribute(LISTING_PROCESSED_ATTR);
+      dirtied++;
+      continue;
     }
-  } catch {
-    // background unreachable — default badges stay
+    if (bareId && extractBvidFromCard(card) === bareId) {
+      card.removeAttribute(LISTING_PROCESSED_ATTR);
+      dirtied++;
+    }
   }
-  return result
+  return dirtied;
 }

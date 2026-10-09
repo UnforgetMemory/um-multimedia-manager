@@ -1,9 +1,16 @@
-import { test, expect } from '@playwright/test'
-import { IDBFactory } from 'fake-indexeddb'
-import { handleAdultAvBatchAdd } from '@/entrypoints/background/handlers/adult-av'
-import { JAV_IDS_STORE_NAME, USAV_IDS_STORE_NAME, SEHUATANG_IDS_STORE_NAME } from '@/features/adult-av/models'
-import type { StoreRecord, AdultAvIdInput } from '@/types'
-import type { MediaDatabase } from '@/features/database/models'
+import { test, expect } from '@playwright/test';
+import { defineGlobal, initFileSandbox } from './helpers/global-sandbox';
+
+initFileSandbox();
+import { IDBFactory } from 'fake-indexeddb';
+import { handleAdultAvBatchAdd } from '@/entrypoints/background/handlers/adult-av';
+import {
+  JAV_IDS_STORE_NAME,
+  USAV_IDS_STORE_NAME,
+  SEHUATANG_IDS_STORE_NAME,
+} from '@/provider/adult-av/models';
+import type { StoreRecord, AdultAvIdInput } from '@/types';
+import type { MediaDatabase } from '@/engine/database/models';
 
 /**
  * S5 — N+1 elimination for the adult write path.
@@ -23,153 +30,171 @@ import type { MediaDatabase } from '@/features/database/models'
  */
 
 interface BatchPutCall {
-  storeName: string
-  records: Array<{ key: string; record: StoreRecord }>
+  storeName: string;
+  records: Array<{ key: string; record: StoreRecord }>;
 }
 
 /** Stub MediaDatabase recording batchGet/batchPut call counts + payloads. */
 function createStubDb(seed: Map<string, StoreRecord>) {
-  const batchGetCalls: Array<{ storeName: string; keys: string[] }> = []
-  const batchPutCalls: BatchPutCall[] = []
+  const batchGetCalls: Array<{ storeName: string; keys: string[] }> = [];
+  const batchPutCalls: BatchPutCall[] = [];
   const db: Pick<MediaDatabase, 'batchGet' | 'batchPut'> = {
     batchGet: async <T = StoreRecord>(storeName: string, keys: IDBValidKey[]) => {
-      batchGetCalls.push({ storeName, keys: keys.map(String) })
-      const map = new Map<IDBValidKey, T>()
+      batchGetCalls.push({ storeName, keys: keys.map(String) });
+      const map = new Map<IDBValidKey, T>();
       for (const k of keys) {
-        const found = seed.get(String(k))
-        if (found) map.set(k, found as T)
+        const found = seed.get(String(k));
+        if (found) map.set(k, found as T);
       }
-      return map
+      return map;
     },
     batchPut: async (storeName: string, records: Array<{ key: string; record: StoreRecord }>) => {
-      batchPutCalls.push({ storeName, records })
+      batchPutCalls.push({ storeName, records });
     },
-  }
-  return { db, batchGetCalls, batchPutCalls }
+  };
+  return { db, batchGetCalls, batchPutCalls };
 }
 
 /** Fresh in-memory IndexedDB so the pre-fix handler (real mediaDB) can run. */
-;(globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
+defineGlobal('indexedDB', new IDBFactory());
 
-const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/
+const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
 
-function runHandler(db: Pick<MediaDatabase, 'batchGet' | 'batchPut'>, source: string, items: AdultAvIdInput[]) {
-  let response: { success: boolean; addedCount?: number; error?: string } | undefined
-  const sendResponse = (r?: unknown) => { response = r as typeof response }
+function runHandler(
+  db: Pick<MediaDatabase, 'batchGet' | 'batchPut'>,
+  source: string,
+  items: AdultAvIdInput[],
+) {
+  let response: { success: boolean; addedCount?: number; error?: string } | undefined;
+  const sendResponse = (r?: unknown) => {
+    response = r as typeof response;
+  };
   return {
     promise: handleAdultAvBatchAdd({ source, items }, sendResponse, db),
     response: () => response,
-  }
+  };
 }
 
 test.describe('handleAdultAvBatchAdd (S5 N+1 elimination)', () => {
   test('exactly one batchGet + one batchPut, old merge semantics preserved', async () => {
     const seed = new Map<string, StoreRecord>([
-      ['javdb::ABC-123', {
-        url: 'https://old.example/abc',
-        status: 2,
-        rating: 7,
-        updatedAt: '2024-01-01T00:00:00.000Z',
-        linkedIds: { douban: 'movie::1' },
-      }],
-    ])
-    const { db, batchGetCalls, batchPutCalls } = createStubDb(seed)
+      [
+        'javdb::ABC-123',
+        {
+          url: 'https://old.example/abc',
+          status: 2,
+          rating: 7,
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          linkedIds: { douban: 'movie::1' },
+        },
+      ],
+    ]);
+    const { db, batchGetCalls, batchPutCalls } = createStubDb(seed);
     const { promise, response } = runHandler(db, 'javdb', [
       { id: 'abc-123', url: 'https://new.example/abc', rating: 9 },
       { id: 'DEF-456', url: '' },
       // Runtime skip: missing id (handler filters before normalize).
       { url: 'https://no-id.example' } as unknown as AdultAvIdInput,
-    ])
-    await promise
+    ]);
+    await promise;
     // Exactly ONE read transaction + ONE write transaction (was 2 per item)
     expect(batchGetCalls).toEqual([
       { storeName: 'jav_ids', keys: ['javdb::ABC-123', 'javdb::DEF-456'] },
-    ])
-    expect(batchPutCalls).toHaveLength(1)
-    expect(batchPutCalls[0].storeName).toBe('jav_ids')
+    ]);
+    expect(batchPutCalls).toHaveLength(1);
+    // `!`：下方各索引用点均由上方 toHaveLength/断言守卫（测试代码允许）。
+    expect(batchPutCalls[0]!.storeName).toBe('jav_ids');
 
-    const records = batchPutCalls[0].records
-    expect(records).toHaveLength(2)
+    const records = batchPutCalls[0]!.records;
+    expect(records).toHaveLength(2);
 
     // Existing item: item url/rating win, linkedIds preserved from existing
-    expect(records[0].key).toBe('javdb::ABC-123')
-    expect(records[0].record.url).toBe('https://new.example/abc')
-    expect(records[0].record.status).toBe(2)
-    expect(records[0].record.rating).toBe(9)
-    expect(records[0].record.linkedIds).toEqual({ douban: 'movie::1' })
-    expect(records[0].record.updatedAt).toMatch(ISO_TS)
+    expect(records[0]!.key).toBe('javdb::ABC-123');
+    expect(records[0]!.record.url).toBe('https://new.example/abc');
+    expect(records[0]!.record.status).toBe(2);
+    expect(records[0]!.record.rating).toBe(9);
+    expect(records[0]!.record.linkedIds).toEqual({ douban: 'movie::1' });
+    expect(records[0]!.record.updatedAt).toMatch(ISO_TS);
 
     // New item: defaults url '' / rating 0 / linkedIds {}
-    expect(records[1].key).toBe('javdb::DEF-456')
-    expect(records[1].record.url).toBe('')
-    expect(records[1].record.status).toBe(2)
-    expect(records[1].record.rating).toBe(0)
-    expect(records[1].record.linkedIds).toEqual({})
-    expect(records[1].record.updatedAt).toMatch(ISO_TS)
+    expect(records[1]!.key).toBe('javdb::DEF-456');
+    expect(records[1]!.record.url).toBe('');
+    expect(records[1]!.record.status).toBe(2);
+    expect(records[1]!.record.rating).toBe(0);
+    expect(records[1]!.record.linkedIds).toEqual({});
+    expect(records[1]!.record.updatedAt).toMatch(ISO_TS);
 
-    expect(response()).toEqual({ success: true, addedCount: 2 })
-  })
+    expect(response()).toEqual({ success: true, addedCount: 2 });
+  });
 
   test('url/rating fall back to the existing record when the item omits them', async () => {
     const seed = new Map<string, StoreRecord>([
-      ['javdb::XYZ-999', {
-        url: 'https://old-url.example/xyz',
-        status: 2,
-        rating: 7,
-        updatedAt: '2024-01-01T00:00:00.000Z',
-        linkedIds: { imdb: 'tt0111161' },
-      }],
-    ])
-    const { db, batchPutCalls } = createStubDb(seed)
-    const { promise, response } = runHandler(db, 'javdb', [{ id: ' xyz-999 ' }])
-    await promise
-    expect(batchPutCalls).toHaveLength(1)
-    const { key, record } = batchPutCalls[0].records[0]
-    expect(key).toBe('javdb::XYZ-999') // normalizeAvId trims + uppercases
-    expect(record.url).toBe('https://old-url.example/xyz')
-    expect(record.rating).toBe(7)
-    expect(record.linkedIds).toEqual({ imdb: 'tt0111161' })
-    expect(record.status).toBe(2)
-    expect(record.updatedAt).toMatch(ISO_TS)
+      [
+        'javdb::XYZ-999',
+        {
+          url: 'https://old-url.example/xyz',
+          status: 2,
+          rating: 7,
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          linkedIds: { imdb: 'tt0111161' },
+        },
+      ],
+    ]);
+    const { db, batchPutCalls } = createStubDb(seed);
+    const { promise, response } = runHandler(db, 'javdb', [{ id: ' xyz-999 ' }]);
+    await promise;
+    expect(batchPutCalls).toHaveLength(1);
+    expect(batchPutCalls[0]!.records).toHaveLength(1); // 存在性守卫
+    const { key, record } = batchPutCalls[0]!.records[0]!;
+    expect(key).toBe('javdb::XYZ-999'); // normalizeAvId trims + uppercases
+    expect(record.url).toBe('https://old-url.example/xyz');
+    expect(record.rating).toBe(7);
+    expect(record.linkedIds).toEqual({ imdb: 'tt0111161' });
+    expect(record.status).toBe(2);
+    expect(record.updatedAt).toMatch(ISO_TS);
 
-    expect(response()).toEqual({ success: true, addedCount: 1 })
-  })
+    expect(response()).toEqual({ success: true, addedCount: 1 });
+  });
 
   test('no valid items → no read/write transaction at all, addedCount 0', async () => {
-    const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map())
+    const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map());
     const { promise, response } = runHandler(db, 'javdb', [
       { url: 'https://a.example' } as unknown as AdultAvIdInput,
       { id: '' },
-    ])
-    await promise
+    ]);
+    await promise;
     // ADR-025: 写入按分类器分组——无有效项 → 无分组 → 不产生读事务（旧实现
     // 会为整个批次发一次空 batchGet；分组后空批次不再触碰 DB）。
-    expect(batchGetCalls).toHaveLength(0)
-    expect(batchPutCalls).toHaveLength(0)
+    expect(batchGetCalls).toHaveLength(0);
+    expect(batchPutCalls).toHaveLength(0);
 
-    expect(response()).toEqual({ success: true, addedCount: 0 })
-  })
+    expect(response()).toEqual({ success: true, addedCount: 0 });
+  });
 
   test('ADR-025 分类分组：日系/美欧/TID 三类 → 三表各自一次 batchGet + batchPut', async () => {
-    const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map())
+    const { db, batchGetCalls, batchPutCalls } = createStubDb(new Map());
     const { promise, response } = runHandler(db, 'sehuatang', [
-      { id: 'SSIS-001' },                              // 日系 → jav_ids
-      { id: 'BigTitsRoundAsses.23.06.10' },            // 美欧 → usav_ids
-      { id: 'TID-3664524' },                           // 帖子兜底 → sehuatang_ids
-    ])
-    await promise
+      { id: 'SSIS-001' }, // 日系 → jav_ids
+      { id: 'BigTitsRoundAsses.23.06.10' }, // 美欧 → usav_ids
+      { id: 'TID-3664524' }, // 帖子兜底 → sehuatang_ids
+    ]);
+    await promise;
 
-    const storesRead = batchGetCalls.map((c) => c.storeName).sort()
-    expect(storesRead).toEqual([SEHUATANG_IDS_STORE_NAME, USAV_IDS_STORE_NAME, JAV_IDS_STORE_NAME].sort())
-    const storesWritten = batchPutCalls.map((c) => c.storeName).sort()
-    expect(storesWritten).toEqual([SEHUATANG_IDS_STORE_NAME, USAV_IDS_STORE_NAME, JAV_IDS_STORE_NAME].sort())
+    const storesRead = batchGetCalls.map((c) => c.storeName).sort();
+    expect(storesRead).toEqual(
+      [SEHUATANG_IDS_STORE_NAME, USAV_IDS_STORE_NAME, JAV_IDS_STORE_NAME].sort(),
+    );
+    const storesWritten = batchPutCalls.map((c) => c.storeName).sort();
+    expect(storesWritten).toEqual(
+      [SEHUATANG_IDS_STORE_NAME, USAV_IDS_STORE_NAME, JAV_IDS_STORE_NAME].sort(),
+    );
 
-    const byStore = new Map(batchPutCalls.map((c) => [c.storeName, c.records.map((r) => r.key)]))
-    expect(byStore.get(JAV_IDS_STORE_NAME)).toEqual(['sehuatang::SSIS-001'])
-    expect(byStore.get(USAV_IDS_STORE_NAME)).toEqual(['sehuatang::BIGTITSROUNDASSES.23.06.10'])
-    expect(byStore.get(SEHUATANG_IDS_STORE_NAME)).toEqual(['sehuatang::TID-3664524'])
-    expect(batchPutCalls.every((c) => c.records.every((r) => r.record.status === 2))).toBe(true)
+    const byStore = new Map(batchPutCalls.map((c) => [c.storeName, c.records.map((r) => r.key)]));
+    expect(byStore.get(JAV_IDS_STORE_NAME)).toEqual(['sehuatang::SSIS-001']);
+    expect(byStore.get(USAV_IDS_STORE_NAME)).toEqual(['sehuatang::BIGTITSROUNDASSES.23.06.10']);
+    expect(byStore.get(SEHUATANG_IDS_STORE_NAME)).toEqual(['sehuatang::TID-3664524']);
+    expect(batchPutCalls.every((c) => c.records.every((r) => r.record.status === 2))).toBe(true);
 
-    expect(response()).toEqual({ success: true, addedCount: 3 })
-  })
-})
+    expect(response()).toEqual({ success: true, addedCount: 3 });
+  });
+});

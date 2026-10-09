@@ -2,11 +2,17 @@
 /* Builds a dual-theme component fixture: composes REAL douban CSS in preset
  * order (static→design-tokens→theme→base→pages) and inlines it into a
  * self-contained HTML with two shadow hosts (light | dark) × state matrix. */
-const fs = require('node:fs')
-const path = require('node:path')
-const root = path.resolve(__dirname, '..')
-const DB = 'src/content/douban/styles'
-const S = f => fs.readFileSync(path.join(root, f.startsWith('shared/') ? path.join('src', f) : path.join('src/content/douban/styles', f)), 'utf8')
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const S = (f) =>
+  fs.readFileSync(
+    path.join(
+      root,
+      f.startsWith('shared/') ? path.join('src', f) : path.join('src/scenario/douban/styles', f),
+    ),
+    'utf8',
+  );
 
 const order = [
   ['static-tokens', 'shared/styles/tokens.static.css'],
@@ -23,16 +29,21 @@ const order = [
   ['doulists', 'doulists.css'],
   ['personage-creations', 'personage-creations.css'],
   ['interest', 'interest.css'],
-]
-const css = order.map(([n, f]) => {
-  let c = S(f)
-  // Page-scoped :host token overrides must not leak into the multi-page fixture
-  // (real composition loads homepage css only on homepage pages).
-  if (n === 'homepage' || n === 'music-homepage' || n === 'book-homepage') {
-    c = c.replace(/--umm-card-bg:\s*transparent;/g, '/* page-scoped override removed in fixture */')
-  }
-  return `/* === ${n} === */\n${c}`
-}).join('\n')
+];
+const css = order
+  .map(([n, f]) => {
+    let c = S(f);
+    // Page-scoped :host token overrides must not leak into the multi-page fixture
+    // (real composition loads homepage css only on homepage pages).
+    if (n === 'homepage' || n === 'music-homepage' || n === 'book-homepage') {
+      c = c.replace(
+        /--umm-card-bg:\s*transparent;/g,
+        '/* page-scoped override removed in fixture */',
+      );
+    }
+    return `/* === ${n} === */\n${c}`;
+  })
+  .join('\n');
 
 const markup = `
 <!-- 状态徽章 (.umm-status — 榜单/搜索/专辑卡片 + 豆列/游戏行内) -->
@@ -132,7 +143,7 @@ const markup = `
     <button class="umm-paginator-btn">3</button>
   </div>
 </section>
-`
+`;
 
 const hostScript = `
 const css = document.getElementById('composed-css').textContent
@@ -154,7 +165,7 @@ document.getElementById('toggle').addEventListener('click', () => {
   const dark = h.classList.toggle('umm-theme--dark')
   h.setAttribute('data-theme', dark ? 'dark' : 'light')
 })
-`
+`;
 
 const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
@@ -174,9 +185,13 @@ const html = `<!DOCTYPE html>
 <script type="text/css" id="composed-css">${css.replace(/<\/style/gi, '<\\/style')}</script>
 <script type="text/html" id="fixture-markup">${markup.replace(/<\/script/gi, '<\\/script')}</script>
 <script>${hostScript}</script>
-</body></html>`
+</body></html>`;
 
-const outDir = path.join(root, 'tmp-fixture')
-fs.mkdirSync(outDir, { recursive: true })
-fs.writeFileSync(path.join(outDir, 'douban-fixture.html'), html)
-console.log('fixture →', path.join(outDir, 'douban-fixture.html'), `(${(html.length / 1024).toFixed(1)}kb)`)
+const outDir = path.join(root, 'tmp-fixture');
+fs.mkdirSync(outDir, { recursive: true });
+fs.writeFileSync(path.join(outDir, 'douban-fixture.html'), html);
+console.log(
+  'fixture →',
+  path.join(outDir, 'douban-fixture.html'),
+  `(${(html.length / 1024).toFixed(1)}kb)`,
+);

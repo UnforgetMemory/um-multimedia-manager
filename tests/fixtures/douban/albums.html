@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/albums-data.spec.ts.
+  NOT a real saved page — all data is fabricated. Reproduces the public DOM
+  shape of https://music.douban.com/albums/{id} (version list) as queried by
+  src/scenario/douban/pages/albums/albums-data.ts:
+  h1 album title; li.dlist keyed by numeric id with img.cover (src or
+  data-original lazy attr), a.pl2 title (optional small-font span subtitle),
+  p.pl abstract, .star span.pl 评价人数 and allstarNN star class.
+  Includes garbage li (missing / non-numeric id), a li without a.pl2, a lazy
+  cover item and an item without rating_num/stars.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>夜航班 Night Flight 的其他版本</title>
+  </head>
+  <body>
+    <div id="content">
+      <h1>夜航班 Night Flight</h1>
+      <div class="article">
+        <ul class="cover-container">
+          <li class="dlist" id="5860001">
+            <a class="nbg" href="https://music.douban.com/subject/5860001/">
+              <img class="cover" src="https://img1.doubanio.com/view/subject/m/public/s5860001.jpg" />
+            </a>
+            <div class="cnt">
+              <div class="title">
+                <a class="pl2" href="https://music.douban.com/subject/5860001/"
+                  >夜航班 Night Flight<span style="font-size: 10px;">[CD首版]</span></a
+                >
+              </div>
+              <p class="pl">表演者: 星云乐团 / 发行时间: 2024-11-08 / 出版者: 星岛唱片 / 介质: CD / 条形码: 9787881234567</p>
+              <div class="star clearfix">
+                <span class="rating_num">8.9</span>
+                <span class="pl">(277人评价)</span>
+                <span class="allstar45" title="推荐"></span>
+              </div>
+            </div>
+          </li>
+          <li class="dlist" id="5860002">
+            <a class="nbg" href="https://music.douban.com/subject/5860002/">
+              <img class="cover" data-original="https://img2.doubanio.com/view/subject/m/public/s5860002.jpg" />
+            </a>
+            <div class="cnt">
+              <div class="title">
+                <a class="pl2" href="https://music.douban.com/subject/5860002/">夜航班 Night Flight</a>
+              </div>
+              <p class="pl">表演者: 星云乐团 / 发行时间: 2025-03-01 / 出版者: 星岛唱片 / 介质: LP</p>
+              <div class="star clearfix">
+                <span class="pl">(12人在听)</span>
+                <span class="allstar50" title="力荐"></span>
+              </div>
+            </div>
+          </li>
+          <li class="dlist" id="5860003">
+            <a class="nbg" href="https://music.douban.com/subject/5860003/">
+              <img class="cover" src="https://img3.doubanio.com/view/subject/m/public/s5860003.jpg" />
+            </a>
+            <div class="cnt">
+              <div class="title">
+                <a class="pl2" href="https://music.douban.com/subject/5860003/"
+                  >夜航班 Night Flight<span style="font-size: 10px;">[数字版]</span></a
+                >
+              </div>
+              <p class="pl">表演者: 星云乐团 / 发行时间: 2025-06-15 / 出版者: 流媒体 / 介质: 数字(Digital)</p>
+              <div class="star clearfix">
+                <span class="rating_num">7.2</span>
+                <span class="pl">(1,560人评价)</span>
+              </div>
+            </div>
+          </li>
+          <li class="dlist">
+            <div class="cnt"><p>推荐位：相似专辑（无 id）</p></div>
+          </li>
+          <li class="dlist" id="s0001">
+            <div class="cnt">
+              <div class="title"><a class="pl2" href="https://music.douban.com/subject/9/">非数字 id</a></div>
+            </div>
+          </li>
+          <li class="dlist" id="5860009">
+            <a class="nbg"><img class="cover" src="https://img1.doubanio.com/x.jpg" /></a>
+            <div class="cnt"><p class="pl">缺标题链接</p></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

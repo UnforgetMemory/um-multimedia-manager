@@ -1,0 +1,32 @@
+{
+  "name": "L5-feature",
+  "moves": [
+    {
+      "from": "src/shared/ConfirmDialog.vue",
+      "to": "src/feature/ConfirmDialog.vue",
+      "type": "file"
+    },
+    {
+      "from": "src/shared/HeatmapCalendar.vue",
+      "to": "src/feature/HeatmapCalendar.vue",
+      "type": "file"
+    },
+    {
+      "from": "src/shared/PlatformDistribution.vue",
+      "to": "src/feature/PlatformDistribution.vue",
+      "type": "file"
+    },
+    {
+      "from": "src/shared/ToastContainer.vue",
+      "to": "src/feature/ToastContainer.vue",
+      "type": "file"
+    },
+    { "from": "src/composables", "to": "src/feature/composables", "type": "dir" },
+    { "from": "src/features/optimistic-lock", "to": "src/feature/optimistic-lock", "type": "dir" }
+  ],
+  "aliasRewrites": [
+    ["@/shared", "@/feature"],
+    ["@/composables", "@/feature/composables"],
+    ["@/features/optimistic-lock", "@/feature/optimistic-lock"]
+  ]
+}

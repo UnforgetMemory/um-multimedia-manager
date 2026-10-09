@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test'
-import { JSDOM } from 'jsdom'
+import { test, expect } from '@playwright/test';
+import { JSDOM } from 'jsdom';
 import {
   extractUserProfileInfo,
   extractCollectPageShell,
-} from '@/content/douban/shared/douban-extract'
+} from '@/scenario/douban/shared/douban-extract';
 
 /**
  * extractUserProfileInfo / extractCollectPageShell 单元测试（audit §2.4 T14）。
@@ -19,7 +19,7 @@ import {
 // Helper: create JSDOM with a URL containing /people/{uid}
 // ---------------------------------------------------------------------------
 function dom(html: string, uid = 'testuser123'): JSDOM {
-  return new JSDOM(html, { url: `https://movie.douban.com/people/${uid}/celebrities` })
+  return new JSDOM(html, { url: `https://movie.douban.com/people/${uid}/celebrities` });
 }
 
 // ===========================================================================
@@ -45,9 +45,9 @@ test.describe('extractUserProfileInfo — 用户信息 hero block 去重', () =>
       <div class="side-info-txt">
         <h3>张三</h3>
       </div>
-    `
-    const { window } = dom(html)
-    const result = extractUserProfileInfo(window.document)
+    `;
+    const { window } = dom(html);
+    const result = extractUserProfileInfo(window.document);
 
     expect(result).toEqual({
       userId: 'testuser123',
@@ -57,8 +57,8 @@ test.describe('extractUserProfileInfo — 用户信息 hero block 去重', () =>
         { label: '看过的电影', url: 'https://movie.douban.com/people/u1/collect' },
         { label: '想看', url: 'https://movie.douban.com/people/u1/wish' },
       ],
-    })
-  })
+    });
+  });
 
   test('user-reviews 页面结构 → displayName 来自 avatar alt', () => {
     const html = `
@@ -73,18 +73,18 @@ test.describe('extractUserProfileInfo — 用户信息 hero block 去重', () =>
           </ul>
         </div>
       </div>
-    `
-    const { window } = dom(html, 'u2')
-    const result = extractUserProfileInfo(window.document)
+    `;
+    const { window } = dom(html, 'u2');
+    const result = extractUserProfileInfo(window.document);
 
     // displayName 应从 avatar alt 获取（h1 是 "我的影评(5)" 不是真名）
-    expect(result.displayName).toBe('李四')
-    expect(result.avatarUrl).toBe('https://img.example.com/avatar2.jpg')
-    expect(result.userId).toBe('u2')
+    expect(result.displayName).toBe('李四');
+    expect(result.avatarUrl).toBe('https://img.example.com/avatar2.jpg');
+    expect(result.userId).toBe('u2');
     expect(result.navLinks).toEqual([
       { label: '看过', url: 'https://movie.douban.com/people/u2/collect' },
-    ])
-  })
+    ]);
+  });
 
   test('user-profile 页面结构 → displayName 来自 h1 first text node', () => {
     const html = `
@@ -96,15 +96,15 @@ test.describe('extractUserProfileInfo — 用户信息 hero block 去重', () =>
       <div class="basic-info">
         <img class="userface" src="https://img.example.com/large.jpg">
       </div>
-    `
-    const { window } = dom(html.replace(/\/people\/testuser123\//, '/people/u3/'), 'u3')
-    const result = extractUserProfileInfo(window.document)
+    `;
+    const { window } = dom(html.replace(/\/people\/testuser123\//, '/people/u3/'), 'u3');
+    const result = extractUserProfileInfo(window.document);
 
-    expect(result.userId).toBe('u3')
-    expect(result.displayName).toBe('王五')
+    expect(result.userId).toBe('u3');
+    expect(result.displayName).toBe('王五');
     // user-profile 页面 avatar 在 .basic-info .userface（作为 fallback）
-    expect(result.avatarUrl).toBe('https://img.example.com/large.jpg')
-  })
+    expect(result.avatarUrl).toBe('https://img.example.com/large.jpg');
+  });
 
   test('navLinks 中 text 为 "|" 的分隔符被跳过', () => {
     const html = `
@@ -119,30 +119,33 @@ test.describe('extractUserProfileInfo — 用户信息 hero block 去重', () =>
           </ul>
         </div>
       </div>
-    `
-    const { window } = dom(html, 'u')
-    const result = extractUserProfileInfo(window.document)
+    `;
+    const { window } = dom(html, 'u');
+    const result = extractUserProfileInfo(window.document);
     // "|" 作为 text content 不是 <a> 标签，不会被选中（querySelectorAll('a')）
-    expect(result.navLinks).toHaveLength(2)
-  })
+    expect(result.navLinks).toHaveLength(2);
+  });
 
   test('无 #db-usr-profile → 返回空默认值', () => {
-    const { window } = dom('<div></div>')
-    const result = extractUserProfileInfo(window.document)
-    expect(result.userId).toBe('testuser123') // from URL
-    expect(result.displayName).toBe('')
-    expect(result.avatarUrl).toBe('')
-    expect(result.navLinks).toEqual([])
-  })
+    const { window } = dom('<div></div>');
+    const result = extractUserProfileInfo(window.document);
+    expect(result.userId).toBe('testuser123'); // from URL
+    expect(result.displayName).toBe('');
+    expect(result.avatarUrl).toBe('');
+    expect(result.navLinks).toEqual([]);
+  });
 
   test('URL 中无 /people/ → userId 为空', () => {
-    const dom2 = new JSDOM('<div id="db-usr-profile"><div class="pic"><img src="a.jpg" alt="Y"></div></div>', {
-      url: 'https://movie.douban.com/subject/123/',
-    })
-    const result = extractUserProfileInfo(dom2.window.document)
-    expect(result.userId).toBe('')
-    expect(result.displayName).toBe('Y')
-  })
+    const dom2 = new JSDOM(
+      '<div id="db-usr-profile"><div class="pic"><img src="a.jpg" alt="Y"></div></div>',
+      {
+        url: 'https://movie.douban.com/subject/123/',
+      },
+    );
+    const result = extractUserProfileInfo(dom2.window.document);
+    expect(result.userId).toBe('');
+    expect(result.displayName).toBe('Y');
+  });
 
   test('side-info-avatar img 作为 avatar fallback', () => {
     const html = `
@@ -152,13 +155,13 @@ test.describe('extractUserProfileInfo — 用户信息 hero block 去重', () =>
       <div class="side-info-avatar">
         <img src="https://img.example.com/side-avatar.jpg" alt="Z">
       </div>
-    `
-    const { window } = dom(html, 'u')
-    const result = extractUserProfileInfo(window.document)
-    expect(result.avatarUrl).toBe('https://img.example.com/side-avatar.jpg')
-    expect(result.displayName).toBe('Z')
-  })
-})
+    `;
+    const { window } = dom(html, 'u');
+    const result = extractUserProfileInfo(window.document);
+    expect(result.avatarUrl).toBe('https://img.example.com/side-avatar.jpg');
+    expect(result.displayName).toBe('Z');
+  });
+});
 
 // ===========================================================================
 // FAMILY 2 — extractCollectPageShell
@@ -193,7 +196,7 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
         <a href="?start=40">3</a>
         <span class="next"><a href="?start=20">后页</a></span>
       </div>
-    `
+    `;
   }
 
   /** 构造 music-collect 页面 DOM（含 #user-id hidden input） */
@@ -221,70 +224,70 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
         <a href="?start=15">2</a>
         <span class="next"><a href="?start=15">后页</a></span>
       </div>
-    `
+    `;
   }
 
   test('book-collect URL → subType=collect，所有 shell 字段正确', () => {
-    const html = bookCollectHtml()
+    const html = bookCollectHtml();
     const { window } = new JSDOM(html, {
       url: 'https://book.douban.com/people/u1/collect',
-    })
-    const result = extractCollectPageShell(window.document)
+    });
+    const result = extractCollectPageShell(window.document);
 
-    expect(result.subType).toBe('collect')
-    expect(result.userId).toBe('u1')
-    expect(result.displayName).toBe('读者')
-    expect(result.avatarUrl).toBe('https://img.example.com/avatar.jpg')
+    expect(result.subType).toBe('collect');
+    expect(result.userId).toBe('u1');
+    expect(result.displayName).toBe('读者');
+    expect(result.avatarUrl).toBe('https://img.example.com/avatar.jpg');
     expect(result.navLinks).toEqual([
       { label: '读过', url: 'https://book.douban.com/people/u1/collect' },
       { label: '想读', url: 'https://book.douban.com/people/u1/wish' },
-    ])
+    ]);
     expect(result.sortOptions).toEqual([
       { label: '按时间排序 ·', url: '', active: true },
       { label: '按评价排序', url: '?sort=rank', active: false },
-    ])
-    expect(result.currentPage).toBe('1-20')
-    expect(result.total).toBe(88)
-    expect(result.mode).toBe('grid')
+    ]);
+    expect(result.currentPage).toBe('1-20');
+    expect(result.total).toBe(88);
+    expect(result.mode).toBe('grid');
     expect(result.pageLinks).toEqual([
       { label: '1', url: '', current: true },
       { label: '2', url: 'https://book.douban.com/people/u1/collect?start=20', current: false },
       { label: '3', url: 'https://book.douban.com/people/u1/collect?start=40', current: false },
-    ])
-    expect(result.prevPageUrl).toBe('https://book.douban.com/people/u1/collect?start=0')
-    expect(result.nextPageUrl).toBe('https://book.douban.com/people/u1/collect?start=20')
-  })
+    ]);
+    expect(result.prevPageUrl).toBe('https://book.douban.com/people/u1/collect?start=0');
+    expect(result.nextPageUrl).toBe('https://book.douban.com/people/u1/collect?start=20');
+  });
 
   test('music-collect URL with /wish → subType=wish', () => {
-    const html = musicCollectHtml()
+    const html = musicCollectHtml();
     const { window } = new JSDOM(html, {
       url: 'https://music.douban.com/people/u2/wish',
-    })
-    const result = extractCollectPageShell(window.document)
+    });
+    const result = extractCollectPageShell(window.document);
 
-    expect(result.subType).toBe('wish')
-    expect(result.userId).toBe('u2')
-    expect(result.displayName).toBe('乐迷')
-  })
+    expect(result.subType).toBe('wish');
+    expect(result.userId).toBe('u2');
+    expect(result.displayName).toBe('乐迷');
+  });
 
   test('music-collect URL with status=do → subType=doing', () => {
-    const html = musicCollectHtml()
+    const html = musicCollectHtml();
     const { window } = new JSDOM(html, {
       url: 'https://music.douban.com/people/u2/status=do',
-    })
-    const result = extractCollectPageShell(window.document)
-    expect(result.subType).toBe('doing')
-  })
+    });
+    const result = extractCollectPageShell(window.document);
+    expect(result.subType).toBe('doing');
+  });
 
   test('#user-id input 作为 userId fallback', () => {
-    const html = musicCollectHtml('from-input')
+    const html = musicCollectHtml('from-input');
     const { window } = new JSDOM(html, {
       url: 'https://music.douban.com/mine/?status=collect',
-    })
-    const result = extractCollectPageShell(window.document)
+    });
+    const result = extractCollectPageShell(window.document);
     // URL 无 /people/ 匹配，但 #user-id input 存在
-    expect(result.userId).toBe('from-input')
-  })
+    expect(result.userId).toBe('from-input');
+  });
 
   test('无 .subject-num 时 fallback 到 h1 "(N)" 获取 total', () => {
     const html = `
@@ -292,13 +295,13 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
         <div class="pic"><img src="a.jpg" alt="X"></div>
         <div class="info"><h1>我的书架(120)</h1></div>
       </div>
-    `
+    `;
     const { window } = new JSDOM(html, {
       url: 'https://book.douban.com/people/u/collect',
-    })
-    const result = extractCollectPageShell(window.document)
-    expect(result.total).toBe(120)
-  })
+    });
+    const result = extractCollectPageShell(window.document);
+    expect(result.total).toBe(120);
+  });
 
   test('无 .grid-on → mode=list', () => {
     const html = `
@@ -306,32 +309,32 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
         <div class="pic"><img src="a.jpg" alt="X"></div>
         <div class="info"><h1>Title(10)</h1></div>
       </div>
-    `
+    `;
     const { window } = new JSDOM(html, {
       url: 'https://book.douban.com/people/u/collect',
-    })
-    const result = extractCollectPageShell(window.document)
-    expect(result.mode).toBe('list')
-  })
+    });
+    const result = extractCollectPageShell(window.document);
+    expect(result.mode).toBe('list');
+  });
 
   test('空页面 → 所有字段为默认值', () => {
     const { window } = new JSDOM('<div></div>', {
       url: 'https://book.douban.com/people/u/collect',
-    })
-    const result = extractCollectPageShell(window.document)
-    expect(result.subType).toBe('collect')
-    expect(result.userId).toBe('u')
-    expect(result.displayName).toBe('u')  // falls back to userId, matching original behavior
-    expect(result.avatarUrl).toBe('')
-    expect(result.navLinks).toEqual([])
-    expect(result.sortOptions).toEqual([])
-    expect(result.currentPage).toBe('')
-    expect(result.total).toBe(0)
-    expect(result.mode).toBe('list')
-    expect(result.pageLinks).toEqual([])
-    expect(result.prevPageUrl).toBe('')
-    expect(result.nextPageUrl).toBe('')
-  })
+    });
+    const result = extractCollectPageShell(window.document);
+    expect(result.subType).toBe('collect');
+    expect(result.userId).toBe('u');
+    expect(result.displayName).toBe('u'); // falls back to userId, matching original behavior
+    expect(result.avatarUrl).toBe('');
+    expect(result.navLinks).toEqual([]);
+    expect(result.sortOptions).toEqual([]);
+    expect(result.currentPage).toBe('');
+    expect(result.total).toBe(0);
+    expect(result.mode).toBe('list');
+    expect(result.pageLinks).toEqual([]);
+    expect(result.prevPageUrl).toBe('');
+    expect(result.nextPageUrl).toBe('');
+  });
 
   test('total=0 但有 paginator → 从最后一页推算 total', () => {
     const html = `
@@ -346,15 +349,15 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
         <a href="?start=40">3</a>
         <span class="next"><a href="?start=20">后页</a></span>
       </div>
-    `
+    `;
     const { window } = new JSDOM(html, {
       url: 'https://book.douban.com/people/u/collect',
-    })
-    const result = extractCollectPageShell(window.document)
+    });
+    const result = extractCollectPageShell(window.document);
     // subject-num 解析 total=0，但 h1 fallback 也无 "(N)"，所以 total=0
     // 最后一页 start=40 + 20 = 60? 不对，shell 不做这个推算——那是调用方的责任
-    expect(result.total).toBe(0)
-  })
+    expect(result.total).toBe(0);
+  });
 
   test('navLinks href 含 www.douban.com → 替换为 movie.douban.com（celebrities 模式）', () => {
     const html = `
@@ -367,14 +370,15 @@ test.describe('extractCollectPageShell — collect page shell 去重', () => {
           </ul>
         </div>
       </div>
-    `
+    `;
     // extractCollectPageShell 不做 domain 替换（那是 user-celebrities 特有的）
     // 但 extractUserProfileInfo 也不做——让我确认
     const { window } = new JSDOM(html, {
       url: 'https://movie.douban.com/people/u/collect',
-    })
-    const result = extractCollectPageShell(window.document)
+    });
+    const result = extractCollectPageShell(window.document);
     // collect pages 不做 www→movie 替换
-    expect(result.navLinks[0].url).toBe('https://www.douban.com/people/u/contacts')
-  })
-})
+    expect(result.navLinks[0]).toBeDefined(); // 存在性守卫
+    expect(result.navLinks[0]!.url).toBe('https://www.douban.com/people/u/contacts');
+  });
+});

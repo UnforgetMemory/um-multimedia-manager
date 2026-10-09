@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/game-explore-data.spec.ts
+  (DOM-fallback strategy). NOT a real saved page: reproduces the www.douban.com/
+  game/explore server-rendered fallback DOM (.game-list li, .game-filters
+  form.filters fieldsets, .sorters radios) consumed by extractFromDOM /
+  extractFiltersFromDOM in src/scenario/douban/pages/game-explore/game-explore-data.ts.
+  Deliberately has NO GlobalData inline script. All data fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>发现游戏 · 豆瓣</title>
+  </head>
+  <body>
+    <div class="game-filters">
+      <form class="filters">
+        <fieldset>
+          <legend>风格</legend>
+          <div class="filter-options">
+            <label><input type="checkbox" name="genres" value="" />全部×</label>
+            <label><input type="checkbox" name="genres" value="1" checked />动作×</label>
+            <label><input type="checkbox" name="genres" value="7" />冒险×</label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>主机平台</legend>
+          <div class="filter-options">
+            <label><input type="checkbox" name="platforms" value="" />全部×</label>
+            <label><input type="checkbox" name="platforms" value="94" />Switch×</label>
+          </div>
+        </fieldset>
+      </form>
+      <div class="sorters">
+        <label><input type="radio" name="sort" value="rating" checked />评分</label>
+        <label><input type="radio" name="sort" value="time" />时间</label>
+      </div>
+    </div>
+
+    <ul class="game-list">
+      <li>
+        <a class="game-poster" href="https://www.douban.com/game/35752877/"
+          ><img src="https://img9.doubanio.com/view/game_photo/l_cover/public/p35752877.jpg"
+        /></a>
+        <div class="game-info">
+          <div class="game-title">
+            <a href="https://www.douban.com/game/35752877/">塞尔达传说：王国之泪</a>
+          </div>
+          <div class="game-meta"><span>游戏 / 动作冒险</span><span>Switch / PC</span></div>
+          <div class="game-ratings">
+            <span class="rating-star allstar50"></span><strong>9.6</strong> · 15670人评价
+          </div>
+          <div class="game-review">教科书级的开放世界设计 -- 机核评价</div>
+        </div>
+      </li>
+      <!-- lazy cover via data-original; review without author -->
+      <li>
+        <a class="game-poster" href="https://www.douban.com/game/27011570/"
+          ><img data-original="https://img2.doubanio.com/view/game_photo/l_cover/public/p27011570.jpg"
+        /></a>
+        <div class="game-info">
+          <div class="game-title"><a href="https://www.douban.com/game/27011570/">荒野大镖客：救赎2</a></div>
+          <div class="game-meta"><span>游戏 / 沙盒</span><span>PS4</span></div>
+          <div class="game-ratings">
+            <span class="rating-star allstar45"></span><strong>9.4</strong> · 8901人评价
+          </div>
+          <div class="game-review">值得细细品味的西部史诗</div>
+        </div>
+      </li>
+      <!-- lazy cover via data-src; no ratings block and no review -->
+      <li>
+        <a class="game-poster" href="https://www.douban.com/game/30161557/"
+          ><img data-src="https://img3.doubanio.com/view/game_photo/l_cover/public/p30161557.jpg"
+        /></a>
+        <div class="game-info">
+          <div class="game-title"><a href="https://www.douban.com/game/30161557/">潜水员戴夫</a></div>
+          <div class="game-meta"><span>游戏 / 模拟经营</span><span>PC / Switch</span></div>
+        </div>
+      </li>
+      <!-- no poster link → skipped -->
+      <li>
+        <div class="game-info">
+          <div class="game-title"><a href="https://www.douban.com/game/99999999/">无海报条目</a></div>
+        </div>
+      </li>
+      <!-- poster href without numeric game id → skipped -->
+      <li>
+        <a class="game-poster" href="https://www.douban.com/game/explore"
+          ><img src="https://img9.doubanio.com/deco.jpg"
+        /></a>
+        <div class="game-info">
+          <div class="game-title"><a href="https://www.douban.com/game/explore">推广位</a></div>
+        </div>
+      </li>
+    </ul>
+  </body>
+</html>

@@ -15,5 +15,5 @@ export function statusLabelKey(mediaType: string, suffix: string, base: string):
       ? `status.${suffix}_book`
       : mediaType === 'game'
         ? `status.${suffix}_game`
-        : base
+        : base;
 }

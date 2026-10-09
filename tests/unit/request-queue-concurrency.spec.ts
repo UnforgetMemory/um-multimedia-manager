@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { RequestQueue } from '@/utils/requestQueue'
+import { test, expect } from '@playwright/test';
+import { RequestQueue } from '@/libraries/utils/request-queue';
 
 /**
  * Concurrency contract for the mukaku network probe queue.
@@ -15,69 +15,69 @@ import { RequestQueue } from '@/utils/requestQueue'
  */
 
 function makeQueue(maxConcurrent: number, minDelayMs = 0, maxDelayMs = 0): RequestQueue {
-  return new RequestQueue({ maxConcurrent, minDelayMs, maxDelayMs })
+  return new RequestQueue({ maxConcurrent, minDelayMs, maxDelayMs });
 }
 
 test('runs up to maxConcurrent tasks concurrently (no serialization)', async () => {
-  const queue = makeQueue(10)
-  const active = new Set<number>()
-  let peakActive = 0
+  const queue = makeQueue(10);
+  const active = new Set<number>();
+  let peakActive = 0;
 
   const tasks = Array.from({ length: 20 }, (_, i) =>
     queue.enqueue(`k${i}`, async () => {
-      active.add(i)
-      peakActive = Math.max(peakActive, active.size)
-      await new Promise((r) => setTimeout(r, 20))
-      active.delete(i)
+      active.add(i);
+      peakActive = Math.max(peakActive, active.size);
+      await new Promise((r) => setTimeout(r, 20));
+      active.delete(i);
     }),
-  )
+  );
 
-  await Promise.all(tasks)
+  await Promise.all(tasks);
   // 20 tasks with maxConcurrent 10 → peak concurrency must exceed 1
-  expect(peakActive).toBeGreaterThan(1)
-  expect(peakActive).toBeLessThanOrEqual(10)
-})
+  expect(peakActive).toBeGreaterThan(1);
+  expect(peakActive).toBeLessThanOrEqual(10);
+});
 
 test('maxConcurrent 1 serializes strictly (peak 1)', async () => {
-  const queue = makeQueue(1)
-  const active = new Set<number>()
-  let peakActive = 0
+  const queue = makeQueue(1);
+  const active = new Set<number>();
+  let peakActive = 0;
 
   const tasks = Array.from({ length: 5 }, (_, i) =>
     queue.enqueue(`k${i}`, async () => {
-      active.add(i)
-      peakActive = Math.max(peakActive, active.size)
-      await new Promise((r) => setTimeout(r, 5))
-      active.delete(i)
+      active.add(i);
+      peakActive = Math.max(peakActive, active.size);
+      await new Promise((r) => setTimeout(r, 5));
+      active.delete(i);
     }),
-  )
+  );
 
-  await Promise.all(tasks)
-  expect(peakActive).toBe(1)
-})
+  await Promise.all(tasks);
+  expect(peakActive).toBe(1);
+});
 
 test('rejects propagate to the enqueue caller', async () => {
-  const queue = makeQueue(2)
+  const queue = makeQueue(2);
   await expect(
     queue.enqueue('boom', async () => {
-      throw new Error('probe failed')
+      throw new Error('probe failed');
     }),
-  ).rejects.toThrow('probe failed')
-})
+  ).rejects.toThrow('probe failed');
+});
 
 test('idle after all tasks settle; totalCount resets', async () => {
-  const queue = makeQueue(3)
-  expect(queue.isIdle()).toBe(true)
+  const queue = makeQueue(3);
+  expect(queue.isIdle()).toBe(true);
 
   const tasks = Array.from({ length: 4 }, (_, i) =>
     queue.enqueue(`k${i}`, async () => {
-      await new Promise((r) => setTimeout(r, 5))
+      await new Promise((r) => setTimeout(r, 5));
     }),
-  )
-  expect(queue.isIdle()).toBe(false)
-  await Promise.all(tasks)
-  expect(queue.isIdle()).toBe(true)
+  );
+  expect(queue.isIdle()).toBe(false);
+  await Promise.all(tasks);
+  expect(queue.isIdle()).toBe(true);
 
-  queue.resetTotal()
-  expect(queue.getState().total).toBe(0)
-})
+  queue.resetTotal();
+  expect(queue.getState().total).toBe(0);
+});

@@ -20,35 +20,44 @@
 /** Shape mirrored from `Statistics` in src/types/index.ts (kept structural —
  *  domain must not import from src/types). */
 export interface RecordStatistics {
-  total: number
-  movie: number
-  tv: number
-  music: number
-  book: number
-  douban: number
-  imdb: number
-  neodb: number
-  tmdb: number
-  bilibili: number
-  youtube: number
-  bangumi: number
+  total: number;
+  movie: number;
+  tv: number;
+  music: number;
+  book: number;
+  douban: number;
+  imdb: number;
+  neodb: number;
+  tmdb: number;
+  bilibili: number;
+  youtube: number;
+  bangumi: number;
 }
 
 /** One physical store's entries plus its resolved platform id. */
 export interface PlatformStoreEntries<R = unknown> {
   /** Physical store name, e.g. `'douban_records'` */
-  storeName: string
+  storeName: string;
   /** Platform id resolved by the caller's store→platform map; `'unknown'` if unmapped */
-  platform: string
-  entries: ReadonlyArray<{ key: string; record: R }>
+  platform: string;
+  entries: ReadonlyArray<{ key: string; record: R }>;
 }
 
 function emptyStatistics(): RecordStatistics {
   return {
-    total: 0, movie: 0, tv: 0, music: 0, book: 0,
-    douban: 0, imdb: 0, neodb: 0, tmdb: 0,
-    bilibili: 0, youtube: 0, bangumi: 0,
-  }
+    total: 0,
+    movie: 0,
+    tv: 0,
+    music: 0,
+    book: 0,
+    douban: 0,
+    imdb: 0,
+    neodb: 0,
+    tmdb: 0,
+    bilibili: 0,
+    youtube: 0,
+    bangumi: 0,
+  };
 }
 
 /**
@@ -56,28 +65,26 @@ function emptyStatistics(): RecordStatistics {
  *
  * Pure: iterates the given snapshots once each, in order; no I/O.
  */
-export function computeStatistics(
-  stores: readonly PlatformStoreEntries[],
-): RecordStatistics {
-  const stats = emptyStatistics()
+export function computeStatistics(stores: readonly PlatformStoreEntries[]): RecordStatistics {
+  const stats = emptyStatistics();
 
   for (const { platform, entries } of stores) {
-    stats.total += entries.length
+    stats.total += entries.length;
     if (platform && platform in stats) {
       // Platform dimension accumulates the whole store's entry count,
       // unlike the media dimensions which count one per matching key.
-      bumpPlatform(stats, platform, entries.length)
+      bumpPlatform(stats, platform, entries.length);
     }
 
     for (const entry of entries) {
-      const type = entry.key.split('::')[0]
+      const type = entry.key.split('::')[0];
       if (type && type in stats) {
-        bumpMediaType(stats, type)
+        bumpMediaType(stats, type);
       }
     }
   }
 
-  return stats
+  return stats;
 }
 
 /**
@@ -87,22 +94,22 @@ export function computeStatistics(
  * signature (2026-08-29 typed pass, research paper §5.3 #11).
  */
 function bumpPlatform(stats: RecordStatistics, platform: string, count: number): void {
-  if (platform === 'douban') stats.douban += count
-  else if (platform === 'imdb') stats.imdb += count
-  else if (platform === 'neodb') stats.neodb += count
-  else if (platform === 'tmdb') stats.tmdb += count
-  else if (platform === 'bilibili') stats.bilibili += count
-  else if (platform === 'youtube') stats.youtube += count
-  else if (platform === 'bangumi') stats.bangumi += count
+  if (platform === 'douban') stats.douban += count;
+  else if (platform === 'imdb') stats.imdb += count;
+  else if (platform === 'neodb') stats.neodb += count;
+  else if (platform === 'tmdb') stats.tmdb += count;
+  else if (platform === 'bilibili') stats.bilibili += count;
+  else if (platform === 'youtube') stats.youtube += count;
+  else if (platform === 'bangumi') stats.bangumi += count;
   // Unknown platform ids were already excluded by the `platform in stats`
   // guard — same behaviour as the pre-refactor index-signature version.
 }
 
 function bumpMediaType(stats: RecordStatistics, type: string): void {
-  if (type === 'movie') stats.movie++
-  else if (type === 'tv') stats.tv++
-  else if (type === 'music') stats.music++
-  else if (type === 'book') stats.book++
+  if (type === 'movie') stats.movie++;
+  else if (type === 'tv') stats.tv++;
+  else if (type === 'music') stats.music++;
+  else if (type === 'book') stats.book++;
   // Unknown key prefixes (e.g. `game::…`) are NOT counted in any media
   // dimension — locked by tests/unit/statistics-characterization.spec.ts.
 }
@@ -118,41 +125,43 @@ export function flattenRecords<R extends object>(
   stores: readonly PlatformStoreEntries<R>[],
   videoStores: ReadonlySet<string>,
 ): Array<R & { type: string; provider: string; providerId: string }> {
-  const all: Array<R & { type: string; provider: string; providerId: string }> = []
+  const all: Array<R & { type: string; provider: string; providerId: string }> = [];
 
   for (const { storeName, platform, entries } of stores) {
     for (const entry of entries) {
-      const [type, ...idParts] = entry.key.split('::')
-      const normalizedType = videoStores.has(storeName) ? 'video' : type
+      const [type, ...idParts] = entry.key.split('::');
+      // split() always yields >= 1 element, so `type` is never undefined here;
+      // the ?? '' fallback only satisfies noUncheckedIndexedAccess typing.
+      const normalizedType = videoStores.has(storeName) ? 'video' : (type ?? '');
       all.push({
         ...entry.record,
         type: normalizedType,
         provider: platform || 'unknown',
         providerId: idParts.join('::'),
-      })
+      });
     }
   }
 
-  return all
+  return all;
 }
 
 // ==================== Yearly statistics (ADR-021 Wave-G) ====================
 
 export interface YearlyStatRow {
-  year: number
-  count: number
+  year: number;
+  count: number;
   /** Bar width percentage (0–100) relative to the peak year */
-  pct: number
+  pct: number;
   /** count(year) − count(year − 1); year − 1 counts as 0 when before all data */
-  delta: number
+  delta: number;
 }
 
 export interface YearlyStatsResult {
   /** Newest → oldest, CONTINUOUS (gap years filled with 0) */
-  rows: YearlyStatRow[]
-  maxCount: number
+  rows: YearlyStatRow[];
+  maxCount: number;
   /** The starting year: `now.getFullYear() − 1` */
-  lastYear: number
+  lastYear: number;
 }
 
 /**
@@ -166,30 +175,30 @@ export function computeYearlyStats(
   timestamps: readonly (string | undefined)[],
   now: Date = new Date(),
 ): YearlyStatsResult {
-  const lastYear = now.getFullYear() - 1
+  const lastYear = now.getFullYear() - 1;
 
-  const counts = new Map<number, number>()
+  const counts = new Map<number, number>();
   for (const ts of timestamps) {
-    if (!ts) continue
-    const y = new Date(ts).getFullYear()
-    if (Number.isNaN(y)) continue
-    counts.set(y, (counts.get(y) ?? 0) + 1)
+    if (!ts) continue;
+    const y = new Date(ts).getFullYear();
+    if (Number.isNaN(y)) continue;
+    counts.set(y, (counts.get(y) ?? 0) + 1);
   }
 
-  const dataYears = [...counts.keys()].filter(y => y <= lastYear)
+  const dataYears = [...counts.keys()].filter((y) => y <= lastYear);
   // Nothing at or before last year → no timeline to show
-  if (!dataYears.length) return { rows: [], maxCount: 0, lastYear }
-  const oldestDataYear = Math.min(...dataYears)
+  if (!dataYears.length) return { rows: [], maxCount: 0, lastYear };
+  const oldestDataYear = Math.min(...dataYears);
 
-  const rows: YearlyStatRow[] = []
-  let maxCount = 0
+  const rows: YearlyStatRow[] = [];
+  let maxCount = 0;
   for (let y = lastYear; y >= oldestDataYear; y--) {
-    const count = counts.get(y) ?? 0
-    const prev = counts.get(y - 1) ?? 0
-    maxCount = Math.max(maxCount, count)
-    rows.push({ year: y, count, pct: 0, delta: count - prev })
+    const count = counts.get(y) ?? 0;
+    const prev = counts.get(y - 1) ?? 0;
+    maxCount = Math.max(maxCount, count);
+    rows.push({ year: y, count, pct: 0, delta: count - prev });
   }
-  for (const row of rows) row.pct = Math.round((row.count / Math.max(1, maxCount)) * 100)
+  for (const row of rows) row.pct = Math.round((row.count / Math.max(1, maxCount)) * 100);
 
-  return { rows, maxCount, lastYear }
+  return { rows, maxCount, lastYear };
 }

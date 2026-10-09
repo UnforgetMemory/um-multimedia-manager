@@ -1,0 +1,98 @@
+:host {
+  --umm-gc-accent: var(--umm-brand-accent);
+}
+
+.umm-gc-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg, 24px) clamp(16px, 3vw, 48px) var(--umm-space-2xl, 48px);
+  animation: umm-fade-in 0.35s ease;
+}
+
+.umm-gc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-sm, 10px);
+}
+.umm-gc-card {
+  display: flex;
+  gap: var(--umm-space-md, 14px);
+  padding: var(--umm-space-md, 14px);
+  border-radius: var(--umm-card-radius, 10px);
+  background: var(--umm-bg-secondary);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.umm-gc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+:host(.umm-theme--dark) .umm-gc-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.umm-gc-cover-link {
+  flex-shrink: 0;
+  text-decoration: none;
+  width: 80px;
+}
+.umm-gc-cover {
+  width: 80px;
+  height: 112px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--umm-bg);
+}
+
+.umm-gc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.umm-gc-title {
+  font-size: var(--umm-font-sm, 0.85rem);
+  font-weight: 700;
+  color: var(--umm-text-primary);
+  text-decoration: none;
+}
+.umm-gc-title:hover {
+  color: var(--umm-link);
+}
+.umm-gc-platforms {
+  font-size: var(--umm-font-xs, 0.68rem);
+  color: var(--umm-text-muted);
+}
+.umm-gc-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.umm-gc-rating {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-static-gold-800);
+  font-weight: 600;
+}
+:host(.umm-theme--dark) .umm-gc-rating {
+  color: var(--umm-static-amber-400);
+}
+.umm-gc-date {
+  font-size: var(--umm-font-xs, 0.65rem);
+  color: var(--umm-text-muted);
+}
+.umm-gc-comment {
+  font-size: var(--umm-font-xs, 0.68rem);
+  color: var(--umm-text-secondary);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.umm-gc-pageinfo {
+  font-size: var(--umm-font-xs, 0.7rem);
+  color: var(--umm-text-muted);
+  margin: var(--umm-space-md, 14px) 0 6px;
+  text-align: center;
+}

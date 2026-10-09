@@ -1,0 +1,202 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/detail-extract.spec.ts,
+  extra-extract.spec.ts and detail-data.spec.ts.
+  NOT a real saved page: all titles/people/comments are fabricated or public
+  facts; only the movie.douban.com /subject/{id}/ DOM shape is reproduced to
+  match the extractor contracts in
+  src/scenario/douban/pages/detail/detail-extract.ts and extra-extract.ts.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>肖申克的救赎 (1994)</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="content">
+        <div class="grid-16-8 clearfix">
+          <div class="article">
+            <!-- 头部：标题 / 海报 / 简介信息（均非 .mod，保证获奖模块是 article 下第一个 .mod） -->
+            <div class="header">
+              <h1><span property="v:itemreviewed">肖申克的救赎</span> <span class="year">(1994)</span></h1>
+              <div class="atl">
+                <div id="mainpic">
+                  <a class="nbg" href="https://movie.douban.com/subject/1292052/photos">
+                    <img
+                      src="https://img9.doubanio.com/view/photo/s_ratio_poster/public/p480988254.jpg"
+                      alt="肖申克的救赎"
+                      width="140"
+                    />
+                  </a>
+                </div>
+                <div id="info">
+                  <div class="attrs">
+                    <span class="pl">导演:</span>
+                    <a href="https://movie.douban.com/celebrity/1047973/">弗兰克·德拉邦特</a>
+                    <span class="attrs" style="display: none">, <a href="https://movie.douban.com/celebrity/1004728/">罗杰·狄金斯</a></span>
+                    <a href="javascript:void(0);" class="more-attrs">展开</a>
+                    <br />
+                    <span class="pl">编剧:</span>
+                    <a href="https://movie.douban.com/celebrity/1054419/">斯蒂芬·金</a>
+                    <br />
+                    <span class="pl">语言:</span> 英语
+                    <br />
+                    <span class="pl">片长:</span> 142 分钟
+                    <br />
+                    <span class="pl">又名:</span> 月黑高飞(港) / 刺激1995(台)
+                    <br />
+                    <span class="pl">IMDb编号:</span> tt0111161
+                  </div>
+                </div>
+                <div class="rating_wrap clearbox">
+                  <div class="rating_self clearfix">
+                    <strong class="rating_num property" property="v:average">9.7</strong>
+                    <span class="bigstar bigstar10"></span>
+                    <div class="rating_people">
+                      <span property="v:votes">2389412</span>人评价
+                    </div>
+                  </div>
+                  <div class="rank-label">
+                    No.<span class="rank-label-no">1</span>
+                    <span class="rank-label-link"><a href="https://movie.douban.com/chart"> 豆瓣电影Top250 </a></span>
+                  </div>
+                  <div class="ratings-on-weight">
+                    <div class="item"><span class="starstop star10">力荐</span><span class="rating_power"><span class="rating_power_inner" style="width: 58.4%"></span></span><span class="rating_per">58.4%</span></div>
+                    <div class="item"><span class="starstop star80">推荐</span><span class="rating_power"><span class="rating_power_inner" style="width: 33.1%"></span></span><span class="rating_per">33.1%</span></div>
+                    <div class="item"><span class="starstop star60">还行</span><span class="rating_power"><span class="rating_power_inner" style="width: 6.9%"></span></span><span class="rating_per">6.9%</span></div>
+                    <div class="item"><span class="starstop star40">较差</span><span class="rating_power"><span class="rating_power_inner" style="width: 1.0%"></span></span><span class="rating_per">1.0%</span></div>
+                    <div class="item"><span class="starstop star20">很差</span><span class="rating_power"><span class="rating_power_inner" style="width: 0.6%"></span></span><span class="rating_per">0.6%</span></div>
+                  </div>
+                  <div class="rating_betterthan">
+                    好于:
+                    <a href="https://movie.douban.com/genre/剧情">98% 的剧情片</a>
+                    <a href="https://movie.douban.com/genre/犯罪">97% 的犯罪片</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="related-info">
+              <div class="title-pre"><h2>剧情简介<span class="fold hide"> · · · · · ·</span></h2></div>
+              <div class="intro">
+                <span property="v:summary"> 希望是好事，也许是人间至善，而美好的事永不消逝。银行家安迪被冤枉入狱，用二十年完成自我救赎。 </span>
+              </div>
+            </div>
+            <!-- 获奖：article 下第一个 .mod（extractAwards 只认第一个） -->
+            <div class="mod">
+              <h2>获奖 (3)</h2>
+              <ul class="award">
+                <li><a href="https://movie.douban.com/festival/67oscars">第67届奥斯卡金像奖</a></li>
+                <li>最佳导演(提名)</li>
+                <li><a href="https://movie.douban.com/celebrity/1047973/">弗兰克·德拉邦特</a></li>
+              </ul>
+              <ul class="award">
+                <li>第52届美国金球奖</li>
+                <li>电影类-剧情类最佳影片</li>
+              </ul>
+              <ul class="award">
+                <li>豆瓣电影鑫像奖</li>
+              </ul>
+            </div>
+            <div id="celebrities" class="mod">
+              <h2>演职员 <span class="pl">(53)</span></h2>
+              <ul>
+                <li class="celebrity">
+                  <a class="avatar" href="https://movie.douban.com/celebrity/1047973/" style="background-image:url(https://img9.doubanio.com/view/celebrity/s_ratio_celebrity/public/p251.jpg)"></a>
+                  <div class="info">
+                    <span class="name"><a href="https://movie.douban.com/celebrity/1047973/">弗兰克·德拉邦特</a></span>
+                    <span class="role">导演</span>
+                  </div>
+                </li>
+                <li class="celebrity">
+                  <a class="avatar" href="https://movie.douban.com/celebrity/1054419/" style="background-image: url('https://img2.doubanio.com/view/celebrity/s_ratio_celebrity/public/p5606.jpg')"></a>
+                  <div class="info">
+                    <span class="name"><a href="https://movie.douban.com/celebrity/1054419/">蒂姆·罗宾斯 </a></span>
+                    <span class="role">饰 Andy Dufresne</span>
+                  </div>
+                </li>
+                <li class="celebrity">
+                  <div class="info">
+                    <span class="name"><a href="https://movie.douban.com/celebrity/1004728/">罗杰·狄金斯</a></span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div id="related-pic" class="mod">
+              <h2><span class="pl">预告片13 · 图片54</span><a class="more" href="https://movie.douban.com/subject/1292052/photos">更多</a></h2>
+              <ul class="related-pic-bd">
+                <li>
+                  <a href="https://movie.douban.com/subject/1292052/trailer/">
+                    <span class="related-pic-video" style="background-image:url(https://img1.doubanio.com/f/movie/a1b2c3d4/img/trailer/trailer-video-1.jpg)"></span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://movie.douban.com/subject/1292052/photos/"><img src="https://img1.doubanio.com/view/photo/s_ratio_poster/public/p2924970668.jpg" /></a>
+                </li>
+                <li class="ad-slot">无图推广位</li>
+              </ul>
+            </div>
+            <div id="recommendations" class="mod">
+              <h2>喜欢这部电影的人也喜欢<span class="pl">(30)</span></h2>
+              <div class="recommendations-bd">
+                <dl>
+                  <dt><a href="https://movie.douban.com/subject/1291544/"><img src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p453706299.jpg" alt="霸王别姬" /></a></dt>
+                  <dd><a href="https://movie.douban.com/subject/1291544/">霸王别姬</a><span class="subject-rate">9.6</span></dd>
+                </dl>
+                <dl>
+                  <dt><a href="https://movie.douban.com/subject/1292937/"><img src="https://img2.doubanio.com/view/photo/s_ratio_poster/public/p1910897854.jpg" alt="阿飞正传" /></a></dt>
+                  <dd><a href="https://movie.douban.com/subject/1292937/">阿飞正传</a><span class="subject-rate">8.8</span></dd>
+                </dl>
+                <dl class="promo">
+                  <dt><img src="https://img9.doubanio.com/view/promo/xx/public/p000000001.jpg" alt="推广位" /></dt>
+                  <dd><a href="https://ad.douban.com/click">广告位</a></dd>
+                </dl>
+              </div>
+            </div>
+            <div id="comments-section">
+              <h3>热门短评<span class="pl">(489215)</span></h3>
+              <div id="hot-comments">
+                <div class="comment-item" data-cid="c1001">
+                  <a class="avator" href="https://www.douban.com/people/blueglass/"><img src="https://img2.doubanio.com/icon/u3636247-1.jpg" /></a>
+                  <div class="comment-info">
+                    <a href="https://www.douban.com/people/blueglass/">蓝眼镜</a>
+                    <span class="allstar50" title="力荐">力荐</span>
+                    <span class="comment-time">2005-07-29</span>
+                  </div>
+                  <p class="short"> 希望是美好的事物，也许是世上最美好的事物。 </p>
+                  <div class="comment-vote"><span class="votes">2038</span> 有用</div>
+                </div>
+                <div class="comment-item" data-cid="c1002">
+                  <a class="avator" href="https://www.douban.com/people/filmfan/"><img src="https://img1.doubanio.com/icon/u1112223-8.jpg" /></a>
+                  <div class="comment-info">
+                    <a href="https://www.douban.com/people/filmfan/">影迷小王</a>
+                    <span class="allstar30" title="还行">还行</span>
+                    <span class="comment-time"> 2010-01-03 </span>
+                  </div>
+                  <p class="short">节奏偏慢，但后劲十足。</p>
+                  <div class="comment-vote"><span class="votes">没用</span></div>
+                </div>
+                <div class="comment-item" data-cid="c1003">
+                  <div class="comment-info">
+                    <a href="https://www.douban.com/people/nobody/">无正文用户</a>
+                    <span class="comment-time">2011-05-06</span>
+                  </div>
+                  <div class="comment-vote"><span class="votes">3</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /article -->
+        </div>
+      </div>
+      <!-- #content -->
+      <div id="aside">
+        <!-- #content 之外的干扰项：extractShortComments 以 #comments-section 为界，应忽略 -->
+        <div class="comment-item">
+          <div class="comment-info"><a href="https://www.douban.com/people/sidebar/">侧栏推荐</a></div>
+          <p class="short">侧栏短评，不应被提取</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -10,15 +10,32 @@
 npm run dev             # 开发（WXT 热更新；内容脚本注入不可靠，仅调 UI 用）
 npm run dev:build       # Dev 编译（无热更新/无 dev 服务器，全量确定性）→ dist/chrome-mv3-dev，日常联调推荐
 npm run build           # 生产构建 → dist/chrome-mv3（含 fix-paths 后置步骤，不可跳过）
-npm run type-check      # vue-tsc --noEmit（唯一质量门禁，提交前必跑）
-npm run test:unit       # Playwright 单元测试
-npm test                # 全部 Playwright 测试
+npm run type-check      # vue-tsc --noEmit（类型门禁，提交前必跑）
+npm run test:unit       # Playwright 单元测试（tests/unit，jsdom 级夹具）
+npm run test:e2e        # 扩展级真实浏览器交互测试（需先 npm run build；tests/e2e 用本地模拟页面替换宿主站点）
+npm test                # 全部 Playwright 测试（默认配置 testIgnore 掉 tests/e2e，避免单测扫到需要扩展上下文的用例）
 npm run i18n:check      # i18n 键完整性检查
+npm run arch:check      # 架构分层守卫（七层依赖方向；exit 1 即有违规）
+npm run ds:check        # 设计令牌门禁（三层令牌 + 对比度/对称断言）
+npm run scope:check     # 样式作用域守卫（注入宿主页面的样式禁止裸选择器，ADR-026 D7）
+npm run naming:check    # 文件命名守卫（kebab-case / PascalCase .vue / <domain>-extract 统一，ADR-026 D6）
+npm run size:check      # 文件尺寸守卫（src/tests 单文件 ≤600 行，防 God 文件反弹，ADR-026 需求 9）
+npm run doc:check       # 事实源指针守卫（注释里的 src/... 路径必须真实存在，ADR-026 回访波）
+npm run orphan:check    # 孤儿模块棘轮（新增无测试引用的 src 模块即失败，基线只可缩小，scripts/orphan-tests-baseline.json）
+npm run any:check       # 显式 any 守卫（AST 级 AnyKeyword，覆盖 src + tests 与 .vue 的 script 块）
+npm run isolation:check # 测试全局隔离棘轮（spec 改写 globalThis 必须登记还原，scripts/test-globals-baseline.json）
+npm run console:check   # 诊断出口棘轮（src 内裸 console.* 必须走 libraries/utils/logger，scripts/console-baseline.json）
+npm run cjk:check       # 裸中文棘轮（src/scenario/douban 的引号口径 + 模板文本口径只可降不可升，应走内容 i18n 词典，scripts/cjk-baseline.json）
+npm run isolation:baseline # 隔离基线重生成（只应在收口了泄漏 spec 之后，基线只能缩小）
+npm run lint            # oxlint 静态检查（正确性规则；--deny-warnings 零警告门禁）
+npm run format          # Oxfmt 全量格式化（统一风格：semi/单引号/printWidth 100/LF，ADR-026 D8）
+npm run format:check    # 格式化门禁（CI Static Gates 同列）
 npm run package:patch   # 版本号 + 构建 + 打包（minor/major 同理）
 npm run zip             # 构建 + 打包 Chrome 商店包
 ```
 
-无 lint/format 命令。质量门禁：`type-check` → `build`。
+质量门禁（本地提交前）：`type-check` → `arch:check` → `ds:check` → `scope:check` → `naming:check` → `size:check` → `doc:check` → `orphan:check` → `any:check` → `isolation:check` → `console:check` → `cjk:check` → `i18n:check` → `lint` → `format:check` → `build`（见 ADR-026 D8）。
+CI 侧：`Type Check` → `Static Gates`（arch/ds/scope/naming/size/doc/orphan/any/isolation/console/cjk/i18n/lint/format）→ `Unit Tests`（`test:unit` 全量）→ `Build (chrome|firefox)`，任一失败即阻断构建。**分波自测不算验证**——跨文件全局桩会互相污染，结论只认仓库级合并复跑（见 `docs/audit/umpp-revisit-audit-2026-09-26.md` §7）。
 
 ## 环境
 
@@ -46,16 +63,16 @@ npm run zip             # 构建 + 打包 Chrome 商店包
 ### 三套内容注入系统
 
 1. **legacy**（`content.ts` → `content/router.ts` → `handlers/`）：服务所有非 Douban、非 Sehuatang 站点。Douban 域名在 content.ts 的 `excludeMatches` 排除；Sehuatang 的 matches 已从 content.ts 整体移除（由双入口接管），路由表亦无对应项。
-2. **新 Douban**（`douban-early/douban-main` → `src/content/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `content/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
-3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/content/sehuatang/`）：URL 判型唯一源 `src/content/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；**风控页例外**——任意路径可返回，DOM 双标记检测（`extract-risk.ts` 的 `isRiskGateDocument`）优先于 classifyPage，进入按钮点击委托原 DOM 按钮（站点 JS 绑定写 safeid cookie + 重载）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；四个编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）/ `app-risk.ts`（风控页，主题化重建面板）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
+2. **新 Douban**（`douban-early/douban-main` → `src/scenario/douban/`）：32 个页面类型，Shadow DOM 完全样式隔离。每页 `pages/{type}/App.vue + config.ts + data.ts + types.ts`。经 `scenario/douban/shared/legacy-bridge.ts` 复用 legacy 的 4 个模块（FloatingToast/i18n/neodb-push/injectGlobalStyles）。
+3. **新 Sehuatang**（`sehuatang-early/sehuatang-main` → `src/scenario/sehuatang/`）：URL 判型唯一源 `src/scenario/sehuatang/url.ts`（`classifyPage` 统一分流 thread/forumdisplay/search/index）；**风控页例外**——任意路径可返回，DOM 双标记检测（`risk-extract.ts` 的 `isRiskGateDocument`）优先于 classifyPage，进入按钮点击委托原 DOM 按钮（站点 JS 绑定写 safeid cookie + 重载）；样式为 TS 模板常量（非 `?raw`，Playwright node 侧可解析），经 `uslVarsForHost()` 把 `THEME_VARS`/`THEME_VARS_DARK` 重宿主到 `:host`；四个编排入口：`app.ts`（列表页，ADR-024）/ `app-home.ts`（首页，分区卡片网格，导航层）/ `app-search.ts`（搜索页，结果卡片 + 跨页 dimmer）/ `app-risk.ts`（风控页，主题化重建面板）。详情数据走独立缓存库 `umm-sehuatang-cache`（可重建，不进备份），经 `SEHUATANG_CACHE_*` 消息访问。
 
 ### 领域层（domain/，纯 TS 无框架依赖）
 
-- `record/StoreRecord.ts` — 不可变聚合根（Status/Rating 值对象，`toSnapshot()`/`fromSnapshot()` 序列化）
-- `record/RecordService.ts` — 跨平台 sync（经 `IRecordRepository` 接口，仅 findByKey/save）
-- `identity/Identity.ts` — 跨平台身份（`Identity.fromUrl()` 解析 URL）
-- `platform/Platform.ts` — **`Platform.KNOWN` 是平台唯一清单**，`config.ts` 的 `Provider` 类型派生自它
-- `platform/MediaType.ts` — `MediaTypeId` 联合（movie/tv/music/book/game）
+- `record/store-record.ts` — 不可变聚合根（Status/Rating 值对象，`toSnapshot()`/`fromSnapshot()` 序列化）
+- `record/record-service.ts` — 跨平台 sync（经 `i-record-repository.ts` 的 `IRecordRepository` 接口，仅 findByKey/save）
+- `identity/identity.ts` — 跨平台身份（`Identity.fromUrl()` 解析 URL）
+- `platform/platform.ts` — **`Platform.KNOWN` 是平台唯一清单**，`config.ts` 的 `Provider` 类型派生自它
+- `platform/media-type.ts` — `MediaTypeId` 联合（movie/tv/music/book/game）
 
 ### 消息流
 
@@ -67,46 +84,52 @@ Content/Popup → chrome.runtime.sendMessage({ type, payload })
   → sendResponse({ success, data/error })
 ```
 
-消息类型与契约定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope` + `ResponseMessageMap`/`SuccessDataMap`，经 `types/index.ts` barrel 再导出）——新增消息类型必须四处同步：MessageType + MessagePayloadMap + background.ts switch + ResponseMessageMap/SuccessDataMap。后台 → 内容脚本广播走 `src/utils/event-bus.ts`（EVENT_BUS）。
+消息类型与契约定义在 **`src/types/messages.ts`**（`MessageType` 联合 + `MessagePayloadMap` + `RuntimeMessageEnvelope` + `ResponseMessageMap`/`SuccessDataMap`，经 `types/index.ts` barrel 再导出）——新增消息类型必须四处同步：MessageType + MessagePayloadMap + background.ts switch + ResponseMessageMap/SuccessDataMap。后台 → 内容脚本广播走 `src/libraries/utils/event-bus.ts`（EVENT_BUS）。
 
 ### 数据系统
 
-- `features/database/models.ts` — IndexedDB 单例（store 名 `{platform}_records`，键 `{type}::{providerId}`）
-- `features/data-scheduler/` — 优先级队列 + 限流 + 重试，所有 DB 操作经此
-- `features/cache/` — L1 内存 LRU（SW wake 即清空）
+- `engine/database/models.ts` — IndexedDB 单例（store 名 `{platform}_records`，键 `{type}::{providerId}`）
+- `engine/data-scheduler/` — 优先级队列 + 限流 + 重试，所有 DB 操作经此
+- `engine/cache/` — L1 内存 LRU（SW wake 即清空）
 
 ## 关键约定
 
-- 路径别名 `@/` → `./src/`；组件库 shadcn/vue 在 `src/shared/ui/`（22 个组件）
+- 路径别名 `@/` → `./src/`；组件库 shadcn/vue 在 `src/libraries/ui/`（23 个组件目录）
 - **Composition API + `<script setup>` + TypeScript**；禁止 `as any`/`@ts-ignore`
 - 内容脚本禁止直接触 IndexedDB——一律走 `chrome.runtime.sendMessage`
-- i18n 双系统：`src/shared/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
-- 共享工具：`src/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/content/douban/shared/`（retry/usePaginator/douban-extract）
+- i18n 双系统：`src/libraries/locales/`（vue-i18n，SPA）+ `src/entrypoints/content/i18n/`（自定义 t()，Shadow DOM 内无法用 vue-i18n）
+- 共享工具：`src/libraries/utils/`（sleep/dateKey/error-message/throttle 等）；Douban 共享在 `src/scenario/douban/shared/`（retry/usePaginator/douban-extract）
 - 版本号在 `package.json` + `wxt.config.ts`（`npm run package:*` 同时更新）
 - 单元测试：Playwright（tests/unit/，**tests/ 源码被 git 跟踪**；仅 playwright-report/test-results 等产物被 ignore）
-- 设置存储：`src/features/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型
+- 设置存储：`src/engine/settings/items.ts` 类型化 item 层（物理键=STORAGE_KEYS，fallback 单源，ADR-017）；新增设置字段在此定义 item 并补 AppSettings 类型
 
 ## 添加新站点
 
 1. `content.ts` matches + `content/router.ts` 路由
 2. `content/handlers/` 建 handler（参照 `imdb.ts` / `create-detail-handler.ts`）
-3. `Platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
-4. `database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
+3. `platform/platform.ts` KNOWN（自动传导至 Provider 类型）+ `Identity.fromUrl()` 解析
+4. `engine/database/models.ts` STORE_NAMES + `wxt.config.ts` host_permissions
 5. 消息类型：`types/messages.ts` MessageType + MessagePayloadMap + ResponseMessageMap/SuccessDataMap + background.ts switch
 6. 两个 i18n 系统补键
-7. （Douban 页面）`content/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
+7. （Douban 页面）`scenario/douban/pages/{type}/` 四件套 + url-detector + css-composer preset
 
 ## 项目结构（简化）
 
 ```
 src/
-├── entrypoints/          # WXT 入口（见上表）
-├── content/douban/       # 新 Douban overlay（32 页面 + shared/ + styles/）
-├── domain/               # DDD 领域层（record/identity/platform）
-├── features/             # database / data-scheduler / cache / webdav / neodb /
-│                         # adult-av / migration / settings / optimistic-lock(仅类型)
-├── shared/               # ui 组件 / locales / plugins / 通用组件
-├── types/                # 消息类型 + 数据接口（唯一权威）
-├── utils/ composables/ stores/ config.ts
-└── docs/                 # adr/（架构决策）+ audit/（审计与蓝图）
+├── entrypoints/          # app 装配层：WXT 入口（见上表）
+├── feature/              # feature 层：组件（ConfirmDialog 等）+ composables/ + optimistic-lock
+├── store/                # UI 状态（pinia stores）
+├── scenario/             # 内容注入编排：douban/（32 页 overlay）+ sehuatang/
+├── provider/             # 外部平台适配：webdav / neodb / adult-av / sehuatang-cache
+├── engine/               # 通用引擎：database / cache / data-scheduler / migration / settings
+├── libraries/            # 业务无关基元：utils / ui / styles / locales / plugins / identity / toast / config
+├── domain/               # DDD 领域层（record/identity/platform，纯 TS）
+└── types/                # 消息类型 + 数据接口（唯一权威）
 ```
+
+> 层次依赖方向（守卫 `arch:check` 强制，秩 0→6）：app → feature → store → scenario → provider → engine → libraries；
+> `domain` 仅可依赖 `libraries`，`types` 为跨层共享。
+
+> 架构决策（`docs/adr/`）与审计蓝图（`docs/audit/`）在**仓库根**的 `docs/` 下，
+> 不在 `src/` 内。

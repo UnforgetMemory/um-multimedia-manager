@@ -7,8 +7,10 @@
  *   dom.ts     — DOM extraction helpers (extractMvId, extractLinkedIdsFromDOM)
  *   cache.ts   — TTL cache layer with typed wrappers
  *   api.ts     — API URL builder + response parser
+ *   queue.ts   — RequestQueue construction (progress-toast wiring)
+ *   detail.ts  — detail-page status-chip rendering (deps injected)
  *   handler.ts — MukakuHandler class (orchestration)
  *   index.ts   — barrel: singleton + public API exports
  */
 
-export { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './mukaku/index'
+export { handleMukakuDetailPage, handleMukakuListPage, cleanupMukaku } from './mukaku/index';

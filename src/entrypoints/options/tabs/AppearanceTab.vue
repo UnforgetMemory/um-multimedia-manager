@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import { useThemeStore } from '@/stores/theme'
-import { storeToRefs } from 'pinia'
-import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardHeader } from '@/shared/ui/card'
-import { Sun, Moon, Monitor, Globe } from 'lucide-vue-next'
-import { LOCALE_OPTIONS, persistLocale } from '@/shared/plugins/i18n'
-import type { Locale } from '@/shared/locales'
-import SectionContainer from '@/shared/ui/section-container/SectionContainer.vue'
-import SectionHeader from '@/shared/ui/section-header/SectionHeader.vue'
-import { OptionPicker } from '@/shared/ui/option-picker'
+import { useThemeStore } from '@/store/theme';
+import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+import { Card, CardContent, CardHeader } from '@/libraries/ui/card';
+import { Sun, Moon, Monitor, Globe } from '@/libraries/ui/icons';
+import { LOCALE_OPTIONS, persistLocale } from '@/libraries/plugins/i18n';
+import type { Locale } from '@/libraries/locales';
+import SectionContainer from '@/libraries/ui/section-container/SectionContainer.vue';
+import SectionHeader from '@/libraries/ui/section-header/SectionHeader.vue';
+import { OptionPicker } from '@/libraries/ui/option-picker';
 
-const { t, locale } = useI18n()
-const themeStore = useThemeStore()
-const { theme } = storeToRefs(themeStore)
+const { t, locale } = useI18n();
+const themeStore = useThemeStore();
+const { theme } = storeToRefs(themeStore);
 
 const themeOptions = [
   { value: 'light' as const, key: 'appearance.light' as const, icon: Sun },
   { value: 'dark' as const, key: 'appearance.dark' as const, icon: Moon },
   { value: 'auto' as const, key: 'appearance.system' as const, icon: Monitor },
-]
+];
 
-const localeOptions = LOCALE_OPTIONS.map(o => ({ value: o.value, label: o.label }))
+const localeOptions = LOCALE_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
 
 function setLocale(value: Locale) {
-  locale.value = value
-  persistLocale(value)
+  locale.value = value;
+  persistLocale(value);
 }
 </script>
 
-<template>
+<template vapor>
   <SectionContainer>
     <!-- Theme -->
     <Card>
@@ -37,7 +37,7 @@ function setLocale(value: Locale) {
       </CardHeader>
       <CardContent>
         <OptionPicker
-          :options="themeOptions.map(o => ({ value: o.value, label: t(o.key), icon: o.icon }))"
+          :options="themeOptions.map((o) => ({ value: o.value, label: t(o.key), icon: o.icon }))"
           :modelValue="theme"
           @update:modelValue="theme = $event as 'light' | 'dark' | 'auto'"
         />

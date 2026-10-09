@@ -1,0 +1,409 @@
+/* ===== UMM Douban Doulists — Shadow DOM styles ===== */
+
+:host {
+  --dc-accent: var(--umm-static-rose-600);
+  --dc-accent-bg: color-mix(in srgb, var(--umm-static-rose-600) 10%, transparent);
+  --dc-card-bg: var(--umm-static-neutral-00);
+  --dc-card-border: var(--umm-static-neutral-150);
+}
+
+:host(.umm-theme--dark) {
+  --dc-accent: var(--umm-static-rose-400);
+  --dc-accent-bg: color-mix(in srgb, var(--umm-static-rose-400) 10%, transparent);
+  --dc-card-bg: var(--umm-static-neutral-800);
+  --dc-card-border: var(--umm-static-neutral-700);
+}
+
+/* ===== Root layout ===== */
+
+.umm-doulists-root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--umm-space-lg) clamp(16px, 4vw, 64px) var(--umm-space-2xl);
+}
+
+/* ===== Xbar Category Tabs ===== */
+
+.umm-doulist-xbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--umm-space-xs) 0;
+  margin-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.umm-doulist-xbar-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: var(--umm-radius-lg, 12px);
+  font-size: var(--umm-font-xs);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  background: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.umm-doulist-xbar-tab:hover {
+  color: var(--dc-accent);
+  background: var(--dc-accent-bg);
+  border-color: color-mix(in srgb, var(--dc-accent) 20%, transparent);
+}
+
+.umm-doulist-xbar-tab--active {
+  color: var(--umm-on-accent);
+  background: var(--dc-accent);
+  border-color: var(--dc-accent);
+  font-weight: 600;
+}
+
+.umm-doulist-xbar-tab--active .umm-doulist-count {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  color: inherit;
+}
+
+.umm-doulist-xbar-tab--active:hover {
+  background: var(--dc-accent);
+  border-color: var(--dc-accent);
+}
+
+/* ===== Tabs ===== */
+
+.umm-doulists-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-xs);
+  border-bottom: 1px solid var(--dc-card-border);
+  margin-bottom: calc(var(--umm-space-2xl) + var(--umm-space-lg));
+  overflow-x: auto;
+}
+
+.umm-doulist-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--umm-space-xs) var(--umm-space-sm);
+  border: none;
+  background: transparent;
+  color: var(--umm-text-secondary);
+  font-size: var(--umm-font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: color var(--umm-static-duration-fast, 200ms) ease;
+  font-family: inherit;
+}
+
+/* StyleKit Underline Draw — currentColor follows text state; 1px-class bar */
+.umm-doulist-tab::after {
+  content: '';
+  position: absolute;
+  left: var(--umm-space-sm);
+  right: var(--umm-space-sm);
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--umm-static-duration-fast, 200ms)
+    var(--umm-static-ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.umm-doulist-tab:hover::after {
+  transform: scaleX(1);
+}
+
+.umm-doulist-tab:hover {
+  color: var(--umm-text-primary);
+}
+
+.umm-doulist-tab--active {
+  color: var(--dc-accent);
+  font-weight: 600;
+}
+.umm-doulist-tab--active::after {
+  transform: scaleX(1);
+}
+
+.umm-doulist-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 7px;
+  border-radius: var(--umm-radius-lg, 12px);
+  font-size: var(--umm-font-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  background: var(--umm-bg-secondary);
+  color: var(--umm-text-muted);
+  border: 1px solid transparent;
+}
+
+.umm-doulist-tab--active .umm-doulist-count {
+  background: var(--dc-accent);
+  color: var(--umm-on-accent);
+}
+
+/* ===== Grid ===== */
+
+.umm-doulist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--umm-space-md);
+  padding-top: var(--umm-space-md);
+}
+
+@media (min-width: 640px) {
+  .umm-doulist-grid {
+    gap: var(--umm-space-md);
+  }
+}
+@media (min-width: 1024px) {
+  .umm-doulist-grid {
+    gap: var(--umm-space-lg);
+  }
+}
+@media (min-width: 1400px) {
+  .umm-doulist-grid {
+    gap: var(--umm-space-xl);
+  }
+}
+
+/* ===== Card — Sandwich hierarchy =====
+ *  Layer 1: Title (header, --umm-font-sm, w600)
+ *  Layer 2: Cover hero (1:1 square, focal point)
+ *  Layer 3: Body (stats --umm-font-xs w500 → intro w400 → footer w400)
+ *
+ *  Font cascade across 12 breakpoints (320px → 5120px):
+ *    --umm-font-sm: 0.75rem → 1.875rem  (title)
+ *    --umm-font-xs: 0.65rem → 1.5rem    (stats, intro, footer, badge)
+ *  Weight cascade: 600 (title) → 500 (stats) → 400 (intro/footer)
+ *
+ *  Visual flow: Title (what) → Cover (visual) → Stats (how much) → Footer (when/whom)
+ */
+
+.umm-doulist-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--umm-card-radius, 8px);
+  overflow: hidden;
+  background: var(--dc-card-bg);
+  border: 1px solid var(--dc-card-border);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
+}
+
+.umm-doulist-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+:host(.umm-theme--dark) .umm-doulist-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ===== Layer 1: Title (header) ===== */
+
+.umm-doulist-title {
+  margin: 0;
+  padding: var(--umm-space-sm) var(--umm-space-md) var(--umm-space-xs);
+  font-size: var(--umm-font-sm);
+  font-weight: 600;
+  color: var(--umm-text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+/* ===== Layer 2: Cover hero ===== */
+
+.umm-doulist-cover-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--umm-bg-secondary);
+  flex-shrink: 0;
+}
+
+.umm-doulist-cover {
+  width: 100%;
+  height: 100%;
+}
+
+.umm-doulist-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.umm-doulist-card:hover .umm-doulist-cover img {
+  transform: scale(1.05);
+}
+
+.umm-doulist-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.umm-doulist-cover-icon {
+  font-size: 2rem;
+  opacity: 0.3;
+}
+
+/* Category badge — overlaid on cover top-right */
+
+.umm-doulist-cat-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 9px;
+  border-radius: var(--umm-radius-lg, 12px);
+  font-size: var(--umm-font-xs);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.umm-doulist-cat--movie {
+  background: rgba(238, 242, 255, 0.92);
+  color: var(--umm-static-indigo-600);
+}
+.umm-doulist-cat--music {
+  background: rgba(243, 232, 255, 0.92);
+  color: var(--umm-static-violet-600);
+}
+.umm-doulist-cat--book {
+  background: rgba(254, 243, 199, 0.92);
+  color: var(--umm-static-amber-700);
+}
+.umm-doulist-cat--thing_place {
+  background: rgba(219, 234, 254, 0.92);
+  color: var(--umm-static-blue-700);
+}
+
+:host(.umm-theme--dark) .umm-doulist-cat--movie {
+  background: rgba(30, 27, 75, 0.92);
+  color: var(--umm-static-indigo-400);
+}
+:host(.umm-theme--dark) .umm-doulist-cat--music {
+  background: rgba(46, 16, 101, 0.92);
+  color: var(--umm-static-violet-300);
+}
+:host(.umm-theme--dark) .umm-doulist-cat--book {
+  background: rgba(66, 32, 6, 0.92);
+  color: var(--umm-static-amber-400);
+}
+:host(.umm-theme--dark) .umm-doulist-cat--thing_place {
+  background: rgba(23, 37, 84, 0.92);
+  color: var(--umm-static-blue-400);
+}
+
+/* ===== Layer 3: Body (stats → intro → footer) ===== */
+
+.umm-doulist-body {
+  padding: var(--umm-space-sm) var(--umm-space-md) var(--umm-space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--umm-space-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Stats row --- */
+
+.umm-doulist-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-xs);
+}
+
+.umm-doulist-stat-item {
+  font-size: var(--umm-font-xs);
+  font-weight: 500;
+  color: var(--umm-text-secondary);
+  line-height: 1.4;
+}
+
+.umm-doulist-stat-divider {
+  width: 1px;
+  height: 1em;
+  background: var(--umm-text-muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* --- Intro (optional) --- */
+
+.umm-doulist-intro {
+  font-size: var(--umm-font-xs);
+  font-weight: 400;
+  color: var(--umm-text-tertiary);
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+:host(.umm-theme--dark) .umm-doulist-intro {
+  color: var(--umm-static-neutral-400);
+}
+
+/* --- Footer: time left, follower right --- */
+
+.umm-doulist-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--umm-space-sm);
+  margin-top: auto;
+  padding-top: var(--umm-space-xs);
+}
+
+.umm-doulist-time {
+  font-size: var(--umm-font-xs);
+  font-weight: 400;
+  color: var(--umm-text-muted);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.umm-doulist-footer-space {
+  flex: 1;
+  min-width: 0;
+}
+
+.umm-doulist-followers {
+  font-size: var(--umm-font-xs);
+  font-weight: 400;
+  color: var(--umm-text-muted);
+  line-height: 1.4;
+  white-space: nowrap;
+}

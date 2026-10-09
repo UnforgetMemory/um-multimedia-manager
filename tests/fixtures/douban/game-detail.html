@@ -1,0 +1,161 @@
+<!doctype html>
+<!--
+  Synthetic Douban game-detail fixture for
+  tests/unit/game-detail-data.spec.ts. NOT a real saved page: fabricated data;
+  only the www.douban.com/game/<id>/ DOM shape queried by
+  src/scenario/douban/pages/game-detail/game-detail-data.ts is reproduced
+  (#content h1, .item-subject-info, #interest_sectl rating block,
+  dl.thing-attr meta, .collection-section, .mod.item-desc#link-report,
+  .mod#th-photos video/photo sections, .comment-list, #recommendations).
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>塞尔达传说 王国之泪 (游戏)</title>
+  </head>
+  <body>
+    <div id="content">
+      <section class="article">
+        <h1>塞尔达传说 王国之泪</h1>
+        <div class="grid-16-9 clearfix">
+          <div id="mainpic" class="item-subject-info">
+            <div class="pic">
+              <a href="https://www.douban.com/game/35317744/photos">
+                <img src="https://img3.doubanio.com/view/game/subject/public/p480747492.jpg" width="166" />
+              </a>
+            </div>
+            <div id="interest_sectl">
+              <div class="rating_wrap clearbox">
+                <div class="rating_logo">豆瓣评分</div>
+                <strong class="ll rating_num" property="v:average">9.5</strong>
+                <span class="wx-color-999"><b class="bigstar bigstar45"></b></span>
+                <div class="rating_sum">
+                  <a href="reviews" class="rating_people"><span>5678</span>人评价</a>
+                </div>
+                <div class="rating_detail">
+                  <span class="starstop star5">力荐</span><span class="power"><span class="inline" style="width: 70%"></span></span><span class="rating_per">71.4%</span><br />
+                  <span class="starstop star4">推荐</span><span class="power"><span class="inline" style="width: 20%"></span></span><span class="rating_per">19.8%</span><br />
+                  <span class="starstop star3">还行</span><span class="power"><span class="inline" style="width: 5%"></span></span><span class="rating_per">5.3%</span><br />
+                  <span class="starstop star2">较差</span><span class="power"><span class="inline" style="width: 2%"></span></span><span class="rating_per">2.1%</span><br />
+                  <span class="starstop star1">很差</span><span class="power"><span class="inline" style="width: 1%"></span></span><span class="rating_per">1.4%</span><br />
+                </div>
+              </div>
+            </div>
+            <dl class="thing-attr">
+              <dt>平台:</dt>
+              <dd><a href="https://www.douban.com/game/type/switch" onclick="track()">Switch</a></dd>
+              <dt>开发商:</dt>
+              <dd>任天堂企划制作本部</dd>
+              <dt>发行商:</dt>
+              <dd>任天堂</dd>
+              <dt>发售日期:</dt>
+              <dd>2023-05-12</dd>
+              <dt>游戏时长:</dt>
+              <dd></dd>
+              <!-- trailing dt without content dd → row skipped -->
+              <dt>别名:</dt>
+            </dl>
+          </div>
+          <div class="plaza">
+            <div class="collection-section">
+              <p class="collection-result">我玩过 · <a href="my">我的评价</a></p>
+              <span class="color_gray">2023-05-20 标记</span>
+              <p class="collection-comment">开放世界设计教科书，值得全收集。</p>
+            </div>
+            <a href="javascript:void(0);" class="collect-btn" data-rating="9">推荐</a>
+          </div>
+        </div>
+        <div class="mod item-desc" id="link-report">
+          <span class="attrs">游戏介绍</span>
+          <p>
+            海拉鲁大陆突逢异变。<br />
+            在广阔天地自由探索、制造与冒险。<a href="https://www.douban.com/games/" onclick="evil()">更多游戏</a>
+            <script>
+              var evil = 1;
+            </script>
+          </p>
+        </div>
+      </section>
+      <div class="mod" id="th-photos">
+        <h2>视频 · 6</h2>
+        <div class="video-mini-wrap">
+          <div class="video-mini" vid="1001">
+            <a class="video" href="https://v.douban.com/game/35317744/trailer1/">
+              <img src="https://img3.doubanio.com/view/video/cover/t1.jpg" alt="预告" />
+            </a>
+            <p class="title"><a href="https://v.douban.com/game/35317744/trailer1/"><span>先导预告片</span></a></p>
+            <span class="color_gray">01:23</span>
+          </div>
+          <div class="video-mini" vid="1002">
+            <a class="video" href="https://v.douban.com/game/35317744/trailer2/">
+              <img src="https://img1.doubanio.com/view/video/cover/t2.jpg" alt="预告2" />
+            </a>
+            <p class="title"><a href="https://v.douban.com/game/35317744/trailer2/"><span>发售预告片</span></a></p>
+          </div>
+        </div>
+      </div>
+      <div class="mod" id="th-photos">
+        <h2>图片 · 29</h2>
+        <div class="list">
+          <ul class="charts">
+            <li><a href="https://www.douban.com/game/35317744/photo/9001/"><img src="https://img3.doubanio.com/view/photos/cover/c1.jpg" alt="截图1" /></a></li>
+            <li><a href="https://www.douban.com/game/35317744/photo/9002/"><img src="https://img1.doubanio.com/view/photos/cover/c2.jpg" alt="截图2" /></a></li>
+            <!-- upload CTA cell must be excluded by :not(.photos-upload) -->
+            <li class="photos-upload"><a href="https://www.douban.com/games/upload"><img src="https://img3.doubanio.com/static/upload.png" alt="上传图片" /></a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mod comment-section" id="comments">
+        <h2>短评 · 5678</h2>
+        <ul class="comment-list">
+          <li class="comment-item" id="c1">
+            <div class="user-info">
+              <a href="https://www.douban.com/people/gamefan001/">游戏迷小李</a>
+              <span class="allstar40 rating" title="推荐">推荐</span>
+              <span class="pl pubtime">2023-06-02</span>
+              <span class="play-platform">Switch</span>
+              <span class="comment-location">上海</span>
+            </div>
+            <p class="short">迷宫设计太惊艳，究手残也能通关。</p>
+            <div class="digg"><span>328</span>人觉得有用</div>
+          </li>
+          <li class="comment-item" id="c2">
+            <div class="user-info">
+              <a href="https://www.douban.com/people/silentplayer/">沉默玩家</a>
+              <span class="pl pubtime">2023-07-11</span>
+            </div>
+            <p class="short">通关了，本年度最佳。</p>
+          </li>
+          <!-- no user link and no short text → whole item skipped -->
+          <li class="comment-item" id="c3">
+            <div class="user-info"><span class="pl pubtime">2023-08-01</span></div>
+          </li>
+        </ul>
+      </div>
+      <div class="mod" id="recommendations">
+        <h2>喜欢"塞尔达传说 王国之泪"的人也喜欢 · 20</h2>
+        <div class="recommendations-bd">
+          <dl>
+            <dt><a href="https://www.douban.com/game/27204857/"><img src="https://img3.doubanio.com/view/game/subject/s27204857.jpg" alt="艾尔登法环" /></a></dt>
+            <dd>
+              <a href="https://www.douban.com/game/27204857/">艾尔登法环</a>
+              <span class="rating">9.6</span>
+            </dd>
+          </dl>
+          <dl>
+            <dt><a href="https://www.douban.com/game/30236436/"><img src="https://img1.doubanio.com/view/game/subject/s30236436.jpg" alt="博德之门3" /></a></dt>
+            <dd>
+              <a href="https://www.douban.com/game/30236436/">博德之门3</a>
+              <span class="rating">9.7</span>
+            </dd>
+          </dl>
+          <!-- dd without an anchor → dl skipped -->
+          <dl>
+            <dt><img src="https://img2.doubanio.com/view/game/subject/none.jpg" alt="占位" /></dt>
+            <dd><span>暂无链接</span></dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

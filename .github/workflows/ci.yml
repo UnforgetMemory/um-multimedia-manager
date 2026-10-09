@@ -30,9 +30,64 @@ jobs:
       - run: npm ci
       - run: npm run type-check
 
+  static-gates:
+    name: Static Gates
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      # 架构分层守卫（ADR-026 D6）：七层依赖方向单向向下，禁止向上/反向依赖
+      - run: npm run arch:check
+      # 设计令牌门禁（ADR-018/019/020）：三层令牌 + 对比度/明暗对称断言
+      - run: npm run ds:check
+      # 样式作用域守卫（ADR-026 D7）：legacy 内容样式注入宿主页面，禁止裸选择器
+      - run: npm run scope:check
+      # 文件命名守卫（ADR-026 D6）：kebab-case + 提取模块 <domain>-extract.ts 统一
+      - run: npm run naming:check
+      # 文件尺寸守卫（ADR-026 需求 9）：src/tests 单文件 ≤600 行，防 God 文件反弹
+      - run: npm run size:check
+      # 事实源指针守卫（ADR-026 回访波）：注释里的 src/... 路径必须真实存在
+      - run: npm run doc:check
+      # 孤儿模块棘轮（ADR-026 需求 14）：新增无测试引用的 src 模块即失败，基线只可缩小
+      - run: npm run orphan:check
+      - run: npm run orphan:self-test
+      # 显式 any 守卫（AGENTS.md 关键约定门禁化）：AST 级 AnyKeyword，src + tests + .vue script 全覆盖
+      - run: npm run any:check
+      # 测试全局隔离棘轮（ADR-026 需求 14）：spec 改写 globalThis 必须登记还原，基线只可缩小
+      - run: npm run isolation:check
+      # 诊断出口棘轮（X28）：src 内裸 console.* 必须走 libraries/utils/logger，计数只可缩小
+      - run: npm run console:check
+      - run: npm run cjk:check
+      # 统一格式化（ADR-026 D8）：Oxfmt（semi/singleQuote/printWidth 100/LF），配置 .oxfmtrc.json
+      - run: npm run format:check
+      # i18n 键完整性：SPA + 内容脚本两套系统
+      - run: npm run i18n:check
+      # 静态 lint（ADR-026 D8）：oxlint 正确性规则，零警告门禁
+      - run: npm run lint
+
+  unit-tests:
+    name: Unit Tests
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # 全量单测（tests/unit，Playwright chromium）；合并跑而非分波自测，见回访 §7-2
+      - run: npm run test:unit
+
   build:
     name: Build (${{ matrix.browser }})
-    needs: typecheck
+    needs: [typecheck, static-gates, unit-tests]
     runs-on: ubuntu-latest
     strategy:
       matrix:

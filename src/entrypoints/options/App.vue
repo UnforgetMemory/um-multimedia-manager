@@ -1,30 +1,30 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter, useRoute, RouterView } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useI18n } from 'vue-i18n'
-import { useThemeStore } from '@/stores/theme'
-import { useAppStore } from '@/stores/app'
-import { useLocaleSync } from '@/composables/useLocaleSync'
-import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from 'lucide-vue-next'
-import ConfirmDialog from '@/shared/ConfirmDialog.vue'
-import ToastContainer from '@/shared/ToastContainer.vue'
-import NavItem from '@/shared/ui/nav-item/NavItem.vue'
-import { IconButton } from '@/shared/ui/icon-button'
+import { computed, ref } from 'vue';
+import { useRouter, useRoute, RouterView } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+import { useThemeStore } from '@/store/theme';
+import { useAppStore } from '@/store/app';
+import { useLocaleSync } from '@/feature/composables/use-locale-sync';
+import { Database, Star, Link, RefreshCw, Settings, Palette, Menu, X } from '@/libraries/ui/icons';
+import ConfirmDialog from '@/feature/ConfirmDialog.vue';
+import ToastContainer from '@/feature/ToastContainer.vue';
+import NavItem from '@/libraries/ui/nav-item/NavItem.vue';
+import { IconButton } from '@/libraries/ui/icon-button';
 
-const { t } = useI18n()
-const router = useRouter()
-const route = useRoute()
+const { t } = useI18n();
+const router = useRouter();
+const route = useRoute();
 
-useThemeStore()
-useLocaleSync()
+useThemeStore();
+useLocaleSync();
 
-const appStore = useAppStore()
-const { appVersion } = storeToRefs(appStore)
+const appStore = useAppStore();
+const { appVersion } = storeToRefs(appStore);
 
-const logoUrl = chrome.runtime.getURL('icon-128.png')
+const logoUrl = chrome.runtime.getURL('icon-128.png');
 
-const sidebarOpen = ref(false)
+const sidebarOpen = ref(false);
 
 const tabs = computed(() => [
   { id: 'overview', label: t('nav.overview') as string, icon: Database, route: '/overview' },
@@ -33,20 +33,20 @@ const tabs = computed(() => [
   { id: 'sync', label: t('nav.sync') as string, icon: RefreshCw, route: '/sync' },
   { id: 'appearance', label: t('nav.appearance') as string, icon: Palette, route: '/appearance' },
   { id: 'settings', label: t('nav.settings') as string, icon: Settings, route: '/settings' },
-])
+]);
 
 const currentTab = computed(() => {
-  const name = route.name as string
-  return tabs.value.find(t => t.id === name)?.id || 'overview'
-})
+  const name = route.name as string;
+  return tabs.value.find((t) => t.id === name)?.id || 'overview';
+});
 
 function navigateTo(path: string) {
-  router.push(path)
-  sidebarOpen.value = false
+  router.push(path);
+  sidebarOpen.value = false;
 }
 </script>
 
-<template>
+<template vapor>
   <div class="umm:h-screen umm:bg-background umm:text-foreground umm:flex umm:overflow-hidden">
     <!-- Sidebar — persistent on xl+, drawer on smaller -->
     <!-- Mobile drawer overlay -->
@@ -61,7 +61,10 @@ function navigateTo(path: string) {
     <!-- Sidebar -->
     <Transition name="slide">
       <nav
-        :class="['umm:fixed umm:xl:static umm:inset-y-0 umm:left-0 umm:z-50 umm:w-64 umm:bg-card umm:border-r umm:border-border umm:flex umm:flex-col umm:shrink-0 umm:transition-transform umm:duration-300', sidebarOpen ? 'umm:translate-x-0' : 'umm:-translate-x-full umm:xl:translate-x-0']"
+        :class="[
+          'umm:fixed umm:xl:static umm:inset-y-0 umm:left-0 umm:z-50 umm:w-64 umm:bg-card umm:border-r umm:border-border umm:flex umm:flex-col umm:shrink-0 umm:transition-transform umm:duration-300',
+          sidebarOpen ? 'umm:translate-x-0' : 'umm:-translate-x-full umm:xl:translate-x-0',
+        ]"
         :style="{ paddingTop: '1.25rem', paddingBottom: '1.25rem' }"
       >
         <!-- Sidebar header -->
@@ -69,7 +72,9 @@ function navigateTo(path: string) {
           <div class="umm:flex umm:items-center umm:gap-2">
             <img :src="logoUrl" alt="" class="umm:h-8 umm:w-8 umm:rounded-lg umm:shadow-sm" />
             <div>
-              <h1 class="umm:text-base umm:font-bold umm:tracking-tight umm:text-primary-content">UMManager</h1>
+              <h1 class="umm:text-base umm:font-bold umm:tracking-tight umm:text-primary-content">
+                UMManager
+              </h1>
               <span class="umm:font-caption umm:text-secondary-content">v{{ appVersion }}</span>
             </div>
           </div>
@@ -95,7 +100,6 @@ function navigateTo(path: string) {
             @click="navigateTo(tab.route)"
           />
         </div>
-
       </nav>
     </Transition>
 
@@ -113,8 +117,14 @@ function navigateTo(path: string) {
       </IconButton>
 
       <!-- Page content -->
-      <main class="umm:flex-1 umm:overflow-y-auto" :style="{ padding: 'var(--umm-card-padding)', paddingTop: 'calc(var(--umm-card-padding) + 40px)' }">
-        <div class="umm:mx-auto" style="max-width: 1200px;">
+      <main
+        class="umm:flex-1 umm:overflow-y-auto"
+        :style="{
+          padding: 'var(--umm-card-padding)',
+          paddingTop: 'calc(var(--umm-card-padding) + 40px)',
+        }"
+      >
+        <div class="umm:mx-auto" style="max-width: 1200px">
           <!-- Suspense removed (ADR-019 round): no tab uses async setup, so it never
                suspended; lazy routes + Suspense triggered Vue's single-root dev
                warning. Loading states live inside each tab (own skeletons). -->
@@ -132,8 +142,20 @@ function navigateTo(path: string) {
 </template>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-.slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
-.slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+}
 </style>

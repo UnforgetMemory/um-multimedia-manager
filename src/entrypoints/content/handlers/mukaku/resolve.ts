@@ -27,29 +27,28 @@
  *      needs one — it does NOT resolve the probe itself)
  */
 
-export type CardAction = 'dim' | 'skip' | 'needs-probe'
+export type CardAction = 'dim' | 'skip' | 'needs-probe';
 
 export interface ResolveContext {
   /** Mapping hit for this mvId; null when unknown (needs probe). Ids are BARE (no movie:: prefix). */
-  probe: { doubanId: string | null; imdbId: string | null } | null
+  probe: { doubanId: string | null; imdbId: string | null } | null;
   /** Session cooldown flag: this card was confirmed to have no douban/imdb association this page session. */
-  noAssociation: boolean
+  noAssociation: boolean;
   /** Realtime watched douban ids — BARE ids. */
-  watchedDouban: Set<string>
+  watchedDouban: Set<string>;
   /** Realtime watched imdb ids — BARE ids. */
-  watchedImdb: Set<string>
+  watchedImdb: Set<string>;
 }
 
 export function resolveCardState(ctx: ResolveContext): CardAction {
-  if (ctx.noAssociation) return 'skip'
+  if (ctx.noAssociation) return 'skip';
 
   if (ctx.probe !== null) {
-    const { doubanId, imdbId } = ctx.probe
+    const { doubanId, imdbId } = ctx.probe;
     const matched =
-      (doubanId && ctx.watchedDouban.has(doubanId)) ||
-      (imdbId && ctx.watchedImdb.has(imdbId))
-    return matched ? 'dim' : 'skip'
+      (doubanId && ctx.watchedDouban.has(doubanId)) || (imdbId && ctx.watchedImdb.has(imdbId));
+    return matched ? 'dim' : 'skip';
   }
 
-  return 'needs-probe'
+  return 'needs-probe';
 }

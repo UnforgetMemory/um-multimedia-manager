@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { isWatchedStatus } from '@/features/database/models'
+import { test, expect } from '@playwright/test';
+import { isWatchedStatus } from '@/engine/database/models';
 
 /**
  * isWatchedStatus — the status gate behind getWatchedIds.
@@ -11,35 +11,35 @@ import { isWatchedStatus } from '@/features/database/models'
  */
 test.describe('isWatchedStatus — explicit watched gate', () => {
   test('returns true only for status=2 (watched/done)', () => {
-    expect(isWatchedStatus(2)).toBe(true)
-  })
+    expect(isWatchedStatus(2)).toBe(true);
+  });
 
   test('accepts legacy string "done" as watched', () => {
-    expect(isWatchedStatus('done')).toBe(true)
-  })
+    expect(isWatchedStatus('done')).toBe(true);
+  });
 
   test('rejects doing (3) — in-progress is not watched', () => {
-    expect(isWatchedStatus(3)).toBe(false)
-  })
+    expect(isWatchedStatus(3)).toBe(false);
+  });
 
   test('rejects wishlist (1) and legacy "wish"', () => {
-    expect(isWatchedStatus(1)).toBe(false)
-    expect(isWatchedStatus('wish')).toBe(false)
-  })
+    expect(isWatchedStatus(1)).toBe(false);
+    expect(isWatchedStatus('wish')).toBe(false);
+  });
 
   test('rejects none (0)', () => {
-    expect(isWatchedStatus(0)).toBe(false)
-  })
+    expect(isWatchedStatus(0)).toBe(false);
+  });
 
   test('rejects undefined / missing status', () => {
-    expect(isWatchedStatus(undefined)).toBe(false)
-  })
+    expect(isWatchedStatus(undefined)).toBe(false);
+  });
 
   test('rejects unknown string values such as "watching"', () => {
-    expect(isWatchedStatus('watching')).toBe(false)
-  })
+    expect(isWatchedStatus('watching')).toBe(false);
+  });
 
   test('rejects null', () => {
-    expect(isWatchedStatus(null)).toBe(false)
-  })
-})
+    expect(isWatchedStatus(null)).toBe(false);
+  });
+});

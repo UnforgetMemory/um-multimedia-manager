@@ -1,0 +1,193 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/book-homepage-extract.spec.ts.
+  NOT a real saved page: reproduces the public book.douban.com homepage DOM
+  shape (.section.books-express .list-express, .section.popular-books
+  .list-summary, .section.books-activities a.book-activity) to match the
+  extractor contract in src/scenario/douban/pages/book-homepage/book-homepage-extract.ts.
+  All titles/authors/ranks are fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>豆瓣读书</title>
+  </head>
+  <body>
+    <div id="db-nav-book"></div>
+
+    <!-- 新书速递 -->
+    <div class="section books-express">
+      <h3 class="section-title">新书速递</h3>
+      <ul class="list-express">
+        <li class="ui-slide-item">
+          <div class="cover">
+            <a href="https://book.douban.com/subject/37110001/"
+              ><img src="https://img1.doubanio.com/view/cover_s/public/p37110001.jpg" alt="晚祷的钟声"
+            /></a>
+          </div>
+          <div class="info">
+            <div class="title"><a href="https://book.douban.com/subject/37110001/" title="晚祷的钟声">晚祷的钟声</a></div>
+            <div class="author">[日] 山崎芙由 著</div>
+            <div class="more-meta">
+              <p>
+                <span class="author">山崎芙由</span>
+                <span class="year">2026-8</span>
+                <span class="publisher">潮汐出版社</span>
+                <span class="price">58.00元</span>
+              </p>
+            </div>
+          </div>
+        </li>
+        <!-- title anchor without title attr → textContent fallback -->
+        <li class="ui-slide-item">
+          <div class="cover">
+            <a href="https://book.douban.com/subject/37110002/"
+              ><img src="https://img2.doubanio.com/view/cover_s/public/p37110002.jpg" alt="盐的路线"
+            /></a>
+          </div>
+          <div class="info">
+            <div class="title"><a href="https://book.douban.com/subject/37110002/">盐的路线</a></div>
+            <div class="author">陈以恒 著</div>
+            <div class="more-meta">
+              <p><span class="year">2026-7</span><span class="publisher">山河书局</span></p>
+            </div>
+          </div>
+        </li>
+        <!-- no year / publisher → undefined -->
+        <li class="ui-slide-item">
+          <div class="cover">
+            <a href="https://book.douban.com/subject/37110003/"
+              ><img src="https://img3.doubanio.com/view/cover_s/public/p37110003.jpg"
+            /></a>
+          </div>
+          <div class="info">
+            <div class="title"><a href="https://book.douban.com/subject/37110003/" title="夜航西飞新注">夜航西飞新注</a></div>
+          </div>
+        </li>
+        <!-- promo li without .cover a → skipped -->
+        <li class="ui-slide-item">
+          <div class="info"><div class="title"><a href="/annual/2025/">年度榜单</a></div></div>
+        </li>
+        <!-- duplicate subjectId → deduplicated -->
+        <li class="ui-slide-item">
+          <div class="cover">
+            <a href="https://book.douban.com/subject/37110001/"
+              ><img src="https://img1.doubanio.com/view/cover_s/public/p37110001.jpg"
+            /></a>
+          </div>
+          <div class="info">
+            <div class="title"><a href="https://book.douban.com/subject/37110001/" title="晚祷的钟声">晚祷的钟声</a></div>
+            <div class="author">[日] 山崎芙由 著</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 每月热门图书榜 -->
+    <div class="section popular-books">
+      <h3 class="section-title">每月热门图书榜</h3>
+      <ul class="list-summary">
+        <li>
+          <div class="rank-info">
+            <strong class="green-num-box">1</strong>
+            <div class="trend-info"><span class="trend up"></span><span class="rank-value">3</span></div>
+          </div>
+          <div class="cover">
+            <a href="https://book.douban.com/subject/36990001/"
+              ><img src="https://img9.doubanio.com/view/cover_s/public/p36990001.jpg"
+            /></a>
+          </div>
+          <div class="info">
+            <h4 class="title"><a href="https://book.douban.com/subject/36990001/">静默的河床</a></h4>
+            <div class="entry-star-small"><span class="average-rating">8.7</span></div>
+            <div class="author">作者：林萌</div>
+            <div class="subject-tags"><span class="tag">小说</span><span class="tag">乡土</span></div>
+          </div>
+        </li>
+        <li>
+          <div class="rank-info">
+            <strong class="green-num-box">2</strong>
+            <div class="trend-info"><span class="trend down"></span><span class="rank-value">1</span></div>
+          </div>
+          <div class="cover">
+            <a href="https://book.douban.com/subject/36990002/"
+              ><img src="https://img2.doubanio.com/view/cover_s/public/p36990002.jpg"
+            /></a>
+          </div>
+          <div class="info">
+            <h4 class="title"><a href="https://book.douban.com/subject/36990002/">咖啡因的化学</a></h4>
+            <div class="entry-star-small"><span class="average-rating">7.9</span></div>
+            <div class="author">作者: [美] R. D. Hart</div>
+            <div class="subject-tags"><span class="tag">科普</span></div>
+          </div>
+        </li>
+        <li>
+          <div class="rank-info">
+            <strong class="green-num-box">3</strong>
+            <div class="trend-info"><span class="trend new"></span></div>
+          </div>
+          <div class="cover">
+            <a href="https://book.douban.com/subject/36990003/"
+              ><img src="https://img3.doubanio.com/view/cover_s/public/p36990003.jpg"
+            /></a>
+          </div>
+          <div class="info">
+            <h4 class="title"><a href="https://book.douban.com/subject/36990003/">灯塔守望史</a></h4>
+            <div class="author">顾一帆</div>
+          </div>
+        </li>
+        <!-- rank missing → skipped -->
+        <li>
+          <div class="cover">
+            <a href="https://book.douban.com/subject/36990004/"><img src="p4.jpg" /></a>
+          </div>
+          <div class="info"><h4 class="title"><a href="https://book.douban.com/subject/36990004/">无名条目</a></h4></div>
+        </li>
+        <!-- rank present but no cover link → skipped -->
+        <li>
+          <div class="rank-info"><strong class="green-num-box">6</strong></div>
+          <div class="info"><h4 class="title"><a href="https://book.douban.com/subject/36990006/">没有封面</a></h4></div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 读书活动 -->
+    <div class="section books-activities">
+      <h3 class="section-title">读书活动</h3>
+      <div class="activity-wrap">
+        <a
+          class="book-activity"
+          href="https://book.douban.com/activity/1001/"
+          style="background-image: url('https://img1.doubanio.com/view/activity/photo/p1001_cover.jpg')"
+        >
+          <div class="book-activity-info">
+            <div class="book-activity-title">夏末读诗会 · 第三期</div>
+            <div class="book-activity-label">线上活动</div>
+            <div class="book-activity-time"><time>2026-08-22</time></div>
+          </div>
+        </a>
+        <a
+          class="book-activity"
+          href="https://book.douban.com/activity/1002/"
+          style="background-image:url(&quot;https://img2.doubanio.com/view/activity/photo/p1002_cover.jpg&quot;)"
+        >
+          <div class="book-activity-info">
+            <div class="book-activity-title">编辑手谈：一本书的诞生</div>
+            <div class="book-activity-label">直播</div>
+            <div class="book-activity-time"><time>2026-09-03</time></div>
+          </div>
+        </a>
+        <!-- no background style / no title → fields empty but item kept -->
+        <a class="book-activity" href="https://book.douban.com/activity/1003/">
+          <div class="book-activity-info">
+            <div class="book-activity-label">线下共读</div>
+          </div>
+        </a>
+        <!-- invalid href → skipped -->
+        <a class="book-activity" href="javascript:;">
+          <div class="book-activity-info"><div class="book-activity-title">无效链接活动</div></div>
+        </a>
+      </div>
+    </div>
+  </body>
+</html>

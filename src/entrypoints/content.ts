@@ -8,18 +8,17 @@
  * - Router dispatch
  */
 
-import { defineContentScript } from 'wxt/utils/define-content-script'
-import { Store } from '@/features/database'
-import { initRouter, hasMatchingRoute } from './content/router'
-import { initI18n, startLocaleSync } from './content/i18n'
-import { injectGlobalStyles } from './content/styles/global'
-import { FloatingToast } from './content/utils/toast'
-import { infoLog, errorLog, configureLogging } from '@/utils/logger'
-import { sleep } from '@/utils'
-import type { LogLevel } from '@/types'
-import { STORAGE_KEYS } from '@/config'
-import { settingsItems } from '@/features/settings/items'
-import { initEventBus } from '@/utils/event-bus'
+import { defineContentScript } from 'wxt/utils/define-content-script';
+import { Store } from '@/engine/database';
+import { initRouter, hasMatchingRoute, getGlobalStyleBlocksForUrl } from './content/router';
+import { initI18n, startLocaleSync } from './content/i18n';
+import { injectGlobalStyles } from './content/styles/global';
+import { FloatingToast } from './content/utils/toast';
+import { infoLog, errorLog } from '@/libraries/utils/logger';
+import { bootstrapLogging } from './content/bootstrap/logging';
+import { startThemeAttrSync } from '@/scenario/douban/overlay/theme-sync';
+import { sleep } from '@/libraries/utils';
+import { initEventBus } from '@/libraries/utils/event-bus';
 
 export default defineContentScript({
   matches: [
@@ -132,105 +131,94 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   async main() {
-    initEventBus()
+    initEventBus();
 
-    // Configure logging from storage
-    try {
-      const items = settingsItems()
-      const [debugEnabled, level] = await Promise.all([
-        items.debugEnabled.getValue(),
-        items.logLevel.getValue(),
-      ])
-      configureLogging({ enabled: debugEnabled, level })
-    } catch { /* keep defaults */ }
+    // Configure logging from storage and keep following the Options page.
+    await bootstrapLogging();
 
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local') return
-      const enabledChange = changes[STORAGE_KEYS.DEBUG_ENABLED]
-      const levelChange = changes[STORAGE_KEYS.LOG_LEVEL]
-      if (enabledChange || levelChange) {
-        configureLogging({
-          enabled: enabledChange?.newValue as boolean | undefined,
-          level: levelChange?.newValue as LogLevel | undefined,
-        })
-      }
-    })
-
-    infoLog('Script loaded on:', window.location.href)
+    infoLog('Script loaded on:', window.location.href);
 
     if (!chrome?.runtime?.id) {
-      errorLog('Chrome runtime not available!')
-      return
+      errorLog('Chrome runtime not available!');
+      return;
     }
 
-    const isMTeamSite = location.href.includes('m-team.cc')
-    const isDoubanGamePage = location.hostname === 'www.douban.com' && /^\/game\/\d+\/?$/.test(location.pathname)
+    const isMTeamSite = location.href.includes('m-team.cc');
+    const isDoubanGamePage =
+      location.hostname === 'www.douban.com' && /^\/game\/\d+\/?$/.test(location.pathname);
 
     if (!hasMatchingRoute(location.href) && !isMTeamSite && !isDoubanGamePage) {
       // Lightweight URL watcher for non-matching pages
-      let initialized = false
+      let initialized = false;
       const tryInit = async () => {
-        if (initialized || !hasMatchingRoute(location.href)) return
-        initialized = true
-        window.removeEventListener('popstate', tryInit)
-        if (origPushState) history.pushState = origPushState
-        if (origReplaceState) history.replaceState = origReplaceState
-        infoLog('Route detected — running full initialization')
-        await fullInit()
-      }
+        if (initialized || !hasMatchingRoute(location.href)) return;
+        initialized = true;
+        window.removeEventListener('popstate', tryInit);
+        if (origPushState) history.pushState = origPushState;
+        if (origReplaceState) history.replaceState = origReplaceState;
+        infoLog('Route detected — running full initialization');
+        await fullInit();
+      };
 
-      window.addEventListener('popstate', tryInit)
-      const origPushState = history.pushState
-      const origReplaceState = history.replaceState
-      history.pushState = function (...args: [any, string, string?]) {
-        origPushState.apply(this, args)
-        tryInit()
-      }
-      history.replaceState = function (...args: [any, string, string?]) {
-        origReplaceState.apply(this, args)
-        tryInit()
-      }
-      return
+      window.addEventListener('popstate', tryInit);
+      const origPushState = history.pushState;
+      const origReplaceState = history.replaceState;
+      history.pushState = function (...args: Parameters<typeof history.pushState>) {
+        origPushState.apply(this, args);
+        tryInit();
+      };
+      history.replaceState = function (...args: Parameters<typeof history.replaceState>) {
+        origReplaceState.apply(this, args);
+        tryInit();
+      };
+      return;
     }
 
-    await fullInit()
+    await fullInit();
 
     async function fullInit() {
       try {
-        await initI18n()
-        startLocaleSync()
+        await initI18n();
+        startLocaleSync();
+        // global.ts 的暗色表（THEME_VARS_DARK + GLOW_VARS）整片锚在
+        // `html[data-umm-theme="dark"]` 上。legacy 站点没有 overlay 壳、此前也没人落
+        // 这个属性 —— 暗色用户的徽章/按钮/辉光在 IMDb/NeoDB/Bangumi/TMDB/PT/JavDB
+        // 上恒落亮色调色板。`background: false`：宿主画布不归 UMM 重画（html 背景
+        // 镜像是 Douban overlay 全屏壳那侧的需求，见 scenario/douban/main.ts）。
+        startThemeAttrSync({ background: false });
 
         // Wait for background DB
-        let attempts = 0
+        let attempts = 0;
         while (attempts < 8) {
-          const ok = await Store.healthCheck()
-          if (ok) break
-          attempts++
-          await sleep(Math.min(500 * Math.pow(2, attempts), 8000))
+          const ok = await Store.healthCheck();
+          if (ok) break;
+          attempts++;
+          await sleep(Math.min(500 * Math.pow(2, attempts), 8000));
         }
 
-        injectGlobalStyles()
+        // 按需子集注入（X5）：路由声明了 styleBlocks 则用其子集，缺省仍全量
+        injectGlobalStyles(getGlobalStyleBlocksForUrl(location.href));
 
-        initRouter()
+        initRouter();
 
-        infoLog('✅ Initialization complete')
+        infoLog('✅ Initialization complete');
       } catch (error: unknown) {
-        errorLog('❌ Initialization failed:', error)
+        errorLog('❌ Initialization failed:', error);
       }
     }
   },
-})
+});
 
 // Handle SHOW_TOAST messages from background
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (sender.id !== chrome.runtime.id) return false
+  if (sender.id !== chrome.runtime.id) return false;
   if (message.type === 'SHOW_TOAST') {
-    const { type, title, message: msg } = message.payload
-    if (type === 'success') FloatingToast.success(title, msg)
-    else if (type === 'error') FloatingToast.error(title, msg)
-    else if (type === 'loading') FloatingToast.loading(title, msg)
-    else FloatingToast.info(title, msg)
-    sendResponse({ success: true })
-    return true
+    const { type, title, message: msg } = message.payload;
+    if (type === 'success') FloatingToast.success(title, msg);
+    else if (type === 'error') FloatingToast.error(title, msg);
+    else if (type === 'loading') FloatingToast.loading(title, msg);
+    else FloatingToast.info(title, msg);
+    sendResponse({ success: true });
+    return true;
   }
-})
+});

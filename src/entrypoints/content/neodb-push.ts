@@ -6,50 +6,50 @@
  * Extracted from content.ts for modularity.
  */
 
-import type { StoreRecord, UrlIdentity } from '@/types'
-import type { MediaTypeId } from '@/domain/platform/MediaType'
-import { Store } from '@/features/database'
-import { Utils } from '@/utils'
-import { UrlResolverBuilder } from '@/shared/identity'
-import { safeSendMessage } from '@/utils/context'
-import { FloatingToast } from './utils/toast'
-import { t } from './i18n'
-import { debugLog, infoLog, warnLog, errorLog } from '@/utils/logger'
+import type { StoreRecord, UrlIdentity } from '@/types';
+import type { MediaTypeId } from '@/domain/platform/media-type';
+import { Store } from '@/engine/database';
+import { Utils } from '@/libraries/utils';
+import { UrlResolverBuilder } from '@/libraries/identity';
+import { safeSendMessage } from '@/libraries/utils/context';
+import { FloatingToast } from './utils/toast';
+import { t } from './i18n';
+import { debugLog, infoLog, warnLog, errorLog } from '@/libraries/utils/logger';
 
 /** Scan Douban page status — reads interest_sect_level DOM */
 function scanDoubanPageStatus(type?: string): { status: string; rating: number } {
-  const interestBox = document.getElementById('interest_sect_level')
+  const interestBox = document.getElementById('interest_sect_level');
   if (!interestBox) {
-    return { status: 'none', rating: 0 }
+    return { status: 'none', rating: 0 };
   }
 
-  const isMovie = type === 'movie' || type === 'book'
-  const watchedText = isMovie ? '我看过' : '我听过'
-  const doubanDialog = document.getElementById('dialog')
-  const isDialogVisible = doubanDialog && doubanDialog.offsetParent !== null
+  const isMovie = type === 'movie' || type === 'book';
+  const watchedText = isMovie ? '我看过' : '我听过';
+  const doubanDialog = document.getElementById('dialog');
+  const isDialogVisible = doubanDialog && doubanDialog.offsetParent !== null;
   if (isDialogVisible) {
-    return { status: 'none', rating: 0 }
+    return { status: 'none', rating: 0 };
   }
-  const hasFullText = interestBox.innerText.includes(watchedText)
-  const hasRemoveForm = !!interestBox.querySelector('form[action="remove"]')
-  const hasWatchedText = hasFullText && (hasRemoveForm || !isMovie)
+  const hasFullText = interestBox.innerText.includes(watchedText);
+  const hasRemoveForm = !!interestBox.querySelector('form[action="remove"]');
+  const hasWatchedText = hasFullText && (hasRemoveForm || !isMovie);
 
   if (!hasWatchedText) {
-    return { status: 'none', rating: 0 }
+    return { status: 'none', rating: 0 };
   }
 
-  let stars = 0
-  const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null
+  let stars = 0;
+  const nRatingInput = document.getElementById('n_rating') as HTMLInputElement | null;
   if (nRatingInput && nRatingInput.value) {
-    stars = Number.parseInt(nRatingInput.value, 10) || 0
+    stars = Number.parseInt(nRatingInput.value, 10) || 0;
   }
 
   if (!stars) {
-    const ratingElement = interestBox.querySelector('[class*="rating"]')
+    const ratingElement = interestBox.querySelector('[class*="rating"]');
     if (ratingElement) {
-      const className = Array.from(ratingElement.classList).find(cls => /^rating\d/.test(cls))
+      const className = Array.from(ratingElement.classList).find((cls) => /^rating\d/.test(cls));
       if (className) {
-        stars = Number.parseInt(className.replace(/[^\d]/g, ''), 10) || 0
+        stars = Number.parseInt(className.replace(/[^\d]/g, ''), 10) || 0;
       }
     }
   }
@@ -57,13 +57,13 @@ function scanDoubanPageStatus(type?: string): { status: string; rating: number }
   return {
     status: 'done',
     rating: Utils.clampRating10(stars * 2),
-  }
+  };
 }
 
 function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  if (type === 'success') FloatingToast.success('UMM', message)
-  else if (type === 'error') FloatingToast.error('UMM', message)
-  else FloatingToast.info('UMM', message)
+  if (type === 'success') FloatingToast.success('UMM', message);
+  else if (type === 'error') FloatingToast.error('UMM', message);
+  else FloatingToast.info('UMM', message);
 }
 
 /** Inject NeoDB push buttons into Douban detail page */
@@ -71,169 +71,195 @@ export function injectNeoDBPushButtons(
   currentIdentity: UrlIdentity | null,
   currentRecord: StoreRecord | null,
 ): void {
-  if (!currentIdentity) return
+  if (!currentIdentity) return;
 
   // Use record data if available (works in overlay Shadow DOM, doesn't rely on native DOM)
-  const pageState = currentRecord?.status === 2
-    ? { status: 'done', rating: currentRecord.rating || 0 }
-    : scanDoubanPageStatus(currentIdentity.type)
+  const pageState =
+    currentRecord?.status === 2
+      ? { status: 'done', rating: currentRecord.rating || 0 }
+      : scanDoubanPageStatus(currentIdentity.type);
   if (pageState.status !== 'done') {
-    debugLog('Page not marked as done, skip NeoDB buttons')
-    const oldButtons = document.getElementById('umm-neodb-push-buttons')
-    if (oldButtons) oldButtons.remove()
-    return
+    debugLog('Page not marked as done, skip NeoDB buttons');
+    const oldButtons = document.getElementById('umm-neodb-push-buttons');
+    if (oldButtons) oldButtons.remove();
+    return;
   }
 
-  const interestSect = document.querySelector('#interest_sect_level')
+  const interestSect = document.querySelector('#interest_sect_level');
 
-  const ov = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
-  const oldFromShadow = ov?.shadowRoot?.getElementById('umm-neodb-push-buttons')
-  const oldFromPage = document.getElementById('umm-neodb-push-buttons')
-  oldFromShadow?.remove()
-  oldFromPage?.remove()
+  const ov =
+    document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay');
+  const oldFromShadow = ov?.shadowRoot?.getElementById('umm-neodb-push-buttons');
+  const oldFromPage = document.getElementById('umm-neodb-push-buttons');
+  oldFromShadow?.remove();
+  oldFromPage?.remove();
 
-  const container = document.createElement('div')
-  container.id = 'umm-neodb-push-buttons'
-  container.className = 'umm-neodb-push-buttons'
+  const container = document.createElement('div');
+  container.id = 'umm-neodb-push-buttons';
+  container.className = 'umm-neodb-push-buttons';
 
-  const hasNeoDBLink = !!(currentRecord?.linkedIds?.neodb)
+  const hasNeoDBLink = !!currentRecord?.linkedIds?.neodb;
 
   if (hasNeoDBLink) {
-    container.classList.add('umm-neodb-synced')
+    container.classList.add('umm-neodb-synced');
   }
 
-  const watermark = document.createElement('div')
-  watermark.className = 'umm-neodb-watermark'
-  watermark.setAttribute('aria-hidden', 'true')
-  watermark.textContent = 'NEODB'
-  container.appendChild(watermark)
+  const watermark = document.createElement('div');
+  watermark.className = 'umm-neodb-watermark';
+  watermark.setAttribute('aria-hidden', 'true');
+  watermark.textContent = 'NEODB';
+  container.appendChild(watermark);
 
-  const livePageState = scanDoubanPageStatus(currentIdentity.type)
-  const currentRating = livePageState.rating || currentRecord?.rating || 0
-  const ratingMinus = Utils.clampRating10(currentRating - 1)
-  const ratingPlus = Utils.clampRating10(currentRating + 1)
+  const livePageState = scanDoubanPageStatus(currentIdentity.type);
+  const currentRating = livePageState.rating || currentRecord?.rating || 0;
+  const ratingMinus = Utils.clampRating10(currentRating - 1);
+  const ratingPlus = Utils.clampRating10(currentRating + 1);
 
-  const pushMinusBtn = document.createElement('button')
-  pushMinusBtn.id = 'umm-push-minus'
-  pushMinusBtn.className = 'umm-neodb-btn umm-neodb-btn--minus'
-  pushMinusBtn.textContent = t('neodb.btn_minus', { rating: ratingMinus })
-  pushMinusBtn.title = t('neodb.title_minus')
+  const pushMinusBtn = document.createElement('button');
+  pushMinusBtn.id = 'umm-push-minus';
+  pushMinusBtn.className = 'umm-neodb-btn umm-neodb-btn--minus';
+  pushMinusBtn.textContent = t('neodb.btn_minus', { rating: ratingMinus });
+  pushMinusBtn.title = t('neodb.title_minus');
 
-  const pushPlusBtn = document.createElement('button')
-  pushPlusBtn.id = 'umm-push-plus'
-  pushPlusBtn.className = 'umm-neodb-btn umm-neodb-btn--plus'
-  pushPlusBtn.textContent = t('neodb.btn_plus', { rating: ratingPlus })
-  pushPlusBtn.title = t('neodb.title_plus')
+  const pushPlusBtn = document.createElement('button');
+  pushPlusBtn.id = 'umm-push-plus';
+  pushPlusBtn.className = 'umm-neodb-btn umm-neodb-btn--plus';
+  pushPlusBtn.textContent = t('neodb.btn_plus', { rating: ratingPlus });
+  pushPlusBtn.title = t('neodb.title_plus');
 
-  const pushOriginalBtn = document.createElement('button')
-  pushOriginalBtn.id = 'umm-push-original'
-  pushOriginalBtn.className = 'umm-neodb-btn umm-neodb-btn--original'
-  pushOriginalBtn.textContent = t('neodb.btn_original', { rating: currentRating })
-  pushOriginalBtn.title = t('neodb.title_original')
+  const pushOriginalBtn = document.createElement('button');
+  pushOriginalBtn.id = 'umm-push-original';
+  pushOriginalBtn.className = 'umm-neodb-btn umm-neodb-btn--original';
+  pushOriginalBtn.textContent = t('neodb.btn_original', { rating: currentRating });
+  pushOriginalBtn.title = t('neodb.title_original');
 
-  container.appendChild(pushMinusBtn)
-  container.appendChild(pushPlusBtn)
-  container.appendChild(pushOriginalBtn)
+  container.appendChild(pushMinusBtn);
+  container.appendChild(pushPlusBtn);
+  container.appendChild(pushOriginalBtn);
 
   // Append "Open in NeoDB" link when a NeoDB association already exists
-  const neodbLinkedId = currentRecord?.linkedIds?.neodb
+  const neodbLinkedId = currentRecord?.linkedIds?.neodb;
   if (hasNeoDBLink && neodbLinkedId) {
-    const parts = neodbLinkedId.split('::')
+    const parts = neodbLinkedId.split('::');
     if (parts.length === 2) {
-      const [neodbType, neodbUuid] = parts
-      const neodbUrl = UrlResolverBuilder.buildNeoDBUrl(neodbType, neodbUuid)
-      const openBtn = document.createElement('a')
-      openBtn.id = 'umm-neodb-open'
-      openBtn.className = 'umm-neodb-btn umm-neodb-btn--open'
-      openBtn.textContent = t('neodb.btn_open')
-      openBtn.title = t('neodb.title_open')
-      openBtn.href = neodbUrl
-      openBtn.target = '_blank'
-      openBtn.rel = 'noopener noreferrer'
-      container.appendChild(openBtn)
+      // WHY !: parts.length === 2 verified above ⇒ both segments exist
+      const [neodbType, neodbUuid] = parts;
+      const neodbUrl = UrlResolverBuilder.buildNeoDBUrl(neodbType!, neodbUuid!);
+      const openBtn = document.createElement('a');
+      openBtn.id = 'umm-neodb-open';
+      openBtn.className = 'umm-neodb-btn umm-neodb-btn--open';
+      openBtn.textContent = t('neodb.btn_open');
+      openBtn.title = t('neodb.title_open');
+      openBtn.href = neodbUrl;
+      openBtn.target = '_blank';
+      openBtn.rel = 'noopener noreferrer';
+      container.appendChild(openBtn);
     }
   }
 
   // Prefer overlay's #umm-neodb-actions (Shadow DOM), fall back to native DOM
-  const overlay = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
-  const neodbActions = overlay?.shadowRoot?.querySelector('#umm-neodb-actions')
+  const overlay =
+    document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay');
+  const neodbActions = overlay?.shadowRoot?.querySelector('#umm-neodb-actions');
   if (neodbActions) {
-    neodbActions.appendChild(container)
+    neodbActions.appendChild(container);
   } else if (interestSect?.parentNode) {
-    interestSect.parentNode.insertBefore(container, interestSect)
+    interestSect.parentNode.insertBefore(container, interestSect);
   } else {
-    return
+    return;
   }
 
-  bindNeoDBPushEvents(currentIdentity, currentRecord, container)
+  bindNeoDBPushEvents(currentIdentity, currentRecord, container);
 
-  infoLog('NeoDB push buttons injected')
+  infoLog('NeoDB push buttons injected');
 }
 
-function bindNeoDBPushEvents(currentIdentity: UrlIdentity | null, currentRecord: StoreRecord | null, container: HTMLElement): void {
+function bindNeoDBPushEvents(
+  currentIdentity: UrlIdentity | null,
+  currentRecord: StoreRecord | null,
+  container: HTMLElement,
+): void {
   container.addEventListener('click', async (e) => {
-    const target = e.target as HTMLElement
-    if (!target.matches('#umm-push-minus, #umm-push-plus, #umm-push-original')) return
-    if (target.id === 'umm-push-minus') await pushToNeoDB(currentIdentity, currentRecord, -1)
-    else if (target.id === 'umm-push-plus') await pushToNeoDB(currentIdentity, currentRecord, 1)
-    else if (target.id === 'umm-push-original') await pushToNeoDB(currentIdentity, currentRecord, 0)
-  })
+    const target = e.target as HTMLElement;
+    if (!target.matches('#umm-push-minus, #umm-push-plus, #umm-push-original')) return;
+    if (target.id === 'umm-push-minus') await pushToNeoDB(currentIdentity, currentRecord, -1);
+    else if (target.id === 'umm-push-plus') await pushToNeoDB(currentIdentity, currentRecord, 1);
+    else if (target.id === 'umm-push-original')
+      await pushToNeoDB(currentIdentity, currentRecord, 0);
+  });
 }
 
 async function pushToNeoDB(
   currentIdentity: UrlIdentity | null,
   currentRecord: StoreRecord | null,
-  ratingAdjust: number
+  ratingAdjust: number,
 ): Promise<void> {
   if (!currentIdentity) {
-    showToast(t('neodb.no_identity'), 'error')
-    return
+    showToast(t('neodb.no_identity'), 'error');
+    return;
   }
 
-  const providerId = currentIdentity.providerId
+  const providerId = currentIdentity.providerId;
   if (!providerId) {
-    showToast(t('neodb.no_id'), 'error')
-    return
+    showToast(t('neodb.no_id'), 'error');
+    return;
   }
 
   // Disable buttons to show loading state
-  const ov = document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay')
-  const pushBtns = ov?.shadowRoot?.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original')
-    ?? document.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original')
-  const restore: Array<{ el: HTMLElement; d: boolean; op: string; pe: string }> = []
-  pushBtns.forEach(el => {
-    const btn = el as HTMLElement
-    restore.push({ el: btn, d: btn.hasAttribute('disabled'), op: btn.style.opacity, pe: btn.style.pointerEvents })
-    btn.setAttribute('disabled', 'true')
-    btn.style.opacity = '0.5'
-    btn.style.pointerEvents = 'none'
-  })
-  const restoreBtns = () => restore.forEach(r => {
-    if (!r.d) r.el.removeAttribute('disabled')
-    r.el.style.opacity = r.op
-    r.el.style.pointerEvents = r.pe
-  })
+  const ov =
+    document.getElementById('umm-detail-mask') ?? document.getElementById('umm-douban-overlay');
+  const pushBtns =
+    ov?.shadowRoot?.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original') ??
+    document.querySelectorAll('#umm-push-minus, #umm-push-plus, #umm-push-original');
+  const restore: Array<{ el: HTMLElement; d: boolean; op: string; pe: string }> = [];
+  pushBtns.forEach((el) => {
+    const btn = el as HTMLElement;
+    restore.push({
+      el: btn,
+      d: btn.hasAttribute('disabled'),
+      op: btn.style.opacity,
+      pe: btn.style.pointerEvents,
+    });
+    btn.setAttribute('disabled', 'true');
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+  });
+  const restoreBtns = () =>
+    restore.forEach((r) => {
+      if (!r.d) r.el.removeAttribute('disabled');
+      r.el.style.opacity = r.op;
+      r.el.style.pointerEvents = r.pe;
+    });
 
+  // WHY finally: every exit must end the loading state — the token-missing and
+  // communication-failure paths below return early.
   try {
-    const settings = await Store.getSettings()
+    const settings = await Store.getSettings();
     if (!settings.neodbToken) {
-      const toastSent = await safeSendMessage({
-        type: 'SHOW_TOAST',
-        payload: {
-          type: 'error',
-          title: t('neodb.config_missing_title'),
-          message: t('neodb.config_missing')
-        }
-      }, { timeout: 5000, retries: 0 })
+      const toastSent = await safeSendMessage(
+        {
+          type: 'SHOW_TOAST',
+          payload: {
+            type: 'error',
+            title: t('neodb.config_missing_title'),
+            message: t('neodb.config_missing'),
+          },
+        },
+        // retries 是**尝试次数**而非「额外重试」次数（safeSendMessage 的
+        // `for (attempt = 1; attempt <= retries; attempt++)`）：传 0 会一次都不发送、
+        // 直接返回 null —— 这条 background toast 曾因此从未真正发出（一直由下面的
+        // 本地 fallback 兜底）。取 1 = 只发一次、不重试。
+        { timeout: 5000, retries: 1 },
+      );
       if (!toastSent) {
-        showToast(t('neodb.config_missing'), 'error')
+        showToast(t('neodb.config_missing'), 'error');
       }
-      return
+      return;
     }
 
-    const livePageState = scanDoubanPageStatus(currentIdentity.type)
-    const baseRating = livePageState.rating || currentRecord?.rating || 0
-    const adjustedRating = Utils.clampRating10(baseRating + ratingAdjust)
+    const livePageState = scanDoubanPageStatus(currentIdentity.type);
+    const baseRating = livePageState.rating || currentRecord?.rating || 0;
+    const adjustedRating = Utils.clampRating10(baseRating + ratingAdjust);
 
     const neodbData = {
       providerId,
@@ -244,50 +270,53 @@ async function pushToNeoDB(
       type: currentIdentity.type as MediaTypeId,
       provider: currentIdentity.platform,
       comment: currentRecord?.comment ?? '',
-    }
+    };
 
-    const response = await safeSendMessage({
-      type: 'NEODB_PUSH_RATING',
-      payload: { record: neodbData },
-    }, { timeout: 15000, retries: 2 })
+    const response = await safeSendMessage(
+      {
+        type: 'NEODB_PUSH_RATING',
+        payload: { record: neodbData },
+      },
+      { timeout: 15000, retries: 2 },
+    );
 
     if (!response) {
-      errorLog('Communication with background failed after retries')
-      showToast(t('neodb.comm_retry'), 'error')
-      return
+      errorLog('Communication with background failed after retries');
+      showToast(t('neodb.comm_retry'), 'error');
+      return;
     }
 
     if (response.success) {
-      showToast(t('neodb.push_success', { rating: adjustedRating }), 'success')
+      showToast(t('neodb.push_success', { rating: adjustedRating }), 'success');
 
       if (response.catalogUuid && currentIdentity) {
-        const neodbFullKey = `${currentIdentity.type}::${response.catalogUuid}`
-        const doubanFullKey = `${currentIdentity.type}::${currentIdentity.providerId}`
+        const neodbFullKey = `${currentIdentity.type}::${response.catalogUuid}`;
+        const doubanFullKey = `${currentIdentity.type}::${currentIdentity.providerId}`;
 
-        const storeName = `${currentIdentity.platform}_records`
-        const key = `${currentIdentity.type}::${currentIdentity.providerId}`
-        const existing = await Store.dbGet(storeName, key)
+        const storeName = `${currentIdentity.platform}_records`;
+        const key = `${currentIdentity.type}::${currentIdentity.providerId}`;
+        const existing = await Store.dbGet(storeName, key);
         if (existing) {
-          existing.linkedIds = existing.linkedIds || {}
-          existing.linkedIds.neodb = neodbFullKey
-          existing.updatedAt = new Date().toISOString()
-          await Store.dbPut(storeName, key, existing)
-          currentRecord = existing
-          infoLog('Updated record with NeoDB linked ID:', neodbFullKey)
+          existing.linkedIds = existing.linkedIds || {};
+          existing.linkedIds.neodb = neodbFullKey;
+          existing.updatedAt = new Date().toISOString();
+          await Store.dbPut(storeName, key, existing);
+          currentRecord = existing;
+          infoLog('Updated record with NeoDB linked ID:', neodbFullKey);
         }
 
-        const neodbStoreName = 'neodb_records'
-        const existingNeoDB = await Store.dbGet(neodbStoreName, neodbFullKey)
+        const neodbStoreName = 'neodb_records';
+        const existingNeoDB = await Store.dbGet(neodbStoreName, neodbFullKey);
         if (existingNeoDB) {
-          existingNeoDB.status = 2
-          existingNeoDB.rating = adjustedRating
-          existingNeoDB.updatedAt = new Date().toISOString()
+          existingNeoDB.status = 2;
+          existingNeoDB.rating = adjustedRating;
+          existingNeoDB.updatedAt = new Date().toISOString();
           existingNeoDB.linkedIds = {
-            ...(existingNeoDB.linkedIds || {}),
+            ...existingNeoDB.linkedIds,
             douban: doubanFullKey,
-          }
-          await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB)
-          infoLog('Updated existing NeoDB record:', neodbFullKey)
+          };
+          await Store.dbPut(neodbStoreName, neodbFullKey, existingNeoDB);
+          infoLog('Updated existing NeoDB record:', neodbFullKey);
         } else {
           const neodbRecord: StoreRecord = {
             url: UrlResolverBuilder.buildNeoDBUrl(currentIdentity.type, response.catalogUuid),
@@ -295,23 +324,26 @@ async function pushToNeoDB(
             rating: adjustedRating,
             updatedAt: new Date().toISOString(),
             linkedIds: { douban: doubanFullKey },
-          }
-          await Store.dbPut(neodbStoreName, neodbFullKey, neodbRecord)
-          infoLog('Created NeoDB local record:', neodbFullKey)
+          };
+          await Store.dbPut(neodbStoreName, neodbFullKey, neodbRecord);
+          infoLog('Created NeoDB local record:', neodbFullKey);
         }
       } else {
-        warnLog('No catalogUuid in response or no currentIdentity')
+        warnLog('No catalogUuid in response or no currentIdentity');
       }
 
-      injectNeoDBPushButtons(currentIdentity, currentRecord)
-      infoLog('[UMM] NeoDB buttons re-rendered after push success')
+      injectNeoDBPushButtons(currentIdentity, currentRecord);
+      infoLog('[UMM] NeoDB buttons re-rendered after push success');
     } else {
-      showToast(t('neodb.push_failed', { message: response.message || t('neodb.unknown_error') }), 'error')
+      showToast(
+        t('neodb.push_failed', { message: response.message || t('neodb.unknown_error') }),
+        'error',
+      );
     }
-    restoreBtns()
   } catch (error: unknown) {
-    errorLog('Push to NeoDB failed:', error)
-    showToast(t('neodb.sync_failed'), 'error')
-    restoreBtns()
+    errorLog('Push to NeoDB failed:', error);
+    showToast(t('neodb.sync_failed'), 'error');
+  } finally {
+    restoreBtns();
   }
 }

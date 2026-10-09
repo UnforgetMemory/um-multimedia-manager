@@ -1,6 +1,6 @@
 // ─── API 工具函数 ──────────────────────────────────
 
-import { MUKAKU_CONFIG } from './config'
+import { MUKAKU_CONFIG } from './config';
 
 /**
  * Probe payload parse result.
@@ -15,10 +15,10 @@ import { MUKAKU_CONFIG } from './config'
  */
 export type ProbeExtraction =
   | { status: 'ok'; doubanId: string | null; imdbId: string | null }
-  | { status: 'invalid' }
+  | { status: 'invalid' };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
@@ -27,17 +27,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * (a persisted `tt` mapping would suppress dimming for 7 days).
  */
 function normalizeImdbId(raw: unknown): string | null {
-  if (raw == null) return null
-  const id = String(raw).trim()
-  if (!id) return null
-  return id.startsWith('tt') ? id : `tt${id}`
+  if (raw == null) return null;
+  const id = String(raw).trim();
+  if (!id) return null;
+  return id.startsWith('tt') ? id : `tt${id}`;
 }
 
 /** Coerce a douban id: absent / empty / whitespace-only → null (falsy values must never persist). */
 function normalizeDoubanId(raw: unknown): string | null {
-  if (raw == null) return null
-  const id = String(raw).trim()
-  return id ? id : null
+  if (raw == null) return null;
+  const id = String(raw).trim();
+  return id ? id : null;
 }
 
 /**
@@ -49,17 +49,17 @@ function normalizeDoubanId(raw: unknown): string | null {
  */
 export function extractLinkedIdsFromPayload(payload: unknown): ProbeExtraction {
   if (!isRecord(payload)) {
-    return { status: 'invalid' }
+    return { status: 'invalid' };
   }
-  const data = payload.data
+  const data = payload.data;
   if (!isRecord(data)) {
-    return { status: 'invalid' }
+    return { status: 'invalid' };
   }
 
-  const doubanId = normalizeDoubanId(data.doub_id)
-  const imdbId = normalizeImdbId(data.IMDB_number)
+  const doubanId = normalizeDoubanId(data.doub_id);
+  const imdbId = normalizeImdbId(data.IMDB_number);
 
-  return { status: 'ok', doubanId, imdbId }
+  return { status: 'ok', doubanId, imdbId };
 }
 
 /**
@@ -71,20 +71,20 @@ export function extractLinkedIdsFromPayload(payload: unknown): ProbeExtraction {
  */
 export function shouldPersistProbe(extraction: ProbeExtraction): boolean {
   if (extraction.status === 'invalid') {
-    return false
+    return false;
   }
-  return extraction.doubanId !== null || extraction.imdbId !== null
+  return extraction.doubanId !== null || extraction.imdbId !== null;
 }
 
 /**
  * Build the probe API URL.
  */
 export function getApiUrl(mvId: string): string {
-  const url = new URL(MUKAKU_CONFIG.API_PATH, 'https://web5.mukaku.com')
-  url.searchParams.set('id', mvId)
-  url.searchParams.set('app_id', MUKAKU_CONFIG.APP_ID)
-  url.searchParams.set('identity', MUKAKU_CONFIG.IDENTITY)
-  return url.href
+  const url = new URL(MUKAKU_CONFIG.API_PATH, 'https://web5.mukaku.com');
+  url.searchParams.set('id', mvId);
+  url.searchParams.set('app_id', MUKAKU_CONFIG.APP_ID);
+  url.searchParams.set('identity', MUKAKU_CONFIG.IDENTITY);
+  return url.href;
 }
 
 /**
@@ -92,9 +92,9 @@ export function getApiUrl(mvId: string): string {
  * linkless cards).
  */
 export interface ListEntry {
-  image: string
-  doubanId: string
-  imdbId: string | null
+  image: string;
+  doubanId: string;
+  imdbId: string | null;
 }
 
 /**
@@ -106,26 +106,26 @@ export interface ListEntry {
  * list is capped at MAX_LIST_ENTRIES (hostile/huge payloads must not bloat
  * memory or the IDB mapping cache). Unusable responses yield an empty array.
  */
-const MAX_LIST_ENTRIES = 2000
+const MAX_LIST_ENTRIES = 2000;
 
 export function extractListEntries(payload: unknown): ListEntry[] {
-  if (!isRecord(payload)) return []
-  const data = payload.data
-  if (!isRecord(data)) return []
-  const list = data.data
-  if (!Array.isArray(list)) return []
+  if (!isRecord(payload)) return [];
+  const data = payload.data;
+  if (!isRecord(data)) return [];
+  const list = data.data;
+  if (!Array.isArray(list)) return [];
 
-  const entries: ListEntry[] = []
+  const entries: ListEntry[] = [];
   for (const item of list) {
-    if (entries.length >= MAX_LIST_ENTRIES) break
-    if (!isRecord(item)) continue
-    const image = typeof item.image === 'string' ? item.image : ''
-    const doubanId = normalizeDoubanId(item.doub_id)
-    if (!image || !doubanId) continue
-    const imdbId = normalizeImdbId(item.IMDB_number)
-    entries.push({ image, doubanId, imdbId })
+    if (entries.length >= MAX_LIST_ENTRIES) break;
+    if (!isRecord(item)) continue;
+    const image = typeof item.image === 'string' ? item.image : '';
+    const doubanId = normalizeDoubanId(item.doub_id);
+    if (!image || !doubanId) continue;
+    const imdbId = normalizeImdbId(item.IMDB_number);
+    entries.push({ image, doubanId, imdbId });
   }
-  return entries
+  return entries;
 }
 
 /**
@@ -133,10 +133,10 @@ export function extractListEntries(payload: unknown): ListEntry[] {
  * param (default 1).
  */
 export function getListApiUrl(sb: string, page = '1'): string {
-  const url = new URL(MUKAKU_CONFIG.LIST_API_PATH, 'https://web5.mukaku.com')
-  url.searchParams.set('sb', sb)
-  url.searchParams.set('page', page)
-  url.searchParams.set('app_id', MUKAKU_CONFIG.APP_ID)
-  url.searchParams.set('identity', MUKAKU_CONFIG.IDENTITY)
-  return url.href
+  const url = new URL(MUKAKU_CONFIG.LIST_API_PATH, 'https://web5.mukaku.com');
+  url.searchParams.set('sb', sb);
+  url.searchParams.set('page', page);
+  url.searchParams.set('app_id', MUKAKU_CONFIG.APP_ID);
+  url.searchParams.set('identity', MUKAKU_CONFIG.IDENTITY);
+  return url.href;
 }

@@ -1,0 +1,111 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/book-reviews-data.spec.ts.
+  NOT a real saved page — all data is fabricated. Reproduces the public DOM
+  shape of https://book.douban.com/people/{uid}/reviews as queried by
+  src/scenario/douban/pages/book-reviews/book-reviews-data.ts:
+  #db-usr-profile (pic img alt = display name, .info h1 "书评(N)", nav ul),
+  .article > div > div.tlst review containers with [id^="review_"],
+  .nlst h3 > a title, .ilst subject a[title] + img, .ll.user .starb
+  (author a + allstarNN rating + 阅读数/来源 spans), .review-content p /
+  .review-short span, .useful_count/.useless_count, and .paginator.
+  Includes an unrated full-review item, a minimal item (author falls back to
+  profile name), and a promo .tlst without review id/title that must be skipped.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>读书的小林的书评</title>
+  </head>
+  <body>
+    <div id="db-usr-profile">
+      <div class="pic">
+        <a href="https://book.douban.com/people/reader01/">
+          <img src="https://img1.doubanio.com/icon/ur765432-20.jpg" alt="读书的小林" />
+        </a>
+      </div>
+      <div class="info">
+        <h1>我的书评(12)</h1>
+        <ul>
+          <li><a href="https://book.douban.com/people/reader01/">主页</a></li>
+          <li class="sep">|</li>
+          <li><a href="https://book.douban.com/people/reader01/reviews">书评</a></li>
+        </ul>
+      </div>
+    </div>
+    <div id="content">
+      <div class="article">
+        <div class="main">
+          <div class="review-item tlst">
+            <div id="review_42831570" class="main-hd"></div>
+            <div class="ilst">
+              <a href="https://book.douban.com/subject/36185161/" title="长安的荔枝">
+                <img src="https://img3.doubanio.com/view/subject/l/public/s36185161.jpg" />
+              </a>
+            </div>
+            <div class="nlst">
+              <h3><a href="https://book.douban.com/review/42831570/">荔枝里的驿路程序</a></h3>
+            </div>
+            <div class="clst">
+              <div class="ll user">
+                <div class="starb">
+                  <a href="https://book.douban.com/people/reader01/">读书的小林</a>
+                  <span class="user-stars allstar40" title="推荐"></span>
+                  <span class="pub">2026-07-01 12:00</span>
+                  <span>1456人阅读</span>
+                  <span>来自：本站</span>
+                </div>
+              </div>
+              <div class="review-short">
+                <span>马伯庸把小吏写成了主角，驿路即程序，荔枝即 KPI。</span>
+              </div>
+              <span class="vote">
+                <span class="useful_count">120</span>
+                <span class="useless_count">3</span>
+              </span>
+            </div>
+          </div>
+          <div class="review-item tlst">
+            <div class="nlst" id="review_41000000">
+              <h3><a href="/review/41000000/">冰与海的边界</a></h3>
+              <div class="review-content">
+                <p>第一章的隐喻铺陈得极慢，像潮汐一样反复，直到最后一页才收束。</p>
+              </div>
+            </div>
+            <div class="clst">
+              <div class="ll user">
+                <div class="starb">
+                  <a href="https://book.douban.com/people/reader01/">读书的小林</a>
+                  <span class="pub">2025-12-20 09:10</span>
+                  <span>88人阅读</span>
+                </div>
+              </div>
+              <span class="vote">
+                <span class="useful_count">6</span>
+                <span class="useless_count">0</span>
+              </span>
+            </div>
+          </div>
+          <div class="review-item tlst">
+            <div id="review_39900001" class="nlst">
+              <h3><a href="https://book.douban.com/review/39900001/">读卡机之死</a></h3>
+            </div>
+            <div class="clst">
+              <div class="ll user"><span class="pub">2024-03-03</span></div>
+              <div class="review-short"><span>关于媒介考古的一篇短记。</span></div>
+            </div>
+          </div>
+          <div class="tlst">
+            <p>推广位：本周热门图书榜</p>
+          </div>
+        </div>
+      </div>
+      <div class="paginator">
+        <span class="thispage" data-total-page="3">1</span>
+        <a href="?sort=time&page=2">2</a>
+        <a href="?sort=time&page=3">3</a>
+        <span class="next"><a href="?sort=time&page=2">后页></a></span>
+      </div>
+    </div>
+  </body>
+</html>

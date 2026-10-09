@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import { useThemeStore } from '@/stores/theme'
-import { useLocaleSync } from '@/composables/useLocaleSync'
-import ConfirmDialog from '@/shared/ConfirmDialog.vue'
-import ToastContainer from '@/shared/ToastContainer.vue'
+import { RouterView } from 'vue-router';
+import { useThemeStore } from '@/store/theme';
+import { useLocaleSync } from '@/feature/composables/use-locale-sync';
+import ConfirmDialog from '@/feature/ConfirmDialog.vue';
+import ToastContainer from '@/feature/ToastContainer.vue';
 
-useThemeStore()
-useLocaleSync()
+useThemeStore();
+useLocaleSync();
 </script>
 
-<template>
+<template vapor>
   <RouterView />
   <ConfirmDialog />
   <ToastContainer />

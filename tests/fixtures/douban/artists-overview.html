@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for tests/unit/artists-overview-extract.spec.ts.
+  NOT a real saved page: reproduces the public music.douban.com/artists DOM
+  shape (#guess-artists carousel, #artists-events .list-v, #artists-video
+  .list, .genre-nav .bd) to match the extractor contract in
+  src/scenario/douban/pages/artists-overview/artists-overview-extract.ts.
+  All data is fabricated.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>音乐人概览 · 豆瓣音乐</title>
+  </head>
+  <body>
+    <div id="db-nav-music"></div>
+
+    <!-- 你可能感兴趣的音乐人 -->
+    <div id="guess-artists">
+      <div class="slide-page">
+        <ul class="list">
+          <li>
+            <div class="pic">
+              <a href="https://site.douban.com/wanqing/"
+                ><img src="https://img3.doubanio.com/img/artist/s_wanqing.jpg"
+              /></a>
+            </div>
+            <div class="artist-info">
+              <span class="artist-name"><a href="https://site.douban.com/wanqing/">万能青年旅店</a></span>
+            </div>
+          </li>
+          <li>
+            <div class="pic">
+              <a href="https://site.douban.com/shqi/"
+                ><img src="https://img2.doubanio.com/img/artist/s_shqi.jpg"
+              /></a>
+            </div>
+            <div class="artist-info">
+              <span class="artist-name"><a href="https://site.douban.com/shqi/">声音玩具</a></span>
+            </div>
+          </li>
+          <!-- duplicated href → deduplicated -->
+          <li>
+            <div class="pic">
+              <a href="https://site.douban.com/wanqing/"
+                ><img src="https://img3.doubanio.com/img/artist/s_wanqing.jpg"
+              /></a>
+            </div>
+            <div class="artist-info">
+              <span class="artist-name"><a href="https://site.douban.com/wanqing/">万能青年旅店</a></span>
+            </div>
+          </li>
+          <!-- no artist-name anchor → skipped -->
+          <li>
+            <div class="pic">
+              <a href="https://site.douban.com/nameless/"
+                ><img src="https://img9.doubanio.com/img/artist/s_nameless.jpg"
+              /></a>
+            </div>
+            <div class="artist-info"><span class="plays">1.2万人播放</span></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 推荐活动 -->
+    <div id="artists-events">
+      <ul class="list-v">
+        <li>
+          <div class="pic">
+            <a href="https://www.douban.com/event/36660001/"
+              ><img src="https://img1.doubanio.com/cuphead/event/p36660001-cover.jpg"
+            /></a>
+          </div>
+          <div class="info">
+            <p class="desc">
+              2026 夏波音乐节阵容公布
+              时间：2026-08-15 至 08-17
+              地点：天津滨海公园
+            </p>
+          </div>
+        </li>
+        <li>
+          <div class="pic">
+            <a href="https://www.douban.com/event/36660002/"
+              ><img src="https://img2.doubanio.com/cuphead/event/p36660002-cover.jpg"
+            /></a>
+          </div>
+          <div class="info"><p class="desc">新专辑试听会 · 潮汐少女</p></div>
+        </li>
+        <!-- no .pic link → skipped -->
+        <li>
+          <div class="info"><p class="desc">没有图片的活动</p></div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 音乐录像带 -->
+    <div id="artists-video">
+      <ul class="list">
+        <li>
+          <div class="pic">
+            <a href="https://music.douban.com/video/20001/"
+              ><img src="https://img3.doubanio.com/view/movie_poster_cover/apspath/p20001.jpg"
+            /></a>
+          </div>
+          <div class="title">
+            <span class="artist-name">草东没有派对</span>
+            <a href="https://music.douban.com/video/20001/">大风吹 MV</a>
+          </div>
+        </li>
+        <li>
+          <div class="pic">
+            <a href="https://music.douban.com/video/20002/"
+              ><img src="https://img1.doubanio.com/view/movie_poster_cover/apspath/p20002.jpg"
+            /></a>
+          </div>
+          <div class="title">
+            <a href="https://music.douban.com/video/20002/">无艺人名的现场</a>
+          </div>
+        </li>
+        <!-- no .pic link → skipped -->
+        <li>
+          <div class="title"><span class="artist-name">无名</span><a>没有链接</a></div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 流派导航 -->
+    <div class="genre-nav">
+      <div class="hd"><h3>流派</h3></div>
+      <div class="bd">
+        <a href="https://music.douban.com/artists/genre_page/1">流行</a>
+        <a href="https://music.douban.com/artists/genre_page/10">摇滚</a>
+        <a href="https://music.douban.com/artists/genre_page/7">电子</a>
+        <a href="https://music.douban.com/artists/genre_page/88"> </a>
+      </div>
+    </div>
+  </body>
+</html>

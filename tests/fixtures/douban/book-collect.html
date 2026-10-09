@@ -1,0 +1,167 @@
+<!doctype html>
+<!--
+  Synthetic Douban-shaped fixture for
+  src/scenario/douban/pages/book-collect/book-collect-data.ts.
+  NOT a real saved page: user, ids and short comments are fabricated.
+  Only the book interest-list DOM contract the extractor queries is
+  reproduced: #db-usr-profile, .opt-bar .sort, .subject-num,
+  ul.interest-list > li.subject-item (.pic .nbg img / .info h2 a / .pub /
+  .short-note .date / .comment.comment-item) and .paginator.
+  Page 1 of a 138-book shelf; 4 <li class="subject-item"> rendered, one of
+  them a deregistered entry the extractor must skip.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>UnforgetMemory读过的书(138)</title>
+  </head>
+  <body>
+    <div id="db-usr-profile">
+      <div class="pic">
+        <a href="https://book.douban.com/people/unforgetmemory/">
+          <img
+            src="https://img3.doubanio.com/icon/u150361821-2.jpg"
+            alt="UnforgetMemory"
+            width="64"
+            height="64"
+          />
+        </a>
+      </div>
+      <div class="info">
+        <h1>UnforgetMemory</h1>
+        <ul class="info-nav">
+          <li><a href="https://book.douban.com/people/unforgetmemory/collect">读过的 138</a></li>
+          <li><a href="https://book.douban.com/people/unforgetmemory/wish">想读的 62</a></li>
+          <li><a href="https://book.douban.com/people/unforgetmemory/do">在读的 4</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="article">
+        <div class="opt-bar clearfix">
+          <div class="sort">按时间排序<span class="separator">·</span
+          ><a href="?sort=rating">按评分排序</a></div>
+          <div class="view-toggle">
+            <span class="list-on cur">列表模式</span>
+            <a class="grid-toggle" href="?mode=g">网格模式</a>
+          </div>
+        </div>
+        <span class="subject-num">1-25 / 138</span>
+
+        <ul class="interest-list">
+          <li class="subject-item odd">
+            <div class="pic">
+              <a
+                class="nbg"
+                href="https://book.douban.com/subject/6085146/"
+                title="活着 (豆瓣)"
+              >
+                <img
+                  src="https://img1.doubanio.com/view/subject/s/public/s6384898.jpg"
+                  alt="活着"
+                  width="65"
+                  height="99"
+                />
+              </a>
+            </div>
+            <div class="info">
+              <h2 class="title">
+                <a href="https://book.douban.com/subject/6085146/" title="活着">活着</a>
+              </h2>
+              <div class="pub">余华 / 作家出版社 / 2012-8 / 192 / 20.00元</div>
+              <div class="short-note">
+                <span class="date">2024-01-18 读过</span>
+                <span class="comment comment-item">
+                  把苦难写到不动声色，福贵的每一次失去都算得清数目。
+                </span>
+              </div>
+              <div class="tag-list">
+                <a href="/tag/余华">余华</a>
+                <a href="/tag/中国文学">中国文学</a>
+              </div>
+            </div>
+          </li>
+
+          <li class="subject-item even">
+            <div class="pic">
+              <a class="nbg" href="https://book.douban.com/subject/27087772/">
+                <img
+                  src="https://img2.doubanio.com/view/subject/s/public/s27288861.jpg"
+                  alt="房思琪的初恋乐园"
+                  width="65"
+                  height="99"
+                />
+              </a>
+            </div>
+            <div class="info">
+              <!-- 真实页面上该链接有时不带 title 属性 — 提取器须回落 textContent -->
+              <h2 class="title">
+                <a href="https://book.douban.com/subject/27087772/">房思琪的初恋乐园</a>
+              </h2>
+              <div class="pub">林奕含 / 新经典文化 / 2018-2 / 272 / 45.00元</div>
+              <div class="short-note">
+                <span class="date">2023-11-02 读过</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="subject-item odd">
+            <div class="pic">
+              <a class="nbg" href="https://book.douban.com/subject/3021615/">
+                <img
+                  src="https://img9.doubanio.com/view/subject/s/public/s6309405.jpg"
+                  alt="百年孤独"
+                  width="65"
+                  height="99"
+                />
+              </a>
+            </div>
+            <div class="info">
+              <h2 class="title">
+                <a href="https://book.douban.com/subject/3021615/" title="百年孤独">百年孤独</a>
+              </h2>
+              <div class="pub">加西亚·马尔克斯 / 范晔 / 南海出版公司 / 2011-6 / 360 / 39.50元</div>
+              <!-- 只做了标记，没有短评与阅读日期 -->
+            </div>
+          </li>
+
+          <!-- 已注销条目：豆瓣仍渲染一行，但没有指向 subject 的链接 -->
+          <li class="subject-item even">
+            <div class="pic"></div>
+            <div class="info">
+              <h2 class="title"><span class="destroyed">该条目已注销</span></h2>
+              <div class="pub">—</div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="paginator">
+          <span class="prev"><a href="?sort=time&amp;status=finish&amp;start=0">前页</a></span>
+          <span class="thispage" data-total-page="6">1</span>
+          <a href="?sort=time&amp;status=finish&amp;start=25">2</a>
+          <a href="?sort=time&amp;status=finish&amp;start=50">3</a>
+          <span class="next"><a href="?sort=time&amp;status=finish&amp;start=25">后页</a></span>
+          <span class="last"><a href="?sort=time&amp;status=finish&amp;start=125">最后一页</a></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 侧栏推荐位：不在 ul.interest-list 下的 li.subject-item，提取器必须跳过 -->
+    <div class="aside">
+      <ul class="recommend-list">
+        <li class="subject-item">
+          <div class="pic">
+            <a class="nbg" href="https://book.douban.com/subject/99999999/">
+              <img src="https://img1.doubanio.com/view/subject/s/public/s99999999.jpg" alt="推荐位" />
+            </a>
+          </div>
+          <div class="info">
+            <h2 class="title"><a href="https://book.douban.com/subject/99999999/" title="推荐位假条目">推荐位假条目</a></h2>
+            <div class="pub">随机出版社 / 2020-1</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>
